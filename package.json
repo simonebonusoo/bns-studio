@@ -1,0 +1,49 @@
+{
+  "name": "bns-studio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "server": "node src/server/shop/server.mjs",
+    "server:dev": "node --watch src/server/shop/server.mjs",
+    "full": "sh -c 'npm run server & npm run dev'",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.mjs",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^6.19.2",
+    "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "framer-motion": "^11.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "jspdf": "^3.0.4",
+    "lenis": "^1.1.13",
+    "morgan": "^1.10.1",
+    "multer": "^2.1.1",
+    "openai": "^6.15.0",
+    "prisma": "^6.19.2",
+    "puppeteer-core": "^24.40.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.13.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.7",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}

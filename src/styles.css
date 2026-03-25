@@ -1,0 +1,289 @@
+/* =========================
+   Tailwind layers
+   ========================= */
+@tailwind base;        /* Reset + base styles di Tailwind */
+@tailwind components;  /* Classi component (se definite) */
+
+@layer components {
+  .legal {
+    @apply text-white/70 leading-relaxed;
+  }
+
+  .legal h1 {
+    @apply text-3xl md:text-4xl font-semibold text-white tracking-tight;
+  }
+
+  .legal h2 {
+    @apply mt-10 text-xl md:text-2xl font-semibold text-white;
+  }
+
+  .legal h3 {
+    @apply mt-6 text-base md:text-lg font-semibold text-white/90;
+  }
+
+  .legal p {
+    @apply mt-3;
+  }
+
+  .legal ul {
+    @apply mt-3 list-disc pl-5 space-y-2;
+  }
+
+  .legal ol {
+    @apply mt-3 list-decimal pl-5 space-y-2;
+  }
+
+  .legal li {
+    @apply text-white/70;
+  }
+
+  .legal a {
+    @apply text-white underline underline-offset-4 decoration-white/30 hover:decoration-white/70;
+  }
+
+  .legal strong {
+    @apply text-white/90 font-semibold;
+  }
+
+  .legal hr {
+    @apply my-10 border-white/10;
+  }
+
+  .legal .muted {
+    @apply text-white/45;
+  }
+}
+
+@tailwind utilities;   /* Tutte le utility class */
+
+/* =========================
+   Global / Reset
+   ========================= */
+:root { 
+  color-scheme: dark;  /* Hint al browser: UI in dark mode (scrollbar/form ecc.) */
+}
+
+* { 
+  -webkit-tap-highlight-color: transparent; /* Rimuove highlight su tap mobile */
+}
+
+html, body { 
+  height: 100%; /* Altezza piena pagina (poi sotto la sovrascrivi con height:auto) */
+}
+
+body { 
+  /* Font stack globale */
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Helvetica, Arial;
+  background: #0b0b0c; /* Background base del sito */
+}
+
+::selection { 
+  background: rgba(255,255,255,.18); /* Colore selezione testo */
+}
+
+/* =========================
+   Background grid effect
+   ========================= */
+.bg-grid {
+  /* Due gradienti (verticale + orizzontale) per creare una griglia */
+  background-image:
+    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+
+  /* Dimensione celle griglia */
+  background-size: 42px 42px;
+
+  /* Centra la griglia */
+  background-position: center;
+
+  /* Maschera: più visibile al centro e svanisce verso i bordi */
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 72%);
+}
+
+/* =========================
+   Glass effect utility
+   ========================= */
+.glass {
+  background: rgba(255,255,255,.04);            /* Fondo semi-trasparente */
+  border: 1px solid rgba(255,255,255,.08);      /* Bordo sottile */
+  backdrop-filter: blur(10px);                  /* Sfocatura dietro */
+}
+
+/* =========================
+   Focus accessibility
+   ========================= */
+:focus-visible { 
+  outline: 2px solid rgba(255,255,255,.35); /* Outline accessibile */
+  outline-offset: 3px;                      /* Distacco dal bordo */
+}
+
+/* =========================
+   Scrollbar (Webkit)
+   ========================= */
+::-webkit-scrollbar { 
+  width: 10px; 
+  height: 10px; 
+}
+
+::-webkit-scrollbar-thumb { 
+  background: rgba(255,255,255,.12); /* Colore “thumb” scrollbar */
+  border-radius: 999px;              /* Arrotondato */
+}
+
+::-webkit-scrollbar-track { 
+  background: rgba(255,255,255,.03); /* Track scrollbar */
+}
+
+/* =========================
+   CSS Variables (Palette)
+   ========================= */
+:root {
+  --bg: #000000;                 /* Nero base */
+  --primary: #e3f503;            /* Colore brand (lime) */
+  --white: #ffffff;              /* Bianco */
+  --glass: rgba(255,255,255,0.06); /* Glass utility var */
+}
+
+/* =========================
+   Navbar (versione CSS “vecchia”)
+   ========================= */
+.navbar {
+  position: fixed;                 /* Navbar fissa in alto */
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  backdrop-filter: blur(14px);     /* Blur dietro la navbar */
+  background: rgba(0,0,0,0.6);     /* Sfondo scuro trasparente */
+}
+
+.nav-inner {
+  max-width: 1280px;               /* Larghezza massima */
+  margin: 0 auto;                  /* Centro */
+  padding: 1rem 2rem;              /* Spaziatura */
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Menu links */
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+}
+
+/* Stile link */
+.nav-links a {
+  color: var(--white);
+  text-decoration: none;
+  font-weight: 500;
+  position: relative;
+  opacity: 0.85;
+}
+
+/* Underline animata */
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+/* Hover underline */
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+/* CTA nel menu */
+.nav-links .cta {
+  color: black;
+  background: var(--primary);
+  padding: 0.5rem 1.2rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* =========================
+   Layout sections
+   ========================= */
+section {
+  max-width: 1280px;  /* Sezioni centrate e limitate */
+  margin: 0 auto;
+  padding: 6rem 2rem; /* Spaziatura verticale */
+}
+
+/* Overflow e altezza pagina (override della regola sopra html, body { height:100% }) */
+html, body {
+  overflow-x: hidden; /* Niente scroll orizzontale */
+  overflow-y: auto;   /* Scroll verticale */
+  height: auto;       /* Override: altezza automatica */
+}
+
+/* Evidenzia testo (brand) */
+.highlight {
+  color: var(--primary);
+}
+
+/* Brand (logo + testo) */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Immagine logo nel brand */
+.brand-logo {
+  height: 22px;        /* Altezza logo */
+  width: auto;
+  object-fit: contain;
+}
+
+/* Colore accento brand */
+.brand-accent {
+  color: #e3f503;
+}
+
+/* Hover logo brand */
+.brand:hover .brand-logo {
+  transform: rotate(-3deg) scale(1.03);
+  transition: transform 0.3s ease;
+}
+
+/* Evita che il logo venga “schiacciato” in flex */
+.navbar img {
+  max-height: none !important;
+}
+
+.shop-input,
+.shop-select,
+.shop-textarea {
+  @apply w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-white/35 transition;
+}
+
+.shop-input:focus,
+.shop-select:focus,
+.shop-textarea:focus {
+  @apply border-white/25 bg-white/[0.05];
+}
+
+.shop-card {
+  @apply rounded-[24px] border border-white/10 bg-white/[0.03] backdrop-blur-md;
+}
+
+.shop-pill {
+  @apply inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/55;
+}
+
+/* Logo PNG libero: nessun background/border/padding imposto da altri stili */
+a[href="#top"] img {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}

@@ -1,0 +1,226 @@
+import { useEffect, useRef } from "react"
+import Lenis from "lenis"
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
+
+import { Navbar } from "./components/Navbar"
+import { BackToTop } from "./components/BackToTop"
+import { Noise } from "./components/Noise"
+import { BottomNavMobile } from "./components/BottomNavMobile"
+
+import { Hero } from "./sections/Hero"
+import { Services } from "./sections/Services"
+import { Work } from "./sections/Work"
+import { Pricing } from "./sections/Pricing"
+import { Resources } from "./sections/Resources"
+import { Testimonials } from "./sections/Testimonials"
+import { FAQ } from "./sections/faq"
+import { Contact } from "./sections/Contact"
+import { Footer } from "./sections/Footer"
+
+import { CaseStudyPage } from "./pages/CaseStudyPage"
+import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage"
+
+import { HelperChatProvider } from "./context/HelperChatProvider"
+import { FloatingHelperChat } from "./components/FloatingHelperChat"
+import { ShopAuthProvider } from "./shop/context/ShopAuthProvider"
+import { ShopCartProvider } from "./shop/context/ShopCartProvider"
+import { ShopPage } from "./shop/pages/ShopPage"
+import { ShopProductPage } from "./shop/pages/ShopProductPage"
+import { ShopCartPage } from "./shop/pages/ShopCartPage"
+import { ShopAuthPage } from "./shop/pages/ShopAuthPage"
+import { ShopCheckoutPage } from "./shop/pages/ShopCheckoutPage"
+import { ShopProfilePage } from "./shop/pages/ShopProfilePage"
+import { ShopReceiptPage } from "./shop/pages/ShopReceiptPage"
+import { ShopAdminPage } from "./shop/pages/ShopAdminPage"
+import { ShopPaypalReturnPage } from "./shop/pages/ShopPaypalReturnPage"
+import { ShopAdminRoute, ShopProtectedRoute } from "./shop/components/ShopProtectedRoute"
+
+declare global {
+  interface Window {
+    __lenis?: Lenis
+  }
+}
+
+function Home() {
+  return (
+    <main id="top">
+      <Hero />
+      <Services />
+      <Work />
+      <Pricing />
+      <Resources />
+      <Testimonials />
+      <FAQ />
+      <Contact />
+    </main>
+  )
+}
+
+export default function App() {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const lenisRef = useRef<Lenis | null>(null)
+  const rafRef = useRef<number>(0)
+
+  const pathnameRef = useRef(location.pathname)
+  useEffect(() => {
+    pathnameRef.current = location.pathname
+  }, [location.pathname])
+
+  const OFFSET = -92
+
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.1,
+      smoothWheel: true,
+      smoothTouch: false,
+    } as any)
+
+    lenisRef.current = lenis
+    window.__lenis = lenis
+
+    const loop = (time: number) => {
+      lenis.raf(time)
+      rafRef.current = requestAnimationFrame(loop)
+    }
+    rafRef.current = requestAnimationFrame(loop)
+
+    // Smooth scroll SOLO per anchor #... quando sei in HOME
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented) return
+      if ((e as any).button !== 0) return
+      if ((e as any).metaKey || (e as any).ctrlKey || (e as any).shiftKey || (e as any).altKey) return
+
+      const target = e.target as HTMLElement | null
+      if (!target) return
+
+      const a = target.closest('a[href^="#"], a[href^="/#"]') as HTMLAnchorElement | null
+      if (!a) return
+
+      const href = a.getAttribute("href") || ""
+      const hash = href.startsWith("/#") ? href.slice(1) : href
+      if (!hash.startsWith("#")) return
+
+      // Se NON sei in home, vai in home con hash
+      if (pathnameRef.current !== "/") {
+        e.preventDefault()
+        navigate(`/${hash}`)
+        return
+      }
+
+      const id = hash.replace("#", "")
+      if (!id) return
+
+      const el = document.getElementById(id)
+      if (!el) return
+
+      e.preventDefault()
+      lenis.scrollTo(el, { offset: OFFSET, duration: 1.15 })
+      history.pushState(null, "", `#${id}`)
+    }
+
+    document.addEventListener("click", onClick)
+
+    return () => {
+      document.removeEventListener("click", onClick)
+      cancelAnimationFrame(rafRef.current)
+      lenis.destroy()
+      lenisRef.current = null
+      delete window.__lenis
+    }
+  }, [navigate])
+
+  useEffect(() => {
+    const lenis = lenisRef.current
+    if (!lenis) return
+    if (location.pathname !== "/") return
+    if (!location.hash) return
+
+    const id = location.hash.replace("#", "")
+    if (!id) return
+
+    let tries = 0
+    const tryScroll = () => {
+      const el = document.getElementById(id)
+      if (el) {
+        lenis.scrollTo(el, { offset: OFFSET, duration: 1.15 })
+        return
+      }
+      tries += 1
+      if (tries < 10) requestAnimationFrame(tryScroll)
+    }
+
+    requestAnimationFrame(tryScroll)
+  }, [location.pathname, location.hash])
+
+  return (
+    <HelperChatProvider>
+      <ShopAuthProvider>
+        <ShopCartProvider>
+          <div className="min-h-screen bg-ink text-white overflow-x-hidden">
+            <Noise />
+            <Navbar />
+
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/case/:slug" element={<CaseStudyPage />} />
+              <Route path="/shop" element={<ShopPage />} />
+              <Route path="/shop/:slug" element={<ShopProductPage />} />
+              <Route path="/shop/cart" element={<ShopCartPage />} />
+              <Route path="/shop/auth" element={<ShopAuthPage />} />
+              <Route
+                path="/shop/checkout"
+                element={
+                  <ShopProtectedRoute>
+                    <ShopCheckoutPage />
+                  </ShopProtectedRoute>
+                }
+              />
+              <Route
+                path="/shop/profile"
+                element={
+                  <ShopProtectedRoute>
+                    <ShopProfilePage />
+                  </ShopProtectedRoute>
+                }
+              />
+              <Route
+                path="/shop/orders/:orderReference"
+                element={
+                  <ShopProtectedRoute>
+                    <ShopReceiptPage />
+                  </ShopProtectedRoute>
+                }
+              />
+              <Route
+                path="/shop/paypal-return"
+                element={
+                  <ShopProtectedRoute>
+                    <ShopPaypalReturnPage />
+                  </ShopProtectedRoute>
+                }
+              />
+              <Route
+                path="/shop/admin"
+                element={
+                  <ShopAdminRoute>
+                    <ShopAdminPage />
+                  </ShopAdminRoute>
+                }
+              />
+            </Routes>
+
+            <Footer />
+
+            <BottomNavMobile />
+
+            <BackToTop />
+            <FloatingHelperChat />
+          </div>
+        </ShopCartProvider>
+      </ShopAuthProvider>
+    </HelperChatProvider>
+  )
+}

@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+dist
+build
+.env
+server/prisma/dev.db
+server/prisma/dev.db-journal
+server/uploads/products/*
+!server/uploads/products/.gitkeep
+coverage
