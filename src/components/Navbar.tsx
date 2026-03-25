@@ -190,14 +190,43 @@ export function Navbar() {
                   <Logo />
                 </a>
 
-                <button
-                  type="button"
-                  onClick={() => setSearchOpen(true)}
-                  className="flex h-12 w-full items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 text-left text-white/55 backdrop-blur-xl transition hover:border-white/20 hover:text-white md:h-14 md:px-5"
+                <div
+                  className={[
+                    "flex h-12 w-full items-center gap-3 rounded-full border bg-white/[0.04] px-4 backdrop-blur-xl transition md:h-14 md:px-5",
+                    searchOpen ? "border-white/20 text-white" : "border-white/10 text-white/55 hover:border-white/20 hover:text-white",
+                  ].join(" ")}
                 >
                   <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
-                  <span className="truncate text-sm md:text-base">Cerca prodotti, nomi, artisti...</span>
-                </button>
+                  <input
+                    ref={inputRef}
+                    value={search}
+                    onFocus={() => setSearchOpen(true)}
+                    onChange={(event) => {
+                      setSearch(event.target.value)
+                      if (!searchOpen) setSearchOpen(true)
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        submitSearch(search)
+                      }
+                    }}
+                    placeholder="Cerca prodotti, nomi, artisti..."
+                    className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none md:text-base"
+                  />
+                  {search || searchOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch("")
+                        setSearchOpen(false)
+                      }}
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
+                      aria-label="Chiudi ricerca"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </div>
 
                 <div className="flex items-center justify-end gap-2 md:gap-3">
                   <Button
@@ -241,35 +270,6 @@ export function Navbar() {
                   ref={overlayRef}
                   className="overflow-hidden rounded-[32px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-2xl"
                 >
-                  <div className="border-b border-white/10 p-4 md:p-6">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 md:h-14 md:px-5">
-                        <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
-                        <input
-                          ref={inputRef}
-                          value={search}
-                          onChange={(event) => setSearch(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              submitSearch()
-                            }
-                          }}
-                          placeholder="Cerca prodotti, nomi, artisti..."
-                          className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none md:text-base"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setSearchOpen(false)}
-                        className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 text-white/65 transition hover:border-white/20 hover:text-white"
-                        aria-label="Chiudi ricerca"
-                      >
-                        <XMarkIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-
                   {!trimmedSearch ? (
                     <div className="grid gap-6 p-4 md:grid-cols-2 md:p-6">
                       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
