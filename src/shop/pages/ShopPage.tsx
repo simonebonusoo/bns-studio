@@ -57,7 +57,7 @@ export function ShopPage() {
 
       {!products.length ? <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">Nessun prodotto trovato con i filtri attuali.</div> : null}
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] items-stretch gap-6">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
