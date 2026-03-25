@@ -192,11 +192,11 @@ export function Navbar() {
 
                 <div
                   className={[
-                    "flex h-11 w-full items-center gap-3 rounded-full border bg-white/[0.04] px-4 backdrop-blur-xl transition md:h-12 md:px-5",
+                    "flex h-[46px] w-full items-center gap-3 rounded-full border bg-white/[0.04] px-4 backdrop-blur-xl transition md:h-[50px] md:px-5",
                     searchOpen ? "border-white/20 text-white" : "border-white/10 text-white/55 hover:border-white/20 hover:text-white",
                   ].join(" ")}
                 >
-                  <MagnifyingGlassIcon className="h-4.5 w-4.5 shrink-0 text-white/45" />
+                  <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
                   <input
                     ref={inputRef}
                     value={search}
@@ -211,7 +211,7 @@ export function Navbar() {
                       }
                     }}
                     placeholder="Cerca prodotti, nomi, artisti..."
-                    className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none md:text-[15px]"
+                    className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none md:text-base"
                   />
                   {search || searchOpen ? (
                     <button
