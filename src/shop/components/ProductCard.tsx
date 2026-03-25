@@ -41,18 +41,18 @@ export function ProductCard({ product }: { product: ShopProduct }) {
           <Link to={`/shop/${product.slug}`} className="text-sm text-white/70 transition hover:text-white">
             Scheda prodotto
           </Link>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3">
             <button
               type="button"
               onClick={() => addItem(product, 1)}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white transition hover:border-[#e3f503] hover:text-[#e3f503]"
+              className="w-full rounded-full border border-white/10 px-4 py-2 text-sm text-white transition hover:border-[#e3f503] hover:text-[#e3f503]"
             >
               Aggiungi al carrello
             </button>
             <button
               type="button"
               onClick={handleBuyNow}
-              className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90"
+              className="w-full rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90"
             >
               Acquista ora
             </button>
