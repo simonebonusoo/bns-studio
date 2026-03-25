@@ -1,55 +1,54 @@
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import { useLocation, useNavigate } from "react-router-dom"
+import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline"
 
 import { Container } from "./Container"
 import { Logo } from "./Logo"
 import { Button } from "./Button"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
+import { apiFetch } from "../shop/lib/api"
+import { ShopProduct } from "../shop/types"
 
-const links = [
-  { label: "Home", href: "#top", key: "home" },
-  { label: "Shop", href: "#shop", key: "shop" },
-  { label: "Catalogo", href: "/shop", key: "catalog" },
-] as const
+type SearchSuggestion =
+  | { label: string; href: string; type: "search" | "category" | "collection" }
 
-function NavFlip({ label }: { label: string }) {
-  const front = { rest: { rotateX: 0, y: 0 }, hover: { rotateX: 90, y: -10 } }
-  const back = { rest: { rotateX: -90, y: 10 }, hover: { rotateX: 0, y: 0 } }
-  const t = { duration: 0.28, ease: [0.2, 0.8, 0.2, 1] as const }
+function highlightMatch(text: string, query: string) {
+  const normalized = query.trim()
+  if (!normalized) return text
+
+  const lowerText = text.toLowerCase()
+  const lowerQuery = normalized.toLowerCase()
+  const index = lowerText.indexOf(lowerQuery)
+
+  if (index === -1) return text
 
   return (
-    <span className="relative inline-block h-6 overflow-hidden" style={{ perspective: 900 }}>
-      <span className="relative block" style={{ transformStyle: "preserve-3d" }}>
-        <motion.span
-          variants={front}
-          transition={t}
-          className="block"
-          style={{ transformOrigin: "50% 50% -12px", willChange: "transform" }}
-        >
-          {label}
-        </motion.span>
-        <motion.span
-          variants={back}
-          transition={t}
-          className="absolute left-0 top-0 block text-[#e3f503]"
-          style={{ transformOrigin: "50% 50% -12px", willChange: "transform" }}
-        >
-          {label}
-        </motion.span>
-      </span>
-    </span>
+    <>
+      {text.slice(0, index)}
+      <span className="text-[#e3f503]">{text.slice(index, index + normalized.length)}</span>
+      {text.slice(index + normalized.length)}
+    </>
   )
 }
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
-  const [openMobile, setOpenMobile] = useState(false)
-  const navH = 80
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const [products, setProducts] = useState<ShopProduct[]>([])
+  const [categories, setCategories] = useState<string[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(false)
+  const navH = 88
 
   const { user } = useShopAuth()
   const { items } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
+  const overlayRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -59,15 +58,97 @@ export function Navbar() {
   }, [])
 
   useEffect(() => {
-    if (!openMobile) return
+    apiFetch<string[]>("/store/categories").then(setCategories).catch(() => setCategories([]))
+  }, [])
+
+  useEffect(() => {
+    if (!searchOpen || products.length) return
+
+    setLoadingProducts(true)
+    apiFetch<ShopProduct[]>("/store/products")
+      .then(setProducts)
+      .finally(() => setLoadingProducts(false))
+  }, [products.length, searchOpen])
+
+  useEffect(() => {
+    if (!searchOpen) return
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSearchOpen(false)
+      }
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!overlayRef.current?.contains(event.target as Node)) {
+        setSearchOpen(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("mousedown", handlePointerDown)
+
     return () => {
       document.body.style.overflow = previousOverflow
+      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("mousedown", handlePointerDown)
     }
-  }, [openMobile])
+  }, [searchOpen])
+
+  useEffect(() => {
+    if (!searchOpen) return
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 60)
+    return () => window.clearTimeout(timer)
+  }, [searchOpen])
+
+  useEffect(() => {
+    setSearchOpen(false)
+  }, [location.pathname, location.search])
+
+  const trimmedSearch = search.trim()
+
+  const liveResults = useMemo(() => {
+    if (!trimmedSearch) return []
+
+    const query = trimmedSearch.toLowerCase()
+    return products
+      .filter((product) => {
+        const haystack = [product.title, product.slug, product.category, product.description].join(" ").toLowerCase()
+        return haystack.includes(query)
+      })
+      .slice(0, 6)
+  }, [products, trimmedSearch])
+
+  const emptySuggestions = useMemo<SearchSuggestion[]>(() => {
+    const categorySuggestions = categories.slice(0, 4).map((category) => ({
+      label: category,
+      href: `/shop?category=${encodeURIComponent(category)}`,
+      type: "category" as const,
+    }))
+
+    return [
+      { label: "Poster", href: "/shop?search=poster", type: "search" },
+      { label: "Brand kit", href: "/shop?search=brand%20kit", type: "search" },
+      { label: "Landing", href: "/shop?search=landing", type: "search" },
+      { label: "Social pack", href: "/shop?search=social", type: "search" },
+      ...categorySuggestions,
+      { label: "Novita", href: "/shop?collection=new", type: "collection" },
+      { label: "In evidenza", href: "/shop?collection=best", type: "collection" },
+      { label: "Sconti", href: "/shop?collection=discount", type: "collection" },
+    ]
+  }, [categories])
+
+  function submitSearch(nextSearch = trimmedSearch) {
+    const value = nextSearch.trim()
+    navigate(value ? `/shop?search=${encodeURIComponent(value)}` : "/shop")
+    setSearchOpen(false)
+  }
+
+  const popularSuggestions = emptySuggestions.slice(0, 4)
+  const exploreSuggestions = emptySuggestions.slice(4)
 
   return (
     <>
@@ -77,7 +158,7 @@ export function Navbar() {
             aria-hidden
             className="pointer-events-none absolute inset-0 z-0"
             initial={false}
-            animate={scrolled ? { opacity: 1 } : { opacity: 0 }}
+            animate={scrolled || searchOpen ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
             <div className="absolute inset-0 bg-black/30 backdrop-blur-2xl" />
@@ -97,40 +178,26 @@ export function Navbar() {
             />
           </motion.div>
 
-          <div className={scrolled ? "bg-transparent" : "bg-black/15 backdrop-blur-sm"}>
+          <div className={scrolled || searchOpen ? "bg-transparent" : "bg-black/15 backdrop-blur-sm"}>
             <Container>
               <motion.div
                 initial={{ y: -12, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="relative z-20 grid h-16 grid-cols-[auto_1fr_auto] items-center gap-4 md:h-20"
+                className="relative z-20 grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-3 md:min-h-[88px] md:gap-6 md:py-4"
               >
-                <a
-                  href="#top"
-                  onClick={() => setOpenMobile(false)}
-                  aria-label="Vai all'inizio"
-                  className="absolute left-1/2 flex -translate-x-1/2 items-center no-underline md:static md:w-auto md:translate-x-0 md:justify-start"
-                >
-                  <div className="scale-110 md:scale-100">
-                    <Logo />
-                  </div>
+                <a href="#top" aria-label="Vai all'inizio" className="flex items-center no-underline">
+                  <Logo />
                 </a>
 
-                <nav className="hidden items-center justify-center gap-7 md:flex">
-                  {links.map((link) => (
-                    <motion.a
-                      key={link.key}
-                      href={link.href}
-                      initial="rest"
-                      animate="rest"
-                      whileHover="hover"
-                      whileTap="hover"
-                      className="inline-flex h-10 items-center text-sm text-white/70 transition hover:text-white"
-                    >
-                      <NavFlip label={link.label} />
-                    </motion.a>
-                  ))}
-                </nav>
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  className="flex h-12 w-full items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 text-left text-white/55 backdrop-blur-xl transition hover:border-white/20 hover:text-white md:h-14 md:px-5"
+                >
+                  <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
+                  <span className="truncate text-sm md:text-base">Cerca prodotti, nomi, artisti...</span>
+                </button>
 
                 <div className="flex items-center justify-end gap-2 md:gap-3">
                   <Button
@@ -149,56 +216,155 @@ export function Navbar() {
               </motion.div>
             </Container>
           </div>
-
-          <AnimatePresence>
-            {openMobile ? (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="border-b border-white/10 bg-black/70 backdrop-blur-xl md:hidden"
-              >
-                <Container>
-                  <div className="space-y-2 py-4">
-                    {links.map((link) => (
-                      <a
-                        key={link.key}
-                        href={link.href}
-                        onClick={() => setOpenMobile(false)}
-                        className="block rounded-xl px-3 py-2 text-sm text-white/80 transition hover:bg-white/5 hover:text-white"
-                      >
-                        {link.label}
-                      </a>
-                    ))}
-
-                    <div className="flex gap-3 pt-3">
-                      <Button
-                        href={user ? "/shop/profile" : "/shop/auth"}
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => setOpenMobile(false)}
-                      >
-                        Profilo
-                      </Button>
-                      <Button
-                        href="/shop/cart"
-                        className="w-full"
-                        onClick={() => setOpenMobile(false)}
-                        text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}
-                      >
-                        Carrello
-                      </Button>
-                    </div>
-                  </div>
-                </Container>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
       </header>
 
-      <div className="h-8 md:h-20" />
+      <AnimatePresence>
+        {searchOpen ? (
+          <Fragment>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="fixed inset-x-0 top-[72px] z-50 px-4 pb-6 md:top-[88px] md:px-6"
+            >
+              <Container>
+                <div
+                  ref={overlayRef}
+                  className="overflow-hidden rounded-[32px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-2xl"
+                >
+                  <div className="border-b border-white/10 p-4 md:p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 md:h-14 md:px-5">
+                        <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
+                        <input
+                          ref={inputRef}
+                          value={search}
+                          onChange={(event) => setSearch(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              submitSearch()
+                            }
+                          }}
+                          placeholder="Cerca prodotti, nomi, artisti..."
+                          className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none md:text-base"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSearchOpen(false)}
+                        className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 text-white/65 transition hover:border-white/20 hover:text-white"
+                        aria-label="Chiudi ricerca"
+                      >
+                        <XMarkIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {!trimmedSearch ? (
+                    <div className="grid gap-6 p-4 md:grid-cols-2 md:p-6">
+                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                        <p className="text-xs uppercase tracking-[0.26em] text-white/45">Ricerche popolari</p>
+                        <div className="mt-5 space-y-2">
+                          {popularSuggestions.map((item) => (
+                            <button
+                              key={`${item.type}-${item.label}`}
+                              type="button"
+                              onClick={() => navigate(item.href)}
+                              className="flex w-full items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm text-white/75 transition hover:border-white/20 hover:text-white"
+                            >
+                              <span>{item.label}</span>
+                              <span className="text-xs uppercase tracking-[0.2em] text-white/35">{item.type}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                        <p className="text-xs uppercase tracking-[0.26em] text-white/45">Altro</p>
+                        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                          {exploreSuggestions.map((item) => (
+                            <button
+                              key={`${item.type}-${item.label}`}
+                              type="button"
+                              onClick={() => navigate(item.href)}
+                              className="rounded-2xl border border-white/10 px-4 py-3 text-left text-sm text-white/75 transition hover:border-white/20 hover:text-white"
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 md:p-6">
+                      <div className="mb-5 flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.26em] text-white/45">Risultati live</p>
+                          <p className="mt-2 text-sm text-white/65">
+                            {loadingProducts ? "Aggiornamento risultati..." : `${liveResults.length} prodotti trovati per "${trimmedSearch}"`}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => submitSearch()}
+                          className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white"
+                        >
+                          Vedi tutti i risultati
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3">
+                        {liveResults.length ? (
+                          liveResults.map((product) => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              onClick={() => navigate(`/shop/${product.slug}`)}
+                              className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-white/20"
+                            >
+                              <img
+                                src={product.imageUrls[0]}
+                                alt={product.title}
+                                className="h-[72px] w-[72px] rounded-[18px] object-cover"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm text-white/45">{product.category}</p>
+                                <h3 className="mt-1 truncate text-base font-medium text-white">
+                                  {highlightMatch(product.title, trimmedSearch)}
+                                </h3>
+                                <p className="mt-1 truncate text-sm text-white/55">
+                                  {highlightMatch(product.slug.replace(/-/g, " "), trimmedSearch)}
+                                </p>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
+                            Nessun risultato live. Premi invio per aprire il catalogo filtrato.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Container>
+            </motion.div>
+          </Fragment>
+        ) : null}
+      </AnimatePresence>
+
+      <div className="h-[76px] md:h-[92px]" />
     </>
   )
 }
