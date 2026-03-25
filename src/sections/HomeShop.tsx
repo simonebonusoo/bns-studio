@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { AnimatePresence, motion } from "framer-motion"
-import { ChevronDownIcon, FunnelIcon } from "@heroicons/react/24/outline"
+import { ChevronDownIcon, FunnelIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline"
 
 import { Container } from "../components/Container"
 import { Button } from "../components/Button"
@@ -12,6 +12,7 @@ import { ShopProduct } from "../shop/types"
 
 export function HomeShop() {
   const [products, setProducts] = useState<ShopProduct[]>([])
+  const [categories, setCategories] = useState<string[]>([])
   const [filters, setFilters] = useState({ search: "", category: "", maxPrice: "" })
   const [collection, setCollection] = useState<"all" | "new" | "best" | "discount">("all")
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
@@ -19,18 +20,7 @@ export function HomeShop() {
   const { user } = useShopAuth()
 
   useEffect(() => {
-    const onNavbarFilters = (event: Event) => {
-      const detail = (event as CustomEvent<{ search?: string; category?: string }>).detail || {}
-
-      setFilters((current) => ({
-        ...current,
-        ...(detail.search !== undefined ? { search: detail.search } : {}),
-        ...(detail.category !== undefined ? { category: detail.category } : {}),
-      }))
-    }
-
-    window.addEventListener("bns:shop-navbar-filters", onNavbarFilters as EventListener)
-    return () => window.removeEventListener("bns:shop-navbar-filters", onNavbarFilters as EventListener)
+    apiFetch<string[]>("/store/categories").then(setCategories)
   }, [])
 
   useEffect(() => {
@@ -41,14 +31,6 @@ export function HomeShop() {
 
     apiFetch<ShopProduct[]>(`/store/products?${params.toString()}`).then(setProducts)
   }, [filters])
-
-  useEffect(() => {
-    window.dispatchEvent(
-      new CustomEvent("bns:shop-filter-state", {
-        detail: { search: filters.search, category: filters.category },
-      }),
-    )
-  }, [filters.category, filters.search])
 
   const displayedProducts = useMemo(() => {
     if (!products.length) return []
@@ -97,6 +79,64 @@ export function HomeShop() {
       <div className="rounded-[28px] border border-white/10 bg-black/55 p-5 backdrop-blur-2xl backdrop-saturate-125 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
         <div className="space-y-8">
           <div>
+            <div className="text-xs uppercase tracking-[0.26em] text-white/45">Search</div>
+            <label className="relative mt-3 block">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+              <input
+                className="shop-input pl-11"
+                placeholder="Cerca per titolo"
+                value={filters.search}
+                onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+              />
+            </label>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="text-xs uppercase tracking-[0.26em] text-white/45">Category</div>
+              <span className="text-xs text-white/35">{categories.length + 1}</span>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <button
+                type="button"
+                onClick={() => setFilters((current) => ({ ...current, category: "" }))}
+                className={[
+                  "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition",
+                  filters.category === ""
+                    ? "border-[#e3f503]/35 bg-white/[0.05] text-white"
+                    : "border-white/10 text-white/65 hover:border-white/20 hover:text-white",
+                ].join(" ")}
+              >
+                <span>All Product</span>
+                <span className="text-xs text-white/40">{products.length}</span>
+              </button>
+
+              {categories.map((category) => {
+                const categoryCount = products.filter((product) => product.category === category).length
+                const active = filters.category === category
+
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setFilters((current) => ({ ...current, category }))}
+                    className={[
+                      "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition",
+                      active
+                        ? "border-[#e3f503]/35 bg-white/[0.05] text-white"
+                        : "border-white/10 text-white/65 hover:border-white/20 hover:text-white",
+                    ].join(" ")}
+                  >
+                    <span>{category}</span>
+                    <span className="text-xs text-white/40">{categoryCount}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
             <div className="text-xs uppercase tracking-[0.26em] text-white/45">Collections</div>
             <div className="mt-4 space-y-2">
               {[
@@ -142,20 +182,6 @@ export function HomeShop() {
               >
                 Reset filtri
               </button>
-            </div>
-          </div>
-
-          <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-            <div className="text-xs uppercase tracking-[0.26em] text-white/45">Current View</div>
-            <div className="mt-3 space-y-2 text-sm text-white/70">
-              <div className="flex items-center justify-between gap-4">
-                <span>Search</span>
-                <span className="truncate text-right text-white">{filters.search || "All products"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span>Category</span>
-                <span className="truncate text-right text-white">{filters.category || "All Product"}</span>
-              </div>
             </div>
           </div>
         </div>

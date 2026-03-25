@@ -1,9 +1,7 @@
-import { Link, NavLink } from "react-router-dom"
-import { ShoppingBagIcon, UserIcon } from "@heroicons/react/24/outline"
+import { Link } from "react-router-dom"
 
 import { Container } from "../../components/Container"
 import { Button } from "../../components/Button"
-import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 
 export function ShopLayout({
@@ -19,15 +17,13 @@ export function ShopLayout({
   children: React.ReactNode
   actions?: React.ReactNode
 }) {
-  const { items } = useShopCart()
   const { user } = useShopAuth()
 
   return (
-    <main className="pb-24 pt-10 md:pt-14">
+    <main className="pb-24 pt-6 md:pt-10">
       <Container>
-        <section className="shop-card relative overflow-hidden px-6 py-8 md:px-10 md:py-12">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(227,245,3,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_30%)]" />
-          <div className="relative flex flex-col gap-8">
+        <section className="px-0 py-8 md:py-12">
+          <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div className="max-w-2xl">
                 <span className="shop-pill">{eyebrow}</span>
@@ -35,41 +31,7 @@ export function ShopLayout({
                 <p className="mt-4 max-w-xl text-sm leading-7 text-white/70 md:text-base">{intro}</p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <NavLink
-                  to="/shop"
-                  className={({ isActive }) =>
-                    `rounded-full border px-4 py-2 text-sm transition ${
-                      isActive ? "border-[#e3f503] text-[#e3f503]" : "border-white/10 text-white/70 hover:border-white/25 hover:text-white"
-                    }`
-                  }
-                >
-                  Catalogo
-                </NavLink>
-                <NavLink
-                  to="/shop/cart"
-                  className={({ isActive }) =>
-                    `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
-                      isActive ? "border-[#e3f503] text-[#e3f503]" : "border-white/10 text-white/70 hover:border-white/25 hover:text-white"
-                    }`
-                  }
-                >
-                  <ShoppingBagIcon className="h-4 w-4" />
-                  Cart ({items.reduce((sum, item) => sum + item.quantity, 0)})
-                </NavLink>
-                <NavLink
-                  to={user ? "/shop/profile" : "/shop/auth"}
-                  className={({ isActive }) =>
-                    `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
-                      isActive ? "border-[#e3f503] text-[#e3f503]" : "border-white/10 text-white/70 hover:border-white/25 hover:text-white"
-                    }`
-                  }
-                >
-                  <UserIcon className="h-4 w-4" />
-                  {user ? "Profilo" : "Accedi"}
-                </NavLink>
-                {actions}
-              </div>
+              {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
             </div>
 
             {!user ? (
