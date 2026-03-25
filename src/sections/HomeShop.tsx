@@ -34,10 +34,8 @@ export function HomeShop() {
   return (
     <section id="shop" className="pb-24 pt-6 md:pt-10">
       <Container>
-        <div className="shop-card relative overflow-hidden px-6 py-8 md:px-10 md:py-12">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(227,245,3,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_30%)]" />
-
-          <div className="relative flex flex-col gap-8">
+        <div className="px-0 py-8 md:py-12">
+          <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div className="max-w-2xl">
                 <span className="shop-pill">Shop</span>
