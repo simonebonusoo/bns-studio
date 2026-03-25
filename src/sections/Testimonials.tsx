@@ -5,9 +5,9 @@ import { SectionTitle } from "../components/SectionTitle"
 
 type Review = {
   name: string
-  role: string
   text: string
   rating?: number
+  meta?: string
 }
 
 const BRAND = "#e3f503"
@@ -15,48 +15,45 @@ const BRAND = "#e3f503"
 const reviews: Review[] = [
   {
     name: "Bacino Grande",
-    role: "Brand & Social",
     text: "Veloce, trasparente e con una cura maniacale dei dettagli. Brand identity in tempi record.",
     rating: 5,
+    meta: "Brand & Social",
   },
   {
     name: "Umani Project",
-    role: "Instagram & Spotify",
     text: "Estetica essenziale ma super caratteristica per il nostro progetto. Conversioni in crescita già dalla prima settimana.",
     rating: 5,
+    meta: "Instagram & Spotify",
   },
   {
     name: "BR Service",
-    role: "Website & Stampe",
     text: "Struttura del sito web molto chiara, stampe precise e assistenza sempre presente. Consigliatissimo.",
     rating: 5,
+    meta: "Website & Stampe",
   },
   {
     name: "Samurai - Barber Shop",
-    role: "Creazione logo",
     text: "Finalmente un logo coerente e professionale. Comunicazione semplice e risultati concreti.",
     rating: 5,
+    meta: "Creazione logo",
   },
-
-    {
+  {
     name: "Monnalisa",
-    role: "Creazione logo & locandine eventi",
     text: "Top la creazione del logo con varie dimensioni per le stampe. Locandine studiate per la nostra nuova brand identity",
     rating: 5,
+    meta: "Logo & locandine eventi",
   },
-
-      {
+  {
     name: "Clouteq",
-    role: "Brand identity & Gestione social",
     text: "Brand identity minimal e pulita come da richiesta. Gestione social efficiente, puntuale e precisa nelle scadenze",
     rating: 5,
+    meta: "Brand identity & Social",
   },
-
-        {
+  {
     name: "Il Terzo Spazio",
-    role: "Logo & Gestione social",
     text: "Ottimo il logo versatile sia in digitale che nelle stampe. Ci siamo affidati anche per la gestione del nostro profilo Instagram, consigliatissimo",
     rating: 5,
+    meta: "Logo & Gestione social",
   },
 ]
 
@@ -82,8 +79,8 @@ export function Testimonials() {
     <section id="recensioni" className="py-20 md:py-28">
       <Container>
         <Reveal>
-          <SectionTitle eyebrow="Recensioni" title="Feedback reali. Risultati reali.">
-            Alcune parole da chi ha già lavorato con BNS Studio.
+          <SectionTitle eyebrow="Recensioni clienti" title="Esperienze reali di chi ha acquistato.">
+            Una selezione di feedback raccolti dai clienti che hanno già scelto BNS Studio.
           </SectionTitle>
         </Reveal>
 
@@ -95,11 +92,9 @@ export function Testimonials() {
           viewport={{ once: true, amount: 0.25 }}
           transition={{ duration: 0.55, ease: "easeOut" }}
         >
-          {/* fade ai bordi (colore uguale al background) */}
           <div className="pointer-events-none absolute inset-y-0 left-0 w-20 z-10 bg-gradient-to-r from-[#0b0b0c] to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-20 z-10 bg-gradient-to-l from-[#0b0b0c] to-transparent" />
 
-          {/* loop infinito */}
           <motion.div
             className="flex gap-4 md:gap-6 w-max"
             animate={{ x: ["0%", "-50%"] }}
@@ -111,9 +106,14 @@ export function Testimonials() {
                 className="glass rounded-2xl p-6 shadow-card w-[320px] md:w-[380px]"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="font-semibold truncate">{r.name}</div>
-                    <div className="text-sm text-white/60 truncate">{r.role}</div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-sm font-semibold text-white/85">
+                      {r.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold truncate">{r.name}</div>
+                      <div className="text-sm text-white/60 truncate">{r.meta}</div>
+                    </div>
                   </div>
                   <Stars n={r.rating ?? 5} />
                 </div>
@@ -133,7 +133,6 @@ export function Testimonials() {
           </motion.div>
         </motion.div>
 
-        {/* badge sotto: entrance come gli altri */}
         <motion.div
           className="mt-8 flex justify-center"
           initial={{ opacity: 0, y: 10 }}

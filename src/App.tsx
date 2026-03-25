@@ -9,6 +9,7 @@ import { BottomNavMobile } from "./components/BottomNavMobile"
 
 import { Hero } from "./sections/Hero"
 import { HomeShop } from "./sections/HomeShop"
+import { Testimonials } from "./sections/Testimonials"
 import { Footer } from "./sections/Footer"
 
 import { CaseStudyPage } from "./pages/CaseStudyPage"
@@ -196,6 +197,8 @@ export default function App() {
               }
             />
           </Routes>
+
+          <Testimonials />
 
           <Footer />
 
