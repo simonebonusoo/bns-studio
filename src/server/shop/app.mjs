@@ -15,11 +15,26 @@ import { errorHandler } from "./middleware/error.mjs"
 const app = express()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const uploadsDir = path.resolve(__dirname, "../../uploads")
+const uploadsDir = env.uploadsDir
+  ? path.resolve(env.uploadsDir)
+  : path.resolve(__dirname, "../../uploads")
+const allowedOrigins = new Set(env.clientOrigins)
 
 fs.mkdirSync(path.join(uploadsDir, "products"), { recursive: true })
 
-app.use(cors({ origin: env.clientUrl, credentials: true }))
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error("Origin non consentita dal CORS"))
+    },
+    credentials: true,
+  })
+)
 app.use(express.json())
 app.use(morgan("dev"))
 app.use("/uploads", express.static(uploadsDir))

@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: bnsstudio-shop-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm run server:start
+    disk:
+      name: shop-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        value: file:/opt/render/project/src/data/dev.db
+      - key: UPLOADS_DIR
+        value: /opt/render/project/src/data/uploads
+      - key: CLIENT_URL
+        sync: false
+      - key: CLIENT_ORIGINS
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PAYPAL_ME_LINK
+        sync: false
+      - key: PAYPAL_BUSINESS_EMAIL
+        sync: false
+      - key: PAYPAL_CURRENCY_CODE
+        value: EUR
+      - key: PAYPAL_STORE_NAME
+        value: BNS Studio Shop

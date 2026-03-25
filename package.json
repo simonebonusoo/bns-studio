@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "server": "node src/server/shop/server.mjs",
+    "server:start": "prisma db push --skip-generate && node src/server/shop/server.mjs",
     "server:dev": "node --watch src/server/shop/server.mjs",
     "full": "sh -c 'npm run server & npm run dev'",
     "db:push": "prisma db push",

@@ -1,4 +1,35 @@
-const API_URL = import.meta.env.VITE_API_URL || "/api"
+const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "")
+const API_URL = API_BASE_URL ? `${API_BASE_URL}/api` : import.meta.env.VITE_API_URL || "/api"
+
+function toAbsoluteAssetUrl(value: string) {
+  if (!value.startsWith("/uploads/")) {
+    return value
+  }
+
+  if (API_BASE_URL) {
+    return new URL(value, `${API_BASE_URL}/`).toString()
+  }
+
+  return value
+}
+
+function normalizeApiData<T>(value: T): T {
+  if (typeof value === "string") {
+    return toAbsoluteAssetUrl(value) as T
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeApiData(item)) as T
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, normalizeApiData(entry)])
+    ) as T
+  }
+
+  return value
+}
 
 async function parseApiResponse(response: Response) {
   const contentType = response.headers.get("content-type") || ""
@@ -87,5 +118,5 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     throw buildApiError(response, data, rawText)
   }
 
-  return data as T
+  return normalizeApiData(data as T)
 }

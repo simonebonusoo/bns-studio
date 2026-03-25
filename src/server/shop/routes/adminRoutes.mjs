@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 import multer from "multer"
 import { z } from "zod"
 
+import { env } from "../config/env.mjs"
 import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
@@ -12,7 +13,10 @@ import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
 const router = Router()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const uploadsDir = path.resolve(__dirname, "../../uploads/products")
+const uploadsRootDir = env.uploadsDir
+  ? path.resolve(env.uploadsDir)
+  : path.resolve(__dirname, "../../uploads")
+const uploadsDir = path.join(uploadsRootDir, "products")
 
 fs.mkdirSync(uploadsDir, { recursive: true })
 
