@@ -33,7 +33,9 @@ export function ProductCard({ product }: { product: ShopProduct }) {
           <div className="text-sm font-medium text-[#e3f503]">{formatPrice(product.price)}</div>
         </div>
 
-        <p className="text-sm leading-6 text-white/65">{product.description}</p>
+        <p className="overflow-hidden text-sm leading-6 text-white/65 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+          {product.description}
+        </p>
 
         <div className="space-y-3">
           <Link to={`/shop/${product.slug}`} className="text-sm text-white/70 transition hover:text-white">
