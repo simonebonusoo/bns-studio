@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Link } from "react-router-dom"
-import { ShoppingBagIcon, UserIcon } from "@heroicons/react/24/outline"
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline"
 import { Container } from "./Container"
 import { Logo } from "./Logo"
+import { Button } from "./Button"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
 
@@ -45,6 +45,7 @@ function NavFlip({ label }: { label: string }) {
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [openMobile, setOpenMobile] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const navH = 80
   const { user } = useShopAuth()
   const { items } = useShopCart()
@@ -65,6 +66,20 @@ export function Navbar() {
       document.body.style.overflow = prev
     }
   }, [openMobile])
+
+  useEffect(() => {
+    const onState = (event: Event) => {
+      const detail = (event as CustomEvent<{ open: boolean }>).detail
+      setFiltersOpen(Boolean(detail?.open))
+    }
+
+    window.addEventListener("bns:shop-filters-state", onState as EventListener)
+    return () => window.removeEventListener("bns:shop-filters-state", onState as EventListener)
+  }, [])
+
+  function toggleFilters() {
+    window.dispatchEvent(new CustomEvent("bns:toggle-shop-filters"))
+  }
 
   return (
     <>
@@ -144,21 +159,26 @@ export function Navbar() {
                 </nav>
 
                 <div className="flex items-center justify-end gap-2 md:gap-3">
-                  <Link
-                    to={user ? "/shop/profile" : "/shop/auth"}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white md:px-4"
+                  <button
+                    type="button"
+                    onClick={toggleFilters}
+                    aria-label={filtersOpen ? "Chiudi ricerca shop" : "Apri ricerca shop"}
+                    aria-expanded={filtersOpen}
+                    className={[
+                      "inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/15 text-white/80 transition",
+                      filtersOpen ? "border-[#e3f503]/45 text-[#e3f503]" : "hover:border-white/30 hover:text-white",
+                    ].join(" ")}
                   >
-                    <UserIcon className="h-4 w-4" />
-                    <span className="hidden md:inline">{user ? "Profilo" : "Account"}</span>
-                  </Link>
-                  <Link
-                    to="/shop/cart"
-                    className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white md:px-4"
-                  >
-                    <ShoppingBagIcon className="h-4 w-4" />
-                    <span className="hidden md:inline">Carrello</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white">{cartCount}</span>
-                  </Link>
+                    <MagnifyingGlassIcon className="h-4 w-4" />
+                  </button>
+
+                  <Button href={user ? "/shop/profile" : "/shop/auth"} variant="ghost" size="sm" className="hidden sm:inline-flex">
+                    Profilo
+                  </Button>
+
+                  <Button href="/shop/cart" size="sm" text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}>
+                    Carrello
+                  </Button>
                 </div>
               </motion.div>
             </Container>
@@ -190,20 +210,17 @@ export function Navbar() {
                     })}
 
                     <div className="pt-3 flex gap-3">
-                      <Link
-                        to={user ? "/shop/profile" : "/shop/auth"}
+                      <Button
+                        href={user ? "/shop/profile" : "/shop/auth"}
+                        variant="ghost"
+                        className="w-full"
                         onClick={() => setOpenMobile(false)}
-                        className="w-full rounded-xl border border-white/10 px-4 py-3 text-center text-sm text-white/80 transition hover:border-white/25 hover:text-white"
                       >
-                        {user ? "Profilo" : "Account"}
-                      </Link>
-                      <Link
-                        to="/shop/cart"
-                        onClick={() => setOpenMobile(false)}
-                        className="w-full rounded-xl border border-white/10 px-4 py-3 text-center text-sm text-white/80 transition hover:border-white/25 hover:text-white"
-                      >
-                        Carrello ({cartCount})
-                      </Link>
+                        Profilo
+                      </Button>
+                      <Button href="/shop/cart" className="w-full" onClick={() => setOpenMobile(false)} text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}>
+                        Carrello
+                      </Button>
                     </div>
                   </div>
                 </Container>
