@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline"
 import { Container } from "./Container"
 import { Logo } from "./Logo"
 import { Button } from "./Button"
@@ -45,7 +44,6 @@ function NavFlip({ label }: { label: string }) {
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [openMobile, setOpenMobile] = useState(false)
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const navH = 80
   const { user } = useShopAuth()
   const { items } = useShopCart()
@@ -66,20 +64,6 @@ export function Navbar() {
       document.body.style.overflow = prev
     }
   }, [openMobile])
-
-  useEffect(() => {
-    const onState = (event: Event) => {
-      const detail = (event as CustomEvent<{ open: boolean }>).detail
-      setFiltersOpen(Boolean(detail?.open))
-    }
-
-    window.addEventListener("bns:shop-filters-state", onState as EventListener)
-    return () => window.removeEventListener("bns:shop-filters-state", onState as EventListener)
-  }, [])
-
-  function toggleFilters() {
-    window.dispatchEvent(new CustomEvent("bns:toggle-shop-filters"))
-  }
 
   return (
     <>
@@ -159,19 +143,6 @@ export function Navbar() {
                 </nav>
 
                 <div className="flex items-center justify-end gap-2 md:gap-3">
-                  <button
-                    type="button"
-                    onClick={toggleFilters}
-                    aria-label={filtersOpen ? "Chiudi ricerca shop" : "Apri ricerca shop"}
-                    aria-expanded={filtersOpen}
-                    className={[
-                      "inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/15 text-white/80 transition",
-                      filtersOpen ? "border-[#e3f503]/45 text-[#e3f503]" : "hover:border-white/30 hover:text-white",
-                    ].join(" ")}
-                  >
-                    <MagnifyingGlassIcon className="h-4 w-4" />
-                  </button>
-
                   <Button href={user ? "/shop/profile" : "/shop/auth"} variant="ghost" size="sm" className="hidden sm:inline-flex">
                     Profilo
                   </Button>
