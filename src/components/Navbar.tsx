@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Link } from "react-router-dom"
+import { ShoppingBagIcon, UserIcon } from "@heroicons/react/24/outline"
 import { Container } from "./Container"
 import { Logo } from "./Logo"
-import { Button } from "./Button"
+import { useShopAuth } from "../shop/context/ShopAuthProvider"
+import { useShopCart } from "../shop/context/ShopCartProvider"
 
 const links = [
   { label: "Home", href: "#top", key: "home" },
@@ -43,6 +46,9 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [openMobile, setOpenMobile] = useState(false)
   const navH = 80
+  const { user } = useShopAuth()
+  const { items } = useShopCart()
+  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -137,14 +143,22 @@ export function Navbar() {
                   })}
                 </nav>
 
-                {/* ✅ DESKTOP ACTIONS IDENTICHE | MOBILE: nascoste */}
-                <div className="hidden md:flex items-center justify-end gap-3">
-                  <Button href="/shop/auth" variant="ghost" size="sm" className="hidden sm:inline-flex">
-                    Account
-                  </Button>
-                  <Button href="/shop" size="sm">
-                    Vai allo shop
-                  </Button>
+                <div className="flex items-center justify-end gap-2 md:gap-3">
+                  <Link
+                    to={user ? "/shop/profile" : "/shop/auth"}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white md:px-4"
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    <span className="hidden md:inline">{user ? "Profilo" : "Account"}</span>
+                  </Link>
+                  <Link
+                    to="/shop/cart"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white md:px-4"
+                  >
+                    <ShoppingBagIcon className="h-4 w-4" />
+                    <span className="hidden md:inline">Carrello</span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white">{cartCount}</span>
+                  </Link>
                 </div>
               </motion.div>
             </Container>
@@ -176,12 +190,20 @@ export function Navbar() {
                     })}
 
                     <div className="pt-3 flex gap-3">
-                      <Button href="/shop/auth" variant="ghost" className="w-full" onClick={() => setOpenMobile(false)}>
-                        Account
-                      </Button>
-                      <Button href="/shop" className="w-full" onClick={() => setOpenMobile(false)}>
-                        Shop
-                      </Button>
+                      <Link
+                        to={user ? "/shop/profile" : "/shop/auth"}
+                        onClick={() => setOpenMobile(false)}
+                        className="w-full rounded-xl border border-white/10 px-4 py-3 text-center text-sm text-white/80 transition hover:border-white/25 hover:text-white"
+                      >
+                        {user ? "Profilo" : "Account"}
+                      </Link>
+                      <Link
+                        to="/shop/cart"
+                        onClick={() => setOpenMobile(false)}
+                        className="w-full rounded-xl border border-white/10 px-4 py-3 text-center text-sm text-white/80 transition hover:border-white/25 hover:text-white"
+                      >
+                        Carrello ({cartCount})
+                      </Link>
                     </div>
                   </div>
                 </Container>
