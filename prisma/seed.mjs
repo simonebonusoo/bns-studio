@@ -64,6 +64,8 @@ const products = [
 ]
 
 async function main() {
+  console.log("[seed] Seeding shop data")
+
   await prisma.user.upsert({
     where: { email: "admin@bnsstudio.com" },
     update: {},
@@ -175,6 +177,16 @@ async function main() {
       create: { key, value },
     })
   }
+
+  const [userCount, productCount, categorySetting] = await Promise.all([
+    prisma.user.count(),
+    prisma.product.count(),
+    prisma.setting.findUnique({ where: { key: "shopCategories" } }),
+  ])
+
+  console.log(`[seed] Admin ready: admin@bnsstudio.com / admin1234`)
+  console.log(`[seed] Users=${userCount} Products=${productCount}`)
+  console.log(`[seed] Categories=${categorySetting?.value || "[]"}`)
 }
 
 main()
