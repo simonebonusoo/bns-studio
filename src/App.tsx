@@ -8,13 +8,7 @@ import { Noise } from "./components/Noise"
 import { BottomNavMobile } from "./components/BottomNavMobile"
 
 import { Hero } from "./sections/Hero"
-import { Services } from "./sections/Services"
-import { Work } from "./sections/Work"
-import { Pricing } from "./sections/Pricing"
-import { Resources } from "./sections/Resources"
-import { Testimonials } from "./sections/Testimonials"
-import { FAQ } from "./sections/faq"
-import { Contact } from "./sections/Contact"
+import { HomeShop } from "./sections/HomeShop"
 import { Footer } from "./sections/Footer"
 
 import { CaseStudyPage } from "./pages/CaseStudyPage"
@@ -45,13 +39,7 @@ function Home() {
   return (
     <main id="top">
       <Hero />
-      <Services />
-      <Work />
-      <Pricing />
-      <Resources />
-      <Testimonials />
-      <FAQ />
-      <Contact />
+      <HomeShop />
     </main>
   )
 }
@@ -212,7 +200,7 @@ export default function App() {
               />
             </Routes>
 
-            <Footer />
+            {location.pathname !== "/" ? <Footer /> : null}
 
             <BottomNavMobile />
 

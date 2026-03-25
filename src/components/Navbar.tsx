@@ -7,15 +7,13 @@ import { Button } from "./Button"
 const BRAND = "#e3f503"
 
 const links = [
-  { label: "Shop", href: "/shop", key: "shop" },
-  { label: "Servizi", href: "#servizi", key: "servizi" },
-  { label: "Lavori", href: "#portfolio", key: "portfolio" },
-  { label: "Prezzi", href: "#prezzi", key: "prezzi" },
-  { label: "Risorse", href: "#risorse", key: "risorse" },
+  { label: "Home", href: "#top", key: "home" },
+  { label: "Shop", href: "#shop", key: "shop" },
+  { label: "Catalogo", href: "/shop", key: "catalog" },
   { label: "Helper 24/7", href: "#helper", key: "helper" },
 ] as const
 
-type MegaKey = "servizi" | "risorse" | "helper"
+type MegaKey = "helper"
 type MegaItem = { title: string; desc: string; href?: string; onClick?: () => void }
 type MegaGroup = { heading: string; items: MegaItem[] }
 
@@ -247,34 +245,13 @@ export function Navbar() {
 
   const mega = useMemo(() => {
     return {
-      servizi: [
-        {
-          heading: "Soluzioni",
-          items: [
-            { title: "Brand Identity", desc: "Logo, palette, kit social.", href: "#servizi" },
-            { title: "Web Design", desc: "UI + sviluppo, performance e SEO.", href: "#servizi" },
-            { title: "Gadget e stampe", desc: "Materiali fisici pronti per la stampa.", href: "#servizi" },
-          ],
-        },
-      ] satisfies MegaGroup[],
-
-      risorse: [
-        {
-          heading: "Strumenti",
-          items: [
-            { title: "Curriculum Vitae", desc: "Scarica il CV in PDF.", href: "#risorse" },
-            { title: "Portfolio", desc: "Scarica il portfolio in PDF.", href: "#risorse" },
-          ],
-        },
-      ] satisfies MegaGroup[],
-
       helper: [
         {
           heading: "Supporto",
           items: [
             { title: "Cloud", desc: "Chat attiva H24.", onClick: openHelperChat },
-            { title: "FAQ", desc: "Le domande più richieste.", href: "#faq" },
-            { title: "Contatti", desc: "Due domande e partiamo.", href: "#contatti" },
+            { title: "Shop", desc: "Apri il catalogo completo.", href: "/shop" },
+            { title: "Account", desc: "Login, ordini e area riservata.", href: "/shop/auth" },
           ],
         },
       ] satisfies MegaGroup[],
@@ -341,7 +318,7 @@ export function Navbar() {
                 {/* NAV DESKTOP (immutata) */}
                 <nav className="hidden md:flex items-center justify-center gap-7">
                   {links.map((l) => {
-                    const hasMega = l.key === "servizi" || l.key === "risorse" || l.key === "helper"
+                    const hasMega = l.key === "helper"
                     const commonClass = "h-10 inline-flex items-center text-sm text-white/70 hover:text-white transition"
 
                     if (!hasMega) {
@@ -402,11 +379,11 @@ export function Navbar() {
 
                 {/* ✅ DESKTOP ACTIONS IDENTICHE | MOBILE: nascoste */}
                 <div className="hidden md:flex items-center justify-end gap-3">
-                  <Button href="#contatti" variant="ghost" size="sm" className="hidden sm:inline-flex">
-                    Contatti
+                  <Button href="/shop/auth" variant="ghost" size="sm" className="hidden sm:inline-flex">
+                    Account
                   </Button>
-                  <Button href="#prezzi" size="sm">
-                    Richiedi un preventivo
+                  <Button href="/shop" size="sm">
+                    Vai allo shop
                   </Button>
                 </div>
               </motion.div>
@@ -415,20 +392,6 @@ export function Navbar() {
 
           {/* MEGA MENU (desktop) */}
           <div className="hidden md:block">
-            <MegaMenu
-              open={active?.key === "servizi"}
-              groups={mega.servizi}
-              anchor={active?.key === "servizi" ? active.rect : null}
-              onClose={scheduleClose}
-              onEnter={cancelClose}
-            />
-            <MegaMenu
-              open={active?.key === "risorse"}
-              groups={mega.risorse}
-              anchor={active?.key === "risorse" ? active.rect : null}
-              onClose={scheduleClose}
-              onEnter={cancelClose}
-            />
             <MegaMenu
               open={active?.key === "helper"}
               groups={mega.helper}
@@ -477,11 +440,11 @@ export function Navbar() {
                     })}
 
                     <div className="pt-3 flex gap-3">
-                      <Button href="#contatti" variant="ghost" className="w-full" onClick={() => setOpenMobile(false)}>
-                        Contatti
+                      <Button href="/shop/auth" variant="ghost" className="w-full" onClick={() => setOpenMobile(false)}>
+                        Account
                       </Button>
-                      <Button href="#prezzi" className="w-full" onClick={() => setOpenMobile(false)}>
-                        Preventivo
+                      <Button href="/shop" className="w-full" onClick={() => setOpenMobile(false)}>
+                        Shop
                       </Button>
                     </div>
                   </div>

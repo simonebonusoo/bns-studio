@@ -17,7 +17,7 @@ export function Hero() {
               Ogni grande{" "}
               <span className="text-[#e3f503]">brand</span>
               <br />
-              parte da un <span className="text-white">design</span> chiaro.
+              nasce da un <span className="text-white">design</span> chiaro.
             </h1>
           </Reveal>
 
@@ -30,9 +30,9 @@ export function Hero() {
 
           <Reveal delay={0.16}>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button href="#prezzi">Vedi prezzi</Button>
-              <Button href="#portfolio" variant="ghost">
-                Guarda portfolio
+              <Button href="#shop">Apri shop</Button>
+              <Button href="/shop/auth" variant="ghost">
+                Accedi al profilo
               </Button>
             </div>
           </Reveal>
