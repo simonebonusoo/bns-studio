@@ -14,8 +14,6 @@ import { Footer } from "./sections/Footer"
 import { CaseStudyPage } from "./pages/CaseStudyPage"
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage"
 
-import { HelperChatProvider } from "./context/HelperChatProvider"
-import { FloatingHelperChat } from "./components/FloatingHelperChat"
 import { ShopAuthProvider } from "./shop/context/ShopAuthProvider"
 import { ShopCartProvider } from "./shop/context/ShopCartProvider"
 import { ShopPage } from "./shop/pages/ShopPage"
@@ -143,72 +141,69 @@ export default function App() {
   }, [location.pathname, location.hash])
 
   return (
-    <HelperChatProvider>
-      <ShopAuthProvider>
-        <ShopCartProvider>
-          <div className="min-h-screen bg-ink text-white overflow-x-hidden">
-            <Noise />
-            <Navbar />
+    <ShopAuthProvider>
+      <ShopCartProvider>
+        <div className="min-h-screen bg-ink text-white overflow-x-hidden">
+          <Noise />
+          <Navbar />
 
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/privacy" element={<PrivacyPolicyPage />} />
-              <Route path="/case/:slug" element={<CaseStudyPage />} />
-              <Route path="/shop" element={<ShopPage />} />
-              <Route path="/shop/:slug" element={<ShopProductPage />} />
-              <Route path="/shop/cart" element={<ShopCartPage />} />
-              <Route path="/shop/auth" element={<ShopAuthPage />} />
-              <Route
-                path="/shop/checkout"
-                element={
-                  <ShopProtectedRoute>
-                    <ShopCheckoutPage />
-                  </ShopProtectedRoute>
-                }
-              />
-              <Route
-                path="/shop/profile"
-                element={
-                  <ShopProtectedRoute>
-                    <ShopProfilePage />
-                  </ShopProtectedRoute>
-                }
-              />
-              <Route
-                path="/shop/orders/:orderReference"
-                element={
-                  <ShopProtectedRoute>
-                    <ShopReceiptPage />
-                  </ShopProtectedRoute>
-                }
-              />
-              <Route
-                path="/shop/paypal-return"
-                element={
-                  <ShopProtectedRoute>
-                    <ShopPaypalReturnPage />
-                  </ShopProtectedRoute>
-                }
-              />
-              <Route
-                path="/shop/admin"
-                element={
-                  <ShopAdminRoute>
-                    <ShopAdminPage />
-                  </ShopAdminRoute>
-                }
-              />
-            </Routes>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/case/:slug" element={<CaseStudyPage />} />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/shop/:slug" element={<ShopProductPage />} />
+            <Route path="/shop/cart" element={<ShopCartPage />} />
+            <Route path="/shop/auth" element={<ShopAuthPage />} />
+            <Route
+              path="/shop/checkout"
+              element={
+                <ShopProtectedRoute>
+                  <ShopCheckoutPage />
+                </ShopProtectedRoute>
+              }
+            />
+            <Route
+              path="/shop/profile"
+              element={
+                <ShopProtectedRoute>
+                  <ShopProfilePage />
+                </ShopProtectedRoute>
+              }
+            />
+            <Route
+              path="/shop/orders/:orderReference"
+              element={
+                <ShopProtectedRoute>
+                  <ShopReceiptPage />
+                </ShopProtectedRoute>
+              }
+            />
+            <Route
+              path="/shop/paypal-return"
+              element={
+                <ShopProtectedRoute>
+                  <ShopPaypalReturnPage />
+                </ShopProtectedRoute>
+              }
+            />
+            <Route
+              path="/shop/admin"
+              element={
+                <ShopAdminRoute>
+                  <ShopAdminPage />
+                </ShopAdminRoute>
+              }
+            />
+          </Routes>
 
-            {location.pathname !== "/" ? <Footer /> : null}
+          {location.pathname !== "/" ? <Footer /> : null}
 
-            <BottomNavMobile />
+          <BottomNavMobile />
 
-            <BackToTop />
-            <FloatingHelperChat />
-          </div>
-        </ShopCartProvider>
-      </ShopAuthProvider>
-    </HelperChatProvider>
+          <BackToTop />
+        </div>
+      </ShopCartProvider>
+    </ShopAuthProvider>
   )
 }

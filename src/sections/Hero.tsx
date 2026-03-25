@@ -2,7 +2,6 @@ import { Container } from "../components/Container"
 import { Backdrop } from "../components/Backdrop"
 import { Button } from "../components/Button"
 import { Reveal } from "../components/Reveal"
-import { BrandsMarquee } from "../components/BrandsMarquee"
 
 export function Hero() {
   return (
@@ -36,11 +35,6 @@ export function Hero() {
               </Button>
             </div>
           </Reveal>
-        </div>
-
-        {/* BRAND MARQUEE – spacing gestito qui (non dentro BrandsMarquee) */}
-        <div className="mt-6 md:mt-8">
-          <BrandsMarquee />
         </div>
       </Container>
     </section>

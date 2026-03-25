@@ -1,37 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Container } from "./Container"
 import { Logo } from "./Logo"
 import { Button } from "./Button"
 
-const BRAND = "#e3f503"
-
 const links = [
   { label: "Home", href: "#top", key: "home" },
   { label: "Shop", href: "#shop", key: "shop" },
   { label: "Catalogo", href: "/shop", key: "catalog" },
-  { label: "Helper 24/7", href: "#helper", key: "helper" },
 ] as const
-
-type MegaKey = "helper"
-type MegaItem = { title: string; desc: string; href?: string; onClick?: () => void }
-type MegaGroup = { heading: string; items: MegaItem[] }
-
-function clamp(n: number, min: number, max: number) {
-  return Math.min(Math.max(n, min), max)
-}
-
-function useOutsideClick(ref: React.RefObject<HTMLElement>, onClose: () => void) {
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const el = ref.current
-      if (!el) return
-      if (!el.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [ref, onClose])
-}
 
 function NavFlip({ label }: { label: string }) {
   const front = { rest: { rotateX: 0, y: 0 }, hover: { rotateX: 90, y: -10 } }
@@ -62,141 +39,10 @@ function NavFlip({ label }: { label: string }) {
   )
 }
 
-function MegaMenu({
-  open,
-  groups,
-  anchor,
-  onClose,
-  onEnter,
-}: {
-  open: boolean
-  groups: MegaGroup[]
-  anchor: DOMRect | null
-  onClose: () => void
-  onEnter?: () => void
-}) {
-  const isSingle = groups.length <= 1
-  const width = isSingle ? 520 : 820
-  const pad = 22
-
-  const left =
-    typeof window === "undefined"
-      ? 0
-      : anchor
-        ? clamp(anchor.left + anchor.width / 2 - width / 2, pad, window.innerWidth - width - pad)
-        : (window.innerWidth - width) / 2
-
-  return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.985 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.985 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-          className="fixed z-[60]"
-          style={{
-            left,
-            width,
-            top: "calc(var(--nav-h, 80px) + 10px)",
-          }}
-          onMouseEnter={onEnter}
-          onMouseLeave={onClose}
-        >
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_80px_rgba(0,0,0,.45)]">
-            <div className="absolute inset-0 backdrop-blur-xl backdrop-saturate-125" />
-            <div className="absolute inset-0 bg-white/[0.03]" />
-            <div
-              className="absolute -top-32 left-16 h-56 w-96 rounded-full blur-3xl opacity-10"
-              style={{ background: BRAND }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] via-transparent to-black/10" />
-            <div className="absolute inset-0 ring-1 ring-white/10" />
-
-            <div className="relative">
-              <div className={isSingle ? "grid md:grid-cols-1" : "grid md:grid-cols-2"}>
-                {groups.map((g, idx) => (
-                  <div
-                    key={g.heading}
-                    className={["p-6 md:p-7", !isSingle && idx === 0 ? "md:border-r border-white/10" : ""].join(" ")}
-                  >
-                    <div className="text-xs tracking-[.22em] uppercase text-white/60">{g.heading}</div>
-
-                    <div className="mt-4 space-y-2">
-                      {g.items.map((it) => {
-                        const Content = (
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="text-base font-medium text-white/95 group-hover:text-white truncate">
-                                {it.title}
-                              </div>
-                              <div className="mt-1 text-sm text-white/70 group-hover:text-white/80">{it.desc}</div>
-                            </div>
-                            <span className="text-white/30 group-hover:text-[#e3f503] transition">↗</span>
-                          </div>
-                        )
-
-                        if (it.onClick) {
-                          return (
-                            <button
-                              key={it.title}
-                              type="button"
-                              onClick={() => {
-                                it.onClick?.()
-                                onClose()
-                              }}
-                              className="group w-full text-left block rounded-xl px-3 py-3 hover:bg-white/[0.06] transition"
-                            >
-                              {Content}
-                            </button>
-                          )
-                        }
-
-                        return (
-                          <a
-                            key={it.title}
-                            href={it.href || "#"}
-                            onClick={onClose}
-                            className="group block rounded-xl px-3 py-3 hover:bg-white/[0.06] transition"
-                          >
-                            {Content}
-                          </a>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="h-px bg-gradient-to-r from-transparent via-[#e3f503]/18 to-transparent" />
-            </div>
-          </div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
-  )
-}
-
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [openMobile, setOpenMobile] = useState(false)
-  const [active, setActive] = useState<null | { key: MegaKey; rect: DOMRect }>(null)
-
-  const wrapRef = useRef<HTMLDivElement>(null)
-  useOutsideClick(wrapRef, () => setActive(null))
-
-  const closeTimer = useRef<number | null>(null)
   const navH = 80
-
-  const scheduleClose = () => {
-    if (closeTimer.current) window.clearTimeout(closeTimer.current)
-    closeTimer.current = window.setTimeout(() => setActive(null), 160)
-  }
-
-  const cancelClose = () => {
-    if (closeTimer.current) window.clearTimeout(closeTimer.current)
-    closeTimer.current = null
-  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -214,54 +60,10 @@ export function Navbar() {
     }
   }, [openMobile])
 
-  useEffect(() => {
-    if (!active) return
-    const update = () => {
-      const el = document.querySelector(`[data-mega="${active.key}"]`) as HTMLElement | null
-      if (!el) return
-      setActive({ key: active.key, rect: el.getBoundingClientRect() })
-    }
-    window.addEventListener("resize", update)
-    window.addEventListener("scroll", update, { passive: true })
-    return () => {
-      window.removeEventListener("resize", update)
-      window.removeEventListener("scroll", update)
-    }
-  }, [active])
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setActive(null)
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [])
-
-  const openHelperChat = () => {
-    setActive(null)
-    setOpenMobile(false)
-    window.dispatchEvent(new Event("bns:open-helper-chat"))
-  }
-
-  const mega = useMemo(() => {
-    return {
-      helper: [
-        {
-          heading: "Supporto",
-          items: [
-            { title: "Cloud", desc: "Chat attiva H24.", onClick: openHelperChat },
-            { title: "Shop", desc: "Apri il catalogo completo.", href: "/shop" },
-            { title: "Account", desc: "Login, ordini e area riservata.", href: "/shop/auth" },
-          ],
-        },
-      ] satisfies MegaGroup[],
-    }
-  }, [])
-
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50" style={{ ["--nav-h" as any]: `${navH}px` } as any}>
-        <div ref={wrapRef} className="relative" onMouseEnter={cancelClose} onMouseLeave={scheduleClose}>
+        <div className="relative">
           <motion.div
             aria-hidden
             className="absolute inset-0 pointer-events-none z-0"
@@ -299,7 +101,6 @@ export function Navbar() {
                   href="#top"
                   onClick={() => {
                     setOpenMobile(false)
-                    setActive(null)
                   }}
                   aria-label="Vai all'inizio"
                   className={[
@@ -318,61 +119,20 @@ export function Navbar() {
                 {/* NAV DESKTOP (immutata) */}
                 <nav className="hidden md:flex items-center justify-center gap-7">
                   {links.map((l) => {
-                    const hasMega = l.key === "helper"
                     const commonClass = "h-10 inline-flex items-center text-sm text-white/70 hover:text-white transition"
 
-                    if (!hasMega) {
-                      return (
-                        <motion.a
-                          key={l.key}
-                          href={l.href}
-                          initial="rest"
-                          animate="rest"
-                          whileHover="hover"
-                          whileTap="hover"
-                          className={commonClass}
-                          onMouseEnter={() => setActive(null)}
-                          onFocus={() => setActive(null)}
-                          onClick={() => setActive(null)}
-                        >
-                          <NavFlip label={l.label} />
-                        </motion.a>
-                      )
-                    }
-
-                    const isActive = active?.key === (l.key as MegaKey)
-
                     return (
-                      <motion.button
+                      <motion.a
                         key={l.key}
-                        type="button"
-                        data-mega={l.key}
+                        href={l.href}
                         initial="rest"
                         animate="rest"
                         whileHover="hover"
                         whileTap="hover"
-                        onMouseEnter={(e) => {
-                          cancelClose()
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                          setActive({ key: l.key as MegaKey, rect })
-                        }}
-                        onFocus={(e) => {
-                          cancelClose()
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                          setActive({ key: l.key as MegaKey, rect })
-                        }}
-                        onClick={(e) => {
-                          cancelClose()
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                          setActive((prev) => (prev?.key === l.key ? null : { key: l.key as MegaKey, rect }))
-                        }}
-                        className={[commonClass, "p-0 m-0 bg-transparent border-0 outline-none"].join(" ")}
+                        className={commonClass}
                       >
-                        <span className="inline-flex items-center gap-2">
-                          <NavFlip label={l.label} />
-                          <span className={isActive ? "text-[#e3f503]" : "text-white/40"}>▾</span>
-                        </span>
-                      </motion.button>
+                        <NavFlip label={l.label} />
+                      </motion.a>
                     )
                   })}
                 </nav>
@@ -390,17 +150,6 @@ export function Navbar() {
             </Container>
           </div>
 
-          {/* MEGA MENU (desktop) */}
-          <div className="hidden md:block">
-            <MegaMenu
-              open={active?.key === "helper"}
-              groups={mega.helper}
-              anchor={active?.key === "helper" ? active.rect : null}
-              onClose={scheduleClose}
-              onEnter={cancelClose}
-            />
-          </div>
-
           {/* MOBILE MENU (resta ma non più apribile senza hamburger) */}
           <AnimatePresence>
             {openMobile ? (
@@ -414,19 +163,6 @@ export function Navbar() {
                 <Container>
                   <div className="py-4 space-y-2">
                     {links.map((l) => {
-                      if (l.key === "helper") {
-                        return (
-                          <button
-                            key={l.key}
-                            type="button"
-                            onClick={openHelperChat}
-                            className="w-full text-left block rounded-xl px-3 py-2 text-sm text-white/80 hover:text-white hover:bg-white/5 transition"
-                          >
-                            {l.label}
-                          </button>
-                        )
-                      }
-
                       return (
                         <a
                           key={l.key}

@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
-// ✅ Icone "ufficiali" Heroicons
 import {
-  ChatBubbleLeftRightIcon,
   ChevronDownIcon,
   BriefcaseIcon,
   Squares2X2Icon,
@@ -18,7 +16,7 @@ import { HomeIcon as HomeSolidIcon, Cog6ToothIcon as CogSolidIcon } from "@heroi
 const BRAND = "#e3f503"
 
 type OpenKey = null | "altro"
-type ActiveKey = "altro" | "home" | "chat"
+type ActiveKey = "altro" | "home"
 
 function useOutsideClick(ref: React.RefObject<HTMLElement>, onClose: () => void) {
   useEffect(() => {
@@ -105,8 +103,6 @@ export function BottomNavMobile() {
   const gridRef = useRef<HTMLDivElement>(null)
   const altRef = useRef<HTMLButtonElement>(null)
   const homeRef = useRef<HTMLButtonElement>(null)
-  const chatRef = useRef<HTMLButtonElement>(null)
-
   const [pill, setPill] = useState<{ left: number; width: number } | null>(null)
 
   const focusKill = "outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
@@ -156,7 +152,7 @@ export function BottomNavMobile() {
     const gridRect = grid.getBoundingClientRect()
 
     const target =
-      active === "altro" ? altRef.current : active === "home" ? homeRef.current : chatRef.current
+      active === "altro" ? altRef.current : homeRef.current
 
     if (!target) return
     const t = target.getBoundingClientRect()
@@ -184,7 +180,6 @@ export function BottomNavMobile() {
     // osserva anche i bottoni (alcuni browser cambiano size con font scaling)
     if (altRef.current) ro.observe(altRef.current)
     if (homeRef.current) ro.observe(homeRef.current)
-    if (chatRef.current) ro.observe(chatRef.current)
 
     window.addEventListener("resize", measurePill)
     window.addEventListener("orientationchange", measurePill)
@@ -200,20 +195,12 @@ export function BottomNavMobile() {
   const goHome = () => {
     closeAll()
     setActive("home")
-    window.dispatchEvent(new Event("bns:close-helper-chat"))
     window.location.hash = "#top"
   }
 
   const toggleAltro = () => {
-    window.dispatchEvent(new Event("bns:close-helper-chat"))
     setActive("altro")
     setOpen((v) => (v === "altro" ? null : "altro"))
-  }
-
-  const openChat = () => {
-    closeAll()
-    setActive("chat")
-    window.dispatchEvent(new Event("bns:open-helper-chat"))
   }
 
   return (
@@ -276,8 +263,7 @@ export function BottomNavMobile() {
             <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/50" />
           </div>
 
-          {/* GRID 3 slot */}
-          <div ref={gridRef} className="relative h-full grid grid-cols-3 items-center px-4">
+          <div ref={gridRef} className="relative h-full grid grid-cols-2 items-center px-4">
             {/* ✅ pill precisa (posizione misurata) */}
             {pill ? (
               <motion.div
@@ -329,24 +315,6 @@ export function BottomNavMobile() {
               style={{ WebkitTapHighlightColor: "transparent" } as any}
             >
               <HomeSolidIcon className={["h-6 w-6 transition", active === "home" ? "text-black" : "text-white/85"].join(" ")} />
-            </button>
-
-            {/* CHAT */}
-            <button
-              ref={chatRef}
-              type="button"
-              onClick={openChat}
-              aria-label="Chat"
-              className={[
-                "relative z-10 mx-auto h-[44px] w-full rounded-[999px]",
-                "flex items-center justify-center",
-                focusKill,
-              ].join(" ")}
-              style={{ WebkitTapHighlightColor: "transparent" } as any}
-            >
-              <ChatBubbleLeftRightIcon
-                className={["h-6 w-6 transition", active === "chat" ? "text-black" : "text-white/85"].join(" ")}
-              />
             </button>
           </div>
         </div>
