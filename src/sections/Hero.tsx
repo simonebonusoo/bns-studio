@@ -16,12 +16,12 @@ export function Hero() {
               Ogni grande{" "}
               <span className="text-[#e3f503]">brand</span>
               <br />
-              nasce da un <span className="text-zinc-950">design</span> chiaro.
+              nasce da un <span className="text-white">design</span> chiaro.
             </h1>
           </Reveal>
 
           <Reveal delay={0.08}>
-            <p className="mt-6 text-zinc-600 leading-relaxed text-base md:text-lg">
+            <p className="mt-6 text-white/70 leading-relaxed text-base md:text-lg">
               BNS Studio crea identità visive, siti web e prodotti digitali con
               un&apos;estetica essenziale, animazioni fluide e performance reali.
             </p>

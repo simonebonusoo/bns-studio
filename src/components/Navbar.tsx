@@ -27,7 +27,7 @@ function highlightMatch(text: string, query: string) {
   return (
     <>
       {text.slice(0, index)}
-      <span className="text-[#b8cf00]">{text.slice(index, index + normalized.length)}</span>
+      <span className="text-[#e3f503]">{text.slice(index, index + normalized.length)}</span>
       {text.slice(index + normalized.length)}
     </>
   )
@@ -161,16 +161,16 @@ export function Navbar() {
             animate={scrolled || searchOpen ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-2xl" />
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-2xl" />
             <div className="absolute inset-0 backdrop-saturate-125" />
-            <div className="absolute inset-x-0 bottom-0 h-px bg-zinc-200/90" />
-            <div className="absolute inset-x-0 top-0 h-px bg-white/90" />
+            <div className="absolute inset-x-0 bottom-0 h-px bg-white/12" />
+            <div className="absolute inset-x-0 top-0 h-px bg-white/8" />
 
             <motion.div
               className="absolute -top-10 left-0 h-24 w-[55%] rotate-[-8deg]"
               style={{
                 background:
-                  "linear-gradient(90deg, rgba(215,236,0,0) 0%, rgba(215,236,0,0.14) 50%, rgba(215,236,0,0) 100%)",
+                  "linear-gradient(90deg, rgba(227,245,3,0) 0%, rgba(227,245,3,0.10) 50%, rgba(227,245,3,0) 100%)",
                 filter: "blur(10px)",
               }}
               animate={{ x: ["-20%", "120%"] }}
@@ -178,7 +178,7 @@ export function Navbar() {
             />
           </motion.div>
 
-          <div className={scrolled || searchOpen ? "bg-transparent" : "bg-white/60 backdrop-blur-sm"}>
+          <div className={scrolled || searchOpen ? "bg-transparent" : "bg-black/15 backdrop-blur-sm"}>
             <Container>
               <motion.div
                 initial={{ y: -12, opacity: 0 }}
@@ -193,10 +193,10 @@ export function Navbar() {
                 <div
                   className={[
                     "flex h-[46px] w-full items-center gap-3 rounded-full border bg-white/[0.04] px-4 backdrop-blur-xl transition md:h-[50px] md:px-5",
-                    searchOpen ? "border-zinc-300 text-zinc-950 bg-white" : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-950",
+                    searchOpen ? "border-white/20 text-white" : "border-white/10 text-white/55 hover:border-white/20 hover:text-white",
                   ].join(" ")}
                 >
-                  <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-zinc-400" />
+                  <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
                   <input
                     ref={inputRef}
                     value={search}
@@ -211,7 +211,7 @@ export function Navbar() {
                       }
                     }}
                     placeholder="Cerca prodotti, nomi, artisti..."
-                    className="w-full bg-transparent text-sm text-zinc-950 placeholder:text-zinc-400 outline-none md:text-base"
+                    className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none md:text-base"
                   />
                   {search || searchOpen ? (
                     <button
@@ -220,7 +220,7 @@ export function Navbar() {
                         setSearch("")
                         setSearchOpen(false)
                       }}
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition hover:text-zinc-900"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
                       aria-label="Chiudi ricerca"
                     >
                       <XMarkIcon className="h-4 w-4" />
@@ -255,7 +255,7 @@ export function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-white/55 backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
             />
 
             <motion.div
@@ -268,36 +268,36 @@ export function Navbar() {
               <Container>
                 <div
                   ref={overlayRef}
-                  className="overflow-hidden rounded-[32px] border border-zinc-200 bg-[#fafaf8]/96 shadow-[0_30px_90px_rgba(15,23,42,.12)] backdrop-blur-2xl"
+                  className="overflow-hidden rounded-[32px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-2xl"
                 >
                   {!trimmedSearch ? (
                     <div className="grid gap-6 p-4 md:grid-cols-2 md:p-6">
-                      <div className="rounded-[28px] border border-zinc-200 bg-white p-5">
-                        <p className="text-xs uppercase tracking-[0.26em] text-zinc-500">Ricerche popolari</p>
+                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                        <p className="text-xs uppercase tracking-[0.26em] text-white/45">Ricerche popolari</p>
                         <div className="mt-5 space-y-2">
                           {popularSuggestions.map((item) => (
                             <button
                               key={`${item.type}-${item.label}`}
                               type="button"
                               onClick={() => navigate(item.href)}
-                              className="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-4 py-3 text-left text-sm text-zinc-700 transition hover:border-zinc-300 hover:text-zinc-950"
+                              className="flex w-full items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm text-white/75 transition hover:border-white/20 hover:text-white"
                             >
                               <span>{item.label}</span>
-                              <span className="text-xs uppercase tracking-[0.2em] text-zinc-400">{item.type}</span>
+                              <span className="text-xs uppercase tracking-[0.2em] text-white/35">{item.type}</span>
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      <div className="rounded-[28px] border border-zinc-200 bg-white p-5">
-                        <p className="text-xs uppercase tracking-[0.26em] text-zinc-500">Altro</p>
+                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                        <p className="text-xs uppercase tracking-[0.26em] text-white/45">Altro</p>
                         <div className="mt-5 grid gap-2 sm:grid-cols-2">
                           {exploreSuggestions.map((item) => (
                             <button
                               key={`${item.type}-${item.label}`}
                               type="button"
                               onClick={() => navigate(item.href)}
-                              className="rounded-2xl border border-zinc-200 px-4 py-3 text-left text-sm text-zinc-700 transition hover:border-zinc-300 hover:text-zinc-950"
+                              className="rounded-2xl border border-white/10 px-4 py-3 text-left text-sm text-white/75 transition hover:border-white/20 hover:text-white"
                             >
                               {item.label}
                             </button>
@@ -309,8 +309,8 @@ export function Navbar() {
                     <div className="p-4 md:p-6">
                       <div className="mb-5 flex items-center justify-between gap-4">
                         <div>
-                          <p className="text-xs uppercase tracking-[0.26em] text-zinc-500">Risultati live</p>
-                          <p className="mt-2 text-sm text-zinc-600">
+                          <p className="text-xs uppercase tracking-[0.26em] text-white/45">Risultati live</p>
+                          <p className="mt-2 text-sm text-white/65">
                             {loadingProducts ? "Aggiornamento risultati..." : `${liveResults.length} prodotti trovati per "${trimmedSearch}"`}
                           </p>
                         </div>
@@ -318,7 +318,7 @@ export function Navbar() {
                         <button
                           type="button"
                           onClick={() => submitSearch()}
-                          className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-700 transition hover:border-zinc-300 hover:text-zinc-950"
+                          className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white"
                         >
                           Vedi tutti i risultati
                         </button>
@@ -331,7 +331,7 @@ export function Navbar() {
                               key={product.id}
                               type="button"
                               onClick={() => navigate(`/shop/${product.slug}`)}
-                              className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-4 rounded-[24px] border border-zinc-200 bg-white p-3 text-left transition hover:border-zinc-300"
+                              className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-white/20"
                             >
                               <img
                                 src={product.imageUrls[0]}
@@ -339,18 +339,18 @@ export function Navbar() {
                                 className="h-[72px] w-[72px] rounded-[18px] object-cover"
                               />
                               <div className="min-w-0">
-                                <p className="text-sm text-zinc-500">{product.category}</p>
-                                <h3 className="mt-1 truncate text-base font-medium text-zinc-950">
+                                <p className="text-sm text-white/45">{product.category}</p>
+                                <h3 className="mt-1 truncate text-base font-medium text-white">
                                   {highlightMatch(product.title, trimmedSearch)}
                                 </h3>
-                                <p className="mt-1 truncate text-sm text-zinc-500">
+                                <p className="mt-1 truncate text-sm text-white/55">
                                   {highlightMatch(product.slug.replace(/-/g, " "), trimmedSearch)}
                                 </p>
                               </div>
                             </button>
                           ))
                         ) : (
-                          <div className="rounded-[24px] border border-dashed border-zinc-200 px-6 py-10 text-center text-zinc-500">
+                          <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
                             Nessun risultato live. Premi invio per aprire il catalogo filtrato.
                           </div>
                         )}

@@ -144,7 +144,7 @@ export default function App() {
   return (
     <ShopAuthProvider>
       <ShopCartProvider>
-        <div className="min-h-screen overflow-x-hidden bg-[#f7f7f8] text-zinc-950">
+        <div className="min-h-screen bg-ink text-white overflow-x-hidden">
           <Noise />
           <Navbar />
 

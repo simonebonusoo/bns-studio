@@ -27,18 +27,18 @@ export function ShopLayout({
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div className="max-w-2xl">
                 <span className="shop-pill">{eyebrow}</span>
-                <h1 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">{title}</h1>
-                <p className="mt-4 max-w-xl text-sm leading-7 text-zinc-600 md:text-base">{intro}</p>
+                <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">{title}</h1>
+                <p className="mt-4 max-w-xl text-sm leading-7 text-white/70 md:text-base">{intro}</p>
               </div>
 
               {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
             </div>
 
             {!user ? (
-              <div className="flex flex-col gap-3 rounded-[20px] border border-zinc-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-black/20 px-5 py-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-zinc-950">Accesso cliente richiesto per il checkout</p>
-                  <p className="mt-1 text-sm text-zinc-600">Registrazione e storico ordini sono gestiti direttamente nello shop integrato.</p>
+                  <p className="text-sm font-medium text-white">Accesso cliente richiesto per il checkout</p>
+                  <p className="mt-1 text-sm text-white/60">Registrazione e storico ordini sono gestiti direttamente nello shop integrato.</p>
                 </div>
                 <Link to="/shop/auth">
                   <Button size="sm">Login / Register</Button>

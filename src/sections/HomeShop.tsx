@@ -28,7 +28,7 @@ export function HomeShop() {
                 <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
                   Lo shop e il cuore del sito.
                 </h2>
-                <p className="mt-4 max-w-xl text-sm leading-7 text-zinc-600 md:text-base">
+                <p className="mt-4 max-w-xl text-sm leading-7 text-white/70 md:text-base">
                   Esperienza catalogo integrata direttamente in homepage, con ricerca centrale in navbar,
                   schede prodotto coerenti e gli stessi flussi di carrello, account e checkout gia attivi.
                 </p>
@@ -36,10 +36,10 @@ export function HomeShop() {
             </div>
 
             {!user ? (
-              <div className="flex flex-col gap-3 rounded-[20px] border border-zinc-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)] md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-black/20 px-5 py-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-zinc-950">Accesso cliente richiesto per il checkout</p>
-                  <p className="mt-1 text-sm text-zinc-600">
+                  <p className="text-sm font-medium text-white">Accesso cliente richiesto per il checkout</p>
+                  <p className="mt-1 text-sm text-white/60">
                     Login, carrello, ordini e area admin restano gli stessi dello shop gia integrato.
                   </p>
                 </div>
@@ -49,22 +49,22 @@ export function HomeShop() {
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-3 rounded-[24px] border border-zinc-200 bg-white px-5 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 rounded-[24px] border border-white/10 bg-black/30 px-5 py-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.26em] text-zinc-500">Catalog</p>
-                <p className="mt-2 text-sm text-zinc-600">
+                <p className="text-xs uppercase tracking-[0.26em] text-white/45">Catalog</p>
+                <p className="mt-2 text-sm text-white/70">
                   La ricerca principale ora vive nella navbar: clicca la barra in alto per aprire
                   suggerimenti, popolari e risultati live.
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <div className="flex items-center gap-2 text-xs text-white/55">
                 <MagnifyingGlassIcon className="h-4 w-4" />
                 <span>{products.length} prodotti disponibili</span>
               </div>
             </div>
 
             {!products.length ? (
-              <div className="rounded-[24px] border border-dashed border-zinc-200 bg-white/70 px-6 py-14 text-center text-zinc-500">
+              <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">
                 Nessun prodotto disponibile al momento.
               </div>
             ) : null}

@@ -6,19 +6,19 @@
 
 @layer components {
   .legal {
-    @apply text-zinc-700 leading-relaxed;
+    @apply text-white/70 leading-relaxed;
   }
 
   .legal h1 {
-    @apply text-3xl md:text-4xl font-semibold text-zinc-950 tracking-tight;
+    @apply text-3xl md:text-4xl font-semibold text-white tracking-tight;
   }
 
   .legal h2 {
-    @apply mt-10 text-xl md:text-2xl font-semibold text-zinc-950;
+    @apply mt-10 text-xl md:text-2xl font-semibold text-white;
   }
 
   .legal h3 {
-    @apply mt-6 text-base md:text-lg font-semibold text-zinc-900;
+    @apply mt-6 text-base md:text-lg font-semibold text-white/90;
   }
 
   .legal p {
@@ -34,23 +34,23 @@
   }
 
   .legal li {
-    @apply text-zinc-700;
+    @apply text-white/70;
   }
 
   .legal a {
-    @apply text-zinc-900 underline underline-offset-4 decoration-zinc-400 hover:decoration-zinc-700;
+    @apply text-white underline underline-offset-4 decoration-white/30 hover:decoration-white/70;
   }
 
   .legal strong {
-    @apply text-zinc-950 font-semibold;
+    @apply text-white/90 font-semibold;
   }
 
   .legal hr {
-    @apply my-10 border-zinc-200;
+    @apply my-10 border-white/10;
   }
 
   .legal .muted {
-    @apply text-zinc-500;
+    @apply text-white/45;
   }
 }
 
@@ -60,7 +60,7 @@
    Global / Reset
    ========================= */
 :root { 
-  color-scheme: light;
+  color-scheme: dark;  /* Hint al browser: UI in dark mode (scrollbar/form ecc.) */
 }
 
 * { 
@@ -72,13 +72,13 @@ html, body {
 }
 
 body { 
+  /* Font stack globale */
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Helvetica, Arial;
-  background: #f7f7f8;
-  color: #18181b;
+  background: #0b0b0c; /* Background base del sito */
 }
 
 ::selection { 
-  background: rgba(227,245,3,.35);
+  background: rgba(255,255,255,.18); /* Colore selezione testo */
 }
 
 /* =========================
@@ -87,8 +87,8 @@ body {
 .bg-grid {
   /* Due gradienti (verticale + orizzontale) per creare una griglia */
   background-image:
-    linear-gradient(rgba(24,24,27,.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(24,24,27,.06) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
 
   /* Dimensione celle griglia */
   background-size: 42px 42px;
@@ -104,18 +104,17 @@ body {
    Glass effect utility
    ========================= */
 .glass {
-  background: rgba(255,255,255,.82);
-  border: 1px solid rgba(15,23,42,.08);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 14px 40px rgba(15,23,42,.06);
+  background: rgba(255,255,255,.04);            /* Fondo semi-trasparente */
+  border: 1px solid rgba(255,255,255,.08);      /* Bordo sottile */
+  backdrop-filter: blur(10px);                  /* Sfocatura dietro */
 }
 
 /* =========================
    Focus accessibility
    ========================= */
 :focus-visible { 
-  outline: 2px solid rgba(24,24,27,.18);
-  outline-offset: 3px;
+  outline: 2px solid rgba(255,255,255,.35); /* Outline accessibile */
+  outline-offset: 3px;                      /* Distacco dal bordo */
 }
 
 /* =========================
@@ -127,38 +126,34 @@ body {
 }
 
 ::-webkit-scrollbar-thumb { 
-  background: rgba(24,24,27,.16);
-  border-radius: 999px;
+  background: rgba(255,255,255,.12); /* Colore “thumb” scrollbar */
+  border-radius: 999px;              /* Arrotondato */
 }
 
 ::-webkit-scrollbar-track { 
-  background: rgba(24,24,27,.04);
+  background: rgba(255,255,255,.03); /* Track scrollbar */
 }
 
 /* =========================
    CSS Variables (Palette)
    ========================= */
 :root {
-  --bg: #f7f7f8;
-  --surface: #ffffff;
-  --surface-soft: #f1f2f4;
-  --primary: #d7ec00;
-  --ink: #111111;
-  --muted: #6b7280;
-  --line: rgba(15,23,42,.08);
-  --glass: rgba(255,255,255,0.8);
+  --bg: #000000;                 /* Nero base */
+  --primary: #e3f503;            /* Colore brand (lime) */
+  --white: #ffffff;              /* Bianco */
+  --glass: rgba(255,255,255,0.06); /* Glass utility var */
 }
 
 /* =========================
    Navbar (versione CSS “vecchia”)
    ========================= */
 .navbar {
-  position: fixed;
+  position: fixed;                 /* Navbar fissa in alto */
   top: 0;
   width: 100%;
   z-index: 100;
-  backdrop-filter: blur(14px);
-  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(14px);     /* Blur dietro la navbar */
+  background: rgba(0,0,0,0.6);     /* Sfondo scuro trasparente */
 }
 
 .nav-inner {
@@ -180,7 +175,7 @@ body {
 
 /* Stile link */
 .nav-links a {
-  color: var(--ink);
+  color: var(--white);
   text-decoration: none;
   font-weight: 500;
   position: relative;
@@ -250,7 +245,7 @@ html, body {
 
 /* Colore accento brand */
 .brand-accent {
-  color: #d7ec00;
+  color: #e3f503;
 }
 
 /* Hover logo brand */
@@ -267,21 +262,21 @@ html, body {
 .shop-input,
 .shop-select,
 .shop-textarea {
-  @apply w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-950 placeholder:text-zinc-400 transition shadow-[0_4px_18px_rgba(15,23,42,0.04)];
+  @apply w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-white/35 transition;
 }
 
 .shop-input:focus,
 .shop-select:focus,
 .shop-textarea:focus {
-  @apply border-zinc-300 bg-white;
+  @apply border-white/25 bg-white/[0.05];
 }
 
 .shop-card {
-  @apply rounded-[24px] border border-zinc-200 bg-white backdrop-blur-md shadow-[0_12px_34px_rgba(15,23,42,0.06)];
+  @apply rounded-[24px] border border-white/10 bg-white/[0.03] backdrop-blur-md;
 }
 
 .shop-pill {
-  @apply inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-zinc-500;
+  @apply inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/55;
 }
 
 /* Logo PNG libero: nessun background/border/padding imposto da altri stili */
