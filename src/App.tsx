@@ -197,7 +197,7 @@ export default function App() {
             />
           </Routes>
 
-          {location.pathname !== "/" ? <Footer /> : null}
+          <Footer />
 
           <BottomNavMobile />
 
