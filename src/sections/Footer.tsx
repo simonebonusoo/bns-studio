@@ -22,8 +22,8 @@ function SocialButton({
       className={[
         "inline-flex items-center justify-center",
         "h-11 w-11 rounded-2xl",
-        "bg-white/[0.04] border border-white/10",
-        "text-white/80 hover:text-white hover:border-white/20",
+        "bg-white border border-zinc-200",
+        "text-zinc-600 hover:text-zinc-950 hover:border-zinc-300",
         "transition",
       ].join(" ")}
     >
@@ -34,7 +34,7 @@ function SocialButton({
 
 export function Footer() {
   return (
-    <footer className="mt-24 bg-black border-t border-white/10">
+    <footer className="mt-24 border-t border-zinc-200 bg-[#f3f4f6]">
       <Container>
         <div className="py-8 flex flex-col items-center text-center gap-5">
           {/* SOCIAL */}
@@ -67,10 +67,10 @@ export function Footer() {
           </div>
 
           {/* COPYRIGHT */}
-          <div className="text-sm text-white/70">© 2026 BNS Studio. All rights reserved.</div>
+          <div className="text-sm text-zinc-600">© 2026 BNS Studio. All rights reserved.</div>
 
           {/* PRIVACY */}
-          <a href="/privacy" className="text-sm text-white/45 hover:text-white/70 transition">
+          <a href="/privacy" className="text-sm text-zinc-500 transition hover:text-zinc-800">
             Privacy Policy
           </a>
         </div>

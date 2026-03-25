@@ -75,14 +75,14 @@ export function ShopPage() {
       title="Asset pronti, integrati nel sito."
       intro="Catalogo ecommerce nativo BNS Studio con ricerca centralizzata, risultati filtrati e prodotto sempre in primo piano."
     >
-      <div className="flex flex-col gap-4 rounded-[24px] border border-white/10 bg-black/30 px-5 py-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 rounded-[24px] border border-zinc-200 bg-white px-5 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.26em] text-white/45">Search-first Catalog</p>
-          <p className="mt-2 text-sm text-white/70">
+          <p className="text-xs uppercase tracking-[0.26em] text-zinc-500">Search-first Catalog</p>
+          <p className="mt-2 text-sm text-zinc-600">
             Usa la barra di ricerca nella navbar per aprire suggerimenti, categorie e risultati live.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-white/55">
+        <div className="flex items-center gap-2 text-xs text-zinc-500">
           <MagnifyingGlassIcon className="h-4 w-4" />
           <span>{displayedProducts.length} prodotti visibili</span>
         </div>
@@ -91,18 +91,18 @@ export function ShopPage() {
       {activeFilters.length ? (
         <div className="flex flex-wrap items-center gap-3">
           {activeFilters.map((filter) => (
-            <span key={filter} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75">
+            <span key={filter} className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-700">
               {filter}
             </span>
           ))}
-          <Link to="/shop" className="text-sm text-white/60 underline underline-offset-4 transition hover:text-white">
+          <Link to="/shop" className="text-sm text-zinc-500 underline underline-offset-4 transition hover:text-zinc-900">
             Reset ricerca
           </Link>
         </div>
       ) : null}
 
       {!displayedProducts.length ? (
-        <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">
+        <div className="rounded-[24px] border border-dashed border-zinc-200 bg-white/70 px-6 py-14 text-center text-zinc-500">
           Nessun prodotto trovato con i criteri attuali.
         </div>
       ) : null}

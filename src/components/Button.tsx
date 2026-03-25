@@ -83,23 +83,23 @@ export function Button({
       ? "h-9 px-3.5 text-xs rounded-md"
       : "h-11 px-5 text-sm rounded-lg"
 
-  const variantCls =
+const variantCls =
     variant === "primary"
-      ? "bg-white text-black hover:bg-white/90 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
-      : "bg-transparent text-white/80 border border-white/15 hover:border-white/30 hover:text-white"
+      ? "bg-[#111111] text-white hover:bg-[#1a1a1a] shadow-[0_10px_30px_rgba(15,23,42,0.14)]"
+      : "bg-white text-zinc-700 border border-zinc-200 hover:border-zinc-300 hover:text-zinc-950 shadow-[0_6px_20px_rgba(15,23,42,0.05)]"
 
   const cls = clsx(base, sizeCls, variantCls, className)
 
   const iconCls =
     variant === "primary"
-      ? "text-black/80"
-      : "text-white/80 group-hover:text-[color:var(--brand)] transition-colors"
+      ? "text-white/80"
+      : "text-zinc-500 group-hover:text-[color:var(--brand)] transition-colors"
 
   const labelCls =
     "absolute left-0 top-0 whitespace-pre transition-colors " +
     (variant === "primary"
-      ? "text-black"
-      : "text-white/80 group-hover:text-[color:var(--brand)]")
+      ? "text-white"
+      : "text-zinc-700 group-hover:text-[color:var(--brand)]")
 
   const Inner = (
     <>
@@ -143,7 +143,7 @@ export function Button({
       {/* depth */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-0 shadow-[inset_-1px_-1px_1px_rgba(255,255,255,0.06),inset_1px_1px_1px_rgba(0,0,0,0.9)]"
+        className="pointer-events-none absolute inset-0 z-0 shadow-[inset_-1px_-1px_1px_rgba(255,255,255,0.3),inset_1px_1px_1px_rgba(15,23,42,0.08)]"
       />
     </>
   )
