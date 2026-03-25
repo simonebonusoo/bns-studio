@@ -1,16 +1,20 @@
-import React, { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { motion } from "framer-motion"
+import { Link } from "react-router-dom"
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  HeartIcon,
+  MagnifyingGlassIcon,
+  ShoppingBagIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline"
+
 import { Container } from "./Container"
 import { Logo } from "./Logo"
-import { Button } from "./Button"
+import { apiFetch } from "../shop/lib/api"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
-
-const links = [
-  { label: "Home", href: "#top", key: "home" },
-  { label: "Shop", href: "#shop", key: "shop" },
-  { label: "Catalogo", href: "/shop", key: "catalog" },
-] as const
 
 function NavFlip({ label }: { label: string }) {
   const front = { rest: { rotateX: 0, y: 0 }, hover: { rotateX: 90, y: -10 } }
@@ -43,11 +47,19 @@ function NavFlip({ label }: { label: string }) {
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
-  const [openMobile, setOpenMobile] = useState(false)
+  const [categories, setCategories] = useState<string[]>([])
+  const [search, setSearch] = useState("")
+  const [activeCategory, setActiveCategory] = useState("")
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
   const navH = 80
+
   const { user } = useShopAuth()
   const { items } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
+  const categoriesRef = useRef<HTMLDivElement | null>(null)
+
+  const categoryItems = useMemo(() => ["All Product", ...categories], [categories])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -57,13 +69,50 @@ export function Navbar() {
   }, [])
 
   useEffect(() => {
-    if (!openMobile) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = prev
+    apiFetch<string[]>("/store/categories").then(setCategories).catch(() => setCategories([]))
+  }, [])
+
+  useEffect(() => {
+    const syncFilters = (event: Event) => {
+      const detail = (event as CustomEvent<{ search?: string; category?: string }>).detail || {}
+      setSearch(detail.search || "")
+      setActiveCategory(detail.category || "")
     }
-  }, [openMobile])
+
+    window.addEventListener("bns:shop-filter-state", syncFilters as EventListener)
+    return () => window.removeEventListener("bns:shop-filter-state", syncFilters as EventListener)
+  }, [])
+
+  function emitFilters(next: { search?: string; category?: string }) {
+    window.dispatchEvent(new CustomEvent("bns:shop-navbar-filters", { detail: next }))
+  }
+
+  function updateScrollState() {
+    const el = categoriesRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
+
+  useEffect(() => {
+    updateScrollState()
+    const el = categoriesRef.current
+    if (!el) return
+
+    el.addEventListener("scroll", updateScrollState, { passive: true })
+    window.addEventListener("resize", updateScrollState)
+
+    return () => {
+      el.removeEventListener("scroll", updateScrollState)
+      window.removeEventListener("resize", updateScrollState)
+    }
+  }, [categoryItems.length])
+
+  function scrollCategories(direction: "left" | "right") {
+    const el = categoriesRef.current
+    if (!el) return
+    el.scrollBy({ left: direction === "left" ? -220 : 220, behavior: "smooth" })
+  }
 
   return (
     <>
@@ -95,113 +144,156 @@ export function Navbar() {
 
           <div className={scrolled ? "bg-transparent" : "bg-black/15 backdrop-blur-sm"}>
             <Container>
-              <motion.div
-                initial={{ y: -12, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="relative z-20 h-16 md:h-20 grid grid-cols-[auto_1fr_auto] items-center gap-4"
-              >
-                {/* LOGO */}
-                <a
-                  href="#top"
-                  onClick={() => {
-                    setOpenMobile(false)
-                  }}
-                  aria-label="Vai all'inizio"
-                  className={[
-                    "no-underline flex items-center",
-                    // ✅ DESKTOP: identico
-                    "md:static md:justify-start md:w-auto",
-                    // ✅ MOBILE: centro perfetto
-                    "absolute left-1/2 -translate-x-1/2 md:translate-x-0",
-                  ].join(" ")}
+              <div className="relative z-20 py-3 md:py-4">
+                <motion.div
+                  initial={{ y: -12, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 md:gap-6"
                 >
-                  <div className="scale-110 md:scale-100">
-                    <Logo />
+                  <div className="hidden min-w-0 items-center gap-2 md:flex">
+                    <button
+                      type="button"
+                      onClick={() => scrollCategories("left")}
+                      disabled={!canScrollLeft}
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-white/55 transition hover:border-white/20 hover:text-white disabled:cursor-default disabled:opacity-30"
+                    >
+                      <ChevronLeftIcon className="h-4 w-4" />
+                    </button>
+
+                    <div
+                      ref={categoriesRef}
+                      className="no-scrollbar flex min-w-0 items-center gap-6 overflow-x-auto scroll-smooth whitespace-nowrap"
+                    >
+                      {categoryItems.map((label) => {
+                        const value = label === "All Product" ? "" : label
+                        const active = activeCategory === value
+
+                        return (
+                          <motion.button
+                            key={label}
+                            type="button"
+                            initial="rest"
+                            animate="rest"
+                            whileHover="hover"
+                            whileTap="hover"
+                            onClick={() => {
+                              setActiveCategory(value)
+                              emitFilters({ category: value })
+                            }}
+                            className={["h-10 inline-flex items-center text-sm transition", active ? "text-white" : "text-white/65 hover:text-white"].join(" ")}
+                          >
+                            <NavFlip label={label} />
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => scrollCategories("right")}
+                      disabled={!canScrollRight}
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-white/55 transition hover:border-white/20 hover:text-white disabled:cursor-default disabled:opacity-30"
+                    >
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </button>
                   </div>
-                </a>
 
-                {/* NAV DESKTOP (immutata) */}
-                <nav className="hidden md:flex items-center justify-center gap-7">
-                  {links.map((l) => {
-                    const commonClass = "h-10 inline-flex items-center text-sm text-white/70 hover:text-white transition"
+                  <a href="#top" aria-label="Vai all'inizio" className="justify-self-center">
+                    <div className="scale-105 md:scale-100">
+                      <Logo />
+                    </div>
+                  </a>
 
-                    return (
-                      <motion.a
-                        key={l.key}
-                        href={l.href}
-                        initial="rest"
-                        animate="rest"
-                        whileHover="hover"
-                        whileTap="hover"
-                        className={commonClass}
-                      >
-                        <NavFlip label={l.label} />
-                      </motion.a>
-                    )
-                  })}
-                </nav>
+                  <div className="flex items-center justify-end gap-2 md:gap-3">
+                    <label className="hidden min-w-[220px] items-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 py-2 backdrop-blur-xl md:flex">
+                      <MagnifyingGlassIcon className="h-4 w-4 text-white/45" />
+                      <input
+                        value={search}
+                        onChange={(event) => {
+                          const value = event.target.value
+                          setSearch(value)
+                          emitFilters({ search: value })
+                        }}
+                        placeholder="Search product"
+                        className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none"
+                      />
+                    </label>
 
-                <div className="flex items-center justify-end gap-2 md:gap-3">
-                  <Button href={user ? "/shop/profile" : "/shop/auth"} variant="ghost" size="sm" className="hidden sm:inline-flex">
-                    Profilo
-                  </Button>
+                    <Link
+                      to={user ? "/shop/profile" : "/shop/auth"}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/75 transition hover:border-white/20 hover:text-white"
+                      aria-label="Profilo"
+                    >
+                      <UserIcon className="h-5 w-5" />
+                    </Link>
 
-                  <Button href="/shop/cart" size="sm" text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}>
-                    Carrello
-                  </Button>
-                </div>
-              </motion.div>
-            </Container>
-          </div>
+                    <Link
+                      to="/shop"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/75 transition hover:border-white/20 hover:text-white"
+                      aria-label="Preferiti"
+                    >
+                      <HeartIcon className="h-5 w-5" />
+                    </Link>
 
-          {/* MOBILE MENU (resta ma non più apribile senza hamburger) */}
-          <AnimatePresence>
-            {openMobile ? (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="md:hidden border-b border-white/10 bg-black/70 backdrop-blur-xl"
-              >
-                <Container>
-                  <div className="py-4 space-y-2">
-                    {links.map((l) => {
+                    <Link
+                      to="/shop/cart"
+                      className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/75 transition hover:border-white/20 hover:text-white"
+                      aria-label="Carrello"
+                    >
+                      <ShoppingBagIcon className="h-5 w-5" />
+                      {cartCount ? (
+                        <span className="absolute -right-1 -top-1 rounded-full bg-[#e3f503] px-1.5 py-0.5 text-[10px] font-semibold text-black">
+                          {cartCount}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </div>
+                </motion.div>
+
+                <div className="space-y-3 md:hidden">
+                  <label className="flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 py-2 backdrop-blur-xl">
+                    <MagnifyingGlassIcon className="h-4 w-4 text-white/45" />
+                    <input
+                      value={search}
+                      onChange={(event) => {
+                        const value = event.target.value
+                        setSearch(value)
+                        emitFilters({ search: value })
+                      }}
+                      placeholder="Search product"
+                      className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none"
+                    />
+                  </label>
+
+                  <div className="no-scrollbar flex items-center gap-5 overflow-x-auto whitespace-nowrap pb-1">
+                    {categoryItems.map((label) => {
+                      const value = label === "All Product" ? "" : label
+                      const active = activeCategory === value
+
                       return (
-                        <a
-                          key={l.key}
-                          href={l.href}
-                          onClick={() => setOpenMobile(false)}
-                          className="block rounded-xl px-3 py-2 text-sm text-white/80 hover:text-white hover:bg-white/5 transition"
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            setActiveCategory(value)
+                            emitFilters({ category: value })
+                          }}
+                          className={["text-sm transition", active ? "text-white" : "text-white/60"].join(" ")}
                         >
-                          {l.label}
-                        </a>
+                          {label}
+                        </button>
                       )
                     })}
-
-                    <div className="pt-3 flex gap-3">
-                      <Button
-                        href={user ? "/shop/profile" : "/shop/auth"}
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => setOpenMobile(false)}
-                      >
-                        Profilo
-                      </Button>
-                      <Button href="/shop/cart" className="w-full" onClick={() => setOpenMobile(false)} text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}>
-                        Carrello
-                      </Button>
-                    </div>
                   </div>
-                </Container>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+                </div>
+              </div>
+            </Container>
+          </div>
         </div>
       </header>
 
-      <div className="h-8 md:h-20" />
+      <div className="h-[118px] md:h-[96px]" />
     </>
   )
 }
