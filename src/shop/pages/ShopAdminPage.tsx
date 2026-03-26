@@ -113,6 +113,10 @@ function sortImages(main: string, images: string[]) {
   return [main, ...images.filter((image) => image !== main)]
 }
 
+function containWheel(event: React.WheelEvent<HTMLElement>) {
+  event.stopPropagation()
+}
+
 export function ShopAdminPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
@@ -605,7 +609,10 @@ export function ShopAdminPage() {
               </div>
               <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/65">{products.length} elementi</span>
             </div>
-            <div className="max-h-[34rem] flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
+            <div
+              className="max-h-[34rem] flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1"
+              onWheelCapture={containWheel}
+            >
             {products.map((product) => (
               <article key={product.id} className="shop-card overflow-hidden">
                 <div className="grid gap-4 p-5 md:grid-cols-[120px_1fr_auto] md:items-center">

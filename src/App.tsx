@@ -13,6 +13,7 @@ import { Testimonials } from "./sections/Testimonials"
 import { Footer } from "./sections/Footer"
 
 import { CaseStudyPage } from "./pages/CaseStudyPage"
+import { AboutPage } from "./pages/AboutPage"
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage"
 
 import { ShopAuthProvider } from "./shop/context/ShopAuthProvider"
@@ -151,6 +152,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/chi-sono" element={<AboutPage />} />
             <Route path="/case/:slug" element={<CaseStudyPage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/shop/:slug" element={<ShopProductPage />} />

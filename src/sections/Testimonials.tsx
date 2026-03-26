@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
+import { Link } from "react-router-dom"
 
 import { Container } from "../components/Container"
 import { Reveal } from "../components/Reveal"
@@ -76,6 +77,11 @@ export function Testimonials() {
     return `${summary.averageRating.toFixed(1)} / 5 • ${summary.count} recensioni verificate`
   }, [summary])
 
+  const animatedReviews = useMemo(() => {
+    if (!reviews.length) return []
+    return [...reviews, ...reviews]
+  }, [reviews])
+
   async function submitReview(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFeedback("")
@@ -138,137 +144,174 @@ export function Testimonials() {
               Nessuna recensione disponibile al momento.
             </div>
           ) : (
-            <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] md:gap-6 [&::-webkit-scrollbar]:hidden">
-              {reviews.map((review) => (
-                <article
-                  key={review.id}
-                  className="glass w-[320px] shrink-0 snap-start rounded-2xl p-6 shadow-card md:w-[380px]"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-sm font-semibold text-white/85">
-                          {review.authorName.charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate font-semibold text-white">{review.authorName}</div>
-                          <div className="truncate text-sm text-white/55">{formatReviewDate(review.createdAt)}</div>
+            <div className="relative overflow-hidden">
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#0b0b0c] to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#0b0b0c] to-transparent" />
+
+              <motion.div
+                className="flex w-max gap-4 md:gap-6"
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{
+                  duration: Math.max(24, reviews.length * 7),
+                  ease: "linear",
+                  repeat: Infinity,
+                }}
+              >
+                {animatedReviews.map((review, index) => (
+                  <article
+                    key={`${review.id}-${index}`}
+                    className="glass w-[320px] shrink-0 rounded-2xl p-6 shadow-card md:w-[380px]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-sm font-semibold text-white/85">
+                            {review.authorName.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold text-white">{review.authorName}</div>
+                            <div className="truncate text-sm text-white/55">{formatReviewDate(review.createdAt)}</div>
+                          </div>
                         </div>
                       </div>
+                      <RatingDots rating={review.rating} />
                     </div>
-                    <RatingDots rating={review.rating} />
-                  </div>
 
-                  <div className="mt-5">
-                    <h3 className="text-base font-medium text-white">{review.title}</h3>
-                    <p className="mt-3 text-sm leading-relaxed text-white/72">“{review.body}”</p>
-                  </div>
+                    <div className="mt-5">
+                      <h3 className="text-base font-medium text-white">{review.title}</h3>
+                      <p className="mt-3 text-sm leading-relaxed text-white/72">“{review.body}”</p>
+                    </div>
 
-                  <div className="mt-5 flex items-center gap-2 text-xs text-white/55">
-                    <span className="rounded-full border border-white/10 px-3 py-1">{review.tag}</span>
-                  </div>
-                </article>
-              ))}
+                    <div className="mt-5 flex items-center gap-2 text-xs text-white/55">
+                      <span className="rounded-full border border-white/10 px-3 py-1">{review.tag}</span>
+                    </div>
+                  </article>
+                ))}
+              </motion.div>
             </div>
           )}
         </motion.div>
 
         <motion.div
-          className="mt-10 rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7"
+          className="mt-10 grid gap-6 lg:grid-cols-2"
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.45, ease: "easeOut", delay: 0.05 }}
         >
-          <div className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.24em] text-white/45">Lascia una recensione</p>
-            <h3 className="mt-3 text-2xl font-semibold text-white">Racconta la tua esperienza con BNS Studio.</h3>
-            <p className="mt-3 text-sm leading-7 text-white/65">
-              Le recensioni vengono pubblicate dagli utenti autenticati e compaiono direttamente nello slider clienti.
-            </p>
-          </div>
-
-          {!loading && !user ? (
-            <div className="mt-6 rounded-[24px] border border-white/10 bg-black/20 px-5 py-5">
-              <p className="text-sm text-white/65">
-                Accedi dal pannello profilo in alto a destra per lasciare una recensione reale collegata al tuo account.
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.24em] text-white/45">Lascia una recensione</p>
+              <h3 className="mt-3 text-2xl font-semibold text-white">Racconta la tua esperienza con BNS Studio.</h3>
+              <p className="mt-3 text-sm leading-7 text-white/65">
+                Le recensioni vengono pubblicate dagli utenti autenticati e compaiono direttamente nello slider clienti.
               </p>
             </div>
-          ) : null}
 
-          {user ? (
-            <form onSubmit={submitReview} className="mt-6 grid gap-4">
-              <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
-                <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Valutazione</label>
-                  <select
-                    className="shop-select"
-                    value={form.rating}
-                    onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-                  >
-                    {[5, 4, 3, 2, 1].map((value) => (
-                      <option key={value} value={value}>
-                        {value} / 5
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Tag recensione</label>
-                  <select
-                    className="shop-select"
-                    value={form.tag}
-                    onChange={(event) => setForm((current) => ({ ...current, tag: event.target.value as (typeof reviewTagOptions)[number] }))}
-                  >
-                    {reviewTagOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Titolo recensione</label>
-                <input
-                  className="shop-input"
-                  value={form.title}
-                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                  placeholder="Titolo breve e chiaro"
-                  minLength={3}
-                  maxLength={80}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">La tua esperienza</label>
-                <textarea
-                  className="shop-textarea min-h-32"
-                  value={form.body}
-                  onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
-                  placeholder="Racconta com'è andato l'acquisto, il prodotto e l'esperienza complessiva."
-                  minLength={20}
-                  maxLength={600}
-                  required
-                />
-              </div>
-
-              {feedback ? <p className="text-sm text-emerald-300">{feedback}</p> : null}
-              {error ? <p className="text-sm text-red-300">{error}</p> : null}
-
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-white/55">
-                  Pubblicata come <span className="text-white">{user.username || user.email}</span>
+            {!loading && !user ? (
+              <div className="mt-6 rounded-[24px] border border-white/10 bg-black/20 px-5 py-5">
+                <p className="text-sm text-white/65">
+                  Accedi dal pannello profilo in alto a destra per lasciare una recensione reale collegata al tuo account.
                 </p>
-                <Button type="submit" className="md:min-w-[220px]">
-                  {submitting ? "Invio recensione..." : "Pubblica recensione"}
-                </Button>
               </div>
-            </form>
-          ) : null}
+            ) : null}
+
+            {user ? (
+              <form onSubmit={submitReview} className="mt-6 grid gap-4">
+                <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
+                  <div>
+                    <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Valutazione</label>
+                    <select
+                      className="shop-select"
+                      value={form.rating}
+                      onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
+                    >
+                      {[5, 4, 3, 2, 1].map((value) => (
+                        <option key={value} value={value}>
+                          {value} / 5
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Tag recensione</label>
+                    <select
+                      className="shop-select"
+                      value={form.tag}
+                      onChange={(event) => setForm((current) => ({ ...current, tag: event.target.value as (typeof reviewTagOptions)[number] }))}
+                    >
+                      {reviewTagOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Titolo recensione</label>
+                  <input
+                    className="shop-input"
+                    value={form.title}
+                    onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                    placeholder="Titolo breve e chiaro"
+                    minLength={3}
+                    maxLength={80}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">La tua esperienza</label>
+                  <textarea
+                    className="shop-textarea min-h-32"
+                    value={form.body}
+                    onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
+                    placeholder="Racconta com'è andato l'acquisto, il prodotto e l'esperienza complessiva."
+                    minLength={20}
+                    maxLength={600}
+                    required
+                  />
+                </div>
+
+                {feedback ? <p className="text-sm text-emerald-300">{feedback}</p> : null}
+                {error ? <p className="text-sm text-red-300">{error}</p> : null}
+
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <p className="text-sm text-white/55">
+                    Pubblicata come <span className="text-white">{user.username || user.email}</span>
+                  </p>
+                  <Button type="submit" className="md:min-w-[220px]">
+                    {submitting ? "Invio recensione..." : "Pubblica recensione"}
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+          </div>
+
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7">
+            <p className="text-xs uppercase tracking-[0.24em] text-white/45">Chi sono</p>
+            <h3 className="mt-3 text-2xl font-semibold text-white">La persona dietro BNS Studio.</h3>
+            <p className="mt-3 text-sm leading-7 text-white/65">
+              Una preview più personale sul progetto: approccio, immaginario visivo, metodo di lavoro e
+              la direzione che tiene insieme poster, stampe e oggetti BNS Studio.
+            </p>
+
+            <div className="mt-6 rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(227,245,3,0.16),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5">
+              <p className="text-sm leading-7 text-white/72">
+                Un racconto editoriale pensato per dare più contesto umano al brand, con uno spazio già pronto
+                per immagini founder, studio e dettagli di processo.
+              </p>
+            </div>
+
+            <div className="mt-6">
+              <Link to="/chi-sono">
+                <Button className="w-full">Apri la pagina completa</Button>
+              </Link>
+            </div>
+          </div>
         </motion.div>
       </Container>
     </section>
