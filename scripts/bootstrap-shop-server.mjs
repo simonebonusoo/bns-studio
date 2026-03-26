@@ -30,7 +30,8 @@ function logConfiguration() {
 
 async function main() {
   logConfiguration()
-  await run("npx", ["prisma", "db", "push", "--skip-generate"])
+  await run("npx", ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"])
+  await run("node", ["prisma/backfill-usernames.mjs"])
   await run("node", ["prisma/seed.mjs"])
   await run("node", ["src/server/shop/server.mjs"])
 }

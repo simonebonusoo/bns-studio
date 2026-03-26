@@ -20,7 +20,7 @@ export function ShopProfilePage() {
   }, [])
 
   return (
-    <ShopLayout eyebrow="Profilo" title={`${user?.firstName} ${user?.lastName}`} intro={user?.email || ""} actions={user?.role === "admin" ? <Link to="/shop/admin" className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white">Admin</Link> : null}>
+    <ShopLayout eyebrow="Profilo" title={`Ciao, ${user?.username || user?.firstName || "cliente"}`} intro="Gestisci i tuoi dati e controlla i tuoi ordini." actions={user?.role === "admin" ? <Link to="/shop/admin" className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white">Admin</Link> : null}>
       <div className="flex items-center justify-between rounded-[24px] border border-white/10 bg-black/20 px-5 py-4">
         <span className="text-sm text-white/65">Area cliente attiva</span>
         <button type="button" onClick={logout} className="text-sm text-white/75 transition hover:text-white">

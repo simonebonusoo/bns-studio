@@ -1,14 +1,5 @@
-import path from "node:path"
 import { PrismaClient } from "@prisma/client"
-
-function resolveDatabaseUrl() {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL
-  }
-
-  const dbPath = path.resolve(process.cwd(), "prisma", "dev.db")
-  return `file:${dbPath}`
-}
+import { resolveDatabaseUrl } from "../../../../prisma/resolve-database-url.mjs"
 
 export const prisma = new PrismaClient({
   datasources: {

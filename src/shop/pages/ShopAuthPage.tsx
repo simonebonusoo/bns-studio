@@ -16,13 +16,20 @@ export function ShopAuthPage() {
     username: "",
     firstName: "",
     lastName: "",
+    identifier: "",
     email: "",
     password: "",
+    confirmPassword: "",
   })
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     setError("")
+
+    if (mode === "register" && form.password !== form.confirmPassword) {
+      setError("La conferma password non coincide.")
+      return
+    }
 
     try {
       await login(form, mode)
@@ -54,26 +61,23 @@ export function ShopAuthPage() {
 
           {mode === "register" ? (
             <>
-              <input className="shop-input" placeholder="Username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} />
-              <p className="-mt-1 text-xs text-white/45">
-                Il backend attuale non supporta ancora autenticazione o salvataggio via username: la registrazione continua a usare email e password.
-              </p>
+              <input className="shop-input" placeholder="Username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} required />
               <div className="grid gap-4 md:grid-cols-2">
-                <input className="shop-input" placeholder="Nome" value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} />
-                <input className="shop-input" placeholder="Cognome" value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} />
+                <input className="shop-input" placeholder="Nome" value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} required />
+                <input className="shop-input" placeholder="Cognome" value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} required />
               </div>
+              <input className="shop-input" type="email" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
             </>
           ) : (
             <>
-              <input className="shop-input" placeholder="Username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} />
-              <p className="-mt-1 text-xs text-white/45">
-                Login attuale via email: il campo username e mostrato solo per anticipare il flusso futuro e non viene inviato al backend.
-              </p>
+              <input className="shop-input" placeholder="Email o username" value={form.identifier} onChange={(event) => setForm({ ...form, identifier: event.target.value })} required />
             </>
           )}
 
-          <input className="shop-input" type="email" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
           <input className="shop-input" type="password" placeholder="Password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} minLength={8} required />
+          {mode === "register" ? (
+            <input className="shop-input" type="password" placeholder="Conferma password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} minLength={8} required />
+          ) : null}
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
           <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">

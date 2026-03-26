@@ -6,6 +6,7 @@ type AuthContextValue = {
   user: ShopUser | null
   loading: boolean
   login: (payload: Record<string, string>, mode?: "login" | "register") => Promise<ShopUser>
+  updateProfile: (payload: Record<string, string>) => Promise<ShopUser>
   logout: () => void
 }
 
@@ -37,7 +38,7 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
       mode === "register"
         ? payload
         : {
-            email: payload.email,
+            identifier: payload.identifier || payload.email,
             password: payload.password,
           }
 
@@ -51,12 +52,22 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
     return data.user
   }
 
+  async function updateProfile(payload: Record<string, string>) {
+    const data = await apiFetch<{ user: ShopUser }>("/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+
+    setUser(data.user)
+    return data.user
+  }
+
   function logout() {
     localStorage.removeItem("bns_shop_token")
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, login, updateProfile, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useShopAuth() {

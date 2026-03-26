@@ -40,6 +40,7 @@ export function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [profileStep, setProfileStep] = useState<"initial" | "login" | "register">("initial")
+  const [profileEditField, setProfileEditField] = useState<null | "username" | "email" | "password">(null)
   const [search, setSearch] = useState("")
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -66,9 +67,16 @@ export function Navbar() {
     password: "",
     confirmPassword: "",
   })
+  const [profileForms, setProfileForms] = useState({
+    username: "",
+    email: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  })
   const navH = 88
 
-  const { user, login, logout, loading } = useShopAuth()
+  const { user, login, updateProfile, logout, loading } = useShopAuth()
   const { items, couponCode } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
@@ -153,6 +161,7 @@ export function Navbar() {
   useEffect(() => {
     if (!profileOpen) {
       setProfileStep("initial")
+      setProfileEditField(null)
       setProfileError("")
       setProfileSubmitting(false)
     }
@@ -161,6 +170,21 @@ export function Navbar() {
   useEffect(() => {
     setProfileError("")
   }, [profileStep])
+
+  useEffect(() => {
+    setProfileError("")
+  }, [profileEditField])
+
+  useEffect(() => {
+    if (!user) return
+    setProfileForms({
+      username: user.username || "",
+      email: user.email || "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    })
+  }, [user])
 
   useEffect(() => {
     if (!cartOpen || !user || !items.length) {
@@ -245,16 +269,11 @@ export function Navbar() {
       return
     }
 
-    if (!identifier.includes("@")) {
-      setProfileError("Il backend attuale supporta solo login via email. Inserisci l'email del tuo account.")
-      return
-    }
-
     try {
       setProfileSubmitting(true)
       await login(
         {
-          email: identifier,
+          identifier,
           password: loginForm.password,
         },
         "login"
@@ -298,6 +317,49 @@ export function Navbar() {
       })
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : "Errore durante la registrazione.")
+    } finally {
+      setProfileSubmitting(false)
+    }
+  }
+
+  async function submitProfileUpdate(field: "username" | "email" | "password", event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setProfileError("")
+
+    try {
+      setProfileSubmitting(true)
+
+      if (field === "username") {
+        await updateProfile({ username: profileForms.username })
+      }
+
+      if (field === "email") {
+        await updateProfile({
+          email: profileForms.email,
+          currentPassword: profileForms.currentPassword,
+        })
+      }
+
+      if (field === "password") {
+        if (profileForms.newPassword !== profileForms.confirmPassword) {
+          throw new Error("La conferma password non coincide.")
+        }
+
+        await updateProfile({
+          currentPassword: profileForms.currentPassword,
+          newPassword: profileForms.newPassword,
+        })
+      }
+
+      setProfileEditField(null)
+      setProfileForms((current) => ({
+        ...current,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }))
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Errore durante l'aggiornamento del profilo.")
     } finally {
       setProfileSubmitting(false)
     }
@@ -714,11 +776,11 @@ export function Navbar() {
                     <div>
                       <p className="text-xs uppercase tracking-[0.24em] text-white/45">Profilo shop</p>
                       <h2 className="mt-3 text-2xl font-semibold text-white">
-                        {profileView === "logged" ? "Accesso effettuato" : "Accedi o crea un account"}
+                        {profileView === "logged" && user ? `Ciao, ${user.username}` : "Accedi o crea un account"}
                       </h2>
                       <p className="mt-2 text-sm text-white/60">
-                        {profileView === "logged"
-                          ? "Gestisci ordini, ricevute e accesso all'area account."
+                      {profileView === "logged"
+                          ? "Gestisci i tuoi dati, aggiorna il profilo e controlla i tuoi ordini."
                           : "Apri il tuo spazio cliente per ordini, checkout rapido e storico acquisti."}
                       </p>
                   </div>
@@ -741,11 +803,132 @@ export function Navbar() {
                   ) : profileView === "logged" && user ? (
                     <>
                       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                        <p className="text-sm text-[#e3f503]">Accesso effettuato</p>
-                        <h3 className="mt-2 text-xl font-semibold text-white">
-                          {user.firstName} {user.lastName}
-                        </h3>
-                        <p className="mt-1 text-sm text-white/60">{user.email}</p>
+                        <p className="text-sm text-white/45">Profilo attivo</p>
+                        <h3 className="mt-2 text-2xl font-semibold text-white">Ciao, {user.username}</h3>
+                        <p className="mt-2 text-sm text-white/60">Gestisci i tuoi dati e controlla i tuoi ordini.</p>
+                      </div>
+
+                      <div className="grid gap-3">
+                        <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Username</p>
+                              <p className="mt-2 text-base font-medium text-white">{user.username}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setProfileEditField(profileEditField === "username" ? null : "username")}
+                              className="text-sm text-white/65 transition hover:text-white"
+                            >
+                              Modifica username
+                            </button>
+                          </div>
+                          {profileEditField === "username" ? (
+                            <form onSubmit={(event) => submitProfileUpdate("username", event)} className="mt-4 space-y-3">
+                              <input
+                                className="shop-input"
+                                placeholder="Username"
+                                value={profileForms.username}
+                                onChange={(event) => setProfileForms({ ...profileForms, username: event.target.value })}
+                                required
+                              />
+                              {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                              <Button type="submit" className="w-full">
+                                {profileSubmitting ? "Salvataggio..." : "Salva username"}
+                              </Button>
+                            </form>
+                          ) : null}
+                        </div>
+
+                        <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Email</p>
+                              <p className="mt-2 text-base font-medium text-white">{user.email}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setProfileEditField(profileEditField === "email" ? null : "email")}
+                              className="text-sm text-white/65 transition hover:text-white"
+                            >
+                              Modifica email
+                            </button>
+                          </div>
+                          {profileEditField === "email" ? (
+                            <form onSubmit={(event) => submitProfileUpdate("email", event)} className="mt-4 space-y-3">
+                              <input
+                                className="shop-input"
+                                type="email"
+                                placeholder="Nuova email"
+                                value={profileForms.email}
+                                onChange={(event) => setProfileForms({ ...profileForms, email: event.target.value })}
+                                required
+                              />
+                              <input
+                                className="shop-input"
+                                type="password"
+                                placeholder="Password attuale"
+                                value={profileForms.currentPassword}
+                                onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
+                                required
+                              />
+                              {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                              <Button type="submit" className="w-full">
+                                {profileSubmitting ? "Salvataggio..." : "Salva email"}
+                              </Button>
+                            </form>
+                          ) : null}
+                        </div>
+
+                        <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Password</p>
+                              <p className="mt-2 text-base font-medium text-white">••••••••</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setProfileEditField(profileEditField === "password" ? null : "password")}
+                              className="text-sm text-white/65 transition hover:text-white"
+                            >
+                              Modifica password
+                            </button>
+                          </div>
+                          {profileEditField === "password" ? (
+                            <form onSubmit={(event) => submitProfileUpdate("password", event)} className="mt-4 space-y-3">
+                              <input
+                                className="shop-input"
+                                type="password"
+                                placeholder="Password attuale"
+                                value={profileForms.currentPassword}
+                                onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
+                                required
+                              />
+                              <input
+                                className="shop-input"
+                                type="password"
+                                placeholder="Nuova password"
+                                value={profileForms.newPassword}
+                                onChange={(event) => setProfileForms({ ...profileForms, newPassword: event.target.value })}
+                                minLength={8}
+                                required
+                              />
+                              <input
+                                className="shop-input"
+                                type="password"
+                                placeholder="Conferma nuova password"
+                                value={profileForms.confirmPassword}
+                                onChange={(event) => setProfileForms({ ...profileForms, confirmPassword: event.target.value })}
+                                minLength={8}
+                                required
+                              />
+                              {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                              <Button type="submit" className="w-full">
+                                {profileSubmitting ? "Salvataggio..." : "Salva password"}
+                              </Button>
+                            </form>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="grid gap-3">
@@ -837,9 +1020,7 @@ export function Navbar() {
                                 required
                               />
                             </div>
-                            <p className="text-xs text-white/45">
-                              Il backend attuale supporta login reale solo via email. Se inserisci uno username, il pannello ti chiederà di usare l'email.
-                            </p>
+                            <p className="text-xs text-white/45">Puoi accedere con email o username.</p>
                             {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
                             <div className="flex flex-col gap-3">
                               <Button type="submit" className="w-full">
@@ -907,9 +1088,7 @@ export function Navbar() {
                               minLength={8}
                               required
                             />
-                            <p className="text-xs text-white/45">
-                              Username e mostrato nel flusso, ma il backend attuale salva ancora l'account solo con nome, cognome, email e password.
-                            </p>
+                            <p className="text-xs text-white/45">Lo username viene salvato davvero nel tuo account ed è disponibile anche per il login.</p>
                             {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
                             <div className="flex flex-col gap-3">
                               <Button type="submit" className="w-full">

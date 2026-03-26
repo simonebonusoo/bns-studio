@@ -1,8 +1,15 @@
 import "dotenv/config"
 import bcrypt from "bcryptjs"
 import { PrismaClient } from "@prisma/client"
+import { resolveDatabaseUrl } from "./resolve-database-url.mjs"
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: resolveDatabaseUrl(),
+    },
+  },
+})
 
 const products = [
   {
@@ -68,9 +75,12 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "admin@bnsstudio.com" },
-    update: {},
+    update: {
+      username: "admin.bns",
+    },
     create: {
       email: "admin@bnsstudio.com",
+      username: "admin.bns",
       passwordHash: await bcrypt.hash("admin1234", 10),
       firstName: "Admin",
       lastName: "BNS",
@@ -80,9 +90,12 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "customer@bnsstudio.com" },
-    update: {},
+    update: {
+      username: "sample.customer",
+    },
     create: {
       email: "customer@bnsstudio.com",
+      username: "sample.customer",
       passwordHash: await bcrypt.hash("customer1234", 10),
       firstName: "Sample",
       lastName: "Customer",
