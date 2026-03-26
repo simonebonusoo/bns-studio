@@ -45,6 +45,10 @@ export function ShopProductPage() {
     })
   }
 
+  function handleEditProduct() {
+    navigate(`/shop/admin?editProduct=${product.id}`)
+  }
+
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
       <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
@@ -106,13 +110,14 @@ export function ShopProductPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Button onClick={() => addItem(product, 1, selectedFormat)}>Aggiungi al carrello</Button>
-              <button
-                type="button"
-                onClick={handleBuyNow}
-                className="rounded-full border border-white/10 px-5 py-3 text-sm text-white transition hover:border-[#e3f503] hover:text-[#e3f503]"
-              >
+              <Button type="button" variant="ghost" onClick={handleBuyNow}>
                 Acquista ora
-              </button>
+              </Button>
+              {user?.role === "admin" ? (
+                <Button type="button" variant="ghost" onClick={handleEditProduct}>
+                  Modifica
+                </Button>
+              ) : null}
             </div>
           </div>
         </div>

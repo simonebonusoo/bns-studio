@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
@@ -198,6 +198,8 @@ function parseEuroToCents(value: string) {
 }
 
 export function ShopAdminPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
@@ -245,6 +247,18 @@ export function ShopAdminPage() {
   useEffect(() => {
     refresh()
   }, [])
+
+  useEffect(() => {
+    const editProductId = Number(searchParams.get("editProduct") || 0)
+    if (!editProductId || !products.length) return
+
+    const targetProduct = products.find((product) => product.id === editProductId)
+    if (!targetProduct) return
+
+    setTab("prodotti")
+    startEditProduct(targetProduct)
+    navigate("/shop/admin", { replace: true })
+  }, [navigate, products, searchParams])
 
   useEffect(() => {
     return () => {
