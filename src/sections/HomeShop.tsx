@@ -264,7 +264,7 @@ export function HomeShop() {
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
       <Container className="space-y-20">
-        <div className="space-y-7">
+        <div className="space-y-7 pb-8 sm:pb-10">
           <div className="shop-pill inline-flex items-center gap-3">
             <span>{productCountLabel}</span>
           </div>
