@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "../components/Button";
 import { Container } from "../components/Container";
@@ -239,6 +239,7 @@ function parseHomepageEntries<T extends { title: string; href: string; query: st
 }
 
 export function HomeShop() {
+  const navigate = useNavigate();
   const { user } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
@@ -422,8 +423,13 @@ export function HomeShop() {
               </h3>
             </div>
             {user?.role === "admin" ? (
-              <Button asChild variant="ghost" size="sm" className="self-start md:self-auto">
-                <Link to="/shop/admin?tab=homepage&section=showcases">Modifica</Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="self-start md:self-auto"
+                onClick={() => navigate("/shop/admin?tab=homepage&section=showcases")}
+              >
+                Modifica
               </Button>
             ) : null}
           </div>
@@ -486,8 +492,13 @@ export function HomeShop() {
               </h3>
             </div>
             {user?.role === "admin" ? (
-              <Button asChild variant="ghost" size="sm" className="self-start md:self-auto">
-                <Link to="/shop/admin?tab=homepage&section=popular-categories">Modifica</Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="self-start md:self-auto"
+                onClick={() => navigate("/shop/admin?tab=homepage&section=popular-categories")}
+              >
+                Modifica
               </Button>
             ) : null}
           </div>
