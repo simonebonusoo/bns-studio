@@ -6,6 +6,7 @@ import { Navbar } from "./components/Navbar"
 import { BackToTop } from "./components/BackToTop"
 import { Noise } from "./components/Noise"
 import { BottomNavMobile } from "./components/BottomNavMobile"
+import { Backdrop } from "./components/Backdrop"
 
 import { Hero } from "./sections/Hero"
 import { HomeShop } from "./sections/HomeShop"
@@ -165,6 +166,7 @@ export default function App() {
     <ShopAuthProvider>
       <ShopCartProvider>
         <div className="min-h-screen bg-ink text-white overflow-x-hidden">
+          <Backdrop />
           <Noise />
           <Navbar />
 

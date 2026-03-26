@@ -1,5 +1,4 @@
 import { Container } from "../components/Container"
-import { Backdrop } from "../components/Backdrop"
 import { Button } from "../components/Button"
 import { Reveal } from "../components/Reveal"
 
@@ -10,8 +9,6 @@ export function Hero() {
 
   return (
     <section id="top" className="relative pt-20 md:pt-28 pb-6 md:pb-8">
-      <Backdrop />
-
       <Container>
         {/* HEADLINE + CTA */}
         <div className="text-center max-w-3xl mx-auto">

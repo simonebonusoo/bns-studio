@@ -238,7 +238,7 @@ export function HomeShop() {
     };
   }, []);
 
-  const productCountLabel = `${products.length} ${products.length === 1 ? "prodotto" : "prodotti"}`;
+  const productCountLabel = `Totale: ${products.length} ${products.length === 1 ? "prodotto" : "prodotti"}`;
 
   const popularCategoryCards = useMemo(
     () =>
@@ -259,19 +259,17 @@ export function HomeShop() {
   );
 
   return (
-    <section id="shop" className="bg-black py-24 text-white sm:py-28">
-      <Container className="space-y-18">
+    <section id="shop" className="py-24 text-white sm:py-28">
+      <Container className="space-y-20">
         <div className="space-y-7">
           <div className="shop-pill inline-flex items-center gap-3">
-            <span>Shop</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-current/60" />
             <span>{productCountLabel}</span>
           </div>
           <div className="space-y-4">
             <h2 className="max-w-5xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
               Poster, stampe e pezzi creativi da collezionare.
             </h2>
-            <p className="max-w-4xl text-base leading-7 text-white/72 sm:text-lg">
+            <p className="max-w-6xl text-base leading-7 text-white/72 sm:text-lg">
               Una selezione costruita per far emergere subito temi forti, immagini riconoscibili e idee
               regalo piu facili da trovare. Entri, scopri una direzione chiara, poi scendi nel catalogo
               completo con filtri e prodotti reali gia pronti all'acquisto.
@@ -280,19 +278,6 @@ export function HomeShop() {
         </div>
 
         <div className="space-y-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.32em] text-white/45">Catalogo completo</p>
-              <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                Tutto il catalogo reale, con prodotti e filtri gia pronti.
-              </h3>
-            </div>
-            <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-              Dopo le sezioni di scoperta trovi direttamente il catalogo completo, cosi il passaggio da
-              ispirazione a acquisto resta naturale.
-            </p>
-          </div>
-
           {status === "error" ? (
             <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
               Il catalogo non e disponibile in questo momento. Riprova tra poco.
@@ -305,55 +290,63 @@ export function HomeShop() {
             </div>
           ) : null}
 
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-2">
+        <div className="space-y-8 pt-8 sm:pt-12">
+          <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.32em] text-white/45">Selezioni in evidenza</p>
               <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Collezioni curate per iniziare da una direzione forte.
               </h3>
-            </div>
-            <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-              Tre ingressi editoriali coerenti tra loro: stessa presenza visiva, stesso ritmo, nessun blocco
-              dominante fuori scala.
-            </p>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-3">
-            {showcaseCards.map((showcase) => (
+          <div className="space-y-6">
+            {showcaseCards.map((showcase, index) => (
               <article
                 key={showcase.title}
                 className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03]"
               >
-                <div className="relative min-h-[18rem] border-b border-white/10">
-                  {showcase.imageUrl ? (
-                    <img
-                      src={showcase.imageUrl}
-                      alt={showcase.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_52%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
-                  )}
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),rgba(0,0,0,0.58))]" />
-                </div>
-                <div className="flex min-h-[16rem] flex-col justify-between gap-6 p-7">
-                  <div className="space-y-3">
-                    <p className="text-xs uppercase tracking-[0.32em] text-white/45">{showcase.eyebrow}</p>
-                    <h3 className="text-2xl font-semibold tracking-tight text-white">{showcase.title}</h3>
-                    <p className="text-sm leading-6 text-white/68">{showcase.description}</p>
+                <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
+                  <div
+                    className={`flex min-h-[20rem] flex-col justify-between gap-8 p-7 sm:min-h-[22rem] sm:p-9 ${
+                      index % 2 === 1 ? "lg:order-2" : ""
+                    }`}
+                  >
+                    <div className="space-y-4">
+                      <p className="text-xs uppercase tracking-[0.32em] text-white/45">{showcase.eyebrow}</p>
+                      <div className="space-y-3">
+                        <h3 className="max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                          {showcase.title}
+                        </h3>
+                        <p className="max-w-xl text-base leading-7 text-white/68">{showcase.description}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <Button asChild size="sm">
+                        <Link to={showcase.href}>Esplora la collezione</Link>
+                      </Button>
+                    </div>
                   </div>
-                  <div>
-                    <Button asChild size="sm">
-                      <Link to={showcase.href}>Esplora la collezione</Link>
-                    </Button>
+                  <div
+                    className={`relative min-h-[18rem] border-t border-white/10 lg:min-h-[22rem] lg:border-l lg:border-t-0 ${
+                      index % 2 === 1 ? "lg:order-1 lg:border-l-0 lg:border-r" : ""
+                    }`}
+                  >
+                    {showcase.imageUrl ? (
+                      <img
+                        src={showcase.imageUrl}
+                        alt={showcase.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_52%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
+                    )}
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.12),rgba(0,0,0,0.48))]" />
                   </div>
                 </div>
               </article>
@@ -361,22 +354,16 @@ export function HomeShop() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-2">
+        <div className="space-y-8 pt-4">
+          <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.32em] text-white/45">Categorie popolari</p>
               <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Le direzioni piu cercate, subito a portata di scroll.
               </h3>
-            </div>
-            <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-              Tocca una categoria e vai direttamente al catalogo con una ricerca coerente, senza passaggi
-              inutili.
-            </p>
           </div>
 
-          <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-            <div className="flex min-w-full snap-x gap-4">
+          <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+            <div className="flex min-w-full snap-x gap-5 sm:gap-6">
               {popularCategoryCards.map((category) => (
                 <Link
                   key={category.title}
