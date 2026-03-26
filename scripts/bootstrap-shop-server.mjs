@@ -21,7 +21,7 @@ function run(command, args, options = {}) {
 }
 
 function logConfiguration() {
-  const databaseUrl = process.env.DATABASE_URL || "file:./prisma/dev.db"
+  const databaseUrl = process.env.DATABASE_URL || "file:./dev.db"
   const uploadsDir = process.env.UPLOADS_DIR || "./src/uploads"
   console.log("[bootstrap] Starting BNS Studio shop backend")
   console.log(`[bootstrap] DATABASE_URL=${databaseUrl}`)

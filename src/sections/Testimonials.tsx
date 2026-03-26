@@ -1,148 +1,274 @@
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
+
 import { Container } from "../components/Container"
 import { Reveal } from "../components/Reveal"
 import { SectionTitle } from "../components/SectionTitle"
+import { Button } from "../components/Button"
+import { useShopAuth } from "../shop/context/ShopAuthProvider"
+import { apiFetch } from "../shop/lib/api"
+import { ShopReview, ShopReviewSummary } from "../shop/types"
 
-type Review = {
-  name: string
-  text: string
-  rating?: number
-  meta?: string
+type ReviewsResponse = {
+  reviews: ShopReview[]
+  summary: ShopReviewSummary
 }
 
-const BRAND = "#e3f503"
+const reviewTagOptions = [
+  "Poster arrivato",
+  "Collezione completata",
+  "Regalo riuscito",
+  "Supporto attivo",
+] as const
 
-const reviews: Review[] = [
-  {
-    name: "Bacino Grande",
-    text: "Veloce, trasparente e con una cura maniacale dei dettagli. Brand identity in tempi record.",
-    rating: 5,
-    meta: "Brand & Social",
-  },
-  {
-    name: "Umani Project",
-    text: "Estetica essenziale ma super caratteristica per il nostro progetto. Conversioni in crescita già dalla prima settimana.",
-    rating: 5,
-    meta: "Instagram & Spotify",
-  },
-  {
-    name: "BR Service",
-    text: "Struttura del sito web molto chiara, stampe precise e assistenza sempre presente. Consigliatissimo.",
-    rating: 5,
-    meta: "Website & Stampe",
-  },
-  {
-    name: "Samurai - Barber Shop",
-    text: "Finalmente un logo coerente e professionale. Comunicazione semplice e risultati concreti.",
-    rating: 5,
-    meta: "Creazione logo",
-  },
-  {
-    name: "Monnalisa",
-    text: "Top la creazione del logo con varie dimensioni per le stampe. Locandine studiate per la nostra nuova brand identity",
-    rating: 5,
-    meta: "Logo & locandine eventi",
-  },
-  {
-    name: "Clouteq",
-    text: "Brand identity minimal e pulita come da richiesta. Gestione social efficiente, puntuale e precisa nelle scadenze",
-    rating: 5,
-    meta: "Brand identity & Social",
-  },
-  {
-    name: "Il Terzo Spazio",
-    text: "Ottimo il logo versatile sia in digitale che nelle stampe. Ci siamo affidati anche per la gestione del nostro profilo Instagram, consigliatissimo",
-    rating: 5,
-    meta: "Logo & Gestione social",
-  },
-]
-
-function Stars({ n = 5 }: { n?: number }) {
+function RatingDots({ rating }: { rating: number }) {
   return (
-    <div className="flex items-center gap-1">
-      {Array.from({ length: n }).map((_, i) => (
+    <div className="flex items-center gap-1.5">
+      {Array.from({ length: 5 }).map((_, index) => (
         <span
-          key={i}
-          className="inline-block h-1.5 w-1.5 rounded-full bg-[#e3f503]/90"
+          key={index}
+          className={`inline-block h-2 w-2 rounded-full ${index < rating ? "bg-[#e3f503]" : "bg-white/18"}`}
           aria-hidden
         />
       ))}
-      <span className="ml-2 text-xs text-white/55">{n}.0</span>
+      <span className="ml-2 text-xs text-white/55">{rating.toFixed(1)}</span>
     </div>
   )
 }
 
+function formatReviewDate(value: string) {
+  return new Intl.DateTimeFormat("it-IT", {
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value))
+}
+
 export function Testimonials() {
-  const row = [...reviews, ...reviews]
+  const { user, loading } = useShopAuth()
+  const [reviews, setReviews] = useState<ShopReview[]>([])
+  const [summary, setSummary] = useState<ShopReviewSummary>({ averageRating: 0, count: 0 })
+  const [submitting, setSubmitting] = useState(false)
+  const [feedback, setFeedback] = useState("")
+  const [error, setError] = useState("")
+  const [form, setForm] = useState({
+    rating: 5,
+    title: "",
+    body: "",
+    tag: reviewTagOptions[0],
+  })
+
+  async function loadReviews() {
+    try {
+      const data = await apiFetch<ReviewsResponse>("/reviews")
+      setReviews(data.reviews)
+      setSummary(data.summary)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nel caricamento delle recensioni.")
+    }
+  }
+
+  useEffect(() => {
+    loadReviews()
+  }, [])
+
+  const statsLabel = useMemo(() => {
+    if (!summary.count) return "Nessuna recensione pubblicata"
+    return `${summary.averageRating.toFixed(1)} / 5 • ${summary.count} recensioni verificate`
+  }, [summary])
+
+  async function submitReview(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFeedback("")
+    setError("")
+
+    try {
+      setSubmitting(true)
+      await apiFetch<{ message: string }>("/reviews", {
+        method: "POST",
+        body: JSON.stringify(form),
+      })
+      setFeedback("Recensione pubblicata correttamente.")
+      setForm({
+        rating: 5,
+        title: "",
+        body: "",
+        tag: reviewTagOptions[0],
+      })
+      await loadReviews()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'invio della recensione.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <section id="recensioni" className="py-20 md:py-28">
       <Container>
         <Reveal>
-          <SectionTitle eyebrow="Recensioni clienti" title="Esperienze reali di chi ha acquistato.">
-            Una selezione di feedback raccolti dai clienti che hanno già scelto BNS Studio.
+          <SectionTitle eyebrow="Recensioni clienti" title="Feedback reali da chi ha già acquistato.">
+            Recensioni pubblicate direttamente dagli utenti del negozio, con valutazione media e storico reale.
           </SectionTitle>
         </Reveal>
 
-        {/* entrance wrapper */}
         <motion.div
-          className="mt-10 relative overflow-hidden"
+          className="mt-10"
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.25 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
         >
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-20 z-10 bg-gradient-to-r from-[#0b0b0c] to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-20 z-10 bg-gradient-to-l from-[#0b0b0c] to-transparent" />
+          <div className="mb-6 flex flex-col gap-4 rounded-[26px] border border-white/10 bg-white/[0.03] px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-white/45">Valutazione media</p>
+              <div className="mt-3 flex items-center gap-3">
+                <span className="text-3xl font-semibold text-white">
+                  {summary.count ? summary.averageRating.toFixed(1) : "—"}
+                </span>
+                <RatingDots rating={summary.count ? Math.round(summary.averageRating) : 0} />
+              </div>
+            </div>
+            <div className="rounded-full border border-white/10 px-4 py-2 text-xs text-white/65">
+              {statsLabel}
+            </div>
+          </div>
 
-          <motion.div
-            className="flex gap-4 md:gap-6 w-max"
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ duration: 34, ease: "linear", repeat: Infinity }}
-          >
-            {row.map((r, idx) => (
-              <article
-                key={`${r.name}-${idx}`}
-                className="glass rounded-2xl p-6 shadow-card w-[320px] md:w-[380px]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-sm font-semibold text-white/85">
-                      {r.name.charAt(0)}
-                    </div>
+          {!reviews.length ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 px-6 py-12 text-center text-white/55">
+              Nessuna recensione disponibile al momento.
+            </div>
+          ) : (
+            <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] md:gap-6 [&::-webkit-scrollbar]:hidden">
+              {reviews.map((review) => (
+                <article
+                  key={review.id}
+                  className="glass w-[320px] shrink-0 snap-start rounded-2xl p-6 shadow-card md:w-[380px]"
+                >
+                  <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <div className="font-semibold truncate">{r.name}</div>
-                      <div className="text-sm text-white/60 truncate">{r.meta}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-sm font-semibold text-white/85">
+                          {review.authorName.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold text-white">{review.authorName}</div>
+                          <div className="truncate text-sm text-white/55">{formatReviewDate(review.createdAt)}</div>
+                        </div>
+                      </div>
                     </div>
+                    <RatingDots rating={review.rating} />
                   </div>
-                  <Stars n={r.rating ?? 5} />
-                </div>
 
-                <p className="mt-4 text-sm md:text-[15px] leading-relaxed text-white/75">
-                  “{r.text}”
-                </p>
+                  <div className="mt-5">
+                    <h3 className="text-base font-medium text-white">{review.title}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-white/72">“{review.body}”</p>
+                  </div>
 
-                <div className="mt-5 flex items-center gap-2 text-xs text-white/55">
-                  <span className="h-1 w-1 rounded-full bg-white/35" />
-                  <span>Progetto consegnato</span>
-                  <span className="h-1 w-1 rounded-full bg-white/35" />
-                  <span className="text-[#e3f503]/90">Supporto attivo</span>
-                </div>
-              </article>
-            ))}
-          </motion.div>
+                  <div className="mt-5 flex items-center gap-2 text-xs text-white/55">
+                    <span className="rounded-full border border-white/10 px-3 py-1">{review.tag}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         <motion.div
-          className="mt-8 flex justify-center"
-          initial={{ opacity: 0, y: 10 }}
+          className="mt-10 rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7"
+          initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.5, ease: "easeOut", delay: 0.05 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.45, ease: "easeOut", delay: 0.05 }}
         >
-          <div className="rounded-full border border-white/12 bg-black/30 px-4 py-2 text-xs text-white/65">
-            Media <span className="text-[#e3f503]">5.0</span> • Risposte rapide • Delivery pulito
+          <div className="max-w-3xl">
+            <p className="text-xs uppercase tracking-[0.24em] text-white/45">Lascia una recensione</p>
+            <h3 className="mt-3 text-2xl font-semibold text-white">Racconta la tua esperienza con BNS Studio.</h3>
+            <p className="mt-3 text-sm leading-7 text-white/65">
+              Le recensioni vengono pubblicate dagli utenti autenticati e compaiono direttamente nello slider clienti.
+            </p>
           </div>
+
+          {!loading && !user ? (
+            <div className="mt-6 rounded-[24px] border border-white/10 bg-black/20 px-5 py-5">
+              <p className="text-sm text-white/65">
+                Accedi dal pannello profilo in alto a destra per lasciare una recensione reale collegata al tuo account.
+              </p>
+            </div>
+          ) : null}
+
+          {user ? (
+            <form onSubmit={submitReview} className="mt-6 grid gap-4">
+              <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
+                <div>
+                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Valutazione</label>
+                  <select
+                    className="shop-select"
+                    value={form.rating}
+                    onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
+                  >
+                    {[5, 4, 3, 2, 1].map((value) => (
+                      <option key={value} value={value}>
+                        {value} / 5
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Tag recensione</label>
+                  <select
+                    className="shop-select"
+                    value={form.tag}
+                    onChange={(event) => setForm((current) => ({ ...current, tag: event.target.value as (typeof reviewTagOptions)[number] }))}
+                  >
+                    {reviewTagOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Titolo recensione</label>
+                <input
+                  className="shop-input"
+                  value={form.title}
+                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                  placeholder="Titolo breve e chiaro"
+                  minLength={3}
+                  maxLength={80}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">La tua esperienza</label>
+                <textarea
+                  className="shop-textarea min-h-32"
+                  value={form.body}
+                  onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
+                  placeholder="Racconta com'è andato l'acquisto, il prodotto e l'esperienza complessiva."
+                  minLength={20}
+                  maxLength={600}
+                  required
+                />
+              </div>
+
+              {feedback ? <p className="text-sm text-emerald-300">{feedback}</p> : null}
+              {error ? <p className="text-sm text-red-300">{error}</p> : null}
+
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-sm text-white/55">
+                  Pubblicata come <span className="text-white">{user.username || user.email}</span>
+                </p>
+                <Button type="submit" className="md:min-w-[220px]">
+                  {submitting ? "Invio recensione..." : "Pubblica recensione"}
+                </Button>
+              </div>
+            </form>
+          ) : null}
         </motion.div>
       </Container>
     </section>

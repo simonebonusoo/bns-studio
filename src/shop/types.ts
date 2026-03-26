@@ -94,3 +94,18 @@ export type ShopPayment = {
   discountTotal: number
   shippingTotal: number
 }
+
+export type ShopReview = {
+  id: string
+  rating: number
+  title: string
+  body: string
+  tag: string
+  createdAt: string
+  authorName: string
+}
+
+export type ShopReviewSummary = {
+  averageRating: number
+  count: number
+}

@@ -623,9 +623,9 @@ export function Navbar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 24 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="fixed right-0 top-0 z-50 h-screen w-full max-w-lg border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-lg overflow-hidden border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
             >
-              <div className="flex h-full flex-col">
+              <div className="flex h-full min-h-0 flex-col">
                 <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-white/45">Carrello shop</p>
@@ -683,7 +683,7 @@ export function Navbar() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex-1 space-y-4 overflow-y-auto py-6">
+                    <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain py-6">
                       {!items.length ? (
                         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
                           Il carrello e vuoto. Apri il catalogo per aggiungere un prodotto.
@@ -784,9 +784,9 @@ export function Navbar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 24 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-hidden border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
             >
-                <div className="flex h-full flex-col">
+                <div className="flex h-full min-h-0 flex-col">
                   <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
                     <div>
                       <p className="text-xs uppercase tracking-[0.24em] text-white/45">Profilo shop</p>
@@ -810,7 +810,7 @@ export function Navbar() {
                   </button>
                 </div>
 
-                <div className="flex-1 space-y-5 overflow-y-auto py-6">
+                <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain py-6">
                   {loading ? (
                     <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/60">
                       Caricamento account...

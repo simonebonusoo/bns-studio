@@ -70,6 +70,68 @@ const products = [
   },
 ]
 
+const reviewUsers = [
+  {
+    email: "marco@bnsstudio.com",
+    username: "marco.r",
+    firstName: "Marco",
+    lastName: "Rossi",
+  },
+  {
+    email: "giulia@bnsstudio.com",
+    username: "giulia.v",
+    firstName: "Giulia",
+    lastName: "Villa",
+  },
+  {
+    email: "luca@bnsstudio.com",
+    username: "luca.f",
+    firstName: "Luca",
+    lastName: "Ferri",
+  },
+  {
+    email: "serena@bnsstudio.com",
+    username: "serena.m",
+    firstName: "Serena",
+    lastName: "Marini",
+  },
+]
+
+const seededReviews = [
+  {
+    publicId: "review-marco-poster",
+    email: "marco@bnsstudio.com",
+    rating: 5,
+    title: "Poster curato e stampa molto pulita",
+    body: "Il visual dal vivo rende ancora meglio che in foto. Packaging ordinato, spedizione veloce e qualità davvero solida per uno spazio studio minimal.",
+    tag: "Poster arrivato",
+  },
+  {
+    publicId: "review-giulia-collection",
+    email: "giulia@bnsstudio.com",
+    rating: 5,
+    title: "Collezione coerente e facile da abbinare",
+    body: "Ho preso più pezzi insieme e l'effetto finale è super coerente. Si vede che c'è una direzione estetica chiara dietro ogni prodotto.",
+    tag: "Collezione completata",
+  },
+  {
+    publicId: "review-luca-gift",
+    email: "luca@bnsstudio.com",
+    rating: 4,
+    title: "Regalo riuscito, ottima presenza visiva",
+    body: "L'ho scelto come regalo e ha fatto subito la sua scena. Molto forte la parte grafica, bene anche i tempi e l'assistenza nelle informazioni.",
+    tag: "Regalo riuscito",
+  },
+  {
+    publicId: "review-serena-support",
+    email: "serena@bnsstudio.com",
+    rating: 5,
+    title: "Supporto rapido e prodotto coerente",
+    body: "Mi serviva un chiarimento prima dell'acquisto e la risposta è arrivata in fretta. Prodotto curato, immagini fedeli e identità BNS molto chiara.",
+    tag: "Supporto attivo",
+  },
+]
+
 async function main() {
   console.log("[seed] Seeding shop data")
 
@@ -102,6 +164,25 @@ async function main() {
       role: "customer",
     },
   })
+
+  for (const demoUser of reviewUsers) {
+    await prisma.user.upsert({
+      where: { email: demoUser.email },
+      update: {
+        username: demoUser.username,
+        firstName: demoUser.firstName,
+        lastName: demoUser.lastName,
+      },
+      create: {
+        email: demoUser.email,
+        username: demoUser.username,
+        passwordHash: await bcrypt.hash("customer1234", 10),
+        firstName: demoUser.firstName,
+        lastName: demoUser.lastName,
+        role: "customer",
+      },
+    })
+  }
 
   for (const product of products) {
     await prisma.product.upsert({
@@ -191,14 +272,44 @@ async function main() {
     })
   }
 
-  const [userCount, productCount, categorySetting] = await Promise.all([
+  for (const review of seededReviews) {
+    const reviewUser = await prisma.user.findUnique({
+      where: { email: review.email },
+    })
+
+    if (!reviewUser) continue
+
+    await prisma.review.upsert({
+      where: { publicId: review.publicId },
+      update: {
+        userId: reviewUser.id,
+        rating: review.rating,
+        title: review.title,
+        body: review.body,
+        tag: review.tag,
+        status: "approved",
+      },
+      create: {
+        publicId: review.publicId,
+        userId: reviewUser.id,
+        rating: review.rating,
+        title: review.title,
+        body: review.body,
+        tag: review.tag,
+        status: "approved",
+      },
+    })
+  }
+
+  const [userCount, productCount, reviewCount, categorySetting] = await Promise.all([
     prisma.user.count(),
     prisma.product.count(),
+    prisma.review.count(),
     prisma.setting.findUnique({ where: { key: "shopCategories" } }),
   ])
 
   console.log(`[seed] Admin ready: admin@bnsstudio.com / admin1234`)
-  console.log(`[seed] Users=${userCount} Products=${productCount}`)
+  console.log(`[seed] Users=${userCount} Products=${productCount} Reviews=${reviewCount}`)
   console.log(`[seed] Categories=${categorySetting?.value || "[]"}`)
 }
 

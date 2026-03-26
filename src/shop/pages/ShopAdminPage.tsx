@@ -597,7 +597,7 @@ export function ShopAdminPage() {
               </button>
           </form>
 
-          <section className="shop-card flex h-full flex-col p-6">
+          <section className="shop-card flex h-full min-h-0 flex-col p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-white">Lista prodotti</h2>
@@ -605,7 +605,7 @@ export function ShopAdminPage() {
               </div>
               <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/65">{products.length} elementi</span>
             </div>
-            <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+            <div className="max-h-[34rem] flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
             {products.map((product) => (
               <article key={product.id} className="shop-card overflow-hidden">
                 <div className="grid gap-4 p-5 md:grid-cols-[120px_1fr_auto] md:items-center">

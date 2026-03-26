@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes.mjs"
 import storeRoutes from "./routes/storeRoutes.mjs"
 import orderRoutes from "./routes/orderRoutes.mjs"
 import adminRoutes from "./routes/adminRoutes.mjs"
+import reviewRoutes from "./routes/reviewRoutes.mjs"
 import { env } from "./config/env.mjs"
 import { errorHandler } from "./middleware/error.mjs"
 
@@ -52,6 +53,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/store", storeRoutes)
 app.use("/api/orders", orderRoutes)
 app.use("/api/admin", adminRoutes)
+app.use("/api/reviews", reviewRoutes)
 
 app.use("/api", (_req, res) => {
   res.status(404).json({
