@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 
 import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
@@ -10,8 +10,7 @@ import { getOrderStatusLabel } from "../lib/order"
 import { ShopOrder, ShopSettings } from "../types"
 
 export function ShopProfilePage() {
-  const { user, logout } = useShopAuth()
-  const navigate = useNavigate()
+  const { user } = useShopAuth()
   const [orders, setOrders] = useState<ShopOrder[]>([])
   const [settings, setSettings] = useState<ShopSettings>({})
 
@@ -21,21 +20,7 @@ export function ShopProfilePage() {
   }, [])
 
   return (
-    <ShopLayout eyebrow="Profilo" title={`Ciao, ${user?.username || user?.firstName || "cliente"}`} intro="Gestisci i tuoi dati e controlla i tuoi ordini." actions={user?.role === "admin" ? <Link to="/shop/admin" className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white">Admin</Link> : null}>
-      <div className="flex items-center justify-between rounded-[24px] border border-white/10 bg-black/20 px-5 py-4">
-        <span className="text-sm text-white/65">Area cliente attiva</span>
-        <button
-          type="button"
-          onClick={() => {
-            logout()
-            navigate("/?profile=open")
-          }}
-          className="text-sm text-white/75 transition hover:text-white"
-        >
-          Logout
-        </button>
-      </div>
-
+    <ShopLayout eyebrow="Profilo" title={`Ciao, ${user?.username || user?.firstName || "cliente"}`} intro="Gestisci e controlla i tuoi ordini passati." actions={user?.role === "admin" ? <Link to="/shop/admin" className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white">Admin</Link> : null}>
       {!orders.length ? <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">Nessun ordine registrato per questo account.</div> : null}
 
       <div className="grid gap-5 xl:grid-cols-2">

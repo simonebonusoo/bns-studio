@@ -201,7 +201,7 @@ export function Testimonials() {
 
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <p className="text-sm text-white/55">
-                    Pubblicata come <span className="text-white">{user.username || user.email}</span>
+                    Pubblica come <span className="text-white">{user.username || user.email}</span>
                   </p>
                   <Button type="submit" className="md:min-w-[220px]">
                     {submitting ? "Invio recensione..." : "Pubblica recensione"}
@@ -212,7 +212,7 @@ export function Testimonials() {
           </div>
 
           <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7">
-            <div className="grid h-full gap-6 md:grid-cols-[minmax(0,1fr)_180px] md:items-start">
+            <div className="grid h-full gap-6 md:grid-cols-[minmax(0,1fr)_148px] md:items-start">
               <div className="flex h-full flex-col">
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-white/45">Chi siamo</p>
@@ -223,6 +223,11 @@ export function Testimonials() {
                     chi c&apos;è dietro il progetto, come nasce una collezione e quale immaginario vogliamo
                     costruire nel tempo tra prodotto, atmosfera e identità.
                   </p>
+                  <p className="mt-3 text-sm leading-7 text-white/65">
+                    È una preview più umana del brand: il modo in cui selezioniamo i pezzi da pubblicare,
+                    l&apos;attenzione al ritmo delle collezioni e il tipo di presenza visiva che vogliamo
+                    portare dentro case, studi e spazi personali.
+                  </p>
                 </div>
 
                 <div className="mt-auto pt-6">
@@ -232,8 +237,8 @@ export function Testimonials() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03]">
-                <img src={founderPortrait} alt="Founder BNS Studio" className="aspect-[4/5] h-full w-full object-cover" />
+              <div className="overflow-hidden self-start rounded-[24px] border border-white/10 bg-white/[0.03]">
+                <img src={founderPortrait} alt="Founder BNS Studio" className="aspect-[4/5] w-full object-cover" />
               </div>
             </div>
           </div>
