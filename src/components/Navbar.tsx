@@ -39,6 +39,9 @@ function containWheel(event: React.WheelEvent<HTMLElement>) {
   event.stopPropagation()
 }
 
+const overlayTransition = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const }
+const drawerTransition = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -131,6 +134,17 @@ export function Navbar() {
 
     const previousOverflow = document.body.style.overflow
     const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousBodyPaddingRight = document.body.style.paddingRight
+    const previousHtmlPaddingRight = document.documentElement.style.paddingRight
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth)
+
+    if (scrollbarWidth > 0) {
+      const bodyPadding = Number.parseFloat(window.getComputedStyle(document.body).paddingRight || "0")
+      const htmlPadding = Number.parseFloat(window.getComputedStyle(document.documentElement).paddingRight || "0")
+      document.body.style.paddingRight = `${bodyPadding + scrollbarWidth}px`
+      document.documentElement.style.paddingRight = `${htmlPadding + scrollbarWidth}px`
+    }
+
     document.body.style.overflow = "hidden"
     document.documentElement.style.overflow = "hidden"
     window.__lenis?.stop?.()
@@ -165,6 +179,8 @@ export function Navbar() {
     return () => {
       document.body.style.overflow = previousOverflow
       document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.paddingRight = previousBodyPaddingRight
+      document.documentElement.style.paddingRight = previousHtmlPaddingRight
       window.__lenis?.start?.()
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("mousedown", handlePointerDown)
@@ -531,6 +547,7 @@ export function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={overlayTransition}
               className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
             />
 
@@ -538,7 +555,7 @@ export function Navbar() {
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              transition={drawerTransition}
               className="fixed inset-x-0 top-[72px] z-50 pb-6 md:top-[88px]"
             >
               <Container>
@@ -647,16 +664,17 @@ export function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={overlayTransition}
               className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm"
             />
 
             <motion.aside
               ref={cartRef}
-              initial={{ opacity: 0, x: 24 }}
+              initial={{ opacity: 0, x: 18 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 24 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="fixed right-0 top-0 z-50 h-screen w-full max-w-lg overflow-hidden border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
+              exit={{ opacity: 0, x: 18 }}
+              transition={drawerTransition}
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-lg overflow-hidden border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform"
             >
               <div className="flex h-full min-h-0 flex-col">
                 <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
@@ -840,16 +858,17 @@ export function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={overlayTransition}
               className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm"
             />
 
             <motion.aside
               ref={profileRef}
-              initial={{ opacity: 0, x: 24 }}
+              initial={{ opacity: 0, x: 18 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 24 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-hidden border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
+              exit={{ opacity: 0, x: 18 }}
+              transition={drawerTransition}
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-hidden border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform"
             >
                 <div className="flex h-full min-h-0 flex-col">
                   <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
