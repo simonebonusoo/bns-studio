@@ -163,6 +163,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/chi-siamo" element={<AboutPage />} />
             <Route path="/chi-sono" element={<AboutPage />} />
             <Route path="/case/:slug" element={<CaseStudyPage />} />
             <Route path="/shop" element={<ShopPage />} />

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 
 import { Container } from "../components/Container"
 import { Button } from "../components/Button"
+import founderPortrait from "../assets/founder/simone-centrale.jpeg"
 
 const DOT = (
   <span aria-hidden className="text-[#e3f503] leading-none translate-y-[2px]">
@@ -35,7 +36,7 @@ export function AboutPage() {
         <article className="glass overflow-hidden rounded-2xl shadow-card">
           <div className="grid gap-8 border-b border-white/10 p-7 md:p-8 xl:grid-cols-[minmax(0,1.05fr)_420px]">
             <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-white/45">Chi sono</div>
+              <div className="text-xs uppercase tracking-[0.25em] text-white/45">Chi siamo</div>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
                 Dietro BNS Studio c&apos;è una ricerca visiva personale, concreta e molto intenzionale.
               </h1>
@@ -45,21 +46,15 @@ export function AboutPage() {
                 un&apos;identità netta, contemporanea e riconoscibile.
               </p>
               <p className="mt-4 max-w-3xl leading-relaxed text-white/72">
-                Il progetto tiene insieme due cose: gusto editoriale e attenzione al dettaglio pratico.
+                Il progetto tiene insieme gusto editoriale e attenzione al dettaglio pratico.
                 Ogni uscita deve funzionare sia come immagine forte sia come prodotto reale, leggibile
                 e ben costruito, pronto a vivere su una parete, una scrivania o nello spazio di chi lo sceglie.
               </p>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
-              <div className="flex aspect-[4/5] items-end rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(227,245,3,0.16),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-white/45">Founder portrait</p>
-                  <p className="mt-2 max-w-xs text-sm leading-6 text-white/65">
-                    Blocco immagine pronto per inserire una tua foto personale o uno scatto di studio,
-                    mantenendo la composizione editoriale già coerente con la pagina.
-                  </p>
-                </div>
+            <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="overflow-hidden rounded-[24px] border border-white/10">
+                <img src={founderPortrait} alt="Founder BNS Studio" className="aspect-[4/5] w-full object-cover" />
               </div>
             </div>
           </div>
@@ -101,9 +96,9 @@ export function AboutPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-white/90">Cosa cerco di costruire con BNS Studio</h2>
+              <h2 className="text-lg font-semibold text-white/90">Cosa cerchiamo di costruire con BNS Studio</h2>
               <p className="mt-3 leading-relaxed text-white/72">
-                Più che un catalogo indistinto, voglio costruire un archivio di pezzi con carattere:
+                Più che un catalogo indistinto, vogliamo costruire un archivio di pezzi con carattere:
                 prodotti che stiano bene insieme, che abbiano un ritmo comune e che facciano percepire
                 subito un immaginario chiaro, senza rumore superfluo.
               </p>

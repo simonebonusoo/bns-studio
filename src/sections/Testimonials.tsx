@@ -9,6 +9,7 @@ import { Button } from "../components/Button"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { apiFetch } from "../shop/lib/api"
 import { ShopReview, ShopReviewSummary } from "../shop/types"
+import founderPortrait from "../assets/founder/simone-centrale.jpeg"
 
 type ReviewsResponse = {
   reviews: ShopReview[]
@@ -111,89 +112,8 @@ export function Testimonials() {
   return (
     <section id="recensioni" className="py-20 md:py-28">
       <Container>
-        <Reveal>
-          <SectionTitle eyebrow="Recensioni clienti" title="Feedback reali da chi ha già acquistato.">
-            Recensioni pubblicate direttamente dagli utenti del negozio, con valutazione media e storico reale.
-          </SectionTitle>
-        </Reveal>
-
         <motion.div
-          className="mt-10"
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-        >
-          <div className="mb-6 flex flex-col gap-4 rounded-[26px] border border-white/10 bg-white/[0.03] px-5 py-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-white/45">Valutazione media</p>
-              <div className="mt-3 flex items-center gap-3">
-                <span className="text-3xl font-semibold text-white">
-                  {summary.count ? summary.averageRating.toFixed(1) : "—"}
-                </span>
-                <RatingDots rating={summary.count ? Math.round(summary.averageRating) : 0} />
-              </div>
-            </div>
-            <div className="rounded-full border border-white/10 px-4 py-2 text-xs text-white/65">
-              {statsLabel}
-            </div>
-          </div>
-
-          {!reviews.length ? (
-            <div className="rounded-[28px] border border-dashed border-white/10 px-6 py-12 text-center text-white/55">
-              Nessuna recensione disponibile al momento.
-            </div>
-          ) : (
-            <div className="relative overflow-hidden">
-              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#0b0b0c] to-transparent" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#0b0b0c] to-transparent" />
-
-              <motion.div
-                className="flex w-max gap-4 md:gap-6"
-                animate={{ x: ["0%", "-50%"] }}
-                transition={{
-                  duration: Math.max(24, reviews.length * 7),
-                  ease: "linear",
-                  repeat: Infinity,
-                }}
-              >
-                {animatedReviews.map((review, index) => (
-                  <article
-                    key={`${review.id}-${index}`}
-                    className="glass w-[320px] shrink-0 rounded-2xl p-6 shadow-card md:w-[380px]"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-sm font-semibold text-white/85">
-                            {review.authorName.charAt(0)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate font-semibold text-white">{review.authorName}</div>
-                            <div className="truncate text-sm text-white/55">{formatReviewDate(review.createdAt)}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <RatingDots rating={review.rating} />
-                    </div>
-
-                    <div className="mt-5">
-                      <h3 className="text-base font-medium text-white">{review.title}</h3>
-                      <p className="mt-3 text-sm leading-relaxed text-white/72">“{review.body}”</p>
-                    </div>
-
-                    <div className="mt-5 flex items-center gap-2 text-xs text-white/55">
-                      <span className="rounded-full border border-white/10 px-3 py-1">{review.tag}</span>
-                    </div>
-                  </article>
-                ))}
-              </motion.div>
-            </div>
-          )}
-        </motion.div>
-
-        <motion.div
-          className="mt-10 grid gap-6 lg:grid-cols-2"
+          className="grid gap-6 lg:grid-cols-2"
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
@@ -292,26 +212,112 @@ export function Testimonials() {
           </div>
 
           <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7">
-            <p className="text-xs uppercase tracking-[0.24em] text-white/45">Chi sono</p>
-            <h3 className="mt-3 text-2xl font-semibold text-white">La persona dietro BNS Studio.</h3>
-            <p className="mt-3 text-sm leading-7 text-white/65">
-              Una preview più personale sul progetto: approccio, immaginario visivo, metodo di lavoro e
-              la direzione che tiene insieme poster, stampe e oggetti BNS Studio.
-            </p>
+            <div className="grid h-full gap-6 md:grid-cols-[minmax(0,1fr)_180px] md:items-start">
+              <div className="flex h-full flex-col">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-white/45">Chi siamo</p>
+                  <h3 className="mt-3 text-2xl font-semibold text-white">Le persone dietro BNS Studio.</h3>
+                  <p className="mt-3 text-sm leading-7 text-white/65">
+                    Una preview più personale sul progetto: approccio, immaginario visivo e direzione
+                    con cui costruiamo poster, stampe e oggetti BNS Studio.
+                  </p>
+                </div>
 
-            <div className="mt-6 rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(227,245,3,0.16),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5">
-              <p className="text-sm leading-7 text-white/72">
-                Un racconto editoriale pensato per dare più contesto umano al brand, con uno spazio già pronto
-                per immagini founder, studio e dettagli di processo.
-              </p>
-            </div>
+                <div className="mt-auto pt-6">
+                  <Link to="/chi-siamo">
+                    <Button className="w-full">Apri la pagina completa</Button>
+                  </Link>
+                </div>
+              </div>
 
-            <div className="mt-6">
-              <Link to="/chi-sono">
-                <Button className="w-full">Apri la pagina completa</Button>
-              </Link>
+              <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03]">
+                <img src={founderPortrait} alt="Founder BNS Studio" className="aspect-[4/5] h-full w-full object-cover" />
+              </div>
             </div>
           </div>
+        </motion.div>
+
+        <div className="mt-14">
+          <Reveal>
+            <SectionTitle eyebrow="Recensioni clienti" title="Feedback reali da chi ha già acquistato.">
+              Recensioni pubblicate direttamente dagli utenti del negozio, con valutazione media e storico reale.
+            </SectionTitle>
+          </Reveal>
+        </div>
+
+        <motion.div
+          className="mt-10"
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+        >
+          <div className="mb-6 flex flex-col gap-4 rounded-[26px] border border-white/10 bg-white/[0.03] px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-white/45">Valutazione media</p>
+              <div className="mt-3 flex items-center gap-3">
+                <span className="text-3xl font-semibold text-white">
+                  {summary.count ? summary.averageRating.toFixed(1) : "—"}
+                </span>
+                <RatingDots rating={summary.count ? Math.round(summary.averageRating) : 0} />
+              </div>
+            </div>
+            <div className="rounded-full border border-white/10 px-4 py-2 text-xs text-white/65">
+              {statsLabel}
+            </div>
+          </div>
+
+          {!reviews.length ? (
+            <div className="rounded-[28px] border border-dashed border-white/10 px-6 py-12 text-center text-white/55">
+              Nessuna recensione disponibile al momento.
+            </div>
+          ) : (
+            <div className="relative overflow-hidden">
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#0b0b0c] to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#0b0b0c] to-transparent" />
+
+              <motion.div
+                className="flex w-max gap-4 md:gap-6"
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{
+                  duration: Math.max(24, reviews.length * 7),
+                  ease: "linear",
+                  repeat: Infinity,
+                }}
+              >
+                {animatedReviews.map((review, index) => (
+                  <article
+                    key={`${review.id}-${index}`}
+                    className="glass w-[320px] shrink-0 rounded-2xl p-6 shadow-card md:w-[380px]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-sm font-semibold text-white/85">
+                            {review.authorName.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold text-white">{review.authorName}</div>
+                            <div className="truncate text-sm text-white/55">{formatReviewDate(review.createdAt)}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <RatingDots rating={review.rating} />
+                    </div>
+
+                    <div className="mt-5">
+                      <h3 className="text-base font-medium text-white">{review.title}</h3>
+                      <p className="mt-3 text-sm leading-relaxed text-white/72">“{review.body}”</p>
+                    </div>
+
+                    <div className="mt-5 flex items-center gap-2 text-xs text-white/55">
+                      <span className="rounded-full border border-white/10 px-3 py-1">{review.tag}</span>
+                    </div>
+                  </article>
+                ))}
+              </motion.div>
+            </div>
+          )}
         </motion.div>
       </Container>
     </section>
