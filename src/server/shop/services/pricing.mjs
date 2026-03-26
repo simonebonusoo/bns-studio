@@ -48,8 +48,10 @@ export async function calculatePricing(cartItems, couponCode) {
       title: product.title,
       imageUrl: imageUrls[0] || "",
       unitPrice: product.price,
+      unitCost: product.costPrice || 0,
       quantity,
       lineTotal: product.price * quantity,
+      costTotal: (product.costPrice || 0) * quantity,
     }
   })
 

@@ -7,6 +7,11 @@ import { calculatePricing } from "../services/pricing.mjs"
 
 const router = Router()
 
+function serializePublicProduct(product) {
+  const { imageUrls, costPrice: _costPrice, ...rest } = product
+  return { ...rest, imageUrls: JSON.parse(imageUrls) }
+}
+
 router.get(
   "/settings",
   asyncHandler(async (_req, res) => {
@@ -56,7 +61,7 @@ router.get(
       orderBy: { createdAt: "desc" },
     })
 
-    res.json(products.map((product) => ({ ...product, imageUrls: JSON.parse(product.imageUrls) })))
+    res.json(products.map(serializePublicProduct))
   })
 )
 
@@ -69,7 +74,7 @@ router.get(
       take: 3,
     })
 
-    res.json(products.map((product) => ({ ...product, imageUrls: JSON.parse(product.imageUrls) })))
+    res.json(products.map(serializePublicProduct))
   })
 )
 
@@ -82,7 +87,7 @@ router.get(
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 
-    res.json({ ...product, imageUrls: JSON.parse(product.imageUrls) })
+    res.json(serializePublicProduct(product))
   })
 )
 

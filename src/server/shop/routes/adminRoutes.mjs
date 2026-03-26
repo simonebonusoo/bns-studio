@@ -71,6 +71,112 @@ function slugifyProductTitle(value) {
     .slice(0, 80)
 }
 
+function serializeAdminProduct(product) {
+  return {
+    ...product,
+    imageUrls: JSON.parse(product.imageUrls),
+  }
+}
+
+function getOrderItemCost(item) {
+  const unitCost = typeof item.unitCost === "number" && item.unitCost > 0 ? item.unitCost : item.product?.costPrice || 0
+  const costTotal = typeof item.costTotal === "number" && item.costTotal > 0 ? item.costTotal : unitCost * item.quantity
+  return {
+    unitCost,
+    costTotal,
+  }
+}
+
+function buildOrderProfitSummary(order) {
+  const items = order.items.map((item) => {
+    const { unitCost, costTotal } = getOrderItemCost(item)
+    return {
+      id: item.id,
+      productId: item.productId,
+      title: item.title,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      unitCost,
+      revenueTotal: item.lineTotal,
+      costTotal,
+      netTotal: item.lineTotal - costTotal,
+    }
+  })
+
+  const productCostsTotal = items.reduce((sum, item) => sum + item.costTotal, 0)
+  const grossTotal = order.total
+  const netTotal = grossTotal - productCostsTotal
+
+  return {
+    orderId: order.id,
+    orderReference: order.orderReference,
+    status: order.status,
+    createdAt: order.createdAt,
+    grossTotal,
+    subtotal: order.subtotal,
+    discountTotal: order.discountTotal,
+    shippingTotal: order.shippingTotal,
+    productCostsTotal,
+    netTotal,
+    shippingCostsTracked: false,
+    items,
+  }
+}
+
+function averageFromTotals(total, count) {
+  if (!count) return 0
+  return Math.round(total / count)
+}
+
+function buildAnalyticsSnapshot({ orders, pageViews }) {
+  const completedOrders = orders.filter((order) => order.status === "paid" || order.status === "shipped")
+  const profitRows = completedOrders.map(buildOrderProfitSummary)
+  const totalRevenue = profitRows.reduce((sum, row) => sum + row.grossTotal, 0)
+  const totalExpenses = profitRows.reduce((sum, row) => sum + row.productCostsTotal, 0)
+  const totalNet = profitRows.reduce((sum, row) => sum + row.netTotal, 0)
+  const totalOrders = orders.length
+  const salesCount = completedOrders.length
+  const averageOrderValue = averageFromTotals(totalRevenue, salesCount)
+
+  const dayBuckets = new Set(completedOrders.map((order) => new Date(order.createdAt).toISOString().slice(0, 10)))
+  const monthBuckets = new Set(completedOrders.map((order) => new Date(order.createdAt).toISOString().slice(0, 7)))
+
+  const bestSellingMap = new Map()
+  completedOrders.forEach((order) => {
+    order.items.forEach((item) => {
+      const current = bestSellingMap.get(item.productId) || {
+        productId: item.productId,
+        title: item.title,
+        quantity: 0,
+      }
+      current.quantity += item.quantity
+      bestSellingMap.set(item.productId, current)
+    })
+  })
+
+  const bestSellingProduct = Array.from(bestSellingMap.values()).sort((a, b) => b.quantity - a.quantity)[0] || null
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const monthKey = new Date().toISOString().slice(0, 7)
+
+  return {
+    siteViewsTotal: pageViews.length,
+    siteViewsToday: pageViews.filter((entry) => entry.createdAt.toISOString().slice(0, 10) === todayKey).length,
+    siteViewsThisMonth: pageViews.filter((entry) => entry.createdAt.toISOString().slice(0, 7) === monthKey).length,
+    totalOrders,
+    salesCount,
+    totalRevenue,
+    totalExpenses,
+    totalNet,
+    averageOrderValue,
+    averageDailyNet: averageFromTotals(totalNet, dayBuckets.size),
+    averageMonthlyNet: averageFromTotals(totalNet, monthBuckets.size),
+    averageDailyExpenses: averageFromTotals(totalExpenses, dayBuckets.size),
+    averageMonthlyExpenses: averageFromTotals(totalExpenses, monthBuckets.size),
+    bestSellingProduct,
+    shippingCostsTracked: false,
+  }
+}
+
 async function ensureUniqueProductSlug(baseValue, excludeId) {
   const base = slugifyProductTitle(baseValue) || `product-${Date.now()}`
 
@@ -113,6 +219,7 @@ const productSchema = z.object({
   slug: z.string().min(1).optional(),
   description: z.string().min(1),
   price: z.number().min(0),
+  costPrice: z.number().min(0).default(0),
   category: z.string().min(1),
   imageUrls: z.array(z.string().min(1)).min(1),
   featured: z.boolean().default(false),
@@ -183,10 +290,58 @@ router.get(
 )
 
 router.get(
+  "/users",
+  asyncHandler(async (_req, res) => {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    })
+
+    res.json({
+      total: users.length,
+      users,
+    })
+  })
+)
+
+router.get(
+  "/analytics",
+  asyncHandler(async (_req, res) => {
+    const [orders, pageViews] = await Promise.all([
+      prisma.order.findMany({
+        include: {
+          items: {
+            include: {
+              product: {
+                select: { costPrice: true },
+              },
+            },
+          },
+        },
+      }),
+      prisma.pageView.findMany({
+        select: {
+          createdAt: true,
+          path: true,
+        },
+      }),
+    ])
+
+    res.json(buildAnalyticsSnapshot({ orders, pageViews }))
+  })
+)
+
+router.get(
   "/products",
   asyncHandler(async (_req, res) => {
     const products = await prisma.product.findMany({ orderBy: { createdAt: "desc" } })
-    res.json(products.map((product) => ({ ...product, imageUrls: JSON.parse(product.imageUrls) })))
+    res.json(products.map(serializeAdminProduct))
   })
 )
 
@@ -411,6 +566,30 @@ router.get(
     })
 
     res.json(orders.map((order) => ({ ...order, pricingBreakdown: JSON.parse(order.pricingBreakdown) })))
+  })
+)
+
+router.get(
+  "/orders/:id/profit",
+  asyncHandler(async (req, res) => {
+    const order = await prisma.order.findUnique({
+      where: { id: Number(req.params.id) },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { costPrice: true },
+            },
+          },
+        },
+      },
+    })
+
+    if (!order) {
+      throw new HttpError(404, "Ordine non trovato")
+    }
+
+    res.json(buildOrderProfitSummary(order))
   })
 )
 

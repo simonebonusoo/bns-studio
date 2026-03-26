@@ -28,6 +28,7 @@ import { ShopReceiptPage } from "./shop/pages/ShopReceiptPage"
 import { ShopAdminPage } from "./shop/pages/ShopAdminPage"
 import { ShopPaypalReturnPage } from "./shop/pages/ShopPaypalReturnPage"
 import { ShopAdminRoute, ShopProtectedRoute } from "./shop/components/ShopProtectedRoute"
+import { apiFetch } from "./shop/lib/api"
 
 declare global {
   interface Window {
@@ -152,6 +153,13 @@ export default function App() {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" })
     }
   }, [location.pathname, location.hash])
+
+  useEffect(() => {
+    apiFetch("/metrics/page-view", {
+      method: "POST",
+      body: JSON.stringify({ path: location.pathname }),
+    }).catch(() => undefined)
+  }, [location.pathname])
 
   return (
     <ShopAuthProvider>

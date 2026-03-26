@@ -13,6 +13,7 @@ export type ShopProduct = {
   slug: string
   description: string
   price: number
+  costPrice?: number
   category: string
   imageUrls: string[]
   featured: boolean
@@ -33,8 +34,10 @@ export type PricingItem = {
   title: string
   imageUrl: string
   unitPrice: number
+  unitCost?: number
   quantity: number
   lineTotal: number
+  costTotal?: number
 }
 
 export type ShopPricing = {
@@ -56,8 +59,10 @@ export type ShopOrderItem = {
   title: string
   imageUrl: string
   unitPrice: number
+  unitCost?: number
   quantity: number
   lineTotal: number
+  costTotal?: number
 }
 
 export type ShopOrder = {

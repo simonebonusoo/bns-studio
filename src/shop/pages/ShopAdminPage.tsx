@@ -41,6 +41,7 @@ type ProductFormState = {
   title: string
   description: string
   price: string
+  costPrice: string
   category: string
   featured: boolean
   stock: number
@@ -74,10 +75,67 @@ type RuleFormState = {
   active: boolean
 }
 
+type AdminUser = {
+  id: number
+  email: string
+  username?: string | null
+  role: string
+  createdAt: string
+}
+
+type AdminUsersResponse = {
+  total: number
+  users: AdminUser[]
+}
+
+type AdminAnalytics = {
+  siteViewsTotal: number
+  siteViewsToday: number
+  siteViewsThisMonth: number
+  totalOrders: number
+  salesCount: number
+  totalRevenue: number
+  totalExpenses: number
+  totalNet: number
+  averageOrderValue: number
+  averageDailyNet: number
+  averageMonthlyNet: number
+  averageDailyExpenses: number
+  averageMonthlyExpenses: number
+  bestSellingProduct: { productId: number; title: string; quantity: number } | null
+  shippingCostsTracked: boolean
+}
+
+type OrderProfitSummary = {
+  orderId: number
+  orderReference: string
+  status: string
+  createdAt: string
+  grossTotal: number
+  subtotal: number
+  discountTotal: number
+  shippingTotal: number
+  productCostsTotal: number
+  netTotal: number
+  shippingCostsTracked: boolean
+  items: Array<{
+    id: number
+    productId: number
+    title: string
+    quantity: number
+    unitPrice: number
+    unitCost: number
+    revenueTotal: number
+    costTotal: number
+    netTotal: number
+  }>
+}
+
 const emptyProductForm = (): ProductFormState => ({
   title: "",
   description: "",
   price: "",
+  costPrice: "",
   category: "",
   featured: false,
   stock: 0,
@@ -126,15 +184,24 @@ function formatEuroInput(value: number) {
   return Number.isInteger(value / 100) ? String(value / 100) : (value / 100).toFixed(2)
 }
 
+function parseEuroToCents(value: string) {
+  const normalized = Number(String(value).replace(",", "."))
+  if (!Number.isFinite(normalized) || normalized < 0) return 0
+  return Math.round(normalized * 100)
+}
+
 export function ShopAdminPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [usersTotal, setUsersTotal] = useState(0)
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [rules, setRules] = useState<DiscountRule[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
-  const [tab, setTab] = useState<"prodotti" | "recensioni" | "ordini" | "sconti">("prodotti")
+  const [tab, setTab] = useState<"prodotti" | "recensioni" | "ordini" | "utenti" | "data" | "sconti">("prodotti")
 
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm)
   const [productFiles, setProductFiles] = useState<File[]>([])
@@ -149,6 +216,8 @@ export function ShopAdminPage() {
 
   const [ruleForm, setRuleForm] = useState<RuleFormState>(emptyRuleForm)
   const [editingRuleId, setEditingRuleId] = useState<number | null>(null)
+  const [orderProfit, setOrderProfit] = useState<OrderProfitSummary | null>(null)
+  const [loadingProfitOrderId, setLoadingProfitOrderId] = useState<number | null>(null)
 
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -190,13 +259,16 @@ export function ShopAdminPage() {
   useEffect(() => {
     setMessage("")
     setError("")
+    setOrderProfit(null)
   }, [tab])
 
   async function refresh() {
-    const [productData, reviewData, orderData, couponData, ruleData, categoryData, settingsData] = await Promise.all([
+    const [productData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData] = await Promise.all([
       apiFetch<ShopProduct[]>("/admin/products"),
       apiFetch<AdminReview[]>("/admin/reviews"),
       apiFetch<ShopOrder[]>("/admin/orders"),
+      apiFetch<AdminUsersResponse>("/admin/users"),
+      apiFetch<AdminAnalytics>("/admin/analytics"),
       apiFetch<Coupon[]>("/admin/coupons"),
       apiFetch<DiscountRule[]>("/admin/discount-rules"),
       apiFetch<string[]>("/admin/categories"),
@@ -206,6 +278,9 @@ export function ShopAdminPage() {
     setProducts(productData)
     setReviews(reviewData)
     setOrders(orderData)
+    setUsers(usersData.users)
+    setUsersTotal(usersData.total)
+    setAnalytics(analyticsData)
     setCoupons(couponData)
     setRules(ruleData)
     setCategories(categoryData)
@@ -233,6 +308,7 @@ export function ShopAdminPage() {
       title: product.title,
       description: product.description,
       price: formatEuroInput(product.price),
+      costPrice: formatEuroInput(product.costPrice || 0),
       category: product.category,
       featured: product.featured,
       stock: product.stock,
@@ -304,7 +380,8 @@ export function ShopAdminPage() {
       const payload = {
         title: productForm.title,
         description: productForm.description,
-        price: Math.round(Number(String(productForm.price).replace(",", ".")) * 100),
+        price: parseEuroToCents(productForm.price),
+        costPrice: parseEuroToCents(productForm.costPrice),
         category: productForm.category,
         featured: productForm.featured,
         stock: Number(productForm.stock),
@@ -548,6 +625,19 @@ export function ShopAdminPage() {
     })
   }
 
+  async function openOrderProfit(orderId: number) {
+    clearFeedback()
+    try {
+      setLoadingProfitOrderId(orderId)
+      const data = await apiFetch<OrderProfitSummary>(`/admin/orders/${orderId}/profit`)
+      setOrderProfit(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il calcolo del guadagno.")
+    } finally {
+      setLoadingProfitOrderId(null)
+    }
+  }
+
   return (
     <ShopLayout
       eyebrow="Admin"
@@ -559,12 +649,14 @@ export function ShopAdminPage() {
           ["prodotti", "Prodotti"],
           ["recensioni", "Recensioni"],
           ["ordini", "Ordini"],
+          ["utenti", "Utenti"],
+          ["data", "Data"],
           ["sconti", "Sconti e coupon"],
         ].map(([key, label]) => (
           <button
             key={key}
             type="button"
-            onClick={() => setTab(key as "prodotti" | "recensioni" | "ordini" | "sconti")}
+            onClick={() => setTab(key as "prodotti" | "recensioni" | "ordini" | "utenti" | "data" | "sconti")}
             className={`rounded-full px-4 py-2 text-sm ${tab === key ? "bg-white text-black" : "border border-white/10 text-white/70"}`}
           >
             {label}
@@ -599,7 +691,7 @@ export function ShopAdminPage() {
                 onChange={(event) => setProductForm({ ...productForm, title: event.target.value })}
               />
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_160px_160px]">
                 <select
                   className="shop-select"
                   aria-label="Categoria"
@@ -623,6 +715,17 @@ export function ShopAdminPage() {
                   aria-label="Prezzo in euro"
                   value={productForm.price}
                   onChange={(event) => setProductForm({ ...productForm, price: event.target.value })}
+                />
+                <input
+                  className="shop-input"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="Costo"
+                  aria-label="Costo in euro"
+                  value={productForm.costPrice}
+                  onChange={(event) => setProductForm({ ...productForm, costPrice: event.target.value })}
                 />
               </div>
 
@@ -712,7 +815,7 @@ export function ShopAdminPage() {
                   <div>
                     <p className="text-lg font-semibold text-white">{product.title}</p>
                     <p className="mt-1 text-sm text-white/60">
-                      {product.category} · {formatPrice(product.price)} · disponibilita {product.stock}
+                      {product.category} · {formatPrice(product.price)} · costo {formatPrice(product.costPrice || 0)} · disponibilita {product.stock}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -878,6 +981,13 @@ export function ShopAdminPage() {
                   </Link>
                   <button
                     type="button"
+                    onClick={() => openOrderProfit(order.id)}
+                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white"
+                  >
+                    {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
+                  </button>
+                  <button
+                    type="button"
                     disabled={order.status !== "paid" && order.status !== "shipped"}
                     onClick={() => downloadInvoicePdf(order, shopSettings)}
                     className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
@@ -909,6 +1019,124 @@ export function ShopAdminPage() {
               </div>
             </article>
           ))}
+        </div>
+      ) : null}
+
+      {tab === "utenti" ? (
+        <section className="shop-card space-y-6 p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Utenti</h2>
+              <p className="mt-1 text-sm text-white/55">
+                Elenco reale degli account registrati nello shop, visibile solo lato admin.
+              </p>
+            </div>
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-right">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Totale registrati</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{usersTotal}</p>
+            </div>
+          </div>
+
+          <div className="min-h-0 max-h-[34rem] space-y-3 overflow-y-auto overscroll-contain pr-1" onWheelCapture={containWheel}>
+            {users.map((entry) => (
+              <article key={entry.id} className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-medium text-white">{entry.email}</p>
+                    <p className="mt-1 text-sm text-white/55">
+                      {entry.username || "username non impostato"} · {entry.role}
+                    </p>
+                  </div>
+                  <span className="text-sm text-white/50">{new Date(entry.createdAt).toLocaleDateString("it-IT")}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {tab === "data" ? (
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              ["Visualizzazioni sito", analytics?.siteViewsTotal ?? 0],
+              ["Vendite concluse", analytics?.salesCount ?? 0],
+              ["Ordini totali", analytics?.totalOrders ?? 0],
+              ["Ticket medio ordine", formatPrice(analytics?.averageOrderValue ?? 0)],
+            ].map(([label, value]) => (
+              <article key={label} className="shop-card p-5">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/45">{label}</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <article className="shop-card p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Guadagno netto totale</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{formatPrice(analytics?.totalNet ?? 0)}</p>
+            </article>
+            <article className="shop-card p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Spese totali prodotti</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{formatPrice(analytics?.totalExpenses ?? 0)}</p>
+            </article>
+            <article className="shop-card p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Incassato totale</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{formatPrice(analytics?.totalRevenue ?? 0)}</p>
+            </article>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <article className="shop-card space-y-4 p-6">
+              <h2 className="text-xl font-semibold text-white">Medie e andamento</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <p className="text-sm text-white/55">Guadagno medio giornaliero</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{formatPrice(analytics?.averageDailyNet ?? 0)}</p>
+                </div>
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <p className="text-sm text-white/55">Guadagno medio mensile</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{formatPrice(analytics?.averageMonthlyNet ?? 0)}</p>
+                </div>
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <p className="text-sm text-white/55">Spese giornaliere</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{formatPrice(analytics?.averageDailyExpenses ?? 0)}</p>
+                </div>
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <p className="text-sm text-white/55">Spese mensili</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{formatPrice(analytics?.averageMonthlyExpenses ?? 0)}</p>
+                </div>
+              </div>
+            </article>
+
+            <article className="shop-card space-y-4 p-6">
+              <h2 className="text-xl font-semibold text-white">Best seller e traffico</h2>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                <p className="text-sm text-white/55">Prodotto più venduto</p>
+                <p className="mt-2 text-lg font-semibold text-white">
+                  {analytics?.bestSellingProduct?.title || "Nessun dato disponibile"}
+                </p>
+                {analytics?.bestSellingProduct ? (
+                  <p className="mt-1 text-sm text-white/55">{analytics.bestSellingProduct.quantity} unità vendute</p>
+                ) : null}
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <p className="text-sm text-white/55">Visualizzazioni oggi</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{analytics?.siteViewsToday ?? 0}</p>
+                </div>
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <p className="text-sm text-white/55">Visualizzazioni mese</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{analytics?.siteViewsThisMonth ?? 0}</p>
+                </div>
+              </div>
+              {analytics && !analytics.shippingCostsTracked ? (
+                <p className="text-sm text-white/50">
+                  I costi di spedizione operativi non sono ancora tracciati separatamente: le spese mostrano i costi prodotto reali salvati in admin.
+                </p>
+              ) : null}
+            </article>
+          </div>
         </div>
       ) : null}
 
@@ -1115,6 +1343,67 @@ export function ShopAdminPage() {
       {!orders.length && tab === "ordini" ? (
         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">
           Nessun ordine disponibile al momento.
+        </div>
+      ) : null}
+
+      {orderProfit ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 px-4 py-8">
+          <div className="w-full max-w-4xl rounded-[28px] border border-white/10 bg-[#0b0b0c] p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Guadagno ordine</p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">{orderProfit.orderReference}</h2>
+                <p className="mt-2 text-sm text-white/55">{new Date(orderProfit.createdAt).toLocaleString("it-IT")}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOrderProfit(null)}
+                className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white"
+              >
+                Chiudi
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                <p className="text-sm text-white/55">Incassato ordine</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.grossTotal)}</p>
+              </div>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                <p className="text-sm text-white/55">Spese prodotti</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.productCostsTotal)}</p>
+              </div>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                <p className="text-sm text-white/55">Guadagno netto</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.netTotal)}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {orderProfit.items.map((item) => (
+                <article key={item.id} className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-base font-medium text-white">{item.title}</p>
+                      <p className="mt-1 text-sm text-white/55">
+                        {item.quantity} pz · ricavo {formatPrice(item.revenueTotal)} · costo {formatPrice(item.costTotal)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-white/55">Netto riga</p>
+                      <p className="mt-1 text-base font-semibold text-white">{formatPrice(item.netTotal)}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {!orderProfit.shippingCostsTracked ? (
+              <p className="mt-5 text-sm text-white/50">
+                I costi di spedizione operativi non sono ancora tracciati separatamente: il netto sottrae i costi reali dei prodotti salvati nell&apos;admin.
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </ShopLayout>

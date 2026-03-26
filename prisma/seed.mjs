@@ -18,6 +18,7 @@ const products = [
     description:
       "Kit iniziale per freelance e microbrand con logo pack, palette e linee guida essenziali in un formato subito utilizzabile.",
     price: 8900,
+    costPrice: 2400,
     category: "Brand",
     imageUrls: JSON.stringify([
       "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
@@ -32,6 +33,7 @@ const products = [
     description:
       "Template set per lancio social con cover, storie e visual coordinati pensati per attivazioni rapide ma curate.",
     price: 4900,
+    costPrice: 1200,
     category: "Social",
     imageUrls: JSON.stringify([
       "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
@@ -46,6 +48,7 @@ const products = [
     description:
       "Sistema di wireframe ad alta conversione per landing page con sezioni modulari gia pensate per una presentazione pulita.",
     price: 7200,
+    costPrice: 1900,
     category: "Web",
     imageUrls: JSON.stringify([
       "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
@@ -60,6 +63,7 @@ const products = [
     description:
       "Pacchetto coordinato per stampa con biglietti, flyer e mini guida esecutiva per mantenere coerenza tra digitale e materiali fisici.",
     price: 6500,
+    costPrice: 1700,
     category: "Print",
     imageUrls: JSON.stringify([
       "https://images.unsplash.com/photo-1511108690759-009324a90311?auto=format&fit=crop&w=1200&q=80",
