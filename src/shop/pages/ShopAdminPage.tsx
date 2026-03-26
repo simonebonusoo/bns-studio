@@ -59,7 +59,7 @@ type AdminReview = ShopReview & {
 type CouponFormState = {
   code: string
   type: "percentage" | "fixed"
-  amount: number
+  amount: string
   expiresAt: string
   usageLimit: string
   active: boolean
@@ -69,9 +69,9 @@ type RuleFormState = {
   name: string
   description: string
   ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed"
-  threshold: number
+  threshold: string
   discountType: "percentage" | "shipping" | "fixed"
-  amount: number
+  amount: string
   priority: number
   startsAt: string
   endsAt: string
@@ -152,7 +152,7 @@ const emptyProductForm = (): ProductFormState => ({
 const emptyCouponForm = (): CouponFormState => ({
   code: "",
   type: "percentage",
-  amount: 10,
+  amount: "10",
   expiresAt: "",
   usageLimit: "",
   active: true,
@@ -162,9 +162,9 @@ const emptyRuleForm = (): RuleFormState => ({
   name: "",
   description: "",
   ruleType: "quantity_percentage",
-  threshold: 2,
+  threshold: "2",
   discountType: "percentage",
-  amount: 10,
+  amount: "10",
   priority: 100,
   startsAt: "",
   endsAt: "",
@@ -197,6 +197,20 @@ function parseEuroToCents(value: string) {
   return Math.round(normalized * 100)
 }
 
+function getCouponAmountLabel(type: CouponFormState["type"]) {
+  return type === "percentage" ? "Valore sconto (%)" : "Valore sconto (€)"
+}
+
+function getRuleThresholdLabel(ruleType: RuleFormState["ruleType"]) {
+  return ruleType === "subtotal_fixed" ? "Subtotale minimo ordine (€)" : "Quantità minima prodotti"
+}
+
+function getRuleAmountLabel(discountType: RuleFormState["discountType"]) {
+  if (discountType === "percentage") return "Valore sconto (%)"
+  if (discountType === "fixed") return "Valore sconto (€)"
+  return "Valore regola (0 se spedizione)"
+}
+
 export function ShopAdminPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -210,6 +224,7 @@ export function ShopAdminPage() {
   const [rules, setRules] = useState<DiscountRule[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
+  const [shippingCostInput, setShippingCostInput] = useState("9")
   const [tab, setTab] = useState<"prodotti" | "recensioni" | "ordini" | "utenti" | "data" | "sconti">("prodotti")
 
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm)
@@ -282,6 +297,10 @@ export function ShopAdminPage() {
     setError("")
     setOrderProfit(null)
   }, [tab])
+
+  useEffect(() => {
+    setShippingCostInput(formatEuroInput(Number(settingValue("shippingCost", "900"))))
+  }, [settings])
 
   async function refresh() {
     const [productData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData] = await Promise.all([
@@ -516,7 +535,7 @@ export function ShopAdminPage() {
     setCouponForm({
       code: coupon.code,
       type: coupon.type,
-      amount: coupon.amount,
+      amount: coupon.type === "percentage" ? String(coupon.amount) : formatEuroInput(coupon.amount),
       expiresAt: coupon.expiresAt ? coupon.expiresAt.slice(0, 10) : "",
       usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "",
       active: coupon.active,
@@ -530,7 +549,7 @@ export function ShopAdminPage() {
       const payload = {
         code: couponForm.code,
         type: couponForm.type,
-        amount: Number(couponForm.amount),
+        amount: couponForm.type === "percentage" ? Number(couponForm.amount) : parseEuroToCents(couponForm.amount),
         expiresAt: couponForm.expiresAt || null,
         usageLimit: couponForm.usageLimit ? Number(couponForm.usageLimit) : null,
         active: couponForm.active,
@@ -565,9 +584,9 @@ export function ShopAdminPage() {
       name: rule.name,
       description: rule.description || "",
       ruleType: rule.ruleType,
-      threshold: rule.threshold,
+      threshold: rule.ruleType === "subtotal_fixed" ? formatEuroInput(rule.threshold) : String(rule.threshold),
       discountType: rule.discountType,
-      amount: rule.amount,
+      amount: rule.discountType === "fixed" ? formatEuroInput(rule.amount) : String(rule.amount),
       priority: rule.priority,
       startsAt: toDatetimeLocal(rule.startsAt),
       endsAt: toDatetimeLocal(rule.endsAt),
@@ -583,9 +602,14 @@ export function ShopAdminPage() {
         name: ruleForm.name,
         description: ruleForm.description || null,
         ruleType: ruleForm.ruleType,
-        threshold: Number(ruleForm.threshold),
+        threshold: ruleForm.ruleType === "subtotal_fixed" ? parseEuroToCents(ruleForm.threshold) : Number(ruleForm.threshold),
         discountType: ruleForm.discountType,
-        amount: Number(ruleForm.amount),
+        amount:
+          ruleForm.discountType === "fixed"
+            ? parseEuroToCents(ruleForm.amount)
+            : ruleForm.discountType === "shipping"
+              ? 0
+              : Number(ruleForm.amount),
         priority: Number(ruleForm.priority),
         startsAt: ruleForm.startsAt || null,
         endsAt: ruleForm.endsAt || null,
@@ -623,7 +647,7 @@ export function ShopAdminPage() {
         .filter((entry) => allowedSettings.includes(entry.key))
         .map((entry) => ({
           key: entry.key,
-          value: entry.value,
+          value: entry.key === "shippingCost" ? String(parseEuroToCents(shippingCostInput)) : entry.value,
         }))
 
       const data = await apiFetch<SettingEntry[]>("/admin/settings", {
@@ -1197,7 +1221,118 @@ export function ShopAdminPage() {
 
       {tab === "sconti" ? (
         <div className="grid gap-6 xl:grid-cols-2">
-          <div className="space-y-6">
+          <form onSubmit={saveSettings} className="shop-card flex h-full flex-col space-y-4 p-6">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Impostazioni PayPal</h2>
+              <p className="mt-2 text-sm text-white/60">
+                Inserisci l&apos;email business PayPal oppure un link PayPal.Me reale. L&apos;email business ha priorita e replica il flusso del vecchio shop.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm text-white/65">Nome shop mostrato nel checkout</label>
+                <input
+                  className="shop-input"
+                  placeholder="Nome shop"
+                  value={settingValue("storeName", "BNS Studio Shop")}
+                  onChange={(event) => updateSetting("storeName", event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-white/65">Email business PayPal</label>
+                <input
+                  className="shop-input"
+                  placeholder="Email business PayPal"
+                  value={settingValue("paypalBusinessEmail")}
+                  onChange={(event) => updateSetting("paypalBusinessEmail", event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-white/65">Link PayPal.Me</label>
+                <input
+                  className="shop-input"
+                  placeholder="Link PayPal.Me"
+                  value={settingValue("paypalMeLink")}
+                  onChange={(event) => updateSetting("paypalMeLink", event.target.value)}
+                />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Valuta</label>
+                  <input
+                    className="shop-input"
+                    placeholder="Valuta"
+                    value={settingValue("currencyCode", "EUR")}
+                    onChange={(event) => updateSetting("currencyCode", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Spedizione standard (€)</label>
+                  <input
+                    className="shop-input"
+                    type="number"
+                    step="0.01"
+                    placeholder="Spedizione standard"
+                    value={shippingCostInput}
+                    onChange={(event) => setShippingCostInput(event.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            <button type="submit" className="mt-auto rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+              Salva impostazioni PayPal
+            </button>
+          </form>
+
+          <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
+            <h2 className="text-xl font-semibold text-white">Regole sconto esistenti</h2>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1" onWheelCapture={containWheel}>
+              {rules.map((rule) => (
+                <div key={rule.id} className="rounded-2xl border border-white/10 px-4 py-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-white">{rule.name}</p>
+                      <p className="mt-1 text-sm text-white/60">
+                        {rule.active ? "Attiva" : "Disattivata"} ·{" "}
+                        {rule.ruleType === "subtotal_fixed"
+                          ? `soglia ${formatPrice(rule.threshold)}`
+                          : `soglia ${rule.threshold}`} ·{" "}
+                        {rule.discountType === "fixed"
+                          ? `valore ${formatPrice(rule.amount)}`
+                          : rule.discountType === "percentage"
+                            ? `valore ${rule.amount}%`
+                            : "spedizione gratuita"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => startEditRule(rule)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                        Modifica
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          clearFeedback()
+                          try {
+                            await apiFetch(`/admin/discount-rules/${rule.id}`, { method: "DELETE" })
+                            await refresh()
+                            setMessage("Regola sconto eliminata correttamente.")
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della regola.")
+                          }
+                        }}
+                        className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
+                      >
+                        Elimina
+                      </button>
+                    </div>
+                  </div>
+                  {rule.description ? <p className="mt-2 text-sm text-white/55">{rule.description}</p> : null}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex h-full min-h-0 flex-col gap-6">
             <form onSubmit={saveCoupon} className="shop-card space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingCouponId ? "Modifica coupon" : "Crea coupon"}</h2>
@@ -1207,17 +1342,32 @@ export function ShopAdminPage() {
                   </button>
                 ) : null}
               </div>
-              <input className="shop-input" placeholder="Codice coupon" value={couponForm.code} onChange={(event) => setCouponForm({ ...couponForm, code: event.target.value.toUpperCase() })} />
-              <div className="grid gap-4 md:grid-cols-2">
-                <select className="shop-select" value={couponForm.type} onChange={(event) => setCouponForm({ ...couponForm, type: event.target.value as CouponFormState["type"] })}>
-                  <option value="percentage">Percentuale</option>
-                  <option value="fixed">Importo fisso</option>
-                </select>
-                <input className="shop-input" type="number" placeholder="Valore sconto" value={couponForm.amount} onChange={(event) => setCouponForm({ ...couponForm, amount: Number(event.target.value) })} />
+              <div className="space-y-2">
+                <label className="text-sm text-white/65">Codice coupon</label>
+                <input className="shop-input" placeholder="Codice coupon" value={couponForm.code} onChange={(event) => setCouponForm({ ...couponForm, code: event.target.value.toUpperCase() })} />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <input className="shop-input" type="date" placeholder="Scadenza" value={couponForm.expiresAt} onChange={(event) => setCouponForm({ ...couponForm, expiresAt: event.target.value })} />
-                <input className="shop-input" type="number" placeholder="Limite utilizzi" value={couponForm.usageLimit} onChange={(event) => setCouponForm({ ...couponForm, usageLimit: event.target.value })} />
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Tipo coupon</label>
+                  <select className="shop-select" value={couponForm.type} onChange={(event) => setCouponForm({ ...couponForm, type: event.target.value as CouponFormState["type"] })}>
+                    <option value="percentage">Percentuale</option>
+                    <option value="fixed">Importo fisso</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">{getCouponAmountLabel(couponForm.type)}</label>
+                  <input className="shop-input" type="number" step={couponForm.type === "fixed" ? "0.01" : "1"} placeholder={getCouponAmountLabel(couponForm.type)} value={couponForm.amount} onChange={(event) => setCouponForm({ ...couponForm, amount: event.target.value })} />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Data di scadenza</label>
+                  <input className="shop-input" type="date" value={couponForm.expiresAt} onChange={(event) => setCouponForm({ ...couponForm, expiresAt: event.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Limite utilizzi</label>
+                  <input className="shop-input" type="number" placeholder="Numero massimo utilizzi" value={couponForm.usageLimit} onChange={(event) => setCouponForm({ ...couponForm, usageLimit: event.target.value })} />
+                </div>
               </div>
               <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
                 <input type="checkbox" checked={couponForm.active} onChange={(event) => setCouponForm({ ...couponForm, active: event.target.checked })} />
@@ -1228,9 +1378,9 @@ export function ShopAdminPage() {
               </button>
             </form>
 
-            <div className="shop-card space-y-4 p-6">
+            <div className="shop-card flex min-h-0 flex-1 flex-col space-y-4 p-6">
               <h2 className="text-xl font-semibold text-white">Coupon esistenti</h2>
-              <div className="space-y-3">
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1" onWheelCapture={containWheel}>
                 {coupons.map((coupon) => (
                   <div key={coupon.id} className="rounded-2xl border border-white/10 px-4 py-3">
                     <div className="flex items-start justify-between gap-4">
@@ -1239,6 +1389,9 @@ export function ShopAdminPage() {
                         <p className="mt-1 text-sm text-white/60">
                           {coupon.type === "percentage" ? `${coupon.amount}%` : formatPrice(coupon.amount)} · {coupon.active ? "Attivo" : "Disattivato"}
                         </p>
+                        {coupon.expiresAt ? (
+                          <p className="mt-1 text-xs text-white/45">Valido fino al {new Date(coupon.expiresAt).toLocaleDateString("it-IT")}</p>
+                        ) : null}
                       </div>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => startEditCoupon(coupon)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
@@ -1266,52 +1419,9 @@ export function ShopAdminPage() {
                 ))}
               </div>
             </div>
-
-            <form onSubmit={saveSettings} className="shop-card space-y-4 p-6">
-              <h2 className="text-xl font-semibold text-white">Impostazioni PayPal</h2>
-              <p className="text-sm text-white/60">
-                Inserisci l&apos;email business PayPal oppure un link PayPal.Me reale. L&apos;email business ha priorita e replica il flusso del vecchio shop.
-              </p>
-              <input
-                className="shop-input"
-                placeholder="Nome shop"
-                value={settingValue("storeName", "BNS Studio Shop")}
-                onChange={(event) => updateSetting("storeName", event.target.value)}
-              />
-              <input
-                className="shop-input"
-                placeholder="Email business PayPal"
-                value={settingValue("paypalBusinessEmail")}
-                onChange={(event) => updateSetting("paypalBusinessEmail", event.target.value)}
-              />
-              <input
-                className="shop-input"
-                placeholder="Link PayPal.Me"
-                value={settingValue("paypalMeLink")}
-                onChange={(event) => updateSetting("paypalMeLink", event.target.value)}
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  className="shop-input"
-                  placeholder="Valuta"
-                  value={settingValue("currencyCode", "EUR")}
-                  onChange={(event) => updateSetting("currencyCode", event.target.value)}
-                />
-                <input
-                  className="shop-input"
-                  placeholder="Spedizione in centesimi"
-                  value={settingValue("shippingCost", "900")}
-                  onChange={(event) => updateSetting("shippingCost", event.target.value)}
-                />
-              </div>
-              <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                Salva impostazioni PayPal
-              </button>
-            </form>
           </div>
 
-          <div className="space-y-6">
-            <form onSubmit={saveRule} className="shop-card space-y-4 p-6">
+          <form onSubmit={saveRule} className="shop-card h-full space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingRuleId ? "Modifica regola sconto" : "Crea regola sconto"}</h2>
                 {editingRuleId ? (
@@ -1320,28 +1430,55 @@ export function ShopAdminPage() {
                   </button>
                 ) : null}
               </div>
-              <input className="shop-input" placeholder="Titolo regola" value={ruleForm.name} onChange={(event) => setRuleForm({ ...ruleForm, name: event.target.value })} />
-              <textarea className="shop-textarea min-h-24" placeholder="Descrizione opzionale" value={ruleForm.description} onChange={(event) => setRuleForm({ ...ruleForm, description: event.target.value })} />
+              <div className="space-y-2">
+                <label className="text-sm text-white/65">Titolo regola</label>
+                <input className="shop-input" placeholder="Titolo regola" value={ruleForm.name} onChange={(event) => setRuleForm({ ...ruleForm, name: event.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-white/65">Descrizione opzionale</label>
+                <textarea className="shop-textarea min-h-24 resize-none" placeholder="Descrizione opzionale" value={ruleForm.description} onChange={(event) => setRuleForm({ ...ruleForm, description: event.target.value })} />
+              </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <select className="shop-select" value={ruleForm.ruleType} onChange={(event) => setRuleForm({ ...ruleForm, ruleType: event.target.value as RuleFormState["ruleType"] })}>
-                  <option value="quantity_percentage">Sconto percentuale per quantita minima</option>
-                  <option value="free_shipping_quantity">Spedizione gratuita per quantita minima</option>
-                  <option value="subtotal_fixed">Sconto fisso per subtotale minimo</option>
-                </select>
-                <select className="shop-select" value={ruleForm.discountType} onChange={(event) => setRuleForm({ ...ruleForm, discountType: event.target.value as RuleFormState["discountType"] })}>
-                  <option value="percentage">Percentuale</option>
-                  <option value="shipping">Spedizione</option>
-                  <option value="fixed">Importo fisso</option>
-                </select>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Tipo regola</label>
+                  <select className="shop-select" value={ruleForm.ruleType} onChange={(event) => setRuleForm({ ...ruleForm, ruleType: event.target.value as RuleFormState["ruleType"] })}>
+                    <option value="quantity_percentage">Sconto percentuale per quantita minima</option>
+                    <option value="free_shipping_quantity">Spedizione gratuita per quantita minima</option>
+                    <option value="subtotal_fixed">Sconto fisso per subtotale minimo</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Modalità sconto</label>
+                  <select className="shop-select" value={ruleForm.discountType} onChange={(event) => setRuleForm({ ...ruleForm, discountType: event.target.value as RuleFormState["discountType"] })}>
+                    <option value="percentage">Percentuale</option>
+                    <option value="shipping">Spedizione</option>
+                    <option value="fixed">Importo fisso</option>
+                  </select>
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                <input className="shop-input" type="number" placeholder="Soglia minima" value={ruleForm.threshold} onChange={(event) => setRuleForm({ ...ruleForm, threshold: Number(event.target.value) })} />
-                <input className="shop-input" type="number" placeholder="Valore sconto" value={ruleForm.amount} onChange={(event) => setRuleForm({ ...ruleForm, amount: Number(event.target.value) })} />
-                <input className="shop-input" type="number" placeholder="Priorita" value={ruleForm.priority} onChange={(event) => setRuleForm({ ...ruleForm, priority: Number(event.target.value) })} />
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">{getRuleThresholdLabel(ruleForm.ruleType)}</label>
+                  <input className="shop-input" type="number" step={ruleForm.ruleType === "subtotal_fixed" ? "0.01" : "1"} placeholder={getRuleThresholdLabel(ruleForm.ruleType)} value={ruleForm.threshold} onChange={(event) => setRuleForm({ ...ruleForm, threshold: event.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">{getRuleAmountLabel(ruleForm.discountType)}</label>
+                  <input className="shop-input" type="number" step={ruleForm.discountType === "fixed" ? "0.01" : "1"} placeholder={getRuleAmountLabel(ruleForm.discountType)} value={ruleForm.discountType === "shipping" ? "0" : ruleForm.amount} disabled={ruleForm.discountType === "shipping"} onChange={(event) => setRuleForm({ ...ruleForm, amount: event.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Priorità</label>
+                  <input className="shop-input" type="number" placeholder="Priorità" value={ruleForm.priority} onChange={(event) => setRuleForm({ ...ruleForm, priority: Number(event.target.value) })} />
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <input className="shop-input" type="datetime-local" value={ruleForm.startsAt} onChange={(event) => setRuleForm({ ...ruleForm, startsAt: event.target.value })} />
-                <input className="shop-input" type="datetime-local" value={ruleForm.endsAt} onChange={(event) => setRuleForm({ ...ruleForm, endsAt: event.target.value })} />
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Data inizio validità</label>
+                  <input className="shop-input" type="datetime-local" value={ruleForm.startsAt} onChange={(event) => setRuleForm({ ...ruleForm, startsAt: event.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Data fine validità</label>
+                  <input className="shop-input" type="datetime-local" value={ruleForm.endsAt} onChange={(event) => setRuleForm({ ...ruleForm, endsAt: event.target.value })} />
+                </div>
               </div>
               <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
                 <input type="checkbox" checked={ruleForm.active} onChange={(event) => setRuleForm({ ...ruleForm, active: event.target.checked })} />
@@ -1351,47 +1488,6 @@ export function ShopAdminPage() {
                 {editingRuleId ? "Aggiorna regola" : "Crea regola"}
               </button>
             </form>
-
-            <div className="shop-card space-y-4 p-6">
-              <h2 className="text-xl font-semibold text-white">Regole sconto esistenti</h2>
-              <div className="space-y-3">
-                {rules.map((rule) => (
-                  <div key={rule.id} className="rounded-2xl border border-white/10 px-4 py-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-white">{rule.name}</p>
-                        <p className="mt-1 text-sm text-white/60">
-                          {rule.active ? "Attiva" : "Disattivata"} · soglia {rule.threshold} · valore {rule.amount}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => startEditRule(rule)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                          Modifica
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            clearFeedback()
-                            try {
-                              await apiFetch(`/admin/discount-rules/${rule.id}`, { method: "DELETE" })
-                              await refresh()
-                              setMessage("Regola sconto eliminata correttamente.")
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della regola.")
-                            }
-                          }}
-                          className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                        >
-                          Elimina
-                        </button>
-                      </div>
-                    </div>
-                    {rule.description ? <p className="mt-2 text-sm text-white/55">{rule.description}</p> : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       ) : null}
 
