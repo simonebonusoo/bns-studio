@@ -9,6 +9,25 @@ import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductForma
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
 
+function applyStoredProductOrder(products, orderValue) {
+  if (!orderValue) return products
+
+  try {
+    const parsed = JSON.parse(orderValue)
+    if (!Array.isArray(parsed) || !parsed.length) return products
+    const rank = new Map(parsed.map((id, index) => [Number(id), index]))
+
+    return [...products].sort((a, b) => {
+      const aRank = rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER
+      const bRank = rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER
+      if (aRank !== bRank) return aRank - bRank
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+  } catch {
+    return products
+  }
+}
+
 function serializePublicProduct(product) {
   const { imageUrls, costPrice: _costPrice, ...rest } = product
   return {
@@ -97,16 +116,19 @@ router.get(
     const category = String(req.query.category || "")
     const maxPrice = Number(req.query.maxPrice || 0)
 
-    const products = await prisma.product.findMany({
-      where: {
-        title: search ? { contains: search } : undefined,
-        category: category || undefined,
-        price: maxPrice ? { lte: maxPrice } : undefined,
-      },
-      orderBy: { createdAt: "desc" },
-    })
+    const [products, orderSetting] = await Promise.all([
+      prisma.product.findMany({
+        where: {
+          title: search ? { contains: search } : undefined,
+          category: category || undefined,
+          price: maxPrice ? { lte: maxPrice } : undefined,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.setting.findUnique({ where: { key: "homepageProductOrder" } }),
+    ])
 
-    res.json(products.map(serializePublicProduct))
+    res.json(applyStoredProductOrder(products, orderSetting?.value).map(serializePublicProduct))
   })
 )
 
