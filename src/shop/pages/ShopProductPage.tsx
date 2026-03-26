@@ -108,16 +108,20 @@ export function ShopProductPage() {
                 <span>{formatPrice(selectedPrice)}</span>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => addItem(product, 1, selectedFormat)}>Aggiungi al carrello</Button>
-              <Button type="button" variant="ghost" onClick={handleBuyNow}>
-                Acquista ora
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <Button onClick={() => addItem(product, 1, selectedFormat)} className="w-full sm:w-auto">
+                Aggiungi al carrello
               </Button>
-              {user?.role === "admin" ? (
-                <Button type="button" variant="ghost" onClick={handleEditProduct}>
-                  Modifica
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Button type="button" variant="ghost" onClick={handleBuyNow} className="w-full sm:w-auto">
+                  Acquista ora
                 </Button>
-              ) : null}
+                {user?.role === "admin" ? (
+                  <Button type="button" variant="ghost" onClick={handleEditProduct} className="w-full sm:w-auto">
+                    Modifica
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

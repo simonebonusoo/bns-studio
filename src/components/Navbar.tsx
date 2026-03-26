@@ -817,7 +817,8 @@ export function Navbar() {
                             setCartOpen(false)
                             navigate("/shop/cart")
                           }}
-                          variant="ghost"
+                          size="sm"
+                          text="Apri il riepilogo completo"
                           className="w-full"
                         >
                           Apri riepilogo completo
