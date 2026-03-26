@@ -807,10 +807,6 @@ export function Navbar() {
                     <>
                       {profileLoggedStep === "overview" ? (
                         <>
-                          <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                            <p className="text-sm text-white/45">Profilo attivo</p>
-                          </div>
-
                           <div className="grid gap-3">
                             <button
                               type="button"
@@ -829,6 +825,17 @@ export function Navbar() {
                               <div className="text-sm font-medium">I miei ordini</div>
                               <div className="mt-1 text-sm text-white/55">Controlla lo storico e scarica le ricevute.</div>
                             </button>
+
+                            {user.role === "admin" ? (
+                              <button
+                                type="button"
+                                onClick={() => navigate("/shop/admin")}
+                                className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
+                              >
+                                <div className="text-sm font-medium">Gestisci negozio</div>
+                                <div className="mt-1 text-sm text-white/55">Accedi rapidamente all'area admin dello shop.</div>
+                              </button>
+                            ) : null}
                           </div>
                         </>
                       ) : (

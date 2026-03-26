@@ -198,7 +198,7 @@ export default function App() {
             />
           </Routes>
 
-          <Testimonials />
+          {location.pathname === "/" ? <Testimonials /> : null}
 
           <Footer />
 
