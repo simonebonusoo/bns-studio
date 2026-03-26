@@ -1220,120 +1220,9 @@ export function ShopAdminPage() {
       ) : null}
 
       {tab === "sconti" ? (
-        <div className="grid gap-6 xl:grid-cols-2">
-          <form onSubmit={saveSettings} className="shop-card flex h-full flex-col space-y-4 p-6">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Impostazioni PayPal</h2>
-              <p className="mt-2 text-sm text-white/60">
-                Inserisci l&apos;email business PayPal oppure un link PayPal.Me reale. L&apos;email business ha priorita e replica il flusso del vecchio shop.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm text-white/65">Nome shop mostrato nel checkout</label>
-                <input
-                  className="shop-input"
-                  placeholder="Nome shop"
-                  value={settingValue("storeName", "BNS Studio Shop")}
-                  onChange={(event) => updateSetting("storeName", event.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-white/65">Email business PayPal</label>
-                <input
-                  className="shop-input"
-                  placeholder="Email business PayPal"
-                  value={settingValue("paypalBusinessEmail")}
-                  onChange={(event) => updateSetting("paypalBusinessEmail", event.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-white/65">Link PayPal.Me</label>
-                <input
-                  className="shop-input"
-                  placeholder="Link PayPal.Me"
-                  value={settingValue("paypalMeLink")}
-                  onChange={(event) => updateSetting("paypalMeLink", event.target.value)}
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Valuta</label>
-                  <input
-                    className="shop-input"
-                    placeholder="Valuta"
-                    value={settingValue("currencyCode", "EUR")}
-                    onChange={(event) => updateSetting("currencyCode", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Spedizione standard (€)</label>
-                  <input
-                    className="shop-input"
-                    type="number"
-                    step="0.01"
-                    placeholder="Spedizione standard"
-                    value={shippingCostInput}
-                    onChange={(event) => setShippingCostInput(event.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-            <button type="submit" className="mt-auto rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-              Salva impostazioni PayPal
-            </button>
-          </form>
-
-          <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
-            <h2 className="text-xl font-semibold text-white">Regole sconto esistenti</h2>
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1" onWheelCapture={containWheel}>
-              {rules.map((rule) => (
-                <div key={rule.id} className="rounded-2xl border border-white/10 px-4 py-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-white">{rule.name}</p>
-                      <p className="mt-1 text-sm text-white/60">
-                        {rule.active ? "Attiva" : "Disattivata"} ·{" "}
-                        {rule.ruleType === "subtotal_fixed"
-                          ? `soglia ${formatPrice(rule.threshold)}`
-                          : `soglia ${rule.threshold}`} ·{" "}
-                        {rule.discountType === "fixed"
-                          ? `valore ${formatPrice(rule.amount)}`
-                          : rule.discountType === "percentage"
-                            ? `valore ${rule.amount}%`
-                            : "spedizione gratuita"}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => startEditRule(rule)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                        Modifica
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          clearFeedback()
-                          try {
-                            await apiFetch(`/admin/discount-rules/${rule.id}`, { method: "DELETE" })
-                            await refresh()
-                            setMessage("Regola sconto eliminata correttamente.")
-                          } catch (err) {
-                            setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della regola.")
-                          }
-                        }}
-                        className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                      >
-                        Elimina
-                      </button>
-                    </div>
-                  </div>
-                  {rule.description ? <p className="mt-2 text-sm text-white/55">{rule.description}</p> : null}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex h-full min-h-0 flex-col gap-6">
-            <form onSubmit={saveCoupon} className="shop-card space-y-4 p-6">
+        <div className="space-y-6">
+          <div className="grid gap-6 xl:grid-cols-3">
+            <form onSubmit={saveCoupon} className="shop-card h-full space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingCouponId ? "Modifica coupon" : "Crea coupon"}</h2>
                 {editingCouponId ? (
@@ -1378,7 +1267,7 @@ export function ShopAdminPage() {
               </button>
             </form>
 
-            <div className="shop-card flex min-h-0 flex-1 flex-col space-y-4 p-6">
+            <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
               <h2 className="text-xl font-semibold text-white">Coupon esistenti</h2>
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1" onWheelCapture={containWheel}>
                 {coupons.map((coupon) => (
@@ -1419,9 +1308,8 @@ export function ShopAdminPage() {
                 ))}
               </div>
             </div>
-          </div>
 
-          <form onSubmit={saveRule} className="shop-card h-full space-y-4 p-6">
+            <form onSubmit={saveRule} className="shop-card h-full space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingRuleId ? "Modifica regola sconto" : "Crea regola sconto"}</h2>
                 {editingRuleId ? (
@@ -1488,6 +1376,120 @@ export function ShopAdminPage() {
                 {editingRuleId ? "Aggiorna regola" : "Crea regola"}
               </button>
             </form>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <form onSubmit={saveSettings} className="shop-card flex h-full flex-col space-y-4 p-6">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Impostazioni PayPal</h2>
+                <p className="mt-2 text-sm text-white/60">
+                  Inserisci l&apos;email business PayPal oppure un link PayPal.Me reale. L&apos;email business ha priorita e replica il flusso del vecchio shop.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Nome shop mostrato nel checkout</label>
+                  <input
+                    className="shop-input"
+                    placeholder="Nome shop"
+                    value={settingValue("storeName", "BNS Studio Shop")}
+                    onChange={(event) => updateSetting("storeName", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Email business PayPal</label>
+                  <input
+                    className="shop-input"
+                    placeholder="Email business PayPal"
+                    value={settingValue("paypalBusinessEmail")}
+                    onChange={(event) => updateSetting("paypalBusinessEmail", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Link PayPal.Me</label>
+                  <input
+                    className="shop-input"
+                    placeholder="Link PayPal.Me"
+                    value={settingValue("paypalMeLink")}
+                    onChange={(event) => updateSetting("paypalMeLink", event.target.value)}
+                  />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/65">Valuta</label>
+                    <input
+                      className="shop-input"
+                      placeholder="Valuta"
+                      value={settingValue("currencyCode", "EUR")}
+                      onChange={(event) => updateSetting("currencyCode", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/65">Spedizione standard (€)</label>
+                    <input
+                      className="shop-input"
+                      type="number"
+                      step="0.01"
+                      placeholder="Spedizione standard"
+                      value={shippingCostInput}
+                      onChange={(event) => setShippingCostInput(event.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              <button type="submit" className="mt-auto rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+                Salva impostazioni PayPal
+              </button>
+            </form>
+
+            <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
+              <h2 className="text-xl font-semibold text-white">Regole sconto esistenti</h2>
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1" onWheelCapture={containWheel}>
+                {rules.map((rule) => (
+                  <div key={rule.id} className="rounded-2xl border border-white/10 px-4 py-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-white">{rule.name}</p>
+                        <p className="mt-1 text-sm text-white/60">
+                          {rule.active ? "Attiva" : "Disattivata"} ·{" "}
+                          {rule.ruleType === "subtotal_fixed"
+                            ? `soglia ${formatPrice(rule.threshold)}`
+                            : `soglia ${rule.threshold}`} ·{" "}
+                          {rule.discountType === "fixed"
+                            ? `valore ${formatPrice(rule.amount)}`
+                            : rule.discountType === "percentage"
+                              ? `valore ${rule.amount}%`
+                              : "spedizione gratuita"}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => startEditRule(rule)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                          Modifica
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            clearFeedback()
+                            try {
+                              await apiFetch(`/admin/discount-rules/${rule.id}`, { method: "DELETE" })
+                              await refresh()
+                              setMessage("Regola sconto eliminata correttamente.")
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della regola.")
+                            }
+                          }}
+                          className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
+                        >
+                          Elimina
+                        </button>
+                      </div>
+                    </div>
+                    {rule.description ? <p className="mt-2 text-sm text-white/55">{rule.description}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
 
