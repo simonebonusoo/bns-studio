@@ -86,7 +86,7 @@ export function Navbar() {
   const navH = 88
 
   const { user, login, updateProfile, logout, loading } = useShopAuth()
-  const { items, couponCode } = useShopCart()
+  const { items, couponCode, clearCart } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
   const profileRef = useRef<HTMLDivElement | null>(null)
@@ -818,29 +818,42 @@ export function Navbar() {
                             >
                               Vai a Gestione shop
                             </Button>
+                            <Button
+                              onClick={() => {
+                                setCartOpen(false)
+                                navigate("/shop/cart")
+                              }}
+                              size="sm"
+                              text="Apri il riepilogo completo"
+                              className="w-full"
+                            >
+                              Apri riepilogo completo
+                            </Button>
                           </>
                         ) : (
-                          <Button
-                            onClick={() => {
-                              setCartOpen(false)
-                              navigate("/shop/checkout")
-                            }}
-                            className="w-full"
-                          >
-                            Vai al checkout
-                          </Button>
+                          <>
+                            <Button
+                              onClick={() => clearCart()}
+                              variant="ghost"
+                              size="sm"
+                              text="Svuota carrello"
+                              className="w-full"
+                            >
+                              Svuota carrello
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setCartOpen(false)
+                                navigate("/shop/checkout")
+                              }}
+                              size="sm"
+                              text="Vai al checkout"
+                              className="w-full"
+                            >
+                              Vai al checkout
+                            </Button>
+                          </>
                         )}
-                        <Button
-                          onClick={() => {
-                            setCartOpen(false)
-                            navigate("/shop/cart")
-                          }}
-                          size="sm"
-                          text="Apri il riepilogo completo"
-                          className="w-full"
-                        >
-                          Apri riepilogo completo
-                        </Button>
                       </div>
                     </div>
                   </>
