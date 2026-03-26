@@ -4,12 +4,21 @@ import { z } from "zod"
 import { asyncHandler } from "../lib/http.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
+import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductFormat } from "../lib/product-formats.mjs"
 
 const router = Router()
 
 function serializePublicProduct(product) {
   const { imageUrls, costPrice: _costPrice, ...rest } = product
-  return { ...rest, imageUrls: JSON.parse(imageUrls) }
+  return {
+    ...rest,
+    price: getBaseProductPrice(product),
+    priceA3: product.priceA3,
+    priceA4: product.priceA4 ?? product.price,
+    defaultFormat: getDefaultProductFormat(product),
+    availableFormats: getAvailableProductFormats(product),
+    imageUrls: JSON.parse(imageUrls),
+  }
 }
 
 router.get(

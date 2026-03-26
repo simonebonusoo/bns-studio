@@ -29,6 +29,7 @@ const checkoutSchema = z.object({
     z.object({
       productId: z.number(),
       quantity: z.number().int().min(1),
+      format: z.enum(["A3", "A4"]).optional(),
     })
   ),
 })
@@ -193,6 +194,7 @@ router.post(
             productId: item.productId,
             title: item.title,
             imageUrl: item.imageUrl,
+            format: item.format || null,
             unitPrice: item.unitPrice,
             unitCost: item.unitCost || 0,
             quantity: item.quantity,

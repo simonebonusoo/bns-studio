@@ -10,6 +10,7 @@ import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
 import { formatPrice } from "../shop/lib/format"
+import { getPriceForFormat } from "../shop/lib/product"
 import { ShopProduct } from "../shop/types"
 
 type SearchSuggestion =
@@ -246,7 +247,7 @@ export function Navbar() {
       {
         method: "POST",
         body: JSON.stringify({
-          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format })),
           couponCode: couponCode || null,
         }),
       }
@@ -736,7 +737,7 @@ export function Navbar() {
                       ) : (
                         items.map((item) => (
                           <article
-                            key={item.productId}
+                            key={`${item.productId}-${item.format || "A4"}`}
                             className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
                           >
                             <img
@@ -748,8 +749,8 @@ export function Navbar() {
                               <p className="text-xs uppercase tracking-[0.2em] text-white/45">{item.product.category}</p>
                               <h3 className="mt-2 line-clamp-2 text-base font-medium text-white">{item.product.title}</h3>
                               <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/65">
-                                <span>Qtà {item.quantity}</span>
-                                <span className="font-medium text-[#e3f503]">{formatPrice(item.product.price * item.quantity)}</span>
+                                <span>{item.format || "A4"} · Qtà {item.quantity}</span>
+                                <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForFormat(item.product, item.format) * item.quantity)}</span>
                               </div>
                             </div>
                           </article>

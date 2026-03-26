@@ -27,7 +27,11 @@ model Product {
   slug        String      @unique
   description String
   price       Int
+  priceA4     Int?
+  priceA3     Int?
   costPrice   Int         @default(0)
+  hasA4       Boolean     @default(true)
+  hasA3       Boolean     @default(false)
   category    String
   imageUrls   String
   featured    Boolean     @default(false)
@@ -68,6 +72,7 @@ model OrderItem {
   productId Int
   title     String
   imageUrl  String
+  format    String?
   unitPrice Int
   unitCost  Int     @default(0)
   quantity  Int

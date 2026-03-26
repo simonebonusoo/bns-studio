@@ -44,18 +44,12 @@ export function ShopProfilePage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              {order.status === "paid" || order.status === "shipped" ? (
-                <>
-                  <Link to={`/shop/orders/${order.orderReference}`} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
-                    Visualizza ordine
-                  </Link>
-                  <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
-                    Scarica ricevuta
-                  </button>
-                </>
-              ) : (
-                <span className="text-sm text-white/55">La ricevuta sarà disponibile dopo il pagamento.</span>
-              )}
+              <Link to={`/shop/orders/${order.orderReference}`} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+                Visualizza ordine
+              </Link>
+              <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+                Scarica ricevuta
+              </button>
             </div>
           </article>
         ))}

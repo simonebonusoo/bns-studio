@@ -40,8 +40,11 @@ type SettingEntry = {
 type ProductFormState = {
   title: string
   description: string
-  price: string
+  priceA4: string
+  priceA3: string
   costPrice: string
+  hasA4: boolean
+  hasA3: boolean
   category: string
   featured: boolean
   stock: number
@@ -122,6 +125,7 @@ type OrderProfitSummary = {
     id: number
     productId: number
     title: string
+    format: string
     quantity: number
     unitPrice: number
     unitCost: number
@@ -134,8 +138,11 @@ type OrderProfitSummary = {
 const emptyProductForm = (): ProductFormState => ({
   title: "",
   description: "",
-  price: "",
+  priceA4: "",
+  priceA3: "",
   costPrice: "",
+  hasA4: true,
+  hasA3: false,
   category: "",
   featured: false,
   stock: 0,
@@ -307,8 +314,11 @@ export function ShopAdminPage() {
     setProductForm({
       title: product.title,
       description: product.description,
-      price: formatEuroInput(product.price),
-      costPrice: formatEuroInput(product.costPrice || 0),
+      priceA4: formatEuroInput(product.priceA4 ?? product.price),
+      priceA3: product.priceA3 ? formatEuroInput(product.priceA3) : "",
+      costPrice: "",
+      hasA4: product.hasA4 !== false,
+      hasA3: Boolean(product.hasA3),
       category: product.category,
       featured: product.featured,
       stock: product.stock,
@@ -380,8 +390,12 @@ export function ShopAdminPage() {
       const payload = {
         title: productForm.title,
         description: productForm.description,
-        price: parseEuroToCents(productForm.price),
-        costPrice: parseEuroToCents(productForm.costPrice),
+        price: parseEuroToCents(productForm.hasA4 ? productForm.priceA4 : productForm.priceA3),
+        costPrice: 0,
+        hasA4: productForm.hasA4,
+        hasA3: productForm.hasA3,
+        priceA4: productForm.hasA4 ? parseEuroToCents(productForm.priceA4) : null,
+        priceA3: productForm.hasA3 ? parseEuroToCents(productForm.priceA3) : null,
         category: productForm.category,
         featured: productForm.featured,
         stock: Number(productForm.stock),
@@ -691,7 +705,7 @@ export function ShopAdminPage() {
                 onChange={(event) => setProductForm({ ...productForm, title: event.target.value })}
               />
 
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_160px_160px]">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                 <select
                   className="shop-select"
                   aria-label="Categoria"
@@ -705,16 +719,40 @@ export function ShopAdminPage() {
                     </option>
                   ))}
                 </select>
+                <div className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
+                  <div className="flex flex-wrap gap-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={productForm.hasA4}
+                        onChange={(event) => setProductForm({ ...productForm, hasA4: event.target.checked })}
+                      />
+                      A4
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={productForm.hasA3}
+                        onChange={(event) => setProductForm({ ...productForm, hasA3: event.target.checked })}
+                      />
+                      A3
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
                 <input
                   className="shop-input"
                   type="number"
                   inputMode="decimal"
                   min="0"
                   step="0.01"
-                  placeholder="Prezzo"
-                  aria-label="Prezzo in euro"
-                  value={productForm.price}
-                  onChange={(event) => setProductForm({ ...productForm, price: event.target.value })}
+                  placeholder="Prezzo A4"
+                  aria-label="Prezzo A4 in euro"
+                  value={productForm.priceA4}
+                  disabled={!productForm.hasA4}
+                  onChange={(event) => setProductForm({ ...productForm, priceA4: event.target.value })}
                 />
                 <input
                   className="shop-input"
@@ -722,10 +760,11 @@ export function ShopAdminPage() {
                   inputMode="decimal"
                   min="0"
                   step="0.01"
-                  placeholder="Costo"
-                  aria-label="Costo in euro"
-                  value={productForm.costPrice}
-                  onChange={(event) => setProductForm({ ...productForm, costPrice: event.target.value })}
+                  placeholder="Prezzo A3"
+                  aria-label="Prezzo A3 in euro"
+                  value={productForm.priceA3}
+                  disabled={!productForm.hasA3}
+                  onChange={(event) => setProductForm({ ...productForm, priceA3: event.target.value })}
                 />
               </div>
 
@@ -815,7 +854,10 @@ export function ShopAdminPage() {
                   <div>
                     <p className="text-lg font-semibold text-white">{product.title}</p>
                     <p className="mt-1 text-sm text-white/60">
-                      {product.category} · {formatPrice(product.price)} · costo {formatPrice(product.costPrice || 0)} · disponibilita {product.stock}
+                      {product.category} · {product.availableFormats?.join(" / ") || "A4"} ·
+                      {product.hasA4 !== false ? ` A4 ${formatPrice(product.priceA4 ?? product.price)}` : ""}
+                      {product.hasA3 ? ` · A3 ${formatPrice(product.priceA3 ?? product.price)}` : ""}
+                      {" · "}disponibilita {product.stock}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -988,9 +1030,8 @@ export function ShopAdminPage() {
                   </button>
                   <button
                     type="button"
-                    disabled={order.status !== "paid" && order.status !== "shipped"}
                     onClick={() => downloadInvoicePdf(order, shopSettings)}
-                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white"
                   >
                     Scarica ricevuta
                   </button>
@@ -1386,7 +1427,7 @@ export function ShopAdminPage() {
                     <div>
                       <p className="text-base font-medium text-white">{item.title}</p>
                       <p className="mt-1 text-sm text-white/55">
-                        {item.quantity} pz · ricavo {formatPrice(item.revenueTotal)} · costo {formatPrice(item.costTotal)}
+                        {item.format} · {item.quantity} pz · ricavo {formatPrice(item.revenueTotal)} · costo {formatPrice(item.costTotal)}
                       </p>
                     </div>
                     <div className="text-right">

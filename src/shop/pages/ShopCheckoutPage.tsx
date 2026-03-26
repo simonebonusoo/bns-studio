@@ -6,6 +6,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
+import { getPriceForFormat } from "../lib/product"
 import { ShopOrder, ShopPayment, ShopPricing } from "../types"
 
 export function ShopCheckoutPage() {
@@ -31,7 +32,7 @@ export function ShopCheckoutPage() {
     apiFetch<ShopPricing>("/store/pricing/preview", {
       method: "POST",
       body: JSON.stringify({
-        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format })),
         couponCode: couponCode || null,
       }),
     })
@@ -47,7 +48,7 @@ export function ShopCheckoutPage() {
         body: JSON.stringify({
           ...form,
           couponCode: couponCode || null,
-          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format })),
         }),
       })
       clearCart()
@@ -93,9 +94,9 @@ export function ShopCheckoutPage() {
         <aside className="shop-card space-y-4 p-6">
           <span className="shop-pill">Riepilogo ordine</span>
           {items.map((item) => (
-            <div key={item.productId} className="flex items-center justify-between gap-4 text-sm text-white/70">
-              <span>{item.product.title} x {item.quantity}</span>
-              <span>{formatPrice(item.product.price * item.quantity)}</span>
+            <div key={`${item.productId}-${item.format || "A4"}`} className="flex items-center justify-between gap-4 text-sm text-white/70">
+              <span>{item.product.title} · {item.format || "A4"} x {item.quantity}</span>
+              <span>{formatPrice(getPriceForFormat(item.product, item.format) * item.quantity)}</span>
             </div>
           ))}
           {pricing ? (

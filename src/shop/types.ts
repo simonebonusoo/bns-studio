@@ -13,7 +13,13 @@ export type ShopProduct = {
   slug: string
   description: string
   price: number
+  priceA3?: number | null
+  priceA4?: number | null
   costPrice?: number
+  hasA3?: boolean
+  hasA4?: boolean
+  defaultFormat?: "A3" | "A4"
+  availableFormats?: Array<"A3" | "A4">
   category: string
   imageUrls: string[]
   featured: boolean
@@ -25,6 +31,7 @@ export type ShopProduct = {
 export type ShopCartItem = {
   productId: number
   quantity: number
+  format?: "A3" | "A4"
   product: ShopProduct
 }
 
@@ -33,6 +40,7 @@ export type PricingItem = {
   slug: string
   title: string
   imageUrl: string
+  format?: "A3" | "A4"
   unitPrice: number
   unitCost?: number
   quantity: number
@@ -58,6 +66,7 @@ export type ShopOrderItem = {
   productId: number
   title: string
   imageUrl: string
+  format?: string | null
   unitPrice: number
   unitCost?: number
   quantity: number

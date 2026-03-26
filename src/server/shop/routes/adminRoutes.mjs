@@ -9,6 +9,7 @@ import { env } from "../config/env.mjs"
 import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
+import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 
 const router = Router()
 const __filename = fileURLToPath(import.meta.url)
@@ -74,12 +75,15 @@ function slugifyProductTitle(value) {
 function serializeAdminProduct(product) {
   return {
     ...product,
+    price: getBaseProductPrice(product),
+    availableFormats: getAvailableProductFormats(product),
     imageUrls: JSON.parse(product.imageUrls),
   }
 }
 
 function getOrderItemCost(item) {
-  const unitCost = typeof item.unitCost === "number" && item.unitCost > 0 ? item.unitCost : item.product?.costPrice || 0
+  const fallbackFormat = item.format || "A4"
+  const unitCost = typeof item.unitCost === "number" && item.unitCost > 0 ? item.unitCost : getProductCostForFormat(item.product || {}, fallbackFormat)
   const costTotal = typeof item.costTotal === "number" && item.costTotal > 0 ? item.costTotal : unitCost * item.quantity
   return {
     unitCost,
@@ -94,6 +98,7 @@ function buildOrderProfitSummary(order) {
       id: item.id,
       productId: item.productId,
       title: item.title,
+      format: item.format || "Formato non specificato",
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       unitCost,
@@ -214,12 +219,50 @@ async function getCategories() {
   return parseCategories(setting.value)
 }
 
+function resolveProductPayload(body, fallbackPrice = 0) {
+  const hasA3 = Boolean(body.hasA3)
+  const hasA4 = body.hasA4 ?? true
+
+  if (!hasA3 && !hasA4) {
+    throw new HttpError(400, "Seleziona almeno un formato disponibile")
+  }
+
+  if (hasA3 && (body.priceA3 === null || body.priceA3 === undefined)) {
+    throw new HttpError(400, "Inserisci il prezzo A3")
+  }
+
+  if (hasA4 && (body.priceA4 === null || body.priceA4 === undefined)) {
+    throw new HttpError(400, "Inserisci il prezzo A4")
+  }
+
+  const prices = [
+    hasA4 ? body.priceA4 : null,
+    hasA3 ? body.priceA3 : null,
+    fallbackPrice || null,
+  ].filter((value) => typeof value === "number")
+
+  const price = prices.length ? Math.min(...prices) : 0
+
+  return {
+    ...body,
+    hasA3,
+    hasA4,
+    priceA3: hasA3 ? body.priceA3 : null,
+    priceA4: hasA4 ? body.priceA4 : null,
+    price,
+  }
+}
+
 const productSchema = z.object({
   title: z.string().min(1),
   slug: z.string().min(1).optional(),
   description: z.string().min(1),
-  price: z.number().min(0),
+  price: z.number().min(0).optional(),
   costPrice: z.number().min(0).default(0),
+  hasA3: z.boolean().default(false),
+  hasA4: z.boolean().default(true),
+  priceA3: z.number().min(0).optional().nullable(),
+  priceA4: z.number().min(0).optional().nullable(),
   category: z.string().min(1),
   imageUrls: z.array(z.string().min(1)).min(1),
   featured: z.boolean().default(false),
@@ -353,11 +396,12 @@ router.post(
     if (!categories.includes(body.category)) {
       throw new HttpError(400, "Categoria non valida")
     }
+    const payload = resolveProductPayload(body)
     const slug = await ensureUniqueProductSlug(body.slug || body.title)
     const product = await prisma.product.create({
-      data: { ...body, slug, imageUrls: JSON.stringify(body.imageUrls) },
+      data: { ...payload, slug, imageUrls: JSON.stringify(body.imageUrls) },
     })
-    res.status(201).json({ ...product, imageUrls: body.imageUrls })
+    res.status(201).json(serializeAdminProduct({ ...product, imageUrls: JSON.stringify(body.imageUrls) }))
   })
 )
 
@@ -374,14 +418,15 @@ router.put(
     if (!categories.includes(body.category)) {
       throw new HttpError(400, "Categoria non valida")
     }
+    const payload = resolveProductPayload(body, existingProduct.price)
     const slug = body.slug
       ? await ensureUniqueProductSlug(body.slug, productId)
       : existingProduct.slug
     const product = await prisma.product.update({
       where: { id: productId },
-      data: { ...body, slug, imageUrls: JSON.stringify(body.imageUrls) },
+      data: { ...payload, slug, imageUrls: JSON.stringify(body.imageUrls) },
     })
-    res.json({ ...product, imageUrls: body.imageUrls })
+    res.json(serializeAdminProduct({ ...product, imageUrls: JSON.stringify(body.imageUrls) }))
   })
 )
 

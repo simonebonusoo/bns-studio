@@ -18,7 +18,11 @@ const products = [
     description:
       "Kit iniziale per freelance e microbrand con logo pack, palette e linee guida essenziali in un formato subito utilizzabile.",
     price: 8900,
+    priceA4: 8900,
+    priceA3: null,
     costPrice: 2400,
+    hasA4: true,
+    hasA3: false,
     category: "Brand",
     imageUrls: JSON.stringify([
       "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
@@ -33,7 +37,11 @@ const products = [
     description:
       "Template set per lancio social con cover, storie e visual coordinati pensati per attivazioni rapide ma curate.",
     price: 4900,
+    priceA4: 4900,
+    priceA3: null,
     costPrice: 1200,
+    hasA4: true,
+    hasA3: false,
     category: "Social",
     imageUrls: JSON.stringify([
       "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
@@ -48,7 +56,11 @@ const products = [
     description:
       "Sistema di wireframe ad alta conversione per landing page con sezioni modulari gia pensate per una presentazione pulita.",
     price: 7200,
+    priceA4: 7200,
+    priceA3: null,
     costPrice: 1900,
+    hasA4: true,
+    hasA3: false,
     category: "Web",
     imageUrls: JSON.stringify([
       "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
@@ -63,7 +75,11 @@ const products = [
     description:
       "Pacchetto coordinato per stampa con biglietti, flyer e mini guida esecutiva per mantenere coerenza tra digitale e materiali fisici.",
     price: 6500,
+    priceA4: 6500,
+    priceA3: null,
     costPrice: 1700,
+    hasA4: true,
+    hasA3: false,
     category: "Print",
     imageUrls: JSON.stringify([
       "https://images.unsplash.com/photo-1511108690759-009324a90311?auto=format&fit=crop&w=1200&q=80",

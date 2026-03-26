@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useLocation, useParams } from "react-router-dom"
 
 import { ShopLayout } from "../components/ShopLayout"
+import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
@@ -19,6 +20,7 @@ function mapPaypalErrorMessage(message: string) {
 }
 
 export function ShopReceiptPage() {
+  const { user } = useShopAuth()
   const location = useLocation()
   const { orderReference = "" } = useParams()
   const state = location.state as { order?: ShopOrder; payment?: ShopPayment | null; paymentError?: string | null } | null
@@ -50,6 +52,7 @@ export function ShopReceiptPage() {
   }
 
   const isPaid = order.status === "paid" || order.status === "shipped"
+  const isAdminView = user?.role === "admin"
 
   async function handlePayPalClick() {
     if (isRedirectingToPaypal) {
@@ -86,10 +89,12 @@ export function ShopReceiptPage() {
 
   return (
     <ShopLayout
-      eyebrow={isPaid ? "Ricevuta" : "Conferma ordine"}
+      eyebrow={isAdminView ? "Ordine admin" : isPaid ? "Ricevuta" : "Conferma ordine"}
       title={order.orderReference}
       intro={
-        isPaid
+        isAdminView
+          ? "Vista gestionale dell'ordine: riepilogo completo cliente, prodotti acquistati e download diretto della ricevuta PDF."
+          : isPaid
           ? "Pagamento completato. Ora puoi aprire e scaricare la ricevuta dell'ordine."
           : "L'ordine è stato creato in attesa di pagamento. Procedi con PayPal per completare l'acquisto. La ricevuta sarà disponibile solo dopo il pagamento."
       }
@@ -114,7 +119,7 @@ export function ShopReceiptPage() {
           <div className="space-y-3 border-t border-white/10 pt-4">
             {order.items.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-4 text-sm text-white/70">
-                <span>{item.title} x {item.quantity}</span>
+                <span>{item.title} · {item.format || "Formato non specificato"} x {item.quantity}</span>
                 <span>{formatPrice(item.lineTotal)}</span>
               </div>
             ))}
@@ -123,14 +128,14 @@ export function ShopReceiptPage() {
 
         <aside className="shop-card space-y-4 p-6">
           <span className="shop-pill">{getOrderStatusLabel(order.status)}</span>
-          {paymentCancelled ? <p className="text-sm text-amber-200">Pagamento annullato. Puoi riprovare con PayPal quando vuoi.</p> : null}
+          {!isAdminView && paymentCancelled ? <p className="text-sm text-amber-200">Pagamento annullato. Puoi riprovare con PayPal quando vuoi.</p> : null}
           <div className="space-y-3 text-sm text-white/70">
             <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.subtotal)}</span></div>
             <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(order.discountTotal)}</span></div>
             <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(order.shippingTotal)}</span></div>
             <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(order.total)}</span></div>
           </div>
-          {!isPaid && payment ? (
+          {!isAdminView && !isPaid && payment ? (
             <p className="text-sm text-white/55">
               {payment.mode === "paypal_standard"
                 ? "PayPal si aprirà con importo finale e riferimento ordine già precompilati."
@@ -139,7 +144,7 @@ export function ShopReceiptPage() {
           ) : null}
 
           <div className="flex flex-col gap-3">
-            {!isPaid ? (
+            {!isAdminView && !isPaid ? (
               <button
                 type="button"
                 onClick={handlePayPalClick}
@@ -151,12 +156,12 @@ export function ShopReceiptPage() {
                 {isRedirectingToPaypal ? "Reindirizzamento a PayPal..." : "Paga con PayPal"}
               </button>
             ) : null}
-            {!isPaid && paymentError ? (
+            {!isAdminView && !isPaid && paymentError ? (
               <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
                 {paymentError}
               </div>
             ) : null}
-            {isPaid ? (
+            {isAdminView || isPaid ? (
               <>
                 <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
                   Scarica ricevuta PDF

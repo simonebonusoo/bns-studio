@@ -5,6 +5,7 @@ import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
+import { getAvailableFormats, getDefaultFormat, getPriceForFormat } from "../lib/product"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct } from "../types"
 
@@ -15,11 +16,13 @@ export function ShopProductPage() {
   const { addItem, beginCheckout } = useShopCart()
   const [product, setProduct] = useState<ShopProduct | null>(null)
   const [selectedImage, setSelectedImage] = useState("")
+  const [selectedFormat, setSelectedFormat] = useState<"A3" | "A4">("A4")
 
   useEffect(() => {
     apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
       setProduct(data)
       setSelectedImage(data.imageUrls[0])
+      setSelectedFormat(getDefaultFormat(data))
     })
   }, [slug])
 
@@ -27,8 +30,11 @@ export function ShopProductPage() {
     return <div className="px-6 py-20 text-center text-white/60">Caricamento scheda prodotto...</div>
   }
 
+  const availableFormats = getAvailableFormats(product)
+  const selectedPrice = getPriceForFormat(product, selectedFormat)
+
   function handleBuyNow() {
-    beginCheckout(product, 1)
+    beginCheckout(product, 1, selectedFormat)
     if (!user) {
       window.dispatchEvent(new CustomEvent("bns:open-profile"))
       return
@@ -65,24 +71,41 @@ export function ShopProductPage() {
             <span className="shop-pill">{product.category}</span>
             <div className="mt-5 flex items-center justify-between gap-4">
               <h2 className="text-3xl font-semibold text-white">{product.title}</h2>
-              <span className="text-lg font-medium text-[#e3f503]">{formatPrice(product.price)}</span>
+              <span className="text-lg font-medium text-[#e3f503]">{formatPrice(selectedPrice)}</span>
             </div>
             <p className="mt-5 text-sm leading-7 text-white/70">{product.description}</p>
           </div>
 
           <div className="space-y-4">
             <div className="grid gap-3 text-sm text-white/65">
+              <div className="rounded-2xl border border-white/10 px-4 py-3">
+                <span className="text-white">Formato disponibile</span>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {availableFormats.map((format) => (
+                    <button
+                      key={format}
+                      type="button"
+                      onClick={() => setSelectedFormat(format)}
+                      className={`rounded-full border px-4 py-2 text-sm transition ${
+                        selectedFormat === format ? "border-[#e3f503] text-[#e3f503]" : "border-white/10 text-white/70 hover:border-white/25 hover:text-white"
+                      }`}
+                    >
+                      {format}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                 <span>Disponibilità</span>
                 <span>{product.stock}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
-                <span>Formato</span>
-                <span>Download + uso pronto</span>
+                <span>Prezzo formato scelto</span>
+                <span>{formatPrice(selectedPrice)}</span>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button onClick={() => addItem(product, 1)}>Aggiungi al carrello</Button>
+              <Button onClick={() => addItem(product, 1, selectedFormat)}>Aggiungi al carrello</Button>
               <button
                 type="button"
                 onClick={handleBuyNow}

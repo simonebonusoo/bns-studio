@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.mjs"
 import { HttpError } from "../lib/http.mjs"
+import { getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 
 function getSetting(settings, key, fallback) {
   return settings.find((entry) => entry.key === key)?.value ?? fallback
@@ -41,17 +42,21 @@ export async function calculatePricing(cartItems, couponCode) {
     }
 
     const imageUrls = JSON.parse(product.imageUrls)
+    const format = normalizeProductFormat(product, item.format)
+    const unitPrice = getProductPriceForFormat(product, format)
+    const unitCost = getProductCostForFormat(product, format)
 
     return {
       productId: product.id,
       slug: product.slug,
       title: product.title,
       imageUrl: imageUrls[0] || "",
-      unitPrice: product.price,
-      unitCost: product.costPrice || 0,
+      format,
+      unitPrice,
+      unitCost,
       quantity,
-      lineTotal: product.price * quantity,
-      costTotal: (product.costPrice || 0) * quantity,
+      lineTotal: unitPrice * quantity,
+      costTotal: unitCost * quantity,
     }
   })
 
