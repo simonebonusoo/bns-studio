@@ -38,17 +38,27 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+  const [cartPricing, setCartPricing] = useState<{
+    subtotal: number
+    discountTotal: number
+    shippingTotal: number
+    total: number
+  } | null>(null)
+  const [cartPricingError, setCartPricingError] = useState("")
+  const [loadingCartPricing, setLoadingCartPricing] = useState(false)
   const navH = 88
 
   const { user, logout, loading } = useShopAuth()
-  const { items } = useShopCart()
+  const { items, couponCode } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
   const profileRef = useRef<HTMLDivElement | null>(null)
+  const cartRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
@@ -74,7 +84,7 @@ export function Navbar() {
   }, [products.length, searchOpen])
 
   useEffect(() => {
-    if (!searchOpen && !profileOpen) return
+    if (!searchOpen && !profileOpen && !cartOpen) return
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
@@ -83,6 +93,7 @@ export function Navbar() {
       if (event.key === "Escape") {
         setSearchOpen(false)
         setProfileOpen(false)
+        setCartOpen(false)
       }
     }
 
@@ -96,6 +107,10 @@ export function Navbar() {
       if (profileOpen && !profileRef.current?.contains(target)) {
         setProfileOpen(false)
       }
+
+      if (cartOpen && !cartRef.current?.contains(target)) {
+        setCartOpen(false)
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown)
@@ -106,7 +121,7 @@ export function Navbar() {
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("mousedown", handlePointerDown)
     }
-  }, [profileOpen, searchOpen])
+  }, [cartOpen, profileOpen, searchOpen])
 
   useEffect(() => {
     if (!searchOpen) return
@@ -117,7 +132,38 @@ export function Navbar() {
   useEffect(() => {
     setSearchOpen(false)
     setProfileOpen(false)
+    setCartOpen(false)
   }, [location.pathname, location.search])
+
+  useEffect(() => {
+    if (!cartOpen || !user || !items.length) {
+      setCartPricing(null)
+      setCartPricingError("")
+      setLoadingCartPricing(false)
+      return
+    }
+
+    setLoadingCartPricing(true)
+    apiFetch<{ subtotal: number; discountTotal: number; shippingTotal: number; total: number }>(
+      "/store/pricing/preview",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+          couponCode: couponCode || null,
+        }),
+      }
+    )
+      .then((data) => {
+        setCartPricing(data)
+        setCartPricingError("")
+      })
+      .catch((err) => {
+        setCartPricing(null)
+        setCartPricingError(err instanceof Error ? err.message : "Errore nel calcolo del carrello.")
+      })
+      .finally(() => setLoadingCartPricing(false))
+  }, [cartOpen, couponCode, items, user])
 
   const trimmedSearch = search.trim()
 
@@ -243,6 +289,7 @@ export function Navbar() {
                   <Button
                     onClick={() => {
                       setSearchOpen(false)
+                      setCartOpen(false)
                       setProfileOpen(true)
                     }}
                     variant="ghost"
@@ -252,7 +299,15 @@ export function Navbar() {
                     Profilo
                   </Button>
 
-                  <Button href="/shop/cart" size="sm" text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}>
+                  <Button
+                    onClick={() => {
+                      setSearchOpen(false)
+                      setProfileOpen(false)
+                      setCartOpen(true)
+                    }}
+                    size="sm"
+                    text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}
+                  >
                     Carrello
                   </Button>
                 </div>
@@ -379,6 +434,152 @@ export function Navbar() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {cartOpen ? (
+          <Fragment>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm"
+            />
+
+            <motion.aside
+              ref={cartRef}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 24 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-lg border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
+            >
+              <div className="flex h-full flex-col">
+                <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">Carrello shop</p>
+                    <h2 className="mt-3 text-2xl font-semibold text-white">
+                      {user ? "Il tuo carrello" : "Accesso non effettuato"}
+                    </h2>
+                    <p className="mt-2 text-sm text-white/60">
+                      {user
+                        ? "Rivedi i prodotti selezionati e completa l'acquisto senza uscire dalla pagina."
+                        : "Effettua l'accesso per visualizzare il carrello e continuare il checkout."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setCartOpen(false)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/55 transition hover:border-white/20 hover:text-white"
+                    aria-label="Chiudi pannello carrello"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {!user ? (
+                  <div className="flex flex-1 flex-col justify-between py-6">
+                    <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                      <p className="text-sm text-white/65">
+                        Il carrello e disponibile solo dopo l'accesso. Entra nel tuo account per vedere prodotti salvati e procedere al checkout.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <Button href="/shop/auth" className="w-full" onClick={() => setCartOpen(false)}>
+                        Accedi
+                      </Button>
+                      <Button href="/shop/auth" variant="ghost" className="w-full" onClick={() => setCartOpen(false)}>
+                        Crea account
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1 space-y-4 overflow-y-auto py-6">
+                      {!items.length ? (
+                        <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
+                          Il carrello e vuoto. Apri il catalogo per aggiungere un prodotto.
+                        </div>
+                      ) : (
+                        items.map((item) => (
+                          <article
+                            key={item.productId}
+                            className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
+                          >
+                            <img
+                              src={item.product.imageUrls[0]}
+                              alt={item.product.title}
+                              className="h-24 w-24 rounded-[18px] object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">{item.product.category}</p>
+                              <h3 className="mt-2 line-clamp-2 text-base font-medium text-white">{item.product.title}</h3>
+                              <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/65">
+                                <span>Qtà {item.quantity}</span>
+                                <span className="font-medium text-[#e3f503]">{formatPrice(item.product.price * item.quantity)}</span>
+                              </div>
+                            </div>
+                          </article>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="border-t border-white/10 pt-5">
+                      {cartPricingError ? <p className="mb-3 text-sm text-red-300">{cartPricingError}</p> : null}
+
+                      {loadingCartPricing ? (
+                        <p className="text-sm text-white/60">Calcolo totale in corso...</p>
+                      ) : cartPricing ? (
+                        <div className="space-y-3 text-sm text-white/70">
+                          <div className="flex items-center justify-between">
+                            <span>Subtotale</span>
+                            <span>{formatPrice(cartPricing.subtotal)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Sconti</span>
+                            <span>-{formatPrice(cartPricing.discountTotal)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Spedizione</span>
+                            <span>{formatPrice(cartPricing.shippingTotal)}</span>
+                          </div>
+                          <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white">
+                            <span>Totale</span>
+                            <span>{formatPrice(cartPricing.total)}</span>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div className="mt-5 flex flex-col gap-3">
+                        <Button
+                          onClick={() => {
+                            setCartOpen(false)
+                            navigate("/shop/checkout")
+                          }}
+                          className="w-full"
+                        >
+                          Vai al checkout
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setCartOpen(false)
+                            navigate("/shop/cart")
+                          }}
+                          variant="ghost"
+                          className="w-full"
+                        >
+                          Apri riepilogo completo
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.aside>
+          </Fragment>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {profileOpen ? (
           <Fragment>
             <motion.div
@@ -401,7 +602,7 @@ export function Navbar() {
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-white/45">Profilo shop</p>
                     <h2 className="mt-3 text-2xl font-semibold text-white">
-                      {user ? "Il tuo account" : "Accedi o crea un account"}
+                      {user ? "Accesso effettuato" : "Accedi o crea un account"}
                     </h2>
                     <p className="mt-2 text-sm text-white/60">
                       {user
@@ -428,7 +629,7 @@ export function Navbar() {
                   ) : user ? (
                     <>
                       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                        <p className="text-sm text-white/55">Account attivo</p>
+                        <p className="text-sm text-[#e3f503]">Accesso effettuato</p>
                         <h3 className="mt-2 text-xl font-semibold text-white">
                           {user.firstName} {user.lastName}
                         </h3>
@@ -485,7 +686,10 @@ export function Navbar() {
                       <div className="grid gap-3">
                         <button
                           type="button"
-                          onClick={() => navigate("/shop/cart")}
+                          onClick={() => {
+                            setProfileOpen(false)
+                            setCartOpen(true)
+                          }}
                           className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
                         >
                           <div className="text-sm font-medium">Continua con il carrello</div>

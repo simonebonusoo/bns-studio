@@ -2,17 +2,24 @@ import { Link } from "react-router-dom"
 import { useEffect, useState } from "react"
 
 import { ShopLayout } from "../components/ShopLayout"
+import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { ShopPricing } from "../types"
 
 export function ShopCartPage() {
+  const { user, loading } = useShopAuth()
   const { items, updateItem, removeItem, couponCode, setCouponCode } = useShopCart()
   const [pricing, setPricing] = useState<ShopPricing | null>(null)
   const [error, setError] = useState("")
 
   useEffect(() => {
+    if (!user) {
+      setPricing(null)
+      return
+    }
+
     if (!items.length) {
       setPricing(null)
       return
@@ -33,10 +40,24 @@ export function ShopCartPage() {
         setPricing(null)
         setError(err.message)
       })
-  }, [items, couponCode])
+  }, [couponCode, items, user])
 
   return (
     <ShopLayout eyebrow="Cart" title="Riepilogo ordine" intro="Carrello, coupon e totale sono calcolati dal nuovo backend integrato, senza separare l’esperienza dallo shell principale del sito.">
+      {loading ? (
+        <div className="rounded-[24px] border border-white/10 px-6 py-14 text-center text-white/60">
+          Verifica accesso in corso...
+        </div>
+      ) : null}
+
+      {!loading && !user ? (
+        <div className="rounded-[24px] border border-white/10 px-6 py-14 text-center text-white/60">
+          Accesso non effettuato. <Link to="/shop/auth" state={{ redirectTo: "/shop/cart" }} className="text-white underline underline-offset-4">Accedi</Link> per visualizzare il carrello.
+        </div>
+      ) : null}
+
+      {loading || !user ? null : (
+        <>
       {!items.length ? (
         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">
           Il carrello e vuoto. <Link to="/shop" className="text-white underline underline-offset-4">Apri il catalogo</Link>.
@@ -94,6 +115,8 @@ export function ShopCartPage() {
           ) : null}
         </aside>
       </div>
+        </>
+      )}
     </ShopLayout>
   )
 }

@@ -13,6 +13,7 @@ export function ShopAuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login")
   const [error, setError] = useState("")
   const [form, setForm] = useState({
+    username: "",
     firstName: "",
     lastName: "",
     email: "",
@@ -52,14 +53,27 @@ export function ShopAuthPage() {
           </div>
 
           {mode === "register" ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              <input className="shop-input" placeholder="Nome" value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} />
-              <input className="shop-input" placeholder="Cognome" value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} />
-            </div>
-          ) : null}
+            <>
+              <input className="shop-input" placeholder="Username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} />
+              <p className="-mt-1 text-xs text-white/45">
+                Il backend attuale non supporta ancora autenticazione o salvataggio via username: la registrazione continua a usare email e password.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <input className="shop-input" placeholder="Nome" value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} />
+                <input className="shop-input" placeholder="Cognome" value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} />
+              </div>
+            </>
+          ) : (
+            <>
+              <input className="shop-input" placeholder="Username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} />
+              <p className="-mt-1 text-xs text-white/45">
+                Login attuale via email: il campo username e mostrato solo per anticipare il flusso futuro e non viene inviato al backend.
+              </p>
+            </>
+          )}
 
-          <input className="shop-input" type="email" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-          <input className="shop-input" type="password" placeholder="Password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+          <input className="shop-input" type="email" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
+          <input className="shop-input" type="password" placeholder="Password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} minLength={8} required />
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
           <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
