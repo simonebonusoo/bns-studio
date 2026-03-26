@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
@@ -150,8 +150,6 @@ export function ShopAdminPage() {
 
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
-  const [productColumnHeight, setProductColumnHeight] = useState<number | null>(null)
-  const productFormRef = useRef<HTMLFormElement | null>(null)
 
   const productImages = useMemo(
     () => [...productForm.existingImageUrls, ...productPreviewUrls],
@@ -167,26 +165,6 @@ export function ShopAdminPage() {
       productPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
     }
   }, [productPreviewUrls])
-
-  useEffect(() => {
-    const form = productFormRef.current
-    if (!form) return
-
-    const updateHeight = () => {
-      setProductColumnHeight(form.getBoundingClientRect().height)
-    }
-
-    updateHeight()
-
-    const observer = new ResizeObserver(updateHeight)
-    observer.observe(form)
-    window.addEventListener("resize", updateHeight)
-
-    return () => {
-      observer.disconnect()
-      window.removeEventListener("resize", updateHeight)
-    }
-  }, [editingProductId, productImages.length, productForm.category, productForm.description, productForm.featured, productForm.price, productForm.stock, productForm.title])
 
   useEffect(() => {
     if (!message && !error) return
@@ -589,7 +567,7 @@ export function ShopAdminPage() {
 
       {tab === "prodotti" ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <form ref={productFormRef} onSubmit={saveProduct} className="shop-card h-full space-y-4 p-6">
+          <form onSubmit={saveProduct} className="shop-card h-full space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingProductId ? "Modifica prodotto" : "Nuovo prodotto"}</h2>
                 {editingProductId ? (
@@ -654,7 +632,7 @@ export function ShopAdminPage() {
                 </label>
               </div>
               <textarea
-                className="shop-textarea min-h-32"
+                className="shop-textarea min-h-32 resize-none"
                 placeholder="Descrizione"
                 aria-label="Descrizione"
                 value={productForm.description}
@@ -705,10 +683,7 @@ export function ShopAdminPage() {
               </button>
           </form>
 
-          <section
-            className="shop-card flex h-full min-h-0 flex-col p-6"
-            style={productColumnHeight ? { minHeight: `${productColumnHeight}px` } : undefined}
-          >
+          <section className="shop-card flex h-full min-h-0 flex-col p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-white">Lista prodotti</h2>
@@ -764,9 +739,14 @@ export function ShopAdminPage() {
                 <p className="mt-1 text-sm text-white/55">Organizza le categorie prodotto in un unico pannello largo e compatto.</p>
               </div>
               <form onSubmit={createCategory} className="flex w-full flex-col gap-3 md:w-auto md:min-w-[420px] md:flex-row">
-                <input className="shop-input" placeholder="Nuova categoria" value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} />
-                <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                  Crea categoria
+                <input
+                  className="h-11 rounded-lg border border-white/12 bg-white/[0.03] px-4 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/25"
+                  placeholder="Nuova categoria"
+                  value={newCategoryName}
+                  onChange={(event) => setNewCategoryName(event.target.value)}
+                />
+                <button type="submit" className="h-11 rounded-lg border border-white/12 bg-white px-4 text-sm font-medium text-black transition hover:bg-white/90">
+                  Crea
                 </button>
               </form>
             </div>

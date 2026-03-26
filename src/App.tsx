@@ -142,6 +142,17 @@ export default function App() {
     requestAnimationFrame(tryScroll)
   }, [location.pathname, location.hash])
 
+  useEffect(() => {
+    if (location.hash) return
+
+    const lenis = lenisRef.current
+    if (lenis) {
+      lenis.scrollTo(0, { immediate: true })
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    }
+  }, [location.pathname, location.hash])
+
   return (
     <ShopAuthProvider>
       <ShopCartProvider>
