@@ -17,17 +17,17 @@ export function Hero() {
         <div className="text-center max-w-3xl mx-auto">
           <Reveal>
             <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
-              Ogni grande{" "}
-              <span className="text-[#e3f503]">brand</span>
+              Poster, stampe e oggetti
               <br />
-              nasce da un <span className="text-white">design</span> chiaro.
+              con l&apos;estetica <span className="text-[#e3f503]">BNS Studio</span>.
             </h1>
           </Reveal>
 
           <Reveal delay={0.08}>
             <p className="mt-6 text-white/70 leading-relaxed text-base md:text-lg">
-              BNS Studio crea identità visive, siti web e prodotti digitali con
-              un&apos;estetica essenziale, animazioni fluide e performance reali.
+              Collezioni visive pensate per scrivanie, studi creativi e spazi personali:
+              poster distintivi, gadget curati e pezzi progettati per chi cerca un immaginario
+              netto, contemporaneo e riconoscibile.
             </p>
           </Reveal>
 

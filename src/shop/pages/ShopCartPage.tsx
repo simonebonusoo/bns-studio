@@ -14,6 +14,10 @@ export function ShopCartPage() {
   const [pricing, setPricing] = useState<ShopPricing | null>(null)
   const [error, setError] = useState("")
 
+  function openProfilePanel() {
+    window.dispatchEvent(new CustomEvent("bns:open-profile"))
+  }
+
   useEffect(() => {
     if (!user) {
       setPricing(null)
@@ -52,7 +56,15 @@ export function ShopCartPage() {
 
       {!loading && !user ? (
         <div className="rounded-[24px] border border-white/10 px-6 py-14 text-center text-white/60">
-          Accesso non effettuato. <Link to="/shop/auth" state={{ redirectTo: "/shop/cart" }} className="text-white underline underline-offset-4">Accedi</Link> per visualizzare il carrello.
+          Accesso non effettuato.{" "}
+          <button
+            type="button"
+            onClick={openProfilePanel}
+            className="text-white underline underline-offset-4"
+          >
+            Accedi dal pannello profilo
+          </button>{" "}
+          per visualizzare il carrello.
         </div>
       ) : null}
 

@@ -1,8 +1,4 @@
-import { Link } from "react-router-dom"
-
 import { Container } from "../../components/Container"
-import { Button } from "../../components/Button"
-import { useShopAuth } from "../context/ShopAuthProvider"
 
 export function ShopLayout({
   eyebrow,
@@ -17,8 +13,6 @@ export function ShopLayout({
   children: React.ReactNode
   actions?: React.ReactNode
 }) {
-  const { user } = useShopAuth()
-
   return (
     <main className="pb-24 pt-6 md:pt-10">
       <Container>
@@ -33,18 +27,6 @@ export function ShopLayout({
 
               {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
             </div>
-
-            {!user ? (
-              <div className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-black/20 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-sm font-medium text-white">Accesso cliente richiesto per il checkout</p>
-                  <p className="mt-1 text-sm text-white/60">Registrazione e storico ordini sono gestiti direttamente nello shop integrato.</p>
-                </div>
-                <Link to="/shop/auth">
-                  <Button size="sm">Login / Register</Button>
-                </Link>
-              </div>
-            ) : null}
 
             {children}
           </div>

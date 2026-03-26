@@ -979,20 +979,6 @@ export function Navbar() {
                               </Button>
                             </div>
                           </div>
-
-                          <div className="grid gap-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setProfileOpen(false)
-                                setCartOpen(true)
-                              }}
-                              className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
-                            >
-                              <div className="text-sm font-medium">Continua con il carrello</div>
-                              <div className="mt-1 text-sm text-white/55">Rivedi i prodotti selezionati e completa l'acquisto.</div>
-                            </button>
-                          </div>
                         </>
                       ) : null}
 

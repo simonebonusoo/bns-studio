@@ -57,15 +57,15 @@ function DropItem({
   icon,
   onSelect,
 }: {
-  href: string
+  href?: string
   title: string
   desc: string
   icon: React.ReactNode
-  onSelect: () => void
+  onSelect: (event: React.MouseEvent<HTMLAnchorElement>) => void
 }) {
   return (
     <a
-      href={href}
+      href={href ?? "#"}
       onClick={onSelect}
       className={[
         "block rounded-2xl",
@@ -124,9 +124,9 @@ export function BottomNavMobile() {
         icon: <Squares2X2Icon className="h-5 w-5" />,
       },
       {
-        href: "/shop/auth",
+        href: "#profile",
         title: "Account",
-        desc: "Login, profilo e ordini.",
+        desc: "Apri il pannello profilo.",
         icon: <BriefcaseIcon className="h-5 w-5" />,
       },
       {
@@ -228,7 +228,15 @@ export function BottomNavMobile() {
                     title={it.title}
                     desc={it.desc}
                     icon={it.icon}
-                    onSelect={() => {
+                    onSelect={(event) => {
+                      if (it.title === "Account") {
+                        event.preventDefault()
+                        closeAll()
+                        setActive("home")
+                        window.dispatchEvent(new CustomEvent("bns:open-profile"))
+                        return
+                      }
+
                       closeAll()
                       setActive("home")
                     }}

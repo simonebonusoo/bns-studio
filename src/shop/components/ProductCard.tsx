@@ -11,7 +11,12 @@ export function ProductCard({ product }: { product: ShopProduct }) {
 
   function handleBuyNow() {
     beginCheckout(product, 1)
-    navigate(user ? "/shop/checkout" : "/shop/auth", {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent("bns:open-profile"))
+      return
+    }
+
+    navigate("/shop/checkout", {
       state: { redirectTo: "/shop/checkout" },
     })
   }

@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline"
 
 import { Container } from "../components/Container"
-import { Button } from "../components/Button"
 import { ProductCard } from "../shop/components/ProductCard"
-import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { apiFetch } from "../shop/lib/api"
 import { ShopProduct } from "../shop/types"
 
 export function HomeShop() {
   const [products, setProducts] = useState<ShopProduct[]>([])
-  const { user } = useShopAuth()
 
   useEffect(() => {
     apiFetch<ShopProduct[]>("/store/products").then(setProducts)
@@ -26,35 +22,22 @@ export function HomeShop() {
               <div className="max-w-4xl">
                 <span className="shop-pill">Shop</span>
                 <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
-                  Lo shop e il cuore del sito.
+                  Poster, stampe e pezzi creativi da collezionare.
                 </h2>
                 <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70 md:text-base">
-                  Esperienza catalogo integrata direttamente in homepage, con ricerca centrale in navbar,
-                  schede prodotto coerenti e gli stessi flussi di carrello, account e checkout gia attivi.
+                  Una selezione BNS Studio di visual, print e oggetti con identità precisa.
+                  Sfoglia il catalogo, apri le schede prodotto e usa il pannello profilo per gestire
+                  accesso, ordini e checkout.
                 </p>
               </div>
             </div>
-
-            {!user ? (
-              <div className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-black/20 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-sm font-medium text-white">Accesso cliente richiesto per il checkout</p>
-                  <p className="mt-1 text-sm text-white/60">
-                    Login, carrello, ordini e area admin restano gli stessi dello shop gia integrato.
-                  </p>
-                </div>
-                <Link to="/shop/auth">
-                  <Button size="sm">Login / Register</Button>
-                </Link>
-              </div>
-            ) : null}
 
             <div className="flex flex-col gap-3 rounded-[24px] border border-white/10 bg-black/30 px-5 py-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.26em] text-white/45">Catalog</p>
                 <p className="mt-2 text-sm text-white/70">
-                  La ricerca principale ora vive nella navbar: clicca la barra in alto per aprire
-                  suggerimenti, popolari e risultati live.
+                  La ricerca principale vive nella navbar: usa la barra in alto per trovare poster,
+                  collezioni e prodotti BNS Studio in tempo reale.
                 </p>
               </div>
               <div className="flex items-center gap-2 text-xs text-white/55">
