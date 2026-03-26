@@ -642,7 +642,7 @@ export function ShopAdminPage() {
     event.preventDefault()
     clearFeedback()
     try {
-      const allowedSettings = ["storeName", "currencyCode", "shippingCost", "paypalMeLink", "paypalBusinessEmail"]
+      const allowedSettings = ["storeName", "currencyCode", "shippingCost", "paypalMeLink", "paypalBusinessEmail", "contactEmail"]
       const payload = settings
         .filter((entry) => allowedSettings.includes(entry.key))
         .map((entry) => ({
@@ -1453,6 +1453,15 @@ export function ShopAdminPage() {
                     placeholder="Email business PayPal"
                     value={settingValue("paypalBusinessEmail")}
                     onChange={(event) => updateSetting("paypalBusinessEmail", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Email contatto sito</label>
+                  <input
+                    className="shop-input"
+                    placeholder="Email contatto sito"
+                    value={settingValue("contactEmail", "bnsstudio@gmail.com")}
+                    onChange={(event) => updateSetting("contactEmail", event.target.value)}
                   />
                 </div>
               </div>

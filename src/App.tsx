@@ -15,6 +15,7 @@ import { Footer } from "./sections/Footer"
 
 import { CaseStudyPage } from "./pages/CaseStudyPage"
 import { AboutPage } from "./pages/AboutPage"
+import { AboutMePage } from "./pages/AboutMePage"
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage"
 
 import { ShopAuthProvider } from "./shop/context/ShopAuthProvider"
@@ -174,7 +175,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/chi-siamo" element={<AboutPage />} />
-            <Route path="/chi-sono" element={<AboutPage />} />
+            <Route path="/chi-sono" element={<AboutMePage />} />
             <Route path="/case/:slug" element={<CaseStudyPage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/shop/:slug" element={<ShopProductPage />} />

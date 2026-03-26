@@ -113,14 +113,14 @@ export function Testimonials() {
     <section id="recensioni" className="py-20 md:py-28">
       <Container>
         <motion.div
-          className="grid gap-6 lg:grid-cols-2"
+          className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]"
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.45, ease: "easeOut", delay: 0.05 }}
         >
           <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7">
-            <div className="max-w-3xl">
+            <div className="max-w-none">
               <p className="text-xs uppercase tracking-[0.24em] text-white/45">Lascia una recensione</p>
               <h3 className="mt-3 text-2xl font-semibold text-white">Racconta la tua esperienza con BNS Studio.</h3>
               <p className="mt-3 text-sm leading-7 text-white/65">
@@ -138,7 +138,7 @@ export function Testimonials() {
 
             {user ? (
               <form onSubmit={submitReview} className="mt-6 grid gap-4">
-                <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
+                <div className="grid gap-4 lg:grid-cols-[150px_180px_minmax(0,1fr)]">
                   <div>
                     <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Valutazione</label>
                     <select
@@ -183,10 +183,10 @@ export function Testimonials() {
                   />
                 </div>
 
-                <div>
+                <div className="lg:max-w-none">
                   <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">La tua esperienza</label>
                   <textarea
-                    className="shop-textarea min-h-32 resize-none"
+                    className="shop-textarea min-h-24 resize-none"
                     value={form.body}
                     onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
                     placeholder="Racconta com'è andato l'acquisto, il prodotto e l'esperienza complessiva."
@@ -199,13 +199,20 @@ export function Testimonials() {
                 {feedback ? <p className="text-sm text-emerald-300">{feedback}</p> : null}
                 {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <p className="text-sm text-white/55">
                     Pubblica come <span className="text-white">{user.username || user.email}</span>
                   </p>
-                  <Button type="submit" className="md:min-w-[220px]">
-                    {submitting ? "Invio recensione..." : "Pubblica recensione"}
-                  </Button>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Link to="/chi-sono">
+                      <Button variant="ghost" className="w-full sm:min-w-[180px]">
+                        Chi sono
+                      </Button>
+                    </Link>
+                    <Button type="submit" className="w-full sm:min-w-[220px]">
+                      {submitting ? "Invio recensione..." : "Pubblica recensione"}
+                    </Button>
+                  </div>
                 </div>
               </form>
             ) : null}

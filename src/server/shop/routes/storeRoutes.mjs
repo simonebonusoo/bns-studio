@@ -7,6 +7,7 @@ import { calculatePricing } from "../services/pricing.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductFormat } from "../lib/product-formats.mjs"
 
 const router = Router()
+const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
 
 function serializePublicProduct(product) {
   const { imageUrls, costPrice: _costPrice, ...rest } = product
@@ -31,6 +32,41 @@ router.get(
         return acc
       }, {})
     )
+  })
+)
+
+router.post(
+  "/contact",
+  asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        name: z.string().trim().min(2),
+        email: z.string().trim().email(),
+        subject: z.string().trim().min(3),
+        message: z.string().trim().min(10),
+      })
+      .parse(req.body)
+
+    const contactSetting = await prisma.setting.findUnique({
+      where: { key: "contactEmail" },
+    })
+
+    const contactEmail = (contactSetting?.value || FALLBACK_CONTACT_EMAIL).trim()
+    const mailSubject = `[BNS Studio] ${body.subject}`
+    const mailBody = [
+      `Nome: ${body.name}`,
+      `Email: ${body.email}`,
+      "",
+      body.message,
+    ].join("\n")
+
+    const mailtoUrl = `mailto:${encodeURIComponent(contactEmail)}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`
+
+    res.json({
+      message: "Apertura del client email in corso.",
+      to: contactEmail,
+      mailtoUrl,
+    })
   })
 )
 
