@@ -39,6 +39,7 @@ export function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const [profileStep, setProfileStep] = useState<"initial" | "login" | "register">("initial")
   const [search, setSearch] = useState("")
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -51,9 +52,23 @@ export function Navbar() {
   } | null>(null)
   const [cartPricingError, setCartPricingError] = useState("")
   const [loadingCartPricing, setLoadingCartPricing] = useState(false)
+  const [profileError, setProfileError] = useState("")
+  const [profileSubmitting, setProfileSubmitting] = useState(false)
+  const [loginForm, setLoginForm] = useState({
+    identifier: "",
+    password: "",
+  })
+  const [registerForm, setRegisterForm] = useState({
+    username: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  })
   const navH = 88
 
-  const { user, logout, loading } = useShopAuth()
+  const { user, login, logout, loading } = useShopAuth()
   const { items, couponCode } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
@@ -136,6 +151,18 @@ export function Navbar() {
   }, [location.pathname, location.search])
 
   useEffect(() => {
+    if (!profileOpen) {
+      setProfileStep("initial")
+      setProfileError("")
+      setProfileSubmitting(false)
+    }
+  }, [profileOpen])
+
+  useEffect(() => {
+    setProfileError("")
+  }, [profileStep])
+
+  useEffect(() => {
     if (!cartOpen || !user || !items.length) {
       setCartPricing(null)
       setCartPricingError("")
@@ -206,6 +233,75 @@ export function Navbar() {
 
   const popularSuggestions = emptySuggestions.slice(0, 4)
   const exploreSuggestions = emptySuggestions.slice(4)
+  const profileView = user ? "logged" : profileStep
+
+  async function submitProfileLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setProfileError("")
+
+    const identifier = loginForm.identifier.trim()
+    if (!identifier) {
+      setProfileError("Inserisci email o username.")
+      return
+    }
+
+    if (!identifier.includes("@")) {
+      setProfileError("Il backend attuale supporta solo login via email. Inserisci l'email del tuo account.")
+      return
+    }
+
+    try {
+      setProfileSubmitting(true)
+      await login(
+        {
+          email: identifier,
+          password: loginForm.password,
+        },
+        "login"
+      )
+      setLoginForm({ identifier: "", password: "" })
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Errore durante il login.")
+    } finally {
+      setProfileSubmitting(false)
+    }
+  }
+
+  async function submitProfileRegister(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setProfileError("")
+
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setProfileError("La conferma password non coincide.")
+      return
+    }
+
+    try {
+      setProfileSubmitting(true)
+      await login(
+        {
+          firstName: registerForm.firstName,
+          lastName: registerForm.lastName,
+          email: registerForm.email,
+          password: registerForm.password,
+          username: registerForm.username,
+        },
+        "register"
+      )
+      setRegisterForm({
+        username: "",
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      })
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Errore durante la registrazione.")
+    } finally {
+      setProfileSubmitting(false)
+    }
+  }
 
   return (
     <>
@@ -290,6 +386,7 @@ export function Navbar() {
                     onClick={() => {
                       setSearchOpen(false)
                       setCartOpen(false)
+                      setProfileStep("initial")
                       setProfileOpen(true)
                     }}
                     variant="ghost"
@@ -484,10 +581,25 @@ export function Navbar() {
                     </div>
 
                     <div className="flex flex-col gap-3">
-                      <Button href="/shop/auth" className="w-full" onClick={() => setCartOpen(false)}>
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          setCartOpen(false)
+                          setProfileStep("login")
+                          setProfileOpen(true)
+                        }}
+                      >
                         Accedi
                       </Button>
-                      <Button href="/shop/auth" variant="ghost" className="w-full" onClick={() => setCartOpen(false)}>
+                      <Button
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => {
+                          setCartOpen(false)
+                          setProfileStep("register")
+                          setProfileOpen(true)
+                        }}
+                      >
                         Crea account
                       </Button>
                     </div>
@@ -597,18 +709,18 @@ export function Navbar() {
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="fixed right-0 top-0 z-50 h-screen w-full max-w-md border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
             >
-              <div className="flex h-full flex-col">
-                <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">Profilo shop</p>
-                    <h2 className="mt-3 text-2xl font-semibold text-white">
-                      {user ? "Accesso effettuato" : "Accedi o crea un account"}
-                    </h2>
-                    <p className="mt-2 text-sm text-white/60">
-                      {user
-                        ? "Gestisci ordini, ricevute e accesso all'area account."
-                        : "Apri il tuo spazio cliente per ordini, checkout rapido e storico acquisti."}
-                    </p>
+                <div className="flex h-full flex-col">
+                  <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-white/45">Profilo shop</p>
+                      <h2 className="mt-3 text-2xl font-semibold text-white">
+                        {profileView === "logged" ? "Accesso effettuato" : "Accedi o crea un account"}
+                      </h2>
+                      <p className="mt-2 text-sm text-white/60">
+                        {profileView === "logged"
+                          ? "Gestisci ordini, ricevute e accesso all'area account."
+                          : "Apri il tuo spazio cliente per ordini, checkout rapido e storico acquisti."}
+                      </p>
                   </div>
 
                   <button
@@ -626,7 +738,7 @@ export function Navbar() {
                     <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/60">
                       Caricamento account...
                     </div>
-                  ) : user ? (
+                  ) : profileView === "logged" && user ? (
                     <>
                       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
                         <p className="text-sm text-[#e3f503]">Accesso effettuato</p>
@@ -669,38 +781,152 @@ export function Navbar() {
                     </>
                   ) : (
                     <>
-                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                        <p className="text-sm text-white/65">
-                          Entra nel tuo account per checkout piu rapido, storico ordini e area personale.
-                        </p>
-                        <div className="mt-5 flex flex-col gap-3">
-                          <Button href="/shop/auth" className="w-full" onClick={() => setProfileOpen(false)}>
-                            Accedi
-                          </Button>
-                          <Button href="/shop/auth" variant="ghost" className="w-full" onClick={() => setProfileOpen(false)}>
-                            Crea account
-                          </Button>
-                        </div>
-                      </div>
+                      {profileView === "initial" ? (
+                        <>
+                          <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                            <p className="text-sm text-white/65">
+                              Entra nel tuo account per checkout piu rapido, storico ordini e area personale.
+                            </p>
+                            <div className="mt-5 flex flex-col gap-3">
+                              <Button className="w-full" onClick={() => setProfileStep("login")}>
+                                Accedi
+                              </Button>
+                              <Button variant="ghost" className="w-full" onClick={() => setProfileStep("register")}>
+                                Crea account
+                              </Button>
+                            </div>
+                          </div>
 
-                      <div className="grid gap-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProfileOpen(false)
-                            setCartOpen(true)
-                          }}
-                          className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
-                        >
-                          <div className="text-sm font-medium">Continua con il carrello</div>
-                          <div className="mt-1 text-sm text-white/55">Rivedi i prodotti selezionati e completa l'acquisto.</div>
-                        </button>
-                      </div>
+                          <div className="grid gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProfileOpen(false)
+                                setCartOpen(true)
+                              }}
+                              className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
+                            >
+                              <div className="text-sm font-medium">Continua con il carrello</div>
+                              <div className="mt-1 text-sm text-white/55">Rivedi i prodotti selezionati e completa l'acquisto.</div>
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
+
+                      {profileView === "login" ? (
+                        <form onSubmit={submitProfileLogin} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                          <div className="space-y-4">
+                            <div>
+                              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Email o username</label>
+                              <input
+                                className="shop-input"
+                                placeholder="Email o username"
+                                value={loginForm.identifier}
+                                onChange={(event) => setLoginForm({ ...loginForm, identifier: event.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Password</label>
+                              <input
+                                className="shop-input"
+                                type="password"
+                                placeholder="Password"
+                                value={loginForm.password}
+                                onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+                                minLength={8}
+                                required
+                              />
+                            </div>
+                            <p className="text-xs text-white/45">
+                              Il backend attuale supporta login reale solo via email. Se inserisci uno username, il pannello ti chiederà di usare l'email.
+                            </p>
+                            {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                            <div className="flex flex-col gap-3">
+                              <Button type="submit" className="w-full">
+                                {profileSubmitting ? "Accesso in corso..." : "Accedi"}
+                              </Button>
+                              <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
+                                Indietro
+                              </Button>
+                            </div>
+                          </div>
+                        </form>
+                      ) : null}
+
+                      {profileView === "register" ? (
+                        <form onSubmit={submitProfileRegister} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                          <div className="space-y-4">
+                            <div>
+                              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
+                              <input
+                                className="shop-input"
+                                placeholder="Username"
+                                value={registerForm.username}
+                                onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
+                              />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <input
+                                className="shop-input"
+                                placeholder="Nome"
+                                value={registerForm.firstName}
+                                onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
+                                required
+                              />
+                              <input
+                                className="shop-input"
+                                placeholder="Cognome"
+                                value={registerForm.lastName}
+                                onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
+                                required
+                              />
+                            </div>
+                            <input
+                              className="shop-input"
+                              type="email"
+                              placeholder="Email"
+                              value={registerForm.email}
+                              onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
+                              required
+                            />
+                            <input
+                              className="shop-input"
+                              type="password"
+                              placeholder="Password"
+                              value={registerForm.password}
+                              onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
+                              minLength={8}
+                              required
+                            />
+                            <input
+                              className="shop-input"
+                              type="password"
+                              placeholder="Conferma password"
+                              value={registerForm.confirmPassword}
+                              onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
+                              minLength={8}
+                              required
+                            />
+                            <p className="text-xs text-white/45">
+                              Username e mostrato nel flusso, ma il backend attuale salva ancora l'account solo con nome, cognome, email e password.
+                            </p>
+                            {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                            <div className="flex flex-col gap-3">
+                              <Button type="submit" className="w-full">
+                                {profileSubmitting ? "Creazione account..." : "Crea account"}
+                              </Button>
+                              <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
+                                Indietro
+                              </Button>
+                            </div>
+                          </div>
+                        </form>
+                      ) : null}
                     </>
                   )}
                 </div>
 
-                {user ? (
+                {profileView === "logged" && user ? (
                   <button
                     type="button"
                     onClick={() => {
