@@ -1,5 +1,28 @@
-const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "")
-const API_URL = API_BASE_URL ? `${API_BASE_URL}/api` : import.meta.env.VITE_API_URL || "/api"
+const DEFAULT_PRODUCTION_API_BASE_URL = "https://bnsstudio-shop-api.onrender.com"
+
+function normalizeBaseUrl(value: string) {
+  return value.trim().replace(/\/+$/, "")
+}
+
+function normalizeApiUrl(value: string) {
+  const normalized = normalizeBaseUrl(value)
+  if (!normalized) return ""
+  if (normalized === "/api" || normalized.endsWith("/api")) return normalized
+  return `${normalized}/api`
+}
+
+const API_BASE_URL = normalizeBaseUrl(String(import.meta.env.VITE_API_BASE_URL || ""))
+const CONFIGURED_API_URL = normalizeApiUrl(String(import.meta.env.VITE_API_URL || ""))
+
+const API_URL =
+  API_BASE_URL
+    ? `${API_BASE_URL}/api`
+    : CONFIGURED_API_URL ||
+      (typeof window !== "undefined" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+        ? `${DEFAULT_PRODUCTION_API_BASE_URL}/api`
+        : "/api")
 
 function toAbsoluteAssetUrl(value: string) {
   if (!value.startsWith("/uploads/")) {
