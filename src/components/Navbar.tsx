@@ -40,6 +40,7 @@ export function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [profileStep, setProfileStep] = useState<"initial" | "login" | "register">("initial")
+  const [profileLoggedStep, setProfileLoggedStep] = useState<"overview" | "edit">("overview")
   const [profileEditField, setProfileEditField] = useState<null | "username" | "email" | "password">(null)
   const [search, setSearch] = useState("")
   const [products, setProducts] = useState<ShopProduct[]>([])
@@ -161,6 +162,7 @@ export function Navbar() {
   useEffect(() => {
     if (!profileOpen) {
       setProfileStep("initial")
+      setProfileLoggedStep("overview")
       setProfileEditField(null)
       setProfileError("")
       setProfileSubmitting(false)
@@ -258,6 +260,7 @@ export function Navbar() {
   const popularSuggestions = emptySuggestions.slice(0, 4)
   const exploreSuggestions = emptySuggestions.slice(4)
   const profileView = user ? "logged" : profileStep
+  const displayUsername = user?.username || user?.email?.split("@")[0] || "cliente"
 
   async function submitProfileLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -776,7 +779,7 @@ export function Navbar() {
                     <div>
                       <p className="text-xs uppercase tracking-[0.24em] text-white/45">Profilo shop</p>
                       <h2 className="mt-3 text-2xl font-semibold text-white">
-                        {profileView === "logged" && user ? `Ciao, ${user.username}` : "Accedi o crea un account"}
+                        {profileView === "logged" ? `Ciao, ${displayUsername}` : "Accedi o crea un account"}
                       </h2>
                       <p className="mt-2 text-sm text-white/60">
                       {profileView === "logged"
@@ -802,28 +805,41 @@ export function Navbar() {
                     </div>
                   ) : profileView === "logged" && user ? (
                     <>
-                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                        <p className="text-sm text-white/45">Profilo attivo</p>
-                        <h3 className="mt-2 text-2xl font-semibold text-white">Ciao, {user.username}</h3>
-                        <p className="mt-2 text-sm text-white/60">Gestisci i tuoi dati e controlla i tuoi ordini.</p>
-                      </div>
+                      {profileLoggedStep === "overview" ? (
+                        <>
+                          <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                            <p className="text-sm text-white/45">Profilo attivo</p>
+                          </div>
 
-                      <div className="grid gap-3">
-                        <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
-                          <div className="flex items-start justify-between gap-4">
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Username</p>
-                              <p className="mt-2 text-base font-medium text-white">{user.username}</p>
-                            </div>
+                          <div className="grid gap-3">
                             <button
                               type="button"
-                              onClick={() => setProfileEditField(profileEditField === "username" ? null : "username")}
-                              className="text-sm text-white/65 transition hover:text-white"
+                              onClick={() => setProfileLoggedStep("edit")}
+                              className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
                             >
-                              Modifica username
+                              <div className="text-sm font-medium">Modifica profilo</div>
+                              <div className="mt-1 text-sm text-white/55">Username, email e password.</div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => navigate("/shop/profile")}
+                              className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
+                            >
+                              <div className="text-sm font-medium">I miei ordini</div>
+                              <div className="mt-1 text-sm text-white/55">Controlla lo storico e scarica le ricevute.</div>
                             </button>
                           </div>
-                          {profileEditField === "username" ? (
+                        </>
+                      ) : (
+                        <div className="grid gap-3">
+                          <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Username</p>
+                                <p className="mt-2 text-base font-medium text-white">{displayUsername}</p>
+                              </div>
+                            </div>
                             <form onSubmit={(event) => submitProfileUpdate("username", event)} className="mt-4 space-y-3">
                               <input
                                 className="shop-input"
@@ -832,29 +848,22 @@ export function Navbar() {
                                 onChange={(event) => setProfileForms({ ...profileForms, username: event.target.value })}
                                 required
                               />
-                              {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                              <Button type="submit" className="w-full">
-                                {profileSubmitting ? "Salvataggio..." : "Salva username"}
+                              {profileError && profileEditField === "username" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                              <Button
+                                type="submit"
+                                className="w-full"
+                                onClick={() => setProfileEditField("username")}
+                              >
+                                {profileSubmitting && profileEditField === "username" ? "Salvataggio..." : "Salva username"}
                               </Button>
                             </form>
-                          ) : null}
-                        </div>
+                          </div>
 
-                        <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
-                          <div className="flex items-start justify-between gap-4">
+                          <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
                             <div>
                               <p className="text-xs uppercase tracking-[0.2em] text-white/45">Email</p>
                               <p className="mt-2 text-base font-medium text-white">{user.email}</p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setProfileEditField(profileEditField === "email" ? null : "email")}
-                              className="text-sm text-white/65 transition hover:text-white"
-                            >
-                              Modifica email
-                            </button>
-                          </div>
-                          {profileEditField === "email" ? (
                             <form onSubmit={(event) => submitProfileUpdate("email", event)} className="mt-4 space-y-3">
                               <input
                                 className="shop-input"
@@ -872,29 +881,22 @@ export function Navbar() {
                                 onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
                                 required
                               />
-                              {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                              <Button type="submit" className="w-full">
-                                {profileSubmitting ? "Salvataggio..." : "Salva email"}
+                              {profileError && profileEditField === "email" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                              <Button
+                                type="submit"
+                                className="w-full"
+                                onClick={() => setProfileEditField("email")}
+                              >
+                                {profileSubmitting && profileEditField === "email" ? "Salvataggio..." : "Salva email"}
                               </Button>
                             </form>
-                          ) : null}
-                        </div>
+                          </div>
 
-                        <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
-                          <div className="flex items-start justify-between gap-4">
+                          <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
                             <div>
                               <p className="text-xs uppercase tracking-[0.2em] text-white/45">Password</p>
                               <p className="mt-2 text-base font-medium text-white">••••••••</p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setProfileEditField(profileEditField === "password" ? null : "password")}
-                              className="text-sm text-white/65 transition hover:text-white"
-                            >
-                              Modifica password
-                            </button>
-                          </div>
-                          {profileEditField === "password" ? (
                             <form onSubmit={(event) => submitProfileUpdate("password", event)} className="mt-4 space-y-3">
                               <input
                                 className="shop-input"
@@ -922,45 +924,31 @@ export function Navbar() {
                                 minLength={8}
                                 required
                               />
-                              {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                              <Button type="submit" className="w-full">
-                                {profileSubmitting ? "Salvataggio..." : "Salva password"}
+                              {profileError && profileEditField === "password" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                              <Button
+                                type="submit"
+                                className="w-full"
+                                onClick={() => setProfileEditField("password")}
+                              >
+                                {profileSubmitting && profileEditField === "password" ? "Salvataggio..." : "Salva password"}
                               </Button>
                             </form>
-                          ) : null}
-                        </div>
-                      </div>
+                          </div>
 
-                      <div className="grid gap-3">
-                        <button
-                          type="button"
-                          onClick={() => navigate("/shop/profile")}
-                          className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
-                        >
-                          <div className="text-sm font-medium">Apri profilo completo</div>
-                          <div className="mt-1 text-sm text-white/55">Ordini, ricevute e dettagli account.</div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => navigate("/shop/profile")}
-                          className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
-                        >
-                          <div className="text-sm font-medium">I miei ordini</div>
-                          <div className="mt-1 text-sm text-white/55">Controlla lo storico e scarica le ricevute.</div>
-                        </button>
-
-                        {user.role === "admin" ? (
-                          <button
+                          <Button
                             type="button"
-                            onClick={() => navigate("/shop/admin")}
-                            className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
+                            variant="ghost"
+                            className="w-full"
+                            onClick={() => {
+                              setProfileLoggedStep("overview")
+                              setProfileEditField(null)
+                              setProfileError("")
+                            }}
                           >
-                            <div className="text-sm font-medium">Area admin</div>
-                            <div className="mt-1 text-sm text-white/55">Gestisci prodotti, ordini e coupon.</div>
-                          </button>
-                        ) : null}
-                      </div>
+                            Annulla
+                          </Button>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>
