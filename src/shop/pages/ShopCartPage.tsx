@@ -77,7 +77,7 @@ export function ShopCartPage() {
             to="/shop"
             className="mt-4 inline-flex rounded-full border border-white/10 px-5 py-3 text-sm text-white transition hover:border-white/25 hover:text-white"
           >
-            Apri il catalogo
+            Vai al catalogo
           </Link>
         </div>
       ) : null}

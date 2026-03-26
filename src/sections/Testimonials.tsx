@@ -186,7 +186,7 @@ export function Testimonials() {
                 <div>
                   <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">La tua esperienza</label>
                   <textarea
-                    className="shop-textarea min-h-32"
+                    className="shop-textarea min-h-32 resize-none"
                     value={form.body}
                     onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
                     placeholder="Racconta com'è andato l'acquisto, il prodotto e l'esperienza complessiva."
@@ -227,6 +227,11 @@ export function Testimonials() {
                     È una preview più umana del brand: il modo in cui selezioniamo i pezzi da pubblicare,
                     l&apos;attenzione al ritmo delle collezioni e il tipo di presenza visiva che vogliamo
                     portare dentro case, studi e spazi personali.
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-white/65">
+                    Parliamo di processo, gusto, materiali e direzione: non solo cosa vendiamo, ma anche
+                    perché certi poster entrano in collezione e che tipo di relazione vogliamo creare con
+                    chi sceglie di portarli nel proprio spazio.
                   </p>
                 </div>
 

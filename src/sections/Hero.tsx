@@ -35,7 +35,7 @@ export function Hero() {
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button href="#shop">Apri shop</Button>
               <Button type="button" onClick={openProfilePanel} variant="ghost">
-                Accedi al profilo
+                Account
               </Button>
             </div>
           </Reveal>

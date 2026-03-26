@@ -23,7 +23,7 @@ export function HomeShop() {
                 <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
                   Poster, stampe e pezzi creativi da collezionare.
                 </h2>
-                <p className="mt-4 max-w-[78rem] text-sm leading-7 text-white/70 md:text-base">
+                <p className="mt-4 max-w-[88rem] text-sm leading-7 text-white/70 md:text-base">
                   Una selezione BNS Studio di visual, print e oggetti con identità precisa.
                   Sfoglia il catalogo, apri le schede prodotto e usa il pannello profilo per gestire
                   accesso, ordini e checkout.

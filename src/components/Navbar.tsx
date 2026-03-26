@@ -721,7 +721,17 @@ export function Navbar() {
                     >
                       {!items.length ? (
                         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
-                          Il carrello e vuoto. Apri il catalogo per aggiungere un prodotto.
+                          <p>Il carrello e vuoto.</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCartOpen(false)
+                              navigate("/shop")
+                            }}
+                            className="mt-4 inline-flex rounded-full border border-white/10 px-5 py-3 text-sm text-white transition hover:border-white/25 hover:text-white"
+                          >
+                            Vai al catalogo
+                          </button>
                         </div>
                       ) : (
                         items.map((item) => (
