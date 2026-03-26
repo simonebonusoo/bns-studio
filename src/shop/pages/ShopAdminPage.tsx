@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react"
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { ShopOrder, ShopProduct } from "../types"
+import { ShopOrder, ShopProduct, ShopReview } from "../types"
 
 type Coupon = {
   id: number
@@ -37,13 +37,17 @@ type SettingEntry = {
 
 type ProductFormState = {
   title: string
-  slug: string
   description: string
-  price: number
+  price: string
   category: string
   featured: boolean
   stock: number
   existingImageUrls: string[]
+}
+
+type AdminReview = ShopReview & {
+  status: string
+  showOnHomepage: boolean
 }
 
 type CouponFormState = {
@@ -70,9 +74,8 @@ type RuleFormState = {
 
 const emptyProductForm = (): ProductFormState => ({
   title: "",
-  slug: "",
   description: "",
-  price: 0,
+  price: "",
   category: "",
   featured: false,
   stock: 0,
@@ -117,14 +120,19 @@ function containWheel(event: React.WheelEvent<HTMLElement>) {
   event.stopPropagation()
 }
 
+function formatEuroInput(value: number) {
+  return Number.isInteger(value / 100) ? String(value / 100) : (value / 100).toFixed(2)
+}
+
 export function ShopAdminPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
+  const [reviews, setReviews] = useState<AdminReview[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [rules, setRules] = useState<DiscountRule[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
-  const [tab, setTab] = useState<"prodotti" | "ordini" | "sconti">("prodotti")
+  const [tab, setTab] = useState<"prodotti" | "recensioni" | "ordini" | "sconti">("prodotti")
 
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm)
   const [productFiles, setProductFiles] = useState<File[]>([])
@@ -159,8 +167,9 @@ export function ShopAdminPage() {
   }, [productPreviewUrls])
 
   async function refresh() {
-    const [productData, orderData, couponData, ruleData, categoryData, settingsData] = await Promise.all([
+    const [productData, reviewData, orderData, couponData, ruleData, categoryData, settingsData] = await Promise.all([
       apiFetch<ShopProduct[]>("/admin/products"),
+      apiFetch<AdminReview[]>("/admin/reviews"),
       apiFetch<ShopOrder[]>("/admin/orders"),
       apiFetch<Coupon[]>("/admin/coupons"),
       apiFetch<DiscountRule[]>("/admin/discount-rules"),
@@ -169,6 +178,7 @@ export function ShopAdminPage() {
     ])
 
     setProducts(productData)
+    setReviews(reviewData)
     setOrders(orderData)
     setCoupons(couponData)
     setRules(ruleData)
@@ -195,9 +205,8 @@ export function ShopAdminPage() {
     setEditingProductId(product.id)
     setProductForm({
       title: product.title,
-      slug: product.slug,
       description: product.description,
-      price: product.price,
+      price: formatEuroInput(product.price),
       category: product.category,
       featured: product.featured,
       stock: product.stock,
@@ -268,9 +277,8 @@ export function ShopAdminPage() {
 
       const payload = {
         title: productForm.title,
-        slug: productForm.slug,
         description: productForm.description,
-        price: Number(productForm.price),
+        price: Math.round(Number(String(productForm.price).replace(",", ".")) * 100),
         category: productForm.category,
         featured: productForm.featured,
         stock: Number(productForm.stock),
@@ -295,6 +303,27 @@ export function ShopAdminPage() {
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante il salvataggio del prodotto.")
+    }
+  }
+
+  async function toggleHomepageReview(reviewId: string, nextValue: boolean) {
+    clearFeedback()
+
+    const selectedCount = reviews.filter((review) => review.showOnHomepage).length
+    if (nextValue && selectedCount >= 10) {
+      setError("Puoi mostrare in homepage al massimo 10 recensioni.")
+      return
+    }
+
+    try {
+      await apiFetch(`/admin/reviews/${reviewId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ showOnHomepage: nextValue }),
+      })
+      await refresh()
+      setMessage(nextValue ? "Recensione aggiunta al loop homepage." : "Recensione rimossa dal loop homepage.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento della recensione.")
     }
   }
 
@@ -502,13 +531,14 @@ export function ShopAdminPage() {
       <div className="flex flex-wrap gap-3">
         {[
           ["prodotti", "Prodotti"],
+          ["recensioni", "Recensioni"],
           ["ordini", "Ordini"],
           ["sconti", "Sconti e coupon"],
         ].map(([key, label]) => (
           <button
             key={key}
             type="button"
-            onClick={() => setTab(key as "prodotti" | "ordini" | "sconti")}
+            onClick={() => setTab(key as "prodotti" | "recensioni" | "ordini" | "sconti")}
             className={`rounded-full px-4 py-2 text-sm ${tab === key ? "bg-white text-black" : "border border-white/10 text-white/70"}`}
           >
             {label}
@@ -535,27 +565,53 @@ export function ShopAdminPage() {
                 ) : null}
               </div>
 
-              <input className="shop-input" placeholder="Titolo" value={productForm.title} onChange={(event) => setProductForm({ ...productForm, title: event.target.value })} />
-              <input className="shop-input" placeholder="Slug" value={productForm.slug} onChange={(event) => setProductForm({ ...productForm, slug: event.target.value })} />
-              <div className="grid gap-4 md:grid-cols-2">
-                <select className="shop-select" value={productForm.category} onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}>
-                  <option value="">Seleziona una categoria</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                <input className="shop-input" type="number" placeholder="Prezzo in centesimi" value={productForm.price} onChange={(event) => setProductForm({ ...productForm, price: Number(event.target.value) })} />
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Titolo</label>
+                <input className="shop-input" placeholder="Titolo prodotto" value={productForm.title} onChange={(event) => setProductForm({ ...productForm, title: event.target.value })} />
               </div>
+
               <div className="grid gap-4 md:grid-cols-2">
-                <input className="shop-input" type="number" placeholder="Quantita disponibile" value={productForm.stock} onChange={(event) => setProductForm({ ...productForm, stock: Number(event.target.value) })} />
+                <div>
+                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Categoria</label>
+                  <select className="shop-select" value={productForm.category} onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}>
+                    <option value="">Seleziona una categoria</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Prezzo</label>
+                  <input
+                    className="shop-input"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    placeholder="19.90"
+                    value={productForm.price}
+                    onChange={(event) => setProductForm({ ...productForm, price: event.target.value })}
+                  />
+                  <p className="mt-2 text-xs text-white/45">Inserisci il prezzo direttamente in euro.</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Quantità</label>
+                  <input className="shop-input" type="number" min="0" placeholder="0" value={productForm.stock} onChange={(event) => setProductForm({ ...productForm, stock: Number(event.target.value) })} />
+                </div>
                 <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
                   <input type="checkbox" checked={productForm.featured} onChange={(event) => setProductForm({ ...productForm, featured: event.target.checked })} />
                   Metti in evidenza
                 </label>
               </div>
-              <textarea className="shop-textarea min-h-32" placeholder="Descrizione" value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} />
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Descrizione</label>
+                <textarea className="shop-textarea min-h-32" placeholder="Descrizione prodotto" value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} />
+              </div>
 
               <div className="space-y-3 rounded-2xl border border-white/10 p-4">
                 <div className="flex items-center justify-between gap-4">
@@ -698,6 +754,67 @@ export function ShopAdminPage() {
             </div>
           </section>
         </div>
+      ) : null}
+
+      {tab === "recensioni" ? (
+        <section className="shop-card space-y-5 p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Recensioni</h2>
+              <p className="mt-1 text-sm text-white/55">
+                Seleziona fino a 10 recensioni da mostrare nel loop della homepage.
+              </p>
+            </div>
+            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/65">
+              {reviews.filter((review) => review.showOnHomepage).length} / 10 in homepage
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {reviews.map((review) => {
+              const selectedCount = reviews.filter((item) => item.showOnHomepage).length
+              const disableSelect = !review.showOnHomepage && selectedCount >= 10
+
+              return (
+                <article key={review.id} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-base font-medium text-white">{review.authorName}</p>
+                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
+                          {review.rating}/5
+                        </span>
+                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
+                          {new Date(review.createdAt).toLocaleDateString("it-IT")}
+                        </span>
+                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
+                          {review.status}
+                        </span>
+                      </div>
+                      <h3 className="mt-3 text-lg font-semibold text-white">{review.title}</h3>
+                      <p className="mt-2 line-clamp-3 text-sm leading-7 text-white/68">{review.body}</p>
+                      <div className="mt-3">
+                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
+                          {review.tag}
+                        </span>
+                      </div>
+                    </div>
+
+                    <label className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${review.showOnHomepage ? "border-[#e3f503]/40 text-white" : "border-white/10 text-white/65"}`}>
+                      <input
+                        type="checkbox"
+                        checked={review.showOnHomepage}
+                        disabled={disableSelect}
+                        onChange={(event) => toggleHomepageReview(review.id, event.target.checked)}
+                      />
+                      Mostra in homepage
+                    </label>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
       ) : null}
 
       {tab === "ordini" ? (

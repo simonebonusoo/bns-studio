@@ -28,6 +28,8 @@ function serializeReview(review) {
     title: review.title,
     body: review.body,
     tag: review.tag,
+    status: review.status,
+    showOnHomepage: review.showOnHomepage,
     createdAt: review.createdAt,
     authorName: review.user.username || review.user.firstName || review.user.email.split("@")[0],
   }
@@ -37,7 +39,7 @@ router.get(
   "/",
   asyncHandler(async (_req, res) => {
     const reviews = await prisma.review.findMany({
-      where: { status: "approved" },
+      where: { status: "approved", showOnHomepage: true },
       include: {
         user: {
           select: {
@@ -48,6 +50,7 @@ router.get(
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 10,
     })
 
     const count = reviews.length
@@ -79,6 +82,7 @@ router.post(
         body: body.body,
         tag: body.tag || "Cliente verificato",
         status: "approved",
+        showOnHomepage: false,
       },
       include: {
         user: {

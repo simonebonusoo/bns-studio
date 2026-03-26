@@ -101,6 +101,8 @@ export type ShopReview = {
   title: string
   body: string
   tag: string
+  status?: string
+  showOnHomepage?: boolean
   createdAt: string
   authorName: string
 }

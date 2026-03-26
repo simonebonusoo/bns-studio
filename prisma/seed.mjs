@@ -105,6 +105,7 @@ const seededReviews = [
     title: "Poster curato e stampa molto pulita",
     body: "Il visual dal vivo rende ancora meglio che in foto. Packaging ordinato, spedizione veloce e qualità davvero solida per uno spazio studio minimal.",
     tag: "Poster arrivato",
+    showOnHomepage: true,
   },
   {
     publicId: "review-giulia-collection",
@@ -113,6 +114,7 @@ const seededReviews = [
     title: "Collezione coerente e facile da abbinare",
     body: "Ho preso più pezzi insieme e l'effetto finale è super coerente. Si vede che c'è una direzione estetica chiara dietro ogni prodotto.",
     tag: "Collezione completata",
+    showOnHomepage: true,
   },
   {
     publicId: "review-luca-gift",
@@ -121,6 +123,7 @@ const seededReviews = [
     title: "Regalo riuscito, ottima presenza visiva",
     body: "L'ho scelto come regalo e ha fatto subito la sua scena. Molto forte la parte grafica, bene anche i tempi e l'assistenza nelle informazioni.",
     tag: "Regalo riuscito",
+    showOnHomepage: true,
   },
   {
     publicId: "review-serena-support",
@@ -129,6 +132,7 @@ const seededReviews = [
     title: "Supporto rapido e prodotto coerente",
     body: "Mi serviva un chiarimento prima dell'acquisto e la risposta è arrivata in fretta. Prodotto curato, immagini fedeli e identità BNS molto chiara.",
     tag: "Supporto attivo",
+    showOnHomepage: true,
   },
 ]
 
@@ -288,6 +292,7 @@ async function main() {
         body: review.body,
         tag: review.tag,
         status: "approved",
+        showOnHomepage: review.showOnHomepage,
       },
       create: {
         publicId: review.publicId,
@@ -297,6 +302,7 @@ async function main() {
         body: review.body,
         tag: review.tag,
         status: "approved",
+        showOnHomepage: review.showOnHomepage,
       },
     })
   }

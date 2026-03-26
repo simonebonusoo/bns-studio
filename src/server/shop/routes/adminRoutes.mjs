@@ -60,6 +60,32 @@ function normalizeCouponCode(value) {
   return value.trim().toUpperCase()
 }
 
+function slugifyProductTitle(value) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+    .slice(0, 80)
+}
+
+async function ensureUniqueProductSlug(baseValue, excludeId) {
+  const base = slugifyProductTitle(baseValue) || `product-${Date.now()}`
+
+  for (let suffix = 0; suffix < 1000; suffix += 1) {
+    const candidate =
+      suffix === 0 ? base : `${base.slice(0, Math.max(1, 80 - String(suffix).length - 1))}-${suffix}`
+    const existing = await prisma.product.findUnique({ where: { slug: candidate } })
+    if (!existing || existing.id === excludeId) {
+      return candidate
+    }
+  }
+
+  throw new HttpError(500, "Impossibile generare uno slug univoco")
+}
+
 async function ensureCategoriesSetting() {
   const existingCategories = await prisma.product.findMany({
     distinct: ["category"],
@@ -84,13 +110,17 @@ async function getCategories() {
 
 const productSchema = z.object({
   title: z.string().min(1),
-  slug: z.string().min(1),
+  slug: z.string().min(1).optional(),
   description: z.string().min(1),
   price: z.number().min(0),
   category: z.string().min(1),
   imageUrls: z.array(z.string().min(1)).min(1),
   featured: z.boolean().default(false),
   stock: z.number().int().min(0).default(0),
+})
+
+const reviewAdminSchema = z.object({
+  showOnHomepage: z.boolean(),
 })
 
 const couponSchema = z.object({
@@ -168,8 +198,9 @@ router.post(
     if (!categories.includes(body.category)) {
       throw new HttpError(400, "Categoria non valida")
     }
+    const slug = await ensureUniqueProductSlug(body.slug || body.title)
     const product = await prisma.product.create({
-      data: { ...body, imageUrls: JSON.stringify(body.imageUrls) },
+      data: { ...body, slug, imageUrls: JSON.stringify(body.imageUrls) },
     })
     res.status(201).json({ ...product, imageUrls: body.imageUrls })
   })
@@ -179,13 +210,21 @@ router.put(
   "/products/:id",
   asyncHandler(async (req, res) => {
     const body = productSchema.parse(req.body)
+    const productId = Number(req.params.id)
+    const existingProduct = await prisma.product.findUnique({ where: { id: productId } })
+    if (!existingProduct) {
+      throw new HttpError(404, "Prodotto non trovato")
+    }
     const categories = await getCategories()
     if (!categories.includes(body.category)) {
       throw new HttpError(400, "Categoria non valida")
     }
+    const slug = body.slug
+      ? await ensureUniqueProductSlug(body.slug, productId)
+      : existingProduct.slug
     const product = await prisma.product.update({
-      where: { id: Number(req.params.id) },
-      data: { ...body, imageUrls: JSON.stringify(body.imageUrls) },
+      where: { id: productId },
+      data: { ...body, slug, imageUrls: JSON.stringify(body.imageUrls) },
     })
     res.json({ ...product, imageUrls: body.imageUrls })
   })
@@ -283,6 +322,83 @@ router.delete(
       data: { value: JSON.stringify(next) },
     })
     res.json(next)
+  })
+)
+
+router.get(
+  "/reviews",
+  asyncHandler(async (_req, res) => {
+    const reviews = await prisma.review.findMany({
+      include: {
+        user: {
+          select: {
+            email: true,
+            username: true,
+            firstName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+
+    res.json(
+      reviews.map((review) => ({
+        id: review.publicId,
+        rating: review.rating,
+        title: review.title,
+        body: review.body,
+        tag: review.tag,
+        status: review.status,
+        showOnHomepage: review.showOnHomepage,
+        createdAt: review.createdAt,
+        authorName: review.user.username || review.user.firstName || review.user.email.split("@")[0],
+      }))
+    )
+  })
+)
+
+router.patch(
+  "/reviews/:id",
+  asyncHandler(async (req, res) => {
+    const body = reviewAdminSchema.parse(req.body)
+
+    if (body.showOnHomepage) {
+      const selectedCount = await prisma.review.count({
+        where: { showOnHomepage: true, publicId: { not: req.params.id }, status: "approved" },
+      })
+
+      if (selectedCount >= 10) {
+        throw new HttpError(400, "Puoi mostrare in homepage al massimo 10 recensioni")
+      }
+    }
+
+    const review = await prisma.review.update({
+      where: { publicId: req.params.id },
+      data: {
+        showOnHomepage: body.showOnHomepage,
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            username: true,
+            firstName: true,
+          },
+        },
+      },
+    })
+
+    res.json({
+      id: review.publicId,
+      rating: review.rating,
+      title: review.title,
+      body: review.body,
+      tag: review.tag,
+      status: review.status,
+      showOnHomepage: review.showOnHomepage,
+      createdAt: review.createdAt,
+      authorName: review.user.username || review.user.firstName || review.user.email.split("@")[0],
+    })
   })
 )
 
