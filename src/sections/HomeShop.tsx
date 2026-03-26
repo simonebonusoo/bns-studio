@@ -268,15 +268,9 @@ export function HomeShop() {
           <div className="shop-pill inline-flex items-center gap-3">
             <span>{productCountLabel}</span>
           </div>
-          <div className="space-y-4">
-            <h2 className="max-w-5xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Poster, stampe e pezzi creativi da collezionare.
-            </h2>
-            <p className="max-w-none text-base leading-7 text-white/72 sm:text-lg">
-              Una selezione costruita per far emergere subito temi forti, immagini riconoscibili e idee
-              regalo piu facili da trovare.
-            </p>
-          </div>
+          <h2 className="max-w-5xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            Poster, stampe e pezzi creativi da collezionare.
+          </h2>
         </div>
 
         <div className="space-y-12 sm:space-y-14">
