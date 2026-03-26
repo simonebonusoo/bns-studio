@@ -846,7 +846,6 @@ export function Navbar() {
                                 setCartOpen(false)
                                 navigate("/shop/checkout")
                               }}
-                              size="sm"
                               text="Vai al checkout"
                               className="w-full"
                             >
