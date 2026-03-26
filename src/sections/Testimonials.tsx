@@ -45,7 +45,7 @@ function formatReviewDate(value: string) {
 }
 
 export function Testimonials() {
-  const { user, loading } = useShopAuth()
+  const { user } = useShopAuth()
   const [reviews, setReviews] = useState<ShopReview[]>([])
   const [summary, setSummary] = useState<ShopReviewSummary>({ averageRating: 0, count: 0 })
   const [submitting, setSubmitting] = useState(false)
@@ -132,14 +132,6 @@ export function Testimonials() {
                 Puoi compilare il form subito. Ti chiederemo l&apos;accesso solo al momento della pubblicazione.
               </p>
             </div>
-
-            {!loading && !user ? (
-              <div className="mt-6 rounded-[24px] border border-white/10 bg-black/20 px-5 py-5">
-                <p className="text-sm text-white/65">
-                  Scrivi pure la recensione: quando proverai a pubblicarla si aprirà il drawer laterale di login, senza perdere i campi già compilati.
-                </p>
-              </div>
-            ) : null}
 
               <form onSubmit={submitReview} className="mt-6 grid gap-4">
                 <div className="grid gap-4 lg:grid-cols-[150px_180px_minmax(0,1fr)]">

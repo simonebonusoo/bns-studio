@@ -37,6 +37,24 @@ type SettingEntry = {
   value: string
 }
 
+type HomepagePopularCategory = {
+  title: string
+  description: string
+  href: string
+  query: string
+  imageUrl?: string
+}
+
+type HomepageShowcase = {
+  eyebrow: string
+  title: string
+  description: string
+  href: string
+  query: string
+  imageUrl?: string
+  ctaLabel: string
+}
+
 type ProductFormState = {
   title: string
   description: string
@@ -171,6 +189,44 @@ const emptyRuleForm = (): RuleFormState => ({
   active: true,
 })
 
+const defaultHomepagePopularCategories: HomepagePopularCategory[] = [
+  { title: "Cantanti famosi", description: "Poster dedicati alle icone pop, rap e rock piu amate.", href: "/shop?search=cantanti", query: "cantanti" },
+  { title: "Frasi d'amore", description: "Parole da regalare, appendere e trasformare in atmosfera.", href: "/shop?search=amore", query: "amore" },
+  { title: "Calciatori famosi", description: "Stampe per chi vuole portare il tifo dentro casa.", href: "/shop?search=calciatori", query: "calciatori" },
+  { title: "Film e serie TV", description: "Scene, citazioni e mondi diventati immagini da collezione.", href: "/shop?search=film", query: "film" },
+  { title: "Arte iconica", description: "Visioni forti, linee pulite e riferimenti visivi senza tempo.", href: "/shop?search=arte", query: "arte" },
+  { title: "Poster personalizzati", description: "Idee su misura da regalare o costruire intorno ai tuoi ricordi.", href: "/shop?search=personalizzati", query: "personalizzati" },
+  { title: "Citazioni motivazionali", description: "Messaggi diretti per studio, lavoro e spazi creativi.", href: "/shop?search=motivazionali", query: "motivazionali" },
+  { title: "Fotografie artistiche", description: "Scatti editoriali e immagini da lasciare respirare sulla parete.", href: "/shop?search=fotografie", query: "fotografie" },
+]
+
+const defaultHomepageShowcases: HomepageShowcase[] = [
+  {
+    eyebrow: "Selezione in evidenza",
+    title: "Cantanti famosi",
+    description: "Volti iconici, testi che restano impressi e poster pensati per chi vuole dare subito carattere a una stanza.",
+    href: "/shop?search=cantanti",
+    query: "cantanti",
+    ctaLabel: "Esplora la collezione",
+  },
+  {
+    eyebrow: "Da regalare o tenere",
+    title: "Frasi d'amore",
+    description: "Una collezione costruita per dire qualcosa di preciso con poco: parole semplici, atmosfera pulita, impatto immediato.",
+    href: "/shop?search=amore",
+    query: "amore",
+    ctaLabel: "Esplora la collezione",
+  },
+  {
+    eyebrow: "Per chi vive il gioco",
+    title: "Calciatori famosi",
+    description: "Stampe con energia sportiva e taglio grafico deciso, per portare passione, memorie e riferimenti forti dentro casa.",
+    href: "/shop?search=calciatori",
+    query: "calciatori",
+    ctaLabel: "Esplora la collezione",
+  },
+]
+
 function toDatetimeLocal(value?: string | null) {
   if (!value) return ""
   const date = new Date(value)
@@ -195,6 +251,16 @@ function parseEuroToCents(value: string) {
   const normalized = Number(String(value).replace(",", "."))
   if (!Number.isFinite(normalized) || normalized < 0) return 0
   return Math.round(normalized * 100)
+}
+
+function parseHomepageSetting<T extends Record<string, unknown>>(value: string | undefined, fallback: T[]) {
+  if (!value) return fallback
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) && parsed.length ? (parsed as T[]) : fallback
+  } catch {
+    return fallback
+  }
 }
 
 function getCouponAmountLabel(type: CouponFormState["type"]) {
@@ -225,7 +291,13 @@ export function ShopAdminPage() {
   const [categories, setCategories] = useState<string[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
   const [shippingCostInput, setShippingCostInput] = useState("9")
-  const [tab, setTab] = useState<"prodotti" | "recensioni" | "ordini" | "utenti" | "data" | "sconti">("prodotti")
+  const [tab, setTab] = useState<"prodotti" | "homepage" | "recensioni" | "ordini" | "utenti" | "data" | "sconti">("prodotti")
+  const [homepagePopularCategories, setHomepagePopularCategories] = useState<HomepagePopularCategory[]>(defaultHomepagePopularCategories)
+  const [homepageShowcases, setHomepageShowcases] = useState<HomepageShowcase[]>(defaultHomepageShowcases)
+  const [homepageFocus, setHomepageFocus] = useState<{ section: "showcases" | "popular-categories"; item: number | null }>({
+    section: "showcases",
+    item: null,
+  })
 
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm)
   const [productFiles, setProductFiles] = useState<File[]>([])
@@ -276,6 +348,22 @@ export function ShopAdminPage() {
   }, [navigate, products, searchParams])
 
   useEffect(() => {
+    const nextTab = searchParams.get("tab")
+    if (nextTab === "homepage") {
+      setTab("homepage")
+    }
+
+    const section = searchParams.get("section")
+    const item = Number(searchParams.get("item") || "")
+    if (section === "showcases" || section === "popular-categories") {
+      setHomepageFocus({
+        section,
+        item: Number.isFinite(item) ? item : null,
+      })
+    }
+  }, [searchParams])
+
+  useEffect(() => {
     return () => {
       productPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
     }
@@ -300,6 +388,11 @@ export function ShopAdminPage() {
 
   useEffect(() => {
     setShippingCostInput(formatEuroInput(Number(settingValue("shippingCost", "900"))))
+  }, [settings])
+
+  useEffect(() => {
+    setHomepagePopularCategories(parseHomepageSetting(settingValue("homepagePopularCategories"), defaultHomepagePopularCategories))
+    setHomepageShowcases(parseHomepageSetting(settingValue("homepageShowcases"), defaultHomepageShowcases))
   }, [settings])
 
   async function refresh() {
@@ -690,6 +783,23 @@ export function ShopAdminPage() {
     }
   }
 
+  async function saveHomepageContent() {
+    clearFeedback()
+    try {
+      const data = await apiFetch<SettingEntry[]>("/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify([
+          { key: "homepagePopularCategories", value: JSON.stringify(homepagePopularCategories) },
+          { key: "homepageShowcases", value: JSON.stringify(homepageShowcases) },
+        ]),
+      })
+      setSettings(data)
+      setMessage("Contenuti homepage aggiornati correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il salvataggio dei contenuti homepage.")
+    }
+  }
+
   return (
     <ShopLayout
       eyebrow="Admin"
@@ -699,6 +809,7 @@ export function ShopAdminPage() {
       <div className="flex flex-wrap gap-3">
         {[
           ["prodotti", "Prodotti"],
+          ["homepage", "Homepage"],
           ["recensioni", "Recensioni"],
           ["ordini", "Ordini"],
           ["utenti", "Utenti"],
@@ -708,7 +819,7 @@ export function ShopAdminPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setTab(key as "prodotti" | "recensioni" | "ordini" | "utenti" | "data" | "sconti")}
+            onClick={() => setTab(key as "prodotti" | "homepage" | "recensioni" | "ordini" | "utenti" | "data" | "sconti")}
             className={`rounded-full px-4 py-2 text-sm ${tab === key ? "bg-white text-black" : "border border-white/10 text-white/70"}`}
           >
             {label}
@@ -973,6 +1084,85 @@ export function ShopAdminPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {tab === "homepage" ? (
+        <div className="space-y-6">
+          <section className="shop-card space-y-5 p-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Selezioni in evidenza</h2>
+                <p className="mt-1 text-sm text-white/55">Modifica i blocchi editoriali mostrati nella homepage dello shop.</p>
+              </div>
+              <button type="button" onClick={saveHomepageContent} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+                Salva contenuti homepage
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {homepageShowcases.map((item, index) => (
+                <div
+                  key={`${item.title}-${index}`}
+                  className={`rounded-[24px] border p-5 ${homepageFocus.section === "showcases" && homepageFocus.item === index ? "border-[#e3f503]/45 bg-white/[0.05]" : "border-white/10 bg-white/[0.03]"}`}
+                >
+                  <div className="mb-4 flex items-center justify-between gap-4">
+                    <p className="text-sm font-medium text-white">Blocco {index + 1}</p>
+                    <button
+                      type="button"
+                      onClick={() => setHomepageFocus({ section: "showcases", item: index })}
+                      className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
+                    >
+                      In modifica
+                    </button>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <input className="shop-input" placeholder="Eyebrow" value={item.eyebrow} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, eyebrow: event.target.value } : entry))} />
+                    <input className="shop-input" placeholder="Titolo" value={item.title} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
+                    <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
+                    <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
+                    <input className="shop-input" placeholder="Etichetta CTA" value={item.ctaLabel} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, ctaLabel: event.target.value } : entry))} />
+                    <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
+                  </div>
+                  <textarea className="shop-textarea mt-4 min-h-24 resize-none" placeholder="Descrizione" value={item.description} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="shop-card space-y-5 p-6">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Categorie popolari</h2>
+              <p className="mt-1 text-sm text-white/55">Modifica le card scrollabili usate nella homepage dello shop.</p>
+            </div>
+
+            <div className="space-y-4">
+              {homepagePopularCategories.map((item, index) => (
+                <div
+                  key={`${item.title}-${index}`}
+                  className={`rounded-[24px] border p-5 ${homepageFocus.section === "popular-categories" && homepageFocus.item === index ? "border-[#e3f503]/45 bg-white/[0.05]" : "border-white/10 bg-white/[0.03]"}`}
+                >
+                  <div className="mb-4 flex items-center justify-between gap-4">
+                    <p className="text-sm font-medium text-white">Categoria {index + 1}</p>
+                    <button
+                      type="button"
+                      onClick={() => setHomepageFocus({ section: "popular-categories", item: index })}
+                      className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
+                    >
+                      In modifica
+                    </button>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <input className="shop-input" placeholder="Titolo categoria" value={item.title} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
+                    <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
+                    <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
+                    <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
+                  </div>
+                  <textarea className="shop-textarea mt-4 min-h-24 resize-none" placeholder="Descrizione breve" value={item.description} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
                 </div>
               ))}
             </div>

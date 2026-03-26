@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Container } from "../components/Container";
 import { ProductCard } from "../shop/components/ProductCard";
+import { useShopAuth } from "../shop/context/ShopAuthProvider";
 import type { ShopProduct } from "../shop/types";
 import { apiFetch } from "../shop/lib/api";
 
@@ -12,6 +13,7 @@ type DiscoveryCard = {
   description: string;
   href: string;
   query: string;
+  imageUrl?: string;
 };
 
 type ShowcaseCard = {
@@ -20,9 +22,11 @@ type ShowcaseCard = {
   description: string;
   href: string;
   query: string;
+  imageUrl?: string;
+  ctaLabel?: string;
 };
 
-const popularCategories: DiscoveryCard[] = [
+const defaultPopularCategories: DiscoveryCard[] = [
   {
     title: "Cantanti famosi",
     description: "Poster dedicati alle icone pop, rap e rock piu amate.",
@@ -73,7 +77,7 @@ const popularCategories: DiscoveryCard[] = [
   },
 ];
 
-const showcases: ShowcaseCard[] = [
+const defaultShowcases: ShowcaseCard[] = [
   {
     eyebrow: "Selezione in evidenza",
     title: "Cantanti famosi",
@@ -208,8 +212,36 @@ function pickProductImage(products: ShopProduct[], query: string, fallbackIndex:
   return products[fallbackIndex % products.length]?.imageUrls[0] ?? null;
 }
 
+function parseHomepageEntries<T extends { title: string; href: string; query: string }>(
+  rawValue: string | undefined,
+  fallback: T[],
+) {
+  if (!rawValue) return fallback;
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (!Array.isArray(parsed)) return fallback;
+
+    const normalized = parsed
+      .filter((entry) => entry && typeof entry === "object")
+      .map((entry) => ({
+        ...entry,
+        title: String(entry.title || "").trim(),
+        href: String(entry.href || "").trim(),
+        query: String(entry.query || "").trim(),
+      }))
+      .filter((entry) => entry.title && entry.href && entry.query);
+
+    return normalized.length ? (normalized as T[]) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function HomeShop() {
+  const { user } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
   useEffect(() => {
@@ -218,9 +250,13 @@ export function HomeShop() {
     async function loadProducts() {
       try {
         setStatus("loading");
-        const data = await apiFetch<ShopProduct[]>("/store/products");
+        const [productData, settingsData] = await Promise.all([
+          apiFetch<ShopProduct[]>("/store/products"),
+          apiFetch<Record<string, string>>("/store/settings"),
+        ]);
         if (!cancelled) {
-          setProducts(data);
+          setProducts(productData);
+          setShopSettings(settingsData);
           setStatus("idle");
         }
       } catch (error) {
@@ -240,6 +276,16 @@ export function HomeShop() {
 
   const productCountLabel = `Totale: ${products.length} ${products.length === 1 ? "prodotto" : "prodotti"}`;
 
+  const popularCategories = useMemo(
+    () => parseHomepageEntries<DiscoveryCard>(shopSettings.homepagePopularCategories, defaultPopularCategories),
+    [shopSettings]
+  );
+
+  const showcases = useMemo(
+    () => parseHomepageEntries<ShowcaseCard>(shopSettings.homepageShowcases, defaultShowcases),
+    [shopSettings]
+  );
+
   const popularCategoryCards = useMemo(
     () =>
       popularCategories.map((category, index) => ({
@@ -250,16 +296,15 @@ export function HomeShop() {
   );
 
   const showcaseCards = useMemo(() => {
-    const singersImage = pickProductImage(products, showcases[0].query, 3);
+    const singersImage = pickProductImage(products, showcases[0]?.query || defaultShowcases[0].query, 3);
 
     return showcases.map((showcase, index) => ({
       ...showcase,
-      imageUrl:
-        showcase.title === "Frasi d'amore"
-          ? singersImage
-          : pickProductImage(products, showcase.query, index + 3),
+      imageUrl: showcase.imageUrl || (showcase.title === "Frasi d'amore"
+        ? singersImage
+        : pickProductImage(products, showcase.query, index + 3)),
     }));
-  }, [products]);
+  }, [products, showcases]);
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
@@ -322,10 +367,15 @@ export function HomeShop() {
                         <p className="max-w-xl text-base leading-7 text-white/68">{showcase.description}</p>
                       </div>
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-3 sm:flex-row">
                       <Button asChild size="sm">
-                        <Link to={showcase.href}>Esplora la collezione</Link>
+                        <Link to={showcase.href}>{showcase.ctaLabel || "Esplora la collezione"}</Link>
                       </Button>
+                      {user?.role === "admin" ? (
+                        <Button asChild variant="ghost" size="sm">
+                          <Link to={`/shop/admin?tab=homepage&section=showcases&item=${index}`}>Modifica</Link>
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                   <div
@@ -351,21 +401,28 @@ export function HomeShop() {
         </div>
 
         <div className="space-y-10 pt-10 sm:pt-16">
-          <div className="space-y-2">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.32em] text-white/45">Categorie popolari</p>
               <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Le direzioni piu cercate, subito a portata di scroll.
               </h3>
+            </div>
+            {user?.role === "admin" ? (
+              <Button asChild variant="ghost" size="sm" className="self-start md:self-auto">
+                <Link to="/shop/admin?tab=homepage&section=popular-categories">Modifica</Link>
+              </Button>
+            ) : null}
           </div>
 
           <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
             <div className="flex min-w-full snap-x gap-5 sm:gap-6">
-              {popularCategoryCards.map((category) => (
-                <Link
+              {popularCategoryCards.map((category, index) => (
+                <article
                   key={category.title}
-                  to={category.href}
                   className="group relative flex min-h-[22rem] w-[18.5rem] flex-none snap-start overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06] sm:w-[20rem]"
                 >
+                  <Link to={category.href} className="absolute inset-0 z-10" aria-label={`Apri ${category.title}`} />
                   <div className="absolute inset-0">
                     {category.imageUrl ? (
                       <img
@@ -376,8 +433,15 @@ export function HomeShop() {
                     ) : null}
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.14)_0%,rgba(0,0,0,0.78)_72%,rgba(0,0,0,0.94)_100%)]" />
                   </div>
+                  {user?.role === "admin" ? (
+                    <div className="relative z-20 mb-4 flex justify-end">
+                      <Button asChild variant="ghost" size="sm">
+                        <Link to={`/shop/admin?tab=homepage&section=popular-categories&item=${index}`}>Modifica</Link>
+                      </Button>
+                    </div>
+                  ) : null}
                   <div className="relative z-10 mt-auto flex w-full items-end justify-between gap-4">
-                    <div className="space-y-2">
+                    <div className="space-y-2 pr-3">
                       <h4 className="text-xl font-semibold tracking-tight text-white">{category.title}</h4>
                       <p className="max-w-[14rem] text-sm leading-6 text-white/72">{category.description}</p>
                     </div>
@@ -388,7 +452,7 @@ export function HomeShop() {
                       </svg>
                     </span>
                   </div>
-                </Link>
+                </article>
               ))}
             </div>
           </div>
