@@ -218,28 +218,35 @@ export function Testimonials() {
                 <h3 className="mt-3 text-2xl font-semibold text-white">Le persone dietro BNS Studio.</h3>
               </div>
 
-              <div className="mt-4 flow-root">
-                <div className="mx-auto mb-5 h-28 w-28 overflow-hidden rounded-full border border-white/10 bg-white/[0.03] sm:h-32 sm:w-32 md:float-right md:mb-4 md:ml-6 md:h-36 md:w-36">
-                  <img src={founderPortrait} alt="Founder BNS Studio" className="h-full w-full object-cover" />
+              <div className="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_148px] md:items-start">
+                <div className="space-y-3">
+                  <p className="text-sm leading-7 text-white/65">
+                    BNS Studio nasce da una ricerca visiva personale che mette insieme poster, stampe e
+                    oggetti creativi con un taglio editoriale preciso. In questa pagina raccontiamo meglio
+                    chi c&apos;è dietro il progetto, come nasce una collezione e quale immaginario vogliamo
+                    costruire nel tempo tra prodotto, atmosfera e identità.
+                  </p>
+                  <p className="text-sm leading-7 text-white/65">
+                    È una preview più umana del brand: il modo in cui selezioniamo i pezzi da pubblicare,
+                    l&apos;attenzione al ritmo delle collezioni e il tipo di presenza visiva che vogliamo
+                    portare dentro case, studi e spazi personali.
+                  </p>
                 </div>
+                <div className="mx-auto w-full max-w-[148px] overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03]">
+                  <img src={founderPortrait} alt="Founder BNS Studio" className="aspect-[4/5] w-full object-cover" />
+                </div>
+              </div>
 
+              <div className="mt-3 space-y-3">
                 <p className="text-sm leading-7 text-white/65">
-                  BNS Studio nasce da una ricerca visiva personale che mette insieme poster, stampe e
-                  oggetti creativi con un taglio editoriale preciso. In questa pagina raccontiamo meglio
-                  chi c&apos;è dietro il progetto, come nasce una collezione e quale immaginario vogliamo
-                  costruire nel tempo tra prodotto, atmosfera e identità.
-                </p>
-                <p className="mt-3 text-sm leading-7 text-white/65">
-                  È una preview più umana del brand: il modo in cui selezioniamo i pezzi da pubblicare,
-                  l&apos;attenzione al ritmo delle collezioni e il tipo di presenza visiva che vogliamo
-                  portare dentro case, studi e spazi personali. Il testo ora accompagna la foto nella parte
-                  alta e poi continua sotto, così il contenitore resta pieno, naturale e meglio distribuito.
-                </p>
-                <p className="mt-3 text-sm leading-7 text-white/65">
                   Parliamo di processo, gusto, materiali e direzione: non solo cosa vendiamo, ma anche
                   perché certi poster entrano in collezione e che tipo di relazione vogliamo creare con
-                  chi sceglie di portarli nel proprio spazio. È il lato più personale di BNS Studio, quello
-                  che tiene insieme ricerca estetica, prodotto e presenza reale.
+                  chi sceglie di portarli nel proprio spazio.
+                </p>
+                <p className="text-sm leading-7 text-white/65">
+                  La parte alta resta così più precisa e regolare accanto alla foto, mentre sotto il testo
+                  riprende a tutta larghezza con un ritmo più pulito e una chiusura visiva più ordinata
+                  dentro il box.
                 </p>
               </div>
 
