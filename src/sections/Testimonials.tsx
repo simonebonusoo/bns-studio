@@ -9,7 +9,6 @@ import { Button } from "../components/Button"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { apiFetch } from "../shop/lib/api"
 import { ShopReview, ShopReviewSummary } from "../shop/types"
-import founderPortrait from "../assets/founder/simone-centrale.jpeg"
 
 type ReviewsResponse = {
   reviews: ShopReview[]
@@ -113,7 +112,7 @@ export function Testimonials() {
     <section id="recensioni" className="py-20 md:py-28">
       <Container>
         <motion.div
-          className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]"
+          className="grid gap-6"
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
@@ -216,53 +215,6 @@ export function Testimonials() {
                 </div>
               </form>
             ) : null}
-          </div>
-
-          <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7">
-            <div className="h-full">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-white/45">Chi siamo</p>
-                <h3 className="mt-3 text-2xl font-semibold text-white">Le persone dietro BNS Studio.</h3>
-              </div>
-
-              <div className="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_148px] md:items-start">
-                <div className="space-y-3">
-                  <p className="text-sm leading-7 text-white/65">
-                    BNS Studio nasce da una ricerca visiva personale che mette insieme poster, stampe e
-                    oggetti creativi con un taglio editoriale preciso. In questa pagina raccontiamo meglio
-                    chi c&apos;è dietro il progetto, come nasce una collezione e quale immaginario vogliamo
-                    costruire nel tempo tra prodotto, atmosfera e identità.
-                  </p>
-                  <p className="text-sm leading-7 text-white/65">
-                    È una preview più umana del brand: il modo in cui selezioniamo i pezzi da pubblicare,
-                    l&apos;attenzione al ritmo delle collezioni e il tipo di presenza visiva che vogliamo
-                    portare dentro case, studi e spazi personali.
-                  </p>
-                </div>
-                <div className="mx-auto w-full max-w-[148px] overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03]">
-                  <img src={founderPortrait} alt="Founder BNS Studio" className="aspect-[4/5] w-full object-cover" />
-                </div>
-              </div>
-
-              <div className="mt-3 space-y-3">
-                <p className="text-sm leading-7 text-white/65">
-                  Parliamo di processo, gusto, materiali e direzione: non solo cosa vendiamo, ma anche
-                  perché certi poster entrano in collezione e che tipo di relazione vogliamo creare con
-                  chi sceglie di portarli nel proprio spazio.
-                </p>
-                <p className="text-sm leading-7 text-white/65">
-                  La parte alta resta così più precisa e regolare accanto alla foto, mentre sotto il testo
-                  riprende a tutta larghezza con un ritmo più pulito e una chiusura visiva più ordinata
-                  dentro il box.
-                </p>
-              </div>
-
-              <div className="pt-6">
-                <Link to="/chi-siamo">
-                  <Button className="w-full">Apri la pagina completa</Button>
-                </Link>
-              </div>
-            </div>
           </div>
         </motion.div>
 

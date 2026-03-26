@@ -279,7 +279,7 @@ export function HomeShop() {
           </div>
         </div>
 
-        <div className="space-y-8 sm:space-y-10">
+        <div className="space-y-12 sm:space-y-14">
           {status === "error" ? (
             <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
               Il catalogo non e disponibile in questo momento. Riprova tra poco.

@@ -149,15 +149,10 @@ export function AboutMePage() {
               {feedback ? <p className="text-sm text-emerald-300">{feedback}</p> : null}
               {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div>
                 <Button type="submit" className="sm:min-w-[220px]">
                   {submitting ? "Preparazione email..." : "Invia email"}
                 </Button>
-                <Link to="/chi-siamo">
-                  <Button variant="ghost" className="w-full sm:min-w-[200px]">
-                    Vai a Chi siamo
-                  </Button>
-                </Link>
               </div>
             </form>
           </aside>
