@@ -23,12 +23,12 @@ export function HomeShop() {
         <div className="px-0 py-8 md:py-12">
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-6">
-              <div className="max-w-2xl">
+              <div className="max-w-4xl">
                 <span className="shop-pill">Shop</span>
                 <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
                   Lo shop e il cuore del sito.
                 </h2>
-                <p className="mt-4 max-w-xl text-sm leading-7 text-white/70 md:text-base">
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70 md:text-base">
                   Esperienza catalogo integrata direttamente in homepage, con ricerca centrale in navbar,
                   schede prodotto coerenti e gli stessi flussi di carrello, account e checkout gia attivi.
                 </p>
@@ -69,7 +69,7 @@ export function HomeShop() {
               </div>
             ) : null}
 
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] items-stretch gap-6">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

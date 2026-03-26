@@ -107,7 +107,7 @@ export function ShopPage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] items-stretch gap-6">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
         {displayedProducts.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

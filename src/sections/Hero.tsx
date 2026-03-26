@@ -4,6 +4,10 @@ import { Button } from "../components/Button"
 import { Reveal } from "../components/Reveal"
 
 export function Hero() {
+  function openProfilePanel() {
+    window.dispatchEvent(new CustomEvent("bns:open-profile"))
+  }
+
   return (
     <section id="top" className="relative pt-20 md:pt-28 pb-6 md:pb-8">
       <Backdrop />
@@ -30,7 +34,7 @@ export function Hero() {
           <Reveal delay={0.16}>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button href="#shop">Apri shop</Button>
-              <Button href="/shop/auth" variant="ghost">
+              <Button type="button" onClick={openProfilePanel} variant="ghost">
                 Accedi al profilo
               </Button>
             </div>

@@ -516,9 +516,8 @@ export function ShopAdminPage() {
       {error ? <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
 
       {tab === "prodotti" ? (
-        <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-          <div className="space-y-6">
-            <form onSubmit={saveProduct} className="shop-card space-y-4 p-6">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <form onSubmit={saveProduct} className="shop-card h-full space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingProductId ? "Modifica prodotto" : "Nuovo prodotto"}</h2>
                 {editingProductId ? (
@@ -596,53 +595,17 @@ export function ShopAdminPage() {
               <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
                 {editingProductId ? "Aggiorna prodotto" : "Salva prodotto"}
               </button>
-            </form>
+          </form>
 
-            <section className="shop-card space-y-4 p-6">
-              <h2 className="text-xl font-semibold text-white">Gestione categorie</h2>
-              <form onSubmit={createCategory} className="flex flex-col gap-3 md:flex-row">
-                <input className="shop-input" placeholder="Nuova categoria" value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} />
-                <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                  Crea categoria
-                </button>
-              </form>
-              <div className="space-y-3">
-                {categories.map((category) => (
-                  <div key={category} className="rounded-2xl border border-white/10 px-4 py-3">
-                    {renamingCategory === category ? (
-                      <div className="flex flex-col gap-3 md:flex-row">
-                        <input className="shop-input" value={renamedCategoryValue} onChange={(event) => setRenamedCategoryValue(event.target.value)} />
-                        <button type="button" onClick={() => renameCategory(category)} className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black">
-                          Salva nome
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="text-sm text-white">{category}</span>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRenamingCategory(category)
-                              setRenamedCategoryValue(category)
-                            }}
-                            className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                          >
-                            Rinomina
-                          </button>
-                          <button type="button" onClick={() => deleteCategory(category)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                            Elimina
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+          <section className="shop-card flex h-full flex-col p-6">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Lista prodotti</h2>
+                <p className="mt-1 text-sm text-white/55">Panoramica rapida dei prodotti già pubblicati nello shop.</p>
               </div>
-            </section>
-          </div>
-
-          <div className="space-y-4">
+              <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/65">{products.length} elementi</span>
+            </div>
+            <div className="flex-1 space-y-4 overflow-y-auto pr-1">
             {products.map((product) => (
               <article key={product.id} className="shop-card overflow-hidden">
                 <div className="grid gap-4 p-5 md:grid-cols-[120px_1fr_auto] md:items-center">
@@ -677,7 +640,56 @@ export function ShopAdminPage() {
                 </div>
               </article>
             ))}
-          </div>
+            </div>
+          </section>
+
+          <section className="shop-card space-y-4 p-6 xl:col-span-2">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-3xl">
+                <h2 className="text-xl font-semibold text-white">Gestione categorie</h2>
+                <p className="mt-1 text-sm text-white/55">Organizza le categorie prodotto in un unico pannello largo e compatto.</p>
+              </div>
+              <form onSubmit={createCategory} className="flex w-full flex-col gap-3 md:w-auto md:min-w-[420px] md:flex-row">
+                <input className="shop-input" placeholder="Nuova categoria" value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} />
+                <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+                  Crea categoria
+                </button>
+              </form>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+              {categories.map((category) => (
+                <div key={category} className="rounded-2xl border border-white/10 px-4 py-3">
+                  {renamingCategory === category ? (
+                    <div className="flex flex-col gap-3 md:flex-row">
+                      <input className="shop-input" value={renamedCategoryValue} onChange={(event) => setRenamedCategoryValue(event.target.value)} />
+                      <button type="button" onClick={() => renameCategory(category)} className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black">
+                        Salva nome
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-white">{category}</span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRenamingCategory(category)
+                            setRenamedCategoryValue(category)
+                          }}
+                          className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
+                        >
+                          Rinomina
+                        </button>
+                        <button type="button" onClick={() => deleteCategory(category)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                          Elimina
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       ) : null}
 
