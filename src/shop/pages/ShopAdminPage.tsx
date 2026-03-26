@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
@@ -150,6 +150,8 @@ export function ShopAdminPage() {
 
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+  const [productColumnHeight, setProductColumnHeight] = useState<number | null>(null)
+  const productFormRef = useRef<HTMLFormElement | null>(null)
 
   const productImages = useMemo(
     () => [...productForm.existingImageUrls, ...productPreviewUrls],
@@ -165,6 +167,42 @@ export function ShopAdminPage() {
       productPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
     }
   }, [productPreviewUrls])
+
+  useEffect(() => {
+    const form = productFormRef.current
+    if (!form) return
+
+    const updateHeight = () => {
+      setProductColumnHeight(form.getBoundingClientRect().height)
+    }
+
+    updateHeight()
+
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(form)
+    window.addEventListener("resize", updateHeight)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("resize", updateHeight)
+    }
+  }, [editingProductId, productImages.length, productForm.category, productForm.description, productForm.featured, productForm.price, productForm.stock, productForm.title])
+
+  useEffect(() => {
+    if (!message && !error) return
+
+    const timer = window.setTimeout(() => {
+      setMessage("")
+      setError("")
+    }, 2800)
+
+    return () => window.clearTimeout(timer)
+  }, [message, error])
+
+  useEffect(() => {
+    setMessage("")
+    setError("")
+  }, [tab])
 
   async function refresh() {
     const [productData, reviewData, orderData, couponData, ruleData, categoryData, settingsData] = await Promise.all([
@@ -551,7 +589,7 @@ export function ShopAdminPage() {
 
       {tab === "prodotti" ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <form onSubmit={saveProduct} className="shop-card h-full space-y-4 p-6">
+          <form ref={productFormRef} onSubmit={saveProduct} className="shop-card h-full space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingProductId ? "Modifica prodotto" : "Nuovo prodotto"}</h2>
                 {editingProductId ? (
@@ -565,53 +603,63 @@ export function ShopAdminPage() {
                 ) : null}
               </div>
 
-              <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Titolo</label>
-                <input className="shop-input" placeholder="Titolo prodotto" value={productForm.title} onChange={(event) => setProductForm({ ...productForm, title: event.target.value })} />
+              <input
+                className="shop-input"
+                placeholder="Titolo"
+                aria-label="Titolo"
+                value={productForm.title}
+                onChange={(event) => setProductForm({ ...productForm, title: event.target.value })}
+              />
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <select
+                  className="shop-select"
+                  aria-label="Categoria"
+                  value={productForm.category}
+                  onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}
+                >
+                  <option value="">Categoria</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="shop-input"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="Prezzo"
+                  aria-label="Prezzo in euro"
+                  value={productForm.price}
+                  onChange={(event) => setProductForm({ ...productForm, price: event.target.value })}
+                />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Categoria</label>
-                  <select className="shop-select" value={productForm.category} onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}>
-                    <option value="">Seleziona una categoria</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Prezzo</label>
-                  <input
-                    className="shop-input"
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.01"
-                    placeholder="19.90"
-                    value={productForm.price}
-                    onChange={(event) => setProductForm({ ...productForm, price: event.target.value })}
-                  />
-                  <p className="mt-2 text-xs text-white/45">Inserisci il prezzo direttamente in euro.</p>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Quantità</label>
-                  <input className="shop-input" type="number" min="0" placeholder="0" value={productForm.stock} onChange={(event) => setProductForm({ ...productForm, stock: Number(event.target.value) })} />
-                </div>
+                <input
+                  className="shop-input"
+                  type="number"
+                  min="0"
+                  placeholder="Quantità"
+                  aria-label="Quantità"
+                  value={productForm.stock}
+                  onChange={(event) => setProductForm({ ...productForm, stock: Number(event.target.value) })}
+                />
                 <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
                   <input type="checkbox" checked={productForm.featured} onChange={(event) => setProductForm({ ...productForm, featured: event.target.checked })} />
                   Metti in evidenza
                 </label>
               </div>
-              <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Descrizione</label>
-                <textarea className="shop-textarea min-h-32" placeholder="Descrizione prodotto" value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} />
-              </div>
+              <textarea
+                className="shop-textarea min-h-32"
+                placeholder="Descrizione"
+                aria-label="Descrizione"
+                value={productForm.description}
+                onChange={(event) => setProductForm({ ...productForm, description: event.target.value })}
+              />
 
               <div className="space-y-3 rounded-2xl border border-white/10 p-4">
                 <div className="flex items-center justify-between gap-4">
@@ -657,7 +705,10 @@ export function ShopAdminPage() {
               </button>
           </form>
 
-          <section className="shop-card flex h-full min-h-0 flex-col p-6">
+          <section
+            className="shop-card flex h-full min-h-0 flex-col p-6"
+            style={productColumnHeight ? { minHeight: `${productColumnHeight}px` } : undefined}
+          >
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-white">Lista prodotti</h2>
@@ -666,7 +717,7 @@ export function ShopAdminPage() {
               <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/65">{products.length} elementi</span>
             </div>
             <div
-              className="max-h-[34rem] flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1"
+              className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1"
               onWheelCapture={containWheel}
             >
             {products.map((product) => (
