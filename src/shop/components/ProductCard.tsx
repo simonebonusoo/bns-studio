@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom"
+import { Button } from "../../components/Button"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { formatPrice } from "../lib/format"
@@ -48,20 +49,21 @@ export function ProductCard({ product }: { product: ShopProduct }) {
 
         <div className="mt-auto pt-5">
           <div className="flex flex-col gap-3">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => addItem(product, 1, defaultFormat)}
-              className="w-full rounded-full border border-white/10 px-4 py-2 text-sm text-white transition hover:border-[#e3f503] hover:text-[#e3f503]"
+              className="w-full"
             >
               Aggiungi al carrello
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleBuyNow}
-              className="w-full rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90"
+              className="w-full"
             >
               Acquista ora
-            </button>
+            </Button>
           </div>
         </div>
       </div>
