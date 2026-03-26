@@ -506,7 +506,7 @@ export function Navbar() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="fixed inset-x-0 top-[72px] z-50 px-4 pb-6 md:top-[88px] md:px-6"
+              className="fixed inset-x-0 top-[72px] z-50 pb-6 md:top-[88px]"
             >
               <Container>
                 <div

@@ -212,9 +212,7 @@ body {
    Layout sections
    ========================= */
 section {
-  max-width: 1280px;  /* Sezioni centrate e limitate */
-  margin: 0 auto;
-  padding: 6rem 2rem; /* Spaziatura verticale */
+  width: 100%;
 }
 
 /* Overflow e altezza pagina (override della regola sopra html, body { height:100% }) */
