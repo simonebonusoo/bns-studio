@@ -1,4 +1,4 @@
-const DEFAULT_PRODUCTION_API_BASE_URL = "https://bnsstudio-shop-api.onrender.com"
+const DEFAULT_PRODUCTION_API_BASE_URL = "https://bns-studio.onrender.com"
 
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, "")
@@ -13,24 +13,27 @@ function normalizeApiUrl(value: string) {
 
 const API_BASE_URL = normalizeBaseUrl(String(import.meta.env.VITE_API_BASE_URL || ""))
 const CONFIGURED_API_URL = normalizeApiUrl(String(import.meta.env.VITE_API_URL || ""))
+const FALLBACK_PRODUCTION_BASE_URL =
+  typeof window !== "undefined" &&
+  window.location.hostname !== "localhost" &&
+  window.location.hostname !== "127.0.0.1"
+    ? DEFAULT_PRODUCTION_API_BASE_URL
+    : ""
 
-const API_URL =
-  API_BASE_URL
-    ? `${API_BASE_URL}/api`
-    : CONFIGURED_API_URL ||
-      (typeof window !== "undefined" &&
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1"
-        ? `${DEFAULT_PRODUCTION_API_BASE_URL}/api`
-        : "/api")
+const RESOLVED_API_BASE_URL =
+  API_BASE_URL ||
+  (CONFIGURED_API_URL ? CONFIGURED_API_URL.replace(/\/api$/, "") : "") ||
+  FALLBACK_PRODUCTION_BASE_URL
+
+const API_URL = RESOLVED_API_BASE_URL ? `${RESOLVED_API_BASE_URL}/api` : "/api"
 
 function toAbsoluteAssetUrl(value: string) {
   if (!value.startsWith("/uploads/")) {
     return value
   }
 
-  if (API_BASE_URL) {
-    return new URL(value, `${API_BASE_URL}/`).toString()
+  if (RESOLVED_API_BASE_URL) {
+    return new URL(value, `${RESOLVED_API_BASE_URL}/`).toString()
   }
 
   return value
