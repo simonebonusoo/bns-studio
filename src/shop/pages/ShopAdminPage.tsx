@@ -1221,7 +1221,7 @@ export function ShopAdminPage() {
 
       {tab === "sconti" ? (
         <div className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-3">
+          <div className="grid gap-6 xl:grid-cols-2">
             <form onSubmit={saveCoupon} className="shop-card h-full space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingCouponId ? "Modifica coupon" : "Crea coupon"}</h2>
@@ -1308,7 +1308,9 @@ export function ShopAdminPage() {
                 ))}
               </div>
             </div>
+          </div>
 
+          <div className="grid gap-6 xl:grid-cols-2">
             <form onSubmit={saveRule} className="shop-card h-full space-y-4 p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-white">{editingRuleId ? "Modifica regola sconto" : "Crea regola sconto"}</h2>
@@ -1376,71 +1378,6 @@ export function ShopAdminPage() {
                 {editingRuleId ? "Aggiorna regola" : "Crea regola"}
               </button>
             </form>
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-2">
-            <form onSubmit={saveSettings} className="shop-card flex h-full flex-col space-y-4 p-6">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Impostazioni PayPal</h2>
-                <p className="mt-2 text-sm text-white/60">
-                  Inserisci l&apos;email business PayPal oppure un link PayPal.Me reale. L&apos;email business ha priorita e replica il flusso del vecchio shop.
-                </p>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Nome shop mostrato nel checkout</label>
-                  <input
-                    className="shop-input"
-                    placeholder="Nome shop"
-                    value={settingValue("storeName", "BNS Studio Shop")}
-                    onChange={(event) => updateSetting("storeName", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Email business PayPal</label>
-                  <input
-                    className="shop-input"
-                    placeholder="Email business PayPal"
-                    value={settingValue("paypalBusinessEmail")}
-                    onChange={(event) => updateSetting("paypalBusinessEmail", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Link PayPal.Me</label>
-                  <input
-                    className="shop-input"
-                    placeholder="Link PayPal.Me"
-                    value={settingValue("paypalMeLink")}
-                    onChange={(event) => updateSetting("paypalMeLink", event.target.value)}
-                  />
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm text-white/65">Valuta</label>
-                    <input
-                      className="shop-input"
-                      placeholder="Valuta"
-                      value={settingValue("currencyCode", "EUR")}
-                      onChange={(event) => updateSetting("currencyCode", event.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-white/65">Spedizione standard (€)</label>
-                    <input
-                      className="shop-input"
-                      type="number"
-                      step="0.01"
-                      placeholder="Spedizione standard"
-                      value={shippingCostInput}
-                      onChange={(event) => setShippingCostInput(event.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-              <button type="submit" className="mt-auto rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                Salva impostazioni PayPal
-              </button>
-            </form>
 
             <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
               <h2 className="text-xl font-semibold text-white">Regole sconto esistenti</h2>
@@ -1490,6 +1427,73 @@ export function ShopAdminPage() {
               </div>
             </div>
           </div>
+
+          <form onSubmit={saveSettings} className="shop-card flex h-full flex-col space-y-4 p-6">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Impostazioni PayPal</h2>
+              <p className="mt-2 text-sm text-white/60">
+                Inserisci l&apos;email business PayPal oppure un link PayPal.Me reale. L&apos;email business ha priorita e replica il flusso del vecchio shop.
+              </p>
+            </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Nome shop mostrato nel checkout</label>
+                  <input
+                    className="shop-input"
+                    placeholder="Nome shop"
+                    value={settingValue("storeName", "BNS Studio Shop")}
+                    onChange={(event) => updateSetting("storeName", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Email business PayPal</label>
+                  <input
+                    className="shop-input"
+                    placeholder="Email business PayPal"
+                    value={settingValue("paypalBusinessEmail")}
+                    onChange={(event) => updateSetting("paypalBusinessEmail", event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-white/65">Link PayPal.Me</label>
+                  <input
+                    className="shop-input"
+                    placeholder="Link PayPal.Me"
+                    value={settingValue("paypalMeLink")}
+                    onChange={(event) => updateSetting("paypalMeLink", event.target.value)}
+                  />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/65">Valuta</label>
+                    <input
+                      className="shop-input"
+                      placeholder="Valuta"
+                      value={settingValue("currencyCode", "EUR")}
+                      onChange={(event) => updateSetting("currencyCode", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/65">Spedizione standard (€)</label>
+                    <input
+                      className="shop-input"
+                      type="number"
+                      step="0.01"
+                      placeholder="Spedizione standard"
+                      value={shippingCostInput}
+                      onChange={(event) => setShippingCostInput(event.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button type="submit" className="mt-auto rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+              Salva impostazioni PayPal
+            </button>
+          </form>
         </div>
       ) : null}
 
