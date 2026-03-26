@@ -34,7 +34,7 @@ export function AboutPage() {
         </div>
 
         <article className="glass overflow-hidden rounded-2xl shadow-card">
-          <div className="grid gap-8 border-b border-white/10 p-7 md:p-8 xl:grid-cols-[minmax(0,1.05fr)_420px]">
+          <div className="grid gap-8 border-b border-white/10 p-7 md:p-8 xl:grid-cols-[minmax(0,1.1fr)_320px]">
             <div>
               <div className="text-xs uppercase tracking-[0.25em] text-white/45">Chi siamo</div>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
@@ -52,7 +52,7 @@ export function AboutPage() {
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+            <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-4 xl:ml-auto xl:w-full xl:max-w-[320px]">
               <div className="overflow-hidden rounded-[24px] border border-white/10">
                 <img src={founderPortrait} alt="Founder BNS Studio" className="aspect-[4/5] w-full object-cover" />
               </div>

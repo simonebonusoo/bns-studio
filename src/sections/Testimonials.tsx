@@ -218,8 +218,10 @@ export function Testimonials() {
                   <p className="text-xs uppercase tracking-[0.24em] text-white/45">Chi siamo</p>
                   <h3 className="mt-3 text-2xl font-semibold text-white">Le persone dietro BNS Studio.</h3>
                   <p className="mt-3 text-sm leading-7 text-white/65">
-                    Una preview più personale sul progetto: approccio, immaginario visivo e direzione
-                    con cui costruiamo poster, stampe e oggetti BNS Studio.
+                    BNS Studio nasce da una ricerca visiva personale che mette insieme poster, stampe e
+                    oggetti creativi con un taglio editoriale preciso. In questa pagina raccontiamo meglio
+                    chi c&apos;è dietro il progetto, come nasce una collezione e quale immaginario vogliamo
+                    costruire nel tempo tra prodotto, atmosfera e identità.
                   </p>
                 </div>
 

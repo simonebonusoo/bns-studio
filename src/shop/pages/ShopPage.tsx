@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline"
 
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
@@ -71,23 +70,10 @@ export function ShopPage() {
 
   return (
     <ShopLayout
-      eyebrow="Shop"
+      eyebrow={`Shop · ${displayedProducts.length} ${displayedProducts.length === 1 ? `prodotto${activeFilters.length ? " visibile" : ""}` : `prodotti${activeFilters.length ? " visibili" : ""}`}`}
       title="Asset pronti, integrati nel sito."
-      intro="Catalogo ecommerce nativo BNS Studio con ricerca centralizzata, risultati filtrati e prodotto sempre in primo piano."
+      intro="Catalogo BNS Studio con ricerca centralizzata, filtri attivi e prodotti visivi sempre in primo piano, con una lettura più ampia e coerente con tutta la sezione shop."
     >
-      <div className="flex flex-col gap-4 rounded-[24px] border border-white/10 bg-black/30 px-5 py-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.26em] text-white/45">Search-first Catalog</p>
-          <p className="mt-2 text-sm text-white/70">
-            Usa la barra di ricerca nella navbar per aprire suggerimenti, categorie e risultati live.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-white/55">
-          <MagnifyingGlassIcon className="h-4 w-4" />
-          <span>{displayedProducts.length} prodotti visibili</span>
-        </div>
-      </div>
-
       {activeFilters.length ? (
         <div className="flex flex-wrap items-center gap-3">
           {activeFilters.map((filter) => (

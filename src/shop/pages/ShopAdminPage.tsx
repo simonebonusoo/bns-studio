@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { ShopOrder, ShopProduct, ShopReview } from "../types"
+import { downloadInvoicePdf } from "../lib/invoice"
+import { ShopOrder, ShopProduct, ShopReview, ShopSettings } from "../types"
 
 type Coupon = {
   id: number
@@ -154,6 +156,14 @@ export function ShopAdminPage() {
   const productImages = useMemo(
     () => [...productForm.existingImageUrls, ...productPreviewUrls],
     [productForm.existingImageUrls, productPreviewUrls]
+  )
+  const shopSettings = useMemo<ShopSettings>(
+    () =>
+      settings.reduce<ShopSettings>((acc, entry) => {
+        acc[entry.key] = entry.value
+        return acc
+      }, {}),
+    [settings]
   )
 
   useEffect(() => {
@@ -542,7 +552,7 @@ export function ShopAdminPage() {
     <ShopLayout
       eyebrow="Admin"
       title="Gestione shop"
-      intro="Prodotti, categorie, ordini, coupon e regole sconto vengono gestiti direttamente nello shop integrato, con testi e flussi coerenti con il sito principale."
+      intro="Prodotti, categorie, ordini, coupon, recensioni e regole sconto vengono gestiti direttamente nello shop integrato, con una lettura più ampia e coerente con il layout principale del sito."
     >
       <div className="flex flex-wrap gap-3">
         {[
@@ -858,27 +868,45 @@ export function ShopAdminPage() {
                   {order.firstName} {order.lastName} · {formatPrice(order.total)}
                 </p>
               </div>
-              <select
-                className="shop-select max-w-48"
-                value={order.status}
-                onChange={async (event) => {
-                  clearFeedback()
-                  try {
-                    await apiFetch(`/admin/orders/${order.id}`, {
-                      method: "PATCH",
-                      body: JSON.stringify({ status: event.target.value }),
-                    })
-                    await refresh()
-                    setMessage("Stato ordine aggiornato.")
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento dell'ordine.")
-                  }
-                }}
-              >
-                <option value="pending">In attesa</option>
-                <option value="paid">Pagato</option>
-                <option value="shipped">Spedito</option>
-              </select>
+              <div className="flex flex-col items-stretch gap-3 lg:min-w-[320px]">
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    to={`/shop/orders/${order.orderReference}`}
+                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white"
+                  >
+                    Visualizza ordine
+                  </Link>
+                  <button
+                    type="button"
+                    disabled={order.status !== "paid" && order.status !== "shipped"}
+                    onClick={() => downloadInvoicePdf(order, shopSettings)}
+                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    Scarica ricevuta
+                  </button>
+                </div>
+                <select
+                  className="shop-select max-w-48"
+                  value={order.status}
+                  onChange={async (event) => {
+                    clearFeedback()
+                    try {
+                      await apiFetch(`/admin/orders/${order.id}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ status: event.target.value }),
+                      })
+                      await refresh()
+                      setMessage("Stato ordine aggiornato.")
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento dell'ordine.")
+                    }
+                  }}
+                >
+                  <option value="pending">In attesa</option>
+                  <option value="paid">Pagato</option>
+                  <option value="shipped">Spedito</option>
+                </select>
+              </div>
             </article>
           ))}
         </div>

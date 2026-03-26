@@ -10,7 +10,7 @@ export function ShopProtectedRoute({ children }: { children: JSX.Element }) {
   }
 
   if (!user) {
-    return <Navigate to="/shop/auth" replace state={{ redirectTo: location.pathname }} />
+    return <Navigate to={{ pathname: "/", search: "?profile=open" }} replace state={{ redirectTo: location.pathname }} />
   }
 
   return children
@@ -24,7 +24,7 @@ export function ShopAdminRoute({ children }: { children: JSX.Element }) {
   }
 
   if (!user) {
-    return <Navigate to="/shop/auth" replace state={{ redirectTo: "/shop/admin" }} />
+    return <Navigate to={{ pathname: "/", search: "?profile=open" }} replace state={{ redirectTo: "/shop/admin" }} />
   }
 
   if (user.role !== "admin") {

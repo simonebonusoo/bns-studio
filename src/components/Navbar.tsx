@@ -103,6 +103,8 @@ export function Navbar() {
       setSearchOpen(false)
       setCartOpen(false)
       setProfileStep("initial")
+      setProfileLoggedStep("overview")
+      setProfileEditField(null)
       setProfileOpen(true)
     }
 
@@ -179,6 +181,27 @@ export function Navbar() {
     setProfileOpen(false)
     setCartOpen(false)
   }, [location.pathname, location.search])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (location.pathname !== "/" || params.get("profile") !== "open") return
+
+    setSearchOpen(false)
+    setCartOpen(false)
+    setProfileStep("initial")
+    setProfileLoggedStep("overview")
+    setProfileEditField(null)
+    setProfileOpen(true)
+
+    params.delete("profile")
+    navigate(
+      {
+        pathname: "/",
+        search: params.toString() ? `?${params.toString()}` : "",
+      },
+      { replace: true }
+    )
+  }, [location.pathname, location.search, navigate])
 
   useEffect(() => {
     if (!profileOpen) {
@@ -1112,6 +1135,9 @@ export function Navbar() {
                     onClick={() => {
                       logout()
                       setProfileOpen(false)
+                      setCartOpen(false)
+                      setSearchOpen(false)
+                      navigate("/?profile=open")
                     }}
                     className="w-full rounded-full border border-white/10 px-5 py-3 text-sm text-white/75 transition hover:border-white/20 hover:text-white"
                   >
