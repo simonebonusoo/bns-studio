@@ -87,6 +87,12 @@ export function Testimonials() {
     setFeedback("")
     setError("")
 
+    if (!user) {
+      setFeedback("Accedi per pubblicare la recensione. I dati che hai scritto restano salvati qui.")
+      window.dispatchEvent(new CustomEvent("bns:open-profile"))
+      return
+    }
+
     try {
       setSubmitting(true)
       await apiFetch<{ message: string }>("/reviews", {
@@ -123,19 +129,18 @@ export function Testimonials() {
               <p className="text-xs uppercase tracking-[0.24em] text-white/45">Lascia una recensione</p>
               <h3 className="mt-3 text-2xl font-semibold text-white">Racconta la tua esperienza con BNS Studio.</h3>
               <p className="mt-3 text-sm leading-7 text-white/65">
-                Le recensioni vengono pubblicate dagli utenti autenticati e compaiono direttamente nello slider clienti.
+                Puoi compilare il form subito. Ti chiederemo l&apos;accesso solo al momento della pubblicazione.
               </p>
             </div>
 
             {!loading && !user ? (
               <div className="mt-6 rounded-[24px] border border-white/10 bg-black/20 px-5 py-5">
                 <p className="text-sm text-white/65">
-                  Accedi dal pannello profilo in alto a destra per lasciare una recensione reale collegata al tuo account.
+                  Scrivi pure la recensione: quando proverai a pubblicarla si aprirà il drawer laterale di login, senza perdere i campi già compilati.
                 </p>
               </div>
             ) : null}
 
-            {user ? (
               <form onSubmit={submitReview} className="mt-6 grid gap-4">
                 <div className="grid gap-4 lg:grid-cols-[150px_180px_minmax(0,1fr)]">
                   <div>
@@ -200,7 +205,13 @@ export function Testimonials() {
 
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <p className="text-sm text-white/55">
-                    Pubblica come <span className="text-white">{user.username || user.email}</span>
+                    {user ? (
+                      <>
+                        Pubblica come <span className="text-white">{user.username || user.email}</span>
+                      </>
+                    ) : (
+                      <>Compila ora, accedi solo quando vuoi pubblicarla.</>
+                    )}
                   </p>
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <Link to="/chi-sono">
@@ -214,7 +225,6 @@ export function Testimonials() {
                   </div>
                 </div>
               </form>
-            ) : null}
           </div>
         </motion.div>
 
