@@ -27,33 +27,26 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   return (
     <article className="shop-card flex h-full flex-col overflow-hidden">
       <Link to={`/shop/${product.slug}`} className="block">
-        <div className="h-[220px] overflow-hidden bg-white/5">
-          <img src={product.imageUrls[0]} alt={product.title} className="h-[220px] w-full object-cover transition duration-500 hover:scale-[1.03]" />
+        <div className="h-[300px] overflow-hidden bg-white/5 sm:h-[320px]">
+          <img src={product.imageUrls[0]} alt={product.title} className="h-[300px] w-full object-cover transition duration-500 hover:scale-[1.03] sm:h-[320px]" />
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <span className="shop-pill">{product.category}</span>
-            <h2 className="mt-3 overflow-hidden text-xl font-semibold text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+      <div className="flex flex-1 flex-col justify-end p-5 pt-4">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0 space-y-2">
+            <h2 className="overflow-hidden text-xl font-semibold text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {product.title}
             </h2>
-            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">{availableFormats.join(" · ")}</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-white/45">{availableFormats.join(" · ")}</p>
+            <span className="shop-pill">{product.category}</span>
           </div>
           <div className="text-sm font-medium text-[#e3f503]">
             {availableFormats.length > 1 ? `da ${formatPrice(getPriceForFormat(product, defaultFormat))}` : formatPrice(getPriceForFormat(product, defaultFormat))}
           </div>
         </div>
 
-        <p className="mt-4 overflow-hidden text-sm leading-6 text-white/65 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
-          {product.description}
-        </p>
-
-        <div className="mt-auto space-y-3 pt-5">
-          <Link to={`/shop/${product.slug}`} className="text-sm text-white/70 transition hover:text-white">
-            Scheda prodotto
-          </Link>
+        <div className="mt-auto pt-5">
           <div className="flex flex-col gap-3">
             <button
               type="button"

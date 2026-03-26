@@ -249,14 +249,17 @@ export function HomeShop() {
     [products],
   );
 
-  const showcaseCards = useMemo(
-    () =>
-      showcases.map((showcase, index) => ({
-        ...showcase,
-        imageUrl: pickProductImage(products, showcase.query, index + 3),
-      })),
-    [products],
-  );
+  const showcaseCards = useMemo(() => {
+    const singersImage = pickProductImage(products, showcases[0].query, 3);
+
+    return showcases.map((showcase, index) => ({
+      ...showcase,
+      imageUrl:
+        showcase.title === "Frasi d'amore"
+          ? singersImage
+          : pickProductImage(products, showcase.query, index + 3),
+    }));
+  }, [products]);
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
@@ -269,10 +272,9 @@ export function HomeShop() {
             <h2 className="max-w-5xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
               Poster, stampe e pezzi creativi da collezionare.
             </h2>
-            <p className="max-w-6xl text-base leading-7 text-white/72 sm:text-lg">
+            <p className="max-w-none text-base leading-7 text-white/72 sm:text-lg">
               Una selezione costruita per far emergere subito temi forti, immagini riconoscibili e idee
-              regalo piu facili da trovare. Entri, scopri una direzione chiara, poi scendi nel catalogo
-              completo con filtri e prodotti reali gia pronti all'acquisto.
+              regalo piu facili da trovare.
             </p>
           </div>
         </div>
@@ -354,7 +356,7 @@ export function HomeShop() {
           </div>
         </div>
 
-        <div className="space-y-8 pt-4">
+        <div className="space-y-10 pt-10 sm:pt-16">
           <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.32em] text-white/45">Categorie popolari</p>
               <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
@@ -362,7 +364,7 @@ export function HomeShop() {
               </h3>
           </div>
 
-          <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
             <div className="flex min-w-full snap-x gap-5 sm:gap-6">
               {popularCategoryCards.map((category) => (
                 <Link
@@ -398,7 +400,7 @@ export function HomeShop() {
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-7 sm:p-9">
+        <div className="space-y-8 pt-10 sm:pt-16">
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.32em] text-white/45">Fiducia</p>
             <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
@@ -409,7 +411,7 @@ export function HomeShop() {
               gia esplicitati prima di entrare nel catalogo completo.
             </p>
           </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {trustItems.map((item) => (
               <div
                 key={item.title}
