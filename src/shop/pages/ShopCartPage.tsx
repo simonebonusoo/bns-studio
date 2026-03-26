@@ -127,9 +127,23 @@ export function ShopCartPage() {
               <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
               <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
-              <Link to="/shop/checkout" className="block rounded-full bg-white px-5 py-3 text-center text-sm font-medium text-black transition hover:bg-white/90">
-                Vai al checkout
-              </Link>
+              {user?.role === "admin" ? (
+                <>
+                  <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+                    Gli account admin non possono effettuare ordini cliente o avviare pagamenti PayPal.
+                  </div>
+                  <Link
+                    to="/shop/admin"
+                    className="block rounded-full border border-white/10 px-5 py-3 text-center text-sm text-white/75 transition hover:border-white/25 hover:text-white"
+                  >
+                    Vai a Gestione shop
+                  </Link>
+                </>
+              ) : (
+                <Link to="/shop/checkout" className="block rounded-full bg-white px-5 py-3 text-center text-sm font-medium text-black transition hover:bg-white/90">
+                  Vai al checkout
+                </Link>
+              )}
             </div>
           ) : null}
         </aside>

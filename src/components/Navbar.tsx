@@ -785,15 +785,33 @@ export function Navbar() {
                       ) : null}
 
                       <div className="mt-5 flex flex-col gap-3">
-                        <Button
-                          onClick={() => {
-                            setCartOpen(false)
-                            navigate("/shop/checkout")
-                          }}
-                          className="w-full"
-                        >
-                          Vai al checkout
-                        </Button>
+                        {user?.role === "admin" ? (
+                          <>
+                            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+                              Gli account admin non possono completare ordini cliente o avviare il pagamento PayPal.
+                            </div>
+                            <Button
+                              onClick={() => {
+                                setCartOpen(false)
+                                navigate("/shop/admin")
+                              }}
+                              variant="ghost"
+                              className="w-full"
+                            >
+                              Vai a Gestione shop
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            onClick={() => {
+                              setCartOpen(false)
+                              navigate("/shop/checkout")
+                            }}
+                            className="w-full"
+                          >
+                            Vai al checkout
+                          </Button>
+                        )}
                         <Button
                           onClick={() => {
                             setCartOpen(false)

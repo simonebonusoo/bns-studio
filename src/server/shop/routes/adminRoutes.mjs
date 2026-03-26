@@ -20,6 +20,7 @@ const uploadsRootDir = env.uploadsDir
 const uploadsDir = path.join(uploadsRootDir, "products")
 
 fs.mkdirSync(uploadsDir, { recursive: true })
+const CUSTOMER_ORDER_WHERE = { user: { role: "customer" } }
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
@@ -319,7 +320,11 @@ router.post(
 router.get(
   "/dashboard",
   asyncHandler(async (_req, res) => {
-    const orders = await prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } })
+    const orders = await prisma.order.findMany({
+      where: CUSTOMER_ORDER_WHERE,
+      include: { items: true },
+      orderBy: { createdAt: "desc" },
+    })
     const revenue = orders
       .filter((order) => order.status === "paid" || order.status === "shipped")
       .reduce((sum, order) => sum + order.total, 0)
@@ -358,6 +363,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     const [orders, pageViews] = await Promise.all([
       prisma.order.findMany({
+        where: CUSTOMER_ORDER_WHERE,
         include: {
           items: {
             include: {
@@ -606,6 +612,7 @@ router.get(
   "/orders",
   asyncHandler(async (_req, res) => {
     const orders = await prisma.order.findMany({
+      where: CUSTOMER_ORDER_WHERE,
       include: { items: true, user: { select: { email: true, firstName: true, lastName: true } } },
       orderBy: { createdAt: "desc" },
     })
@@ -620,6 +627,9 @@ router.get(
     const order = await prisma.order.findUnique({
       where: { id: Number(req.params.id) },
       include: {
+        user: {
+          select: { role: true },
+        },
         items: {
           include: {
             product: {
@@ -632,6 +642,10 @@ router.get(
 
     if (!order) {
       throw new HttpError(404, "Ordine non trovato")
+    }
+
+    if (order.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
     }
 
     res.json(buildOrderProfitSummary(order))
@@ -668,6 +682,19 @@ router.patch(
   "/orders/:id",
   asyncHandler(async (req, res) => {
     const body = z.object({ status: z.enum(["pending", "paid", "shipped"]) }).parse(req.body)
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: Number(req.params.id) },
+      include: { user: { select: { role: true } } },
+    })
+
+    if (!existingOrder) {
+      throw new HttpError(404, "Ordine non trovato")
+    }
+
+    if (existingOrder.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
+    }
+
     res.json(
       await prisma.order.update({
         where: { id: Number(req.params.id) },

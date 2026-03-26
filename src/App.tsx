@@ -27,7 +27,7 @@ import { ShopProfilePage } from "./shop/pages/ShopProfilePage"
 import { ShopReceiptPage } from "./shop/pages/ShopReceiptPage"
 import { ShopAdminPage } from "./shop/pages/ShopAdminPage"
 import { ShopPaypalReturnPage } from "./shop/pages/ShopPaypalReturnPage"
-import { ShopAdminRoute, ShopProtectedRoute } from "./shop/components/ShopProtectedRoute"
+import { ShopAdminRoute, ShopCustomerRoute, ShopProtectedRoute } from "./shop/components/ShopProtectedRoute"
 import { apiFetch } from "./shop/lib/api"
 
 declare global {
@@ -181,9 +181,9 @@ export default function App() {
             <Route
               path="/shop/checkout"
               element={
-                <ShopProtectedRoute>
+                <ShopCustomerRoute>
                   <ShopCheckoutPage />
-                </ShopProtectedRoute>
+                </ShopCustomerRoute>
               }
             />
             <Route
@@ -205,9 +205,9 @@ export default function App() {
             <Route
               path="/shop/paypal-return"
               element={
-                <ShopProtectedRoute>
+                <ShopCustomerRoute>
                   <ShopPaypalReturnPage />
-                </ShopProtectedRoute>
+                </ShopCustomerRoute>
               }
             />
             <Route

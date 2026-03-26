@@ -9,6 +9,7 @@ import { calculatePricing } from "../services/pricing.mjs"
 import { buildPaypalRedirect } from "../services/paypal.mjs"
 
 const router = Router()
+const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
 
 function createOrderReference(orderId) {
   const stamp = Date.now().toString(36).toUpperCase()
@@ -38,6 +39,11 @@ router.get(
   "/my-orders",
   requireAuth,
   asyncHandler(async (req, res) => {
+    if (req.user.role !== "customer") {
+      res.json([])
+      return
+    }
+
     const orders = await prisma.order.findMany({
       where: { userId: req.user.id },
       include: { items: true },
@@ -54,18 +60,25 @@ router.get(
   asyncHandler(async (req, res) => {
     const order = await prisma.order.findUnique({
       where: { orderReference: req.params.orderReference },
-      include: { items: true },
+      include: { items: true, user: { select: { role: true } } },
     })
 
     if (!order) {
       throw new HttpError(404, "Ordine non trovato")
     }
 
+    if (order.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
+    }
+
     if (req.user.role !== "admin" && order.userId !== req.user.id) {
       throw new HttpError(403, "Operazione non consentita")
     }
 
-    res.json({ ...order, pricingBreakdown: JSON.parse(order.pricingBreakdown) })
+    res.json({
+      ...order,
+      pricingBreakdown: JSON.parse(order.pricingBreakdown),
+    })
   })
 )
 
@@ -73,17 +86,26 @@ router.get(
   "/payment/:orderReference",
   requireAuth,
   asyncHandler(async (req, res) => {
+    if (req.user.role !== "customer") {
+      throw new HttpError(403, ADMIN_CHECKOUT_BLOCK_MESSAGE)
+    }
+
     console.log(`[shop] GET /api/orders/payment/${req.params.orderReference}`)
 
     const order = await prisma.order.findUnique({
       where: { orderReference: req.params.orderReference },
+      include: { user: { select: { role: true } } },
     })
 
     if (!order) {
       throw new HttpError(404, "Ordine non trovato")
     }
 
-    if (req.user.role !== "admin" && order.userId !== req.user.id) {
+    if (order.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
+    }
+
+    if (order.userId !== req.user.id) {
       throw new HttpError(403, "Operazione non consentita")
     }
 
@@ -127,16 +149,24 @@ router.post(
   "/payment-complete/:orderReference",
   requireAuth,
   asyncHandler(async (req, res) => {
+    if (req.user.role !== "customer") {
+      throw new HttpError(403, ADMIN_CHECKOUT_BLOCK_MESSAGE)
+    }
+
     const order = await prisma.order.findUnique({
       where: { orderReference: req.params.orderReference },
-      include: { items: true },
+      include: { items: true, user: { select: { role: true } } },
     })
 
     if (!order) {
       throw new HttpError(404, "Ordine non trovato")
     }
 
-    if (req.user.role !== "admin" && order.userId !== req.user.id) {
+    if (order.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
+    }
+
+    if (order.userId !== req.user.id) {
       throw new HttpError(403, "Operazione non consentita")
     }
 
@@ -162,6 +192,10 @@ router.post(
   "/checkout",
   requireAuth,
   asyncHandler(async (req, res) => {
+    if (req.user.role !== "customer") {
+      throw new HttpError(403, ADMIN_CHECKOUT_BLOCK_MESSAGE)
+    }
+
     const body = checkoutSchema.parse(req.body)
 
     if (body.email !== req.user.email) {
