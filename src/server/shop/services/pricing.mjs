@@ -17,7 +17,8 @@ export async function calculatePricing(cartItems, couponCode) {
     },
   })
 
-  if (products.length !== cartItems.length) {
+  const missingProduct = cartItems.some((item) => !products.find((entry) => entry.id === item.productId))
+  if (missingProduct) {
     throw new HttpError(400, "Uno o più prodotti non sono validi")
   }
 

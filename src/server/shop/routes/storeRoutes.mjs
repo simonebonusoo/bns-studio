@@ -145,6 +145,7 @@ router.post(
           z.object({
             productId: z.number(),
             quantity: z.number().int().min(1),
+            format: z.enum(["A3", "A4"]).optional(),
           })
         ),
         couponCode: z.string().optional().nullable(),

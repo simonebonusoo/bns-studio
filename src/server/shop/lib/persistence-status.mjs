@@ -12,6 +12,10 @@ function isTruthy(value) {
   return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase())
 }
 
+function isExternalDatabaseUrl(databaseUrl) {
+  return Boolean(databaseUrl) && !databaseUrl.startsWith("file:")
+}
+
 export function getPersistenceStatus() {
   const databaseUrl = resolveDatabaseUrl()
   const uploadsRootDir = resolveUploadsRootDir(env.uploadsDir)
@@ -20,27 +24,30 @@ export function getPersistenceStatus() {
   const nodeEnv = process.env.NODE_ENV || "development"
   const isProduction = nodeEnv === "production"
   const isRender = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
-  const renderDiskMountPath = process.env.RENDER_DISK_PATH || ""
+  const renderDiskMountPath = env.renderDiskPath || ""
   const persistentStorageEnabled = isTruthy(process.env.PERSISTENT_STORAGE_ENABLED)
   const renderDiskConfigured = Boolean(renderDiskMountPath)
 
+  const databaseUnderRenderDisk =
+    isExternalDatabaseUrl(databaseUrl) || (renderDiskConfigured && databasePath.startsWith(renderDiskMountPath))
+  const uploadsUnderRenderDisk =
+    assetStorageMode === "cloudinary" || (renderDiskConfigured && uploadsRootDir.startsWith(renderDiskMountPath))
+
   const databaseOnRenderEphemeralFs =
-    isRender && databasePath.startsWith("/opt/render/project/src") && (!renderDiskMountPath || !databasePath.startsWith(renderDiskMountPath))
+    isRender && !isExternalDatabaseUrl(databaseUrl) && (!renderDiskConfigured || !databasePath.startsWith(renderDiskMountPath))
   const uploadsOnRenderEphemeralFs =
     isRender &&
-    uploadsRootDir.startsWith("/opt/render/project/src") &&
-    (!renderDiskMountPath || !uploadsRootDir.startsWith(renderDiskMountPath))
+    assetStorageMode !== "cloudinary" &&
+    (!renderDiskConfigured || !uploadsRootDir.startsWith(renderDiskMountPath))
 
   const uploadsGuaranteed =
     assetStorageMode === "cloudinary"
       ? isCloudinaryConfigured()
-      : !isProduction || persistentStorageEnabled || (renderDiskConfigured && !uploadsOnRenderEphemeralFs)
+      : !isProduction || (isRender ? uploadsUnderRenderDisk : persistentStorageEnabled || renderDiskConfigured)
 
   const databaseGuaranteed =
     !isProduction ||
-    persistentStorageEnabled ||
-    (renderDiskConfigured && !databaseOnRenderEphemeralFs) ||
-    (!databasePath.startsWith("/opt/render/project/src") && !databasePath.endsWith("/data/shop/dev.db"))
+    (isRender ? databaseUnderRenderDisk : persistentStorageEnabled || renderDiskConfigured || isExternalDatabaseUrl(databaseUrl))
 
   const storageGuaranteed = databaseGuaranteed && uploadsGuaranteed && assetStorageWritesAreConfigured()
 
@@ -53,11 +60,11 @@ export function getPersistenceStatus() {
   }
 
   if (isRender && databaseOnRenderEphemeralFs) {
-    warnings.push("Il database SQLite sta usando il filesystem locale di Render senza disk persistente.")
+    warnings.push("Il database SQLite di produzione non sta usando il mount path del persistent disk Render.")
   }
 
   if (isRender && uploadsOnRenderEphemeralFs) {
-    warnings.push("Gli upload immagini stanno usando il filesystem locale di Render senza disk persistente.")
+    warnings.push("Gli upload immagini di produzione non stanno usando il mount path del persistent disk Render.")
   }
 
   if (assetStorageMode === "cloudinary" && !isCloudinaryConfigured()) {

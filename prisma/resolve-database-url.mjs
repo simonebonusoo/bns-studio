@@ -1,6 +1,8 @@
 import fs from "node:fs"
 import path from "node:path"
 
+const RENDER_PERSISTENT_ROOT = "/var/data"
+
 function ensureDir(targetPath) {
   fs.mkdirSync(targetPath, { recursive: true })
 }
@@ -34,6 +36,17 @@ export function resolveDatabaseUrl() {
       return `file:${targetPath}`
     }
     return rawValue
+  }
+
+  if (process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL) {
+    const targetPath = path.join(RENDER_PERSISTENT_ROOT, "shop", "dev.db")
+    migrateLegacyDatabase(targetPath, [
+      path.resolve("/opt/render/project/src/data/shop/dev.db"),
+      path.resolve("/opt/render/project/src/data/dev.db"),
+      path.resolve(process.cwd(), "prisma", "dev.db"),
+      path.resolve(process.cwd(), "dev.db"),
+    ])
+    return `file:${targetPath}`
   }
 
   const targetPath = path.resolve(process.cwd(), "data", "shop", "dev.db")

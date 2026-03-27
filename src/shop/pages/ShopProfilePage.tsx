@@ -47,9 +47,11 @@ export function ShopProfilePage() {
               <Link to={`/shop/orders/${order.orderReference}`} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
                 Visualizza ordine
               </Link>
-              <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
-                Scarica ricevuta
-              </button>
+              {order.status === "paid" || order.status === "shipped" ? (
+                <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+                  Scarica ricevuta
+                </button>
+              ) : null}
             </div>
           </article>
         ))}

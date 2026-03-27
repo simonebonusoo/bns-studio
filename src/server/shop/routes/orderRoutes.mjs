@@ -16,6 +16,31 @@ function createOrderReference(orderId) {
   return `BNS-${stamp}-${orderId}`
 }
 
+async function applyOrderCompletionSideEffects(db, order) {
+  if (order.status === "paid" || order.status === "shipped") {
+    return
+  }
+
+  const pricingBreakdown =
+    typeof order.pricingBreakdown === "string"
+      ? JSON.parse(order.pricingBreakdown)
+      : order.pricingBreakdown
+
+  for (const item of order.items) {
+    await db.product.update({
+      where: { id: item.productId },
+      data: { stock: { decrement: item.quantity } },
+    })
+  }
+
+  if (pricingBreakdown?.appliedCoupon) {
+    await db.coupon.update({
+      where: { code: pricingBreakdown.appliedCoupon },
+      data: { usageCount: { increment: 1 } },
+    })
+  }
+}
+
 const checkoutSchema = z.object({
   email: z.string().email(),
   firstName: z.string().min(1),
@@ -173,10 +198,13 @@ router.post(
     const updated =
       order.status === "paid" || order.status === "shipped"
         ? order
-        : await prisma.order.update({
-            where: { id: order.id },
-            data: { status: "paid" },
-            include: { items: true },
+        : await prisma.$transaction(async (tx) => {
+            await applyOrderCompletionSideEffects(tx, order)
+            return tx.order.update({
+              where: { id: order.id },
+              data: { status: "paid" },
+              include: { items: true },
+            })
           })
 
     res.json({
@@ -246,20 +274,6 @@ router.post(
       include: { items: true },
     })
 
-    for (const item of pricing.items) {
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } },
-      })
-    }
-
-    if (pricing.appliedCoupon) {
-      await prisma.coupon.update({
-        where: { code: pricing.appliedCoupon },
-        data: { usageCount: { increment: 1 } },
-      })
-    }
-
     let payment = null
     let paymentError = null
 
@@ -304,8 +318,16 @@ router.patch(
       throw new HttpError(404, "Ordine non trovato")
     }
 
-    if (req.user.role !== "admin" && order.userId !== req.user.id) {
+    if (req.user.role !== "admin") {
       throw new HttpError(403, "Operazione non consentita")
+    }
+
+    if (body.status === "paid" || body.status === "shipped") {
+      await applyOrderCompletionSideEffects(prisma, {
+        ...order,
+        pricingBreakdown: order.pricingBreakdown,
+        items: await prisma.orderItem.findMany({ where: { orderId: order.id } }),
+      })
     }
 
     res.json(

@@ -161,7 +161,7 @@ export function ShopReceiptPage() {
                 {paymentError}
               </div>
             ) : null}
-            {isAdminView || isPaid ? (
+            {isPaid ? (
               <>
                 <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
                   Scarica ricevuta PDF

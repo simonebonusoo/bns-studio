@@ -156,14 +156,16 @@ In pratica:
 
 Opzione compatibile con l'architettura attuale:
 
-- `DATABASE_URL=file:/opt/render/project/src/data/shop/dev.db`
-- `UPLOADS_DIR=/opt/render/project/src/data/uploads`
+- `DATABASE_URL=file:/var/data/shop/dev.db`
+- `UPLOADS_DIR=/var/data/uploads`
+- `RENDER_DISK_PATH=/var/data`
 - `ASSET_STORAGE_MODE=local`
-- persistent disk Render montato su `/opt/render/project/src/data`
+- persistent disk Render montato su `/var/data`
 
 Opzione piu robusta per gli asset:
 
 - `DATABASE_URL=file:/opt/render/project/src/data/shop/dev.db`
+- `DATABASE_URL=file:/var/data/shop/dev.db`
 - `ASSET_STORAGE_MODE=cloudinary`
 - `CLOUDINARY_CLOUD_NAME=...`
 - `CLOUDINARY_UPLOAD_PRESET=...`

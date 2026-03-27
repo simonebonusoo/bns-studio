@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 
+const RENDER_PERSISTENT_ROOT = "/var/data"
 const defaultUploadsRootDir = path.resolve(process.cwd(), "data", "uploads")
 const legacyUploadsRootDir = path.resolve(process.cwd(), "src", "server", "uploads")
 
@@ -30,7 +31,12 @@ function migrateLegacyProductUploads(targetRootDir) {
 }
 
 export function resolveUploadsRootDir(rawValue = process.env.UPLOADS_DIR || "") {
-  const uploadsRootDir = rawValue ? path.resolve(rawValue) : defaultUploadsRootDir
+  const uploadsRootDir =
+    rawValue
+      ? path.resolve(rawValue)
+      : process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL
+        ? path.join(RENDER_PERSISTENT_ROOT, "uploads")
+        : defaultUploadsRootDir
   ensureDir(uploadsRootDir)
   migrateLegacyProductUploads(uploadsRootDir)
   return uploadsRootDir

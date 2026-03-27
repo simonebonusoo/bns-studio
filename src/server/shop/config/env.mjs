@@ -23,6 +23,7 @@ const clientOrigins = Array.from(new Set([clientUrl, ...parseList(process.env.CL
 export const env = {
   port: Number(process.env.PORT || 4000),
   nodeEnv: process.env.NODE_ENV || "development",
+  renderDiskPath: process.env.RENDER_DISK_PATH || "",
   jwtSecret: requireEnv("JWT_SECRET", "bns-shop-local-secret"),
   clientUrl,
   clientOrigins,
