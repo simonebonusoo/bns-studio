@@ -42,18 +42,33 @@ npm run shop:restore -- /percorso/del/backup --force
 
 Se non passi un path esplicito, il comando usa l'ultimo backup disponibile.
 
+Puoi anche usare una forma esplicita piu chiara:
+
+```bash
+npm run shop:restore -- --source /percorso/del/backup --force
+```
+
+Alias supportato:
+
+```bash
+npm run shop:restore -- --backup /percorso/del/backup --force
+```
+
 ### Protezioni incluse
 
 - il restore richiede sempre `--force`
 - prima di sovrascrivere i dati attuali crea automaticamente un `pre-restore-<timestamp>/`
 - il restore ripristina lo **stesso file SQLite usato dal runtime**, risolto con `resolve-database-url.mjs`
 - se presenti, vengono gestiti anche eventuali file SQLite sidecar `-wal` e `-shm`
+- i `pre-restore-*` non vengono scelti automaticamente come sorgente restore normale
+- i safety backup sono comunque nel formato standard completo e possono essere usati solo se selezionati esplicitamente
 
 ## Limiti operativi
 
 - il restore e pensato per `DATABASE_URL=file:...`
 - prima del restore e consigliato fermare il server, per evitare scritture concorrenti sul DB SQLite
 - dopo il restore devi riavviare il server shop, cosi Prisma riapre la connessione sul database ripristinato
+- se il backup selezionato non e valido, il comando mostra i motivi precisi del fallimento
 
 ## Seed e restart
 
