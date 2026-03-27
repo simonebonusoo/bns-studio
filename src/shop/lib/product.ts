@@ -40,9 +40,5 @@ export function getProductBadges(product: ShopProduct) {
     return product.badges
   }
 
-  return [
-    product.featured ? { key: "featured", label: "In evidenza", source: "automatic" } : null,
-    product.status === "out_of_stock" || product.stock <= 0 ? { key: "out_of_stock", label: "Esaurito", source: "automatic" } : null,
-    product.stockStatus === "low_stock" ? { key: "low_stock", label: "Ultimi pezzi", source: "automatic" } : null,
-  ].filter(Boolean) as ProductVisibleBadge[]
+  return [] as ProductVisibleBadge[]
 }

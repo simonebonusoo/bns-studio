@@ -78,6 +78,8 @@ type ProductFormState = {
   existingImageUrls: string[]
 }
 
+type ProductTouchedState = Partial<Record<keyof ProductFormState, boolean>>
+
 type CollectionFormState = {
   title: string
   slug: string
@@ -357,13 +359,8 @@ export function ShopAdminPage() {
   const [productSearch, setProductSearch] = useState("")
   const [productCategoryFilter, setProductCategoryFilter] = useState("")
   const [productStatusFilter, setProductStatusFilter] = useState<"all" | ProductStatus>("all")
-  const [productSort, setProductSort] = useState<"title" | "createdAt" | "updatedAt" | "price">("updatedAt")
-  const [productSortDirection, setProductSortDirection] = useState<"asc" | "desc">("desc")
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([])
-  const [bulkAction, setBulkAction] = useState<"set_status" | "set_category" | "delete" | "add_tags" | "remove_tags">("set_status")
-  const [bulkStatus, setBulkStatus] = useState<ProductStatus>("active")
-  const [bulkCategory, setBulkCategory] = useState("")
-  const [bulkTags, setBulkTags] = useState("")
+  const [productTouchedFields, setProductTouchedFields] = useState<ProductTouchedState>({})
   const [newCategoryName, setNewCategoryName] = useState("")
   const [renamingCategory, setRenamingCategory] = useState<string | null>(null)
   const [renamedCategoryValue, setRenamedCategoryValue] = useState("")
@@ -400,7 +397,7 @@ export function ShopAdminPage() {
 
   useEffect(() => {
     void refreshProducts()
-  }, [productCategoryFilter, productSearch, productSort, productSortDirection, productStatusFilter])
+  }, [productCategoryFilter, productSearch, productStatusFilter])
 
   useEffect(() => {
     const editProductId = Number(searchParams.get("editProduct") || 0)
@@ -451,7 +448,6 @@ export function ShopAdminPage() {
     setMessage("")
     setError("")
     setOrderProfit(null)
-    setSelectedProductIds([])
   }, [tab])
 
   useEffect(() => {
@@ -468,8 +464,6 @@ export function ShopAdminPage() {
     if (productSearch.trim()) params.set("search", productSearch.trim())
     if (productCategoryFilter) params.set("category", productCategoryFilter)
     if (productStatusFilter !== "all") params.set("status", productStatusFilter)
-    params.set("sort", productSort)
-    params.set("direction", productSortDirection)
 
     const productData = await apiFetch<ShopProduct[]>(`/admin/products?${params.toString()}`)
     setProducts(productData)
@@ -510,6 +504,7 @@ export function ShopAdminPage() {
 
   function resetProductForm() {
     setProductForm(emptyProductForm())
+    setProductTouchedFields({})
     setEditingProductId(null)
     setProductFiles([])
     productPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
@@ -520,6 +515,7 @@ export function ShopAdminPage() {
     clearFeedback()
     resetProductForm()
     setEditingProductId(product.id)
+    setProductTouchedFields({})
     setProductForm({
       title: product.title,
       sku: product.sku || "",
@@ -540,6 +536,51 @@ export function ShopAdminPage() {
       existingImageUrls: product.imageUrls,
     })
   }
+
+  function areFormValuesEqual(left: unknown, right: unknown) {
+    return JSON.stringify(left) === JSON.stringify(right)
+  }
+
+  function handleProductFormChange(next: ProductFormState) {
+    setProductTouchedFields((current) => {
+      const nextTouched = { ...current }
+      ;(Object.keys(next) as Array<keyof ProductFormState>).forEach((key) => {
+        if (!areFormValuesEqual(productForm[key], next[key])) {
+          nextTouched[key] = true
+        }
+      })
+      return nextTouched
+    })
+    setProductForm(next)
+  }
+
+  const selectedProducts = useMemo(
+    () => products.filter((product) => selectedProductIds.includes(product.id)),
+    [products, selectedProductIds],
+  )
+  const isMultiEdit = selectedProductIds.length > 1
+  const hasTouchedFields = Object.values(productTouchedFields).some(Boolean)
+
+  useEffect(() => {
+    if (selectedProductIds.length === 0) {
+      if (editingProductId !== null) {
+        resetProductForm()
+      }
+      return
+    }
+
+    if (selectedProductIds.length === 1) {
+      const selectedProduct = products.find((product) => product.id === selectedProductIds[0])
+      if (selectedProduct && editingProductId !== selectedProduct.id) {
+        startEditProduct(selectedProduct)
+      }
+      return
+    }
+
+    if (selectedProductIds.length > 1) {
+      resetProductForm()
+    }
+  }, [selectedProductIds, products])
 
   function handleProductFileChange(files: FileList | null) {
     if (!files) return
@@ -595,6 +636,60 @@ export function ShopAdminPage() {
     clearFeedback()
 
     try {
+      if (isMultiEdit) {
+        if (!selectedProducts.length) {
+          throw new Error("Seleziona almeno due prodotti per la modifica multipla.")
+        }
+        if (!hasTouchedFields) {
+          throw new Error("Modifica almeno un campo prima di aggiornare i prodotti selezionati.")
+        }
+
+        const requests = selectedProducts.map((product) => {
+          const payload = {
+            title: productTouchedFields.title ? productForm.title : product.title,
+            sku: product.sku || null,
+            description: productTouchedFields.description ? productForm.description : product.description,
+            price: parseEuroToCents(
+              productTouchedFields.hasA4 || productTouchedFields.priceA4 || productTouchedFields.hasA3 || productTouchedFields.priceA3
+                ? (productForm.hasA4 ? productForm.priceA4 : productForm.priceA3)
+                : formatEuroInput(product.hasA4 !== false ? (product.priceA4 ?? product.price) : (product.priceA3 ?? product.price)),
+            ),
+            costPrice: 0,
+            hasA4: productTouchedFields.hasA4 ? productForm.hasA4 : product.hasA4 !== false,
+            hasA3: productTouchedFields.hasA3 ? productForm.hasA3 : Boolean(product.hasA3),
+            priceA4:
+              productTouchedFields.hasA4 || productTouchedFields.priceA4
+                ? (productForm.hasA4 ? parseEuroToCents(productForm.priceA4) : null)
+                : (product.priceA4 ?? product.price),
+            priceA3:
+              productTouchedFields.hasA3 || productTouchedFields.priceA3
+                ? (productForm.hasA3 ? parseEuroToCents(productForm.priceA3) : null)
+                : (product.priceA3 ?? null),
+            category: productTouchedFields.category ? productForm.category : product.category,
+            tags: productTouchedFields.tags ? productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean) : (product.tags?.map((tag) => tag.name) || []),
+            collectionIds: productTouchedFields.collectionIds ? productForm.collectionIds : (product.collections?.map((collection) => collection.id) || []),
+            manualBadges: productTouchedFields.manualBadges ? productForm.manualBadges : (product.manualBadges || []),
+            featured: productTouchedFields.featured ? productForm.featured : product.featured,
+            stock: productTouchedFields.stock ? Number(productForm.stock) : Number(product.stock),
+            lowStockThreshold: productTouchedFields.lowStockThreshold ? Number(productForm.lowStockThreshold) : Number(product.lowStockThreshold || 5),
+            status: productTouchedFields.status ? productForm.status : product.status,
+            imageUrls: product.imageUrls,
+          }
+
+          return apiFetch<ShopProduct>(`/admin/products/${product.id}`, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+          })
+        })
+
+        await Promise.all(requests)
+        setSelectedProductIds([])
+        resetProductForm()
+        await refresh()
+        setMessage("Prodotti aggiornati correttamente.")
+        return
+      }
+
       const uploadedUrls = await uploadProductImages()
       const imageUrls = [...productForm.existingImageUrls, ...uploadedUrls]
 
@@ -642,11 +737,7 @@ export function ShopAdminPage() {
         setMessage("Prodotto creato correttamente.")
       }
 
-      setProducts((current) => {
-        const exists = current.some((product) => product.id === savedProduct.id)
-        if (!exists) return current
-        return current.map((product) => (product.id === savedProduct.id ? savedProduct : product))
-      })
+      setProducts((current) => current.map((product) => (product.id === savedProduct.id ? savedProduct : product)))
 
       resetProductForm()
       await refresh()
@@ -805,67 +896,6 @@ export function ShopAdminPage() {
       setError(err instanceof Error ? err.message : "Errore durante la duplicazione del prodotto.")
     }
   }
-
-  async function runBulkAction() {
-    clearFeedback()
-    if (!selectedProductIds.length) {
-      setError("Seleziona almeno un prodotto.")
-      return
-    }
-
-    if (bulkAction === "delete" && !window.confirm(`Vuoi eliminare ${selectedProductIds.length} prodotti?`)) {
-      return
-    }
-
-    try {
-      await apiFetch("/admin/products/bulk", {
-        method: "POST",
-        body: JSON.stringify({
-          productIds: selectedProductIds,
-          action: bulkAction,
-          status: bulkAction === "set_status" ? bulkStatus : undefined,
-          category: bulkAction === "set_category" ? bulkCategory : undefined,
-          tags: bulkAction === "add_tags" || bulkAction === "remove_tags" ? bulkTags.split(",").map((tag) => tag.trim()).filter(Boolean) : undefined,
-        }),
-      })
-      setSelectedProductIds([])
-      setBulkTags("")
-      await refresh()
-      setMessage("Azione bulk completata correttamente.")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante l'azione bulk.")
-    }
-  }
-
-  const bulkActionLabel =
-    bulkAction === "set_status"
-      ? "Cambio stato"
-      : bulkAction === "set_category"
-        ? "Cambio categoria"
-        : bulkAction === "add_tags"
-          ? "Aggiunta tag"
-          : bulkAction === "remove_tags"
-            ? "Rimozione tag"
-            : "Eliminazione multipla"
-
-  const bulkActionValueLabel =
-    bulkAction === "set_status"
-      ? bulkStatus
-      : bulkAction === "set_category"
-        ? bulkCategory || "Categoria non selezionata"
-        : bulkAction === "add_tags" || bulkAction === "remove_tags"
-          ? bulkTags || "Tag non inseriti"
-          : "Richiede conferma"
-
-  const bulkActionReady =
-    selectedProductIds.length > 0 &&
-    (bulkAction === "set_status"
-      ? Boolean(bulkStatus)
-      : bulkAction === "set_category"
-        ? Boolean(bulkCategory)
-        : bulkAction === "add_tags" || bulkAction === "remove_tags"
-          ? Boolean(bulkTags.trim())
-          : true)
 
   function startEditCoupon(coupon: Coupon) {
     clearFeedback()
@@ -1095,13 +1125,16 @@ export function ShopAdminPage() {
         <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
           <ProductFormCard
             editingProductId={editingProductId}
+            selectedCount={selectedProductIds.length}
+            isMultiEdit={isMultiEdit}
+            canSubmit={isMultiEdit ? hasTouchedFields : true}
             productForm={productForm}
             categories={categories}
             collections={collections}
             productImages={productImages}
             onSubmit={saveProduct}
             onCancel={resetProductForm}
-            onChange={setProductForm}
+            onChange={handleProductFormChange}
             onFileChange={handleProductFileChange}
             onMakePrimary={moveImageToPrimary}
             onRemoveExisting={removeExistingImage}
@@ -1112,88 +1145,12 @@ export function ShopAdminPage() {
               search={productSearch}
               category={productCategoryFilter}
               status={productStatusFilter}
-              sort={productSort}
-              direction={productSortDirection}
               categories={categories}
               total={products.length}
               onSearchChange={setProductSearch}
               onCategoryChange={setProductCategoryFilter}
               onStatusChange={(value) => setProductStatusFilter(value as "all" | ProductStatus)}
-              onSortChange={(value) => setProductSort(value as "title" | "createdAt" | "updatedAt" | "price")}
-              onDirectionChange={setProductSortDirection}
             />
-            <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-white">Azioni massive</p>
-                  <p className="text-xs text-white/55">
-                    Seleziona uno o più prodotti dalla lista per applicare una modifica multipla.
-                  </p>
-                </div>
-                <div className="grid gap-3 rounded-2xl border border-white/8 bg-white/[0.02] p-3 md:grid-cols-3">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Selezionati</p>
-                    <p className="mt-1 text-sm text-white">{selectedProductIds.length} prodotti</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Azione</p>
-                    <p className="mt-1 text-sm text-white">{bulkActionLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Valore</p>
-                    <p className="mt-1 text-sm text-white">{bulkActionValueLabel}</p>
-                  </div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_auto]">
-                  <select className="shop-select min-w-[12rem]" value={bulkAction} onChange={(event) => setBulkAction(event.target.value as typeof bulkAction)}>
-                    <option value="set_status">Cambia stato</option>
-                    <option value="set_category">Cambia categoria</option>
-                    <option value="add_tags">Aggiungi tag</option>
-                    <option value="remove_tags">Rimuovi tag</option>
-                    <option value="delete">Elimina prodotti</option>
-                  </select>
-                  {bulkAction === "set_status" ? (
-                    <select className="shop-select min-w-[12rem]" value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value as ProductStatus)}>
-                      <option value="active">Active</option>
-                      <option value="draft">Draft</option>
-                      <option value="hidden">Hidden</option>
-                      <option value="out_of_stock">Out of stock</option>
-                    </select>
-                  ) : null}
-                  {bulkAction === "set_category" ? (
-                    <select className="shop-select min-w-[12rem]" value={bulkCategory} onChange={(event) => setBulkCategory(event.target.value)}>
-                      <option value="">Categoria</option>
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                  {(bulkAction === "add_tags" || bulkAction === "remove_tags") ? (
-                    <input
-                      className="shop-input min-w-[16rem]"
-                      placeholder="Tag separati da virgola"
-                      value={bulkTags}
-                      onChange={(event) => setBulkTags(event.target.value)}
-                    />
-                  ) : null}
-                  {bulkAction === "delete" ? (
-                    <div className="rounded-2xl border border-red-400/15 bg-red-400/8 px-4 py-3 text-sm text-red-100/85">
-                      Elimina definitivamente i prodotti selezionati dopo conferma.
-                    </div>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={runBulkAction}
-                    disabled={!bulkActionReady}
-                    className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    Applica
-                  </button>
-                </div>
-              </div>
-            </section>
             <div onWheelCapture={containWheel} className="min-h-0 flex-1">
               <ProductListSection
                 products={products}
@@ -1203,7 +1160,10 @@ export function ShopAdminPage() {
                     checked ? Array.from(new Set([...current, productId])) : current.filter((id) => id !== productId),
                   )
                 }
-                onEdit={startEditProduct}
+                onEdit={(product) => {
+                  setSelectedProductIds([product.id])
+                  startEditProduct(product)
+                }}
                 onDuplicate={duplicateProduct}
                 onDelete={async (product) => {
                   clearFeedback()

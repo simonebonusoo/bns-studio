@@ -26,6 +26,9 @@ type ProductFormState = {
 
 type ProductFormCardProps = {
   editingProductId: number | null
+  selectedCount: number
+  isMultiEdit: boolean
+  canSubmit: boolean
   productForm: ProductFormState
   categories: string[]
   collections: AdminCollection[]
@@ -40,6 +43,9 @@ type ProductFormCardProps = {
 
 export function ProductFormCard({
   editingProductId,
+  selectedCount,
+  isMultiEdit,
+  canSubmit,
   productForm,
   categories,
   collections,
@@ -54,8 +60,15 @@ export function ProductFormCard({
   return (
     <form onSubmit={onSubmit} className="shop-card h-full space-y-4 p-6">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold text-white">{editingProductId ? "Modifica prodotto" : "Nuovo prodotto"}</h2>
-        {editingProductId ? (
+        <div>
+          <h2 className="text-xl font-semibold text-white">
+            {isMultiEdit ? "Modifica prodotti" : editingProductId ? "Modifica prodotto" : "Nuovo prodotto"}
+          </h2>
+          {isMultiEdit ? (
+            <p className="mt-1 text-sm text-white/55">Stai modificando {selectedCount} prodotti selezionati. Verranno aggiornati solo i campi che cambi davvero in questo form.</p>
+          ) : null}
+        </div>
+        {editingProductId && !isMultiEdit ? (
           <button type="button" onClick={onCancel} className="text-sm text-white/60 transition hover:text-white">
             Annulla modifica
           </button>
@@ -75,6 +88,7 @@ export function ProductFormCard({
         placeholder="SKU (opzionale)"
         aria-label="SKU"
         value={productForm.sku}
+        disabled={isMultiEdit}
         onChange={(event) => onChange({ ...productForm, sku: event.target.value })}
       />
 
@@ -336,14 +350,21 @@ export function ProductFormCard({
       </div>
 
       <ProductMediaManager
-        images={productImages}
-        existingImageUrls={productForm.existingImageUrls}
-        onFileChange={onFileChange}
-        onMakePrimary={onMakePrimary}
-        onRemoveExisting={onRemoveExisting}
+        images={isMultiEdit ? [] : productImages}
+        existingImageUrls={isMultiEdit ? [] : productForm.existingImageUrls}
+        onFileChange={isMultiEdit ? () => {} : onFileChange}
+        onMakePrimary={isMultiEdit ? () => {} : onMakePrimary}
+        onRemoveExisting={isMultiEdit ? () => {} : onRemoveExisting}
       />
+      {isMultiEdit ? (
+        <p className="text-xs text-white/50">
+          Le immagini e lo SKU restano invariati nella modifica multipla. Per cambiarli, apri un singolo prodotto.
+        </p>
+      ) : null}
 
-      <Button type="submit">{editingProductId ? "Aggiorna prodotto" : "Salva prodotto"}</Button>
+      <Button type="submit" disabled={!canSubmit}>
+        {isMultiEdit ? "Aggiorna prodotti" : editingProductId ? "Aggiorna prodotto" : "Salva prodotto"}
+      </Button>
     </form>
   )
 }
