@@ -10,7 +10,7 @@ services:
       - key: NODE_VERSION
         value: 22
       - key: DATABASE_URL
-        value: file:/opt/render/project/src/data/dev.db
+        value: file:/opt/render/project/src/data/shop/dev.db
       - key: UPLOADS_DIR
         value: /opt/render/project/src/data/uploads
       - key: CLIENT_URL

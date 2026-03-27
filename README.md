@@ -16,3 +16,8 @@ npm run preview
 - `src/sections/*` (testi, servizi, portfolio, prezzi, risorse)
 - `src/components/Navbar.tsx` (menu)
 - `src/styles.css` (effetti: griglia, glass, noise)
+
+## Persistenza catalogo shop
+- Documentazione completa: `docs/catalog-persistence.md`
+- Database locale predefinito: `data/shop/dev.db`
+- Upload immagini prodotto: `data/uploads/products/`
