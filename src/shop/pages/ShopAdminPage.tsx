@@ -619,19 +619,30 @@ export function ShopAdminPage() {
         imageUrls,
       }
 
+      let savedProduct: ShopProduct
+
       if (editingProductId) {
-        await apiFetch(`/admin/products/${editingProductId}`, {
+        savedProduct = await apiFetch<ShopProduct>(`/admin/products/${editingProductId}`, {
           method: "PUT",
           body: JSON.stringify(payload),
         })
+        if (savedProduct.status !== payload.status) {
+          throw new Error("Lo stato del prodotto non è stato aggiornato correttamente.")
+        }
         setMessage("Prodotto aggiornato correttamente.")
       } else {
-        await apiFetch("/admin/products", {
+        savedProduct = await apiFetch<ShopProduct>("/admin/products", {
           method: "POST",
           body: JSON.stringify(payload),
         })
         setMessage("Prodotto creato correttamente.")
       }
+
+      setProducts((current) => {
+        const exists = current.some((product) => product.id === savedProduct.id)
+        if (!exists) return current
+        return current.map((product) => (product.id === savedProduct.id ? savedProduct : product))
+      })
 
       resetProductForm()
       await refresh()
@@ -780,11 +791,12 @@ export function ShopAdminPage() {
   async function duplicateProduct(product: ShopProduct) {
     clearFeedback()
     try {
-      await apiFetch(`/admin/products/${product.id}/duplicate`, {
+      const duplicated = await apiFetch<ShopProduct>(`/admin/products/${product.id}/duplicate`, {
         method: "POST",
       })
       await refresh()
-      setMessage("Prodotto duplicato correttamente.")
+      startEditProduct(duplicated)
+      setMessage("Prodotto duplicato correttamente. La copia si apre in bozza pronta per la modifica.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante la duplicazione del prodotto.")
     }
@@ -820,6 +832,36 @@ export function ShopAdminPage() {
       setError(err instanceof Error ? err.message : "Errore durante l'azione bulk.")
     }
   }
+
+  const bulkActionLabel =
+    bulkAction === "set_status"
+      ? "Cambio stato"
+      : bulkAction === "set_category"
+        ? "Cambio categoria"
+        : bulkAction === "add_tags"
+          ? "Aggiunta tag"
+          : bulkAction === "remove_tags"
+            ? "Rimozione tag"
+            : "Eliminazione multipla"
+
+  const bulkActionValueLabel =
+    bulkAction === "set_status"
+      ? bulkStatus
+      : bulkAction === "set_category"
+        ? bulkCategory || "Categoria non selezionata"
+        : bulkAction === "add_tags" || bulkAction === "remove_tags"
+          ? bulkTags || "Tag non inseriti"
+          : "Richiede conferma"
+
+  const bulkActionReady =
+    selectedProductIds.length > 0 &&
+    (bulkAction === "set_status"
+      ? Boolean(bulkStatus)
+      : bulkAction === "set_category"
+        ? Boolean(bulkCategory)
+        : bulkAction === "add_tags" || bulkAction === "remove_tags"
+          ? Boolean(bulkTags.trim())
+          : true)
 
   function startEditCoupon(coupon: Coupon) {
     clearFeedback()
@@ -1077,12 +1119,28 @@ export function ShopAdminPage() {
               onDirectionChange={setProductSortDirection}
             />
             <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                <div>
+              <div className="space-y-4">
+                <div className="space-y-1">
                   <p className="text-sm font-medium text-white">Azioni massive</p>
-                  <p className="mt-1 text-xs text-white/55">{selectedProductIds.length} prodotti selezionati</p>
+                  <p className="text-xs text-white/55">
+                    Seleziona uno o più prodotti dalla lista per applicare una modifica multipla.
+                  </p>
                 </div>
-                <div className="grid gap-3 md:grid-cols-2 xl:flex xl:flex-wrap">
+                <div className="grid gap-3 rounded-2xl border border-white/8 bg-white/[0.02] p-3 md:grid-cols-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Selezionati</p>
+                    <p className="mt-1 text-sm text-white">{selectedProductIds.length} prodotti</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Azione</p>
+                    <p className="mt-1 text-sm text-white">{bulkActionLabel}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Valore</p>
+                    <p className="mt-1 text-sm text-white">{bulkActionValueLabel}</p>
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_auto]">
                   <select className="shop-select min-w-[12rem]" value={bulkAction} onChange={(event) => setBulkAction(event.target.value as typeof bulkAction)}>
                     <option value="set_status">Cambia stato</option>
                     <option value="set_category">Cambia categoria</option>
@@ -1116,7 +1174,17 @@ export function ShopAdminPage() {
                       onChange={(event) => setBulkTags(event.target.value)}
                     />
                   ) : null}
-                  <button type="button" onClick={runBulkAction} className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90">
+                  {bulkAction === "delete" ? (
+                    <div className="rounded-2xl border border-red-400/15 bg-red-400/8 px-4 py-3 text-sm text-red-100/85">
+                      Elimina definitivamente i prodotti selezionati dopo conferma.
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={runBulkAction}
+                    disabled={!bulkActionReady}
+                    className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
                     Applica
                   </button>
                 </div>
@@ -1201,57 +1269,72 @@ export function ShopAdminPage() {
           </section>
 
           <section className="shop-card space-y-4 p-6 xl:col-span-2">
+            <div className="max-w-4xl space-y-2">
+              <h2 className="text-xl font-semibold text-white">Gestione collezioni</h2>
+              <p className="text-sm leading-6 text-white/60">
+                Le collezioni servono a raggruppare prodotti in temi o percorsi editoriali trasversali, diversi dalle categorie principali.
+                Esempio: categoria = Print, collezione = Cantanti famosi.
+              </p>
+            </div>
             <div className="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-              <form onSubmit={saveCollection} className="space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">Gestione collezioni</h2>
-                    <p className="mt-1 text-sm text-white/55">Collezioni reali collegate ai prodotti e riusabili nel catalogo pubblico.</p>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                <form onSubmit={saveCollection} className="space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Nuova collezione</h3>
+                      <p className="mt-1 text-sm text-white/55">Crea o aggiorna una collezione da riutilizzare nel catalogo e nella homepage.</p>
+                    </div>
+                    {editingCollectionId ? (
+                      <button type="button" onClick={resetCollectionForm} className="text-sm text-white/60 transition hover:text-white">
+                        Annulla modifica
+                      </button>
+                    ) : null}
                   </div>
-                  {editingCollectionId ? (
-                    <button type="button" onClick={resetCollectionForm} className="text-sm text-white/60 transition hover:text-white">
-                      Annulla modifica
-                    </button>
-                  ) : null}
-                </div>
-                <input className="shop-input" placeholder="Titolo collezione" value={collectionForm.title} onChange={(event) => setCollectionForm({ ...collectionForm, title: event.target.value })} />
-                <input className="shop-input" placeholder="Slug (opzionale)" value={collectionForm.slug} onChange={(event) => setCollectionForm({ ...collectionForm, slug: event.target.value })} />
-                <textarea className="shop-textarea min-h-28 resize-none" placeholder="Descrizione collezione" value={collectionForm.description} onChange={(event) => setCollectionForm({ ...collectionForm, description: event.target.value })} />
-                <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
-                  <input type="checkbox" checked={collectionForm.active} onChange={(event) => setCollectionForm({ ...collectionForm, active: event.target.checked })} />
-                  Collezione attiva nel catalogo pubblico
-                </label>
-                <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                  {editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}
-                </button>
-              </form>
+                  <input className="shop-input" placeholder="Titolo collezione" value={collectionForm.title} onChange={(event) => setCollectionForm({ ...collectionForm, title: event.target.value })} />
+                  <input className="shop-input" placeholder="Slug (opzionale)" value={collectionForm.slug} onChange={(event) => setCollectionForm({ ...collectionForm, slug: event.target.value })} />
+                  <textarea className="shop-textarea min-h-28 resize-none" placeholder="Descrizione collezione" value={collectionForm.description} onChange={(event) => setCollectionForm({ ...collectionForm, description: event.target.value })} />
+                  <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
+                    <input type="checkbox" checked={collectionForm.active} onChange={(event) => setCollectionForm({ ...collectionForm, active: event.target.checked })} />
+                    Collezione attiva nel catalogo pubblico
+                  </label>
+                  <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+                    {editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}
+                  </button>
+                </form>
+              </div>
 
-              <div className="space-y-3">
-                {collections.map((collection) => (
-                  <div key={collection.id} className="rounded-2xl border border-white/10 px-4 py-4">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-white">{collection.title}</p>
-                          <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-white/55">
-                            {collection.active ? "Active" : "Hidden"}
-                          </span>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-white">Collezioni esistenti</h3>
+                  <p className="mt-1 text-sm text-white/55">Lista delle collezioni già create e del numero di prodotti collegati.</p>
+                </div>
+                <div className="space-y-3">
+                  {collections.map((collection) => (
+                    <div key={collection.id} className="rounded-2xl border border-white/10 px-4 py-4">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium text-white">{collection.title}</p>
+                            <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-white/55">
+                              {collection.active ? "Active" : "Hidden"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-white/45">/{collection.slug} · {collection._count?.products || 0} prodotti</p>
+                          {collection.description ? <p className="text-sm text-white/60">{collection.description}</p> : null}
                         </div>
-                        <p className="text-xs text-white/45">/{collection.slug} · {collection._count?.products || 0} prodotti</p>
-                        {collection.description ? <p className="text-sm text-white/60">{collection.description}</p> : null}
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => startEditCollection(collection)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                          Modifica
-                        </button>
-                        <button type="button" onClick={() => deleteCollection(collection.id)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                          Elimina
-                        </button>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => startEditCollection(collection)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                            Modifica
+                          </button>
+                          <button type="button" onClick={() => deleteCollection(collection.id)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                            Elimina
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {!collections.length ? <p className="text-sm text-white/50">Nessuna collezione creata.</p> : null}
+                  ))}
+                  {!collections.length ? <p className="text-sm text-white/50">Nessuna collezione creata.</p> : null}
+                </div>
               </div>
             </div>
           </section>
