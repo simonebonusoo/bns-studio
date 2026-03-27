@@ -249,7 +249,13 @@ function resolveProductPayload(body, fallbackPrice = 0) {
   const price = prices.length ? Math.min(...prices) : 0
 
   return {
-    ...body,
+    title: body.title.trim(),
+    description: body.description.trim(),
+    costPrice: body.costPrice ?? 0,
+    category: body.category.trim(),
+    featured: Boolean(body.featured),
+    stock: Number(body.stock),
+    lowStockThreshold: Number(body.lowStockThreshold ?? 5),
     hasA3,
     hasA4,
     priceA3: hasA3 ? body.priceA3 : null,
