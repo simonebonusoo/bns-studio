@@ -3,7 +3,6 @@ import path from "node:path"
 
 import { resolveDatabaseUrl } from "../prisma/resolve-database-url.mjs"
 import { reportError, logInfo, logWarning } from "../src/server/shop/lib/monitoring.mjs"
-import { resolveProductsArchiveRoot } from "../src/server/shop/lib/product-mirror.mjs"
 import { removeSqliteRelatedFiles, resolveSqliteRelatedFiles } from "../src/server/shop/lib/sqlite-files.mjs"
 import { resolveBackupsRootDir } from "../src/server/shop/lib/storage-paths.mjs"
 import { resolveUploadsRootDir } from "../src/server/shop/lib/uploads-storage.mjs"
@@ -64,7 +63,6 @@ function validateBackupDir(backupDir) {
   const manifestPath = path.join(backupDir, "manifest.json")
   const shopDbDir = path.join(backupDir, "shop-db")
   const uploadsDir = path.join(backupDir, "uploads")
-  const productsDir = path.join(backupDir, "Prodotti")
 
   if (!fs.existsSync(backupDir)) {
     return {
@@ -94,10 +92,6 @@ function validateBackupDir(backupDir) {
 
   if (!fs.existsSync(uploadsDir) || !fs.statSync(uploadsDir).isDirectory()) {
     reasons.push("cartella uploads mancante")
-  }
-
-  if (!fs.existsSync(productsDir) || !fs.statSync(productsDir).isDirectory()) {
-    reasons.push("cartella Prodotti mancante")
   }
 
   return {
@@ -178,7 +172,7 @@ function createSafetyBackupName() {
   return `pre-restore-${new Date().toISOString().replace(/[:.]/g, "-")}`
 }
 
-function createStructuredBackupSnapshot({ backupDir, databasePath, sqliteFiles, uploadsRoot, productsMirrorRoot, label }) {
+function createStructuredBackupSnapshot({ backupDir, databasePath, sqliteFiles, uploadsRoot, label }) {
   fs.mkdirSync(backupDir, { recursive: true })
 
   const copied = {
@@ -189,7 +183,6 @@ function createStructuredBackupSnapshot({ backupDir, databasePath, sqliteFiles, 
       }))
       .filter((entry) => entry.copied),
     uploads: copyPathIfExists(uploadsRoot, path.join(backupDir, "uploads")),
-    productsMirror: copyPathIfExists(productsMirrorRoot, path.join(backupDir, "Prodotti")),
   }
 
   const manifest = {
@@ -198,7 +191,6 @@ function createStructuredBackupSnapshot({ backupDir, databasePath, sqliteFiles, 
     databasePath,
     sqliteFiles,
     uploadsRoot,
-    productsMirrorRoot,
     copied,
     kind: label,
   }
@@ -214,7 +206,6 @@ async function main() {
   const backupDir = resolveRequestedBackupDir(cliOptions)
   const databasePath = normalizeFileDatabasePath(resolveDatabaseUrl())
   const uploadsRoot = resolveUploadsRootDir()
-  const productsMirrorRoot = resolveProductsArchiveRoot()
   const backupsRoot = resolveBackupsRootDir()
   const sqliteFiles = resolveSqliteRelatedFiles(databasePath)
 
@@ -224,7 +215,6 @@ async function main() {
     databasePath,
     sqliteFiles,
     uploadsRoot,
-    productsMirrorRoot,
     label: "pre-restore-safety-backup",
   })
 
@@ -236,7 +226,6 @@ async function main() {
       restored: restorePath(path.join(backupDir, "shop-db", path.basename(filePath)), filePath),
     })),
     uploads: restorePath(path.join(backupDir, "uploads"), uploadsRoot),
-    productsMirror: restorePath(path.join(backupDir, "Prodotti"), productsMirrorRoot),
   }
 
   const payload = {

@@ -49,7 +49,6 @@ Il comando:
 - trova le immagini locali ancora referenziate
 - le carica su Cloudinary usando lo stesso layer del backend
 - aggiorna il DB con gli URL cloud
-- riallinea il mirror file-based `Prodotti/`
 
 ## Compatibilita
 

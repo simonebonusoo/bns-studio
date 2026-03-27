@@ -3,7 +3,6 @@ import path from "node:path"
 
 import { resolveDatabaseUrl } from "../prisma/resolve-database-url.mjs"
 import { reportError, logInfo } from "../src/server/shop/lib/monitoring.mjs"
-import { resolveProductsArchiveRoot } from "../src/server/shop/lib/product-mirror.mjs"
 import { resolveSqliteRelatedFiles } from "../src/server/shop/lib/sqlite-files.mjs"
 import { resolveBackupsRootDir } from "../src/server/shop/lib/storage-paths.mjs"
 import { resolveUploadsRootDir } from "../src/server/shop/lib/uploads-storage.mjs"
@@ -30,7 +29,6 @@ function copyPathIfExists(sourcePath, targetPath) {
 async function main() {
   const databasePath = normalizeFileDatabasePath(resolveDatabaseUrl())
   const uploadsRoot = resolveUploadsRootDir()
-  const productsMirrorRoot = resolveProductsArchiveRoot()
   const backupsRoot = resolveBackupsRootDir()
   const backupDir = path.join(backupsRoot, timestamp())
   const sqliteFiles = resolveSqliteRelatedFiles(databasePath)
@@ -45,7 +43,6 @@ async function main() {
       }))
       .filter((entry) => entry.copied),
     uploads: copyPathIfExists(uploadsRoot, path.join(backupDir, "uploads")),
-    productsMirror: copyPathIfExists(productsMirrorRoot, path.join(backupDir, "Prodotti")),
   }
 
   const manifest = {
@@ -54,7 +51,6 @@ async function main() {
     databasePath,
     sqliteFiles,
     uploadsRoot,
-    productsMirrorRoot,
     copied,
   }
 

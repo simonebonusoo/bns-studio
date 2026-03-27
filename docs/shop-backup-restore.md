@@ -8,13 +8,11 @@ Ogni backup include:
 
 - database SQLite dello shop
 - upload locali prodotto
-- mirror file-based `Prodotti/`
 
 Percorsi reali coperti:
 
 - DB: `data/shop/dev.db` in locale, `/var/data/shop/dev.db` su Render
 - upload: `data/uploads/` in locale, `/var/data/uploads/` su Render
-- mirror catalogo: `data/Prodotti/` in locale, `/var/data/Prodotti/` su Render
 
 ## Comando backup
 
@@ -32,7 +30,6 @@ Dentro il backup trovi:
 - `manifest.json`
 - `shop-db/`
 - `uploads/`
-- `Prodotti/`
 
 ## Comando restore
 
@@ -69,6 +66,16 @@ npm run shop:restore -- --backup /percorso/del/backup --force
 - prima del restore e consigliato fermare il server, per evitare scritture concorrenti sul DB SQLite
 - dopo il restore devi riavviare il server shop, cosi Prisma riapre la connessione sul database ripristinato
 - se il backup selezionato non e valido, il comando mostra i motivi precisi del fallimento
+
+## Fonte di verita reale
+
+La fonte di verita dello shop e una sola:
+
+- database SQLite/Prisma
+
+Gli upload immagine fanno parte del restore perche servono davvero al catalogo.
+
+L'eventuale cartella `data/Prodotti/` non fa piu parte del flusso critico di backup/restore e non viene usata per ricostruire il catalogo runtime.
 
 ## Seed e restart
 

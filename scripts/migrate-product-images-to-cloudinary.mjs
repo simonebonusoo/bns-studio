@@ -4,7 +4,6 @@ import path from "node:path"
 import { prisma } from "../src/server/shop/lib/prisma.mjs"
 import { uploadProductImageAsset } from "../src/server/shop/lib/asset-storage.mjs"
 import { reportError, logInfo } from "../src/server/shop/lib/monitoring.mjs"
-import { syncAllProductMirrors } from "../src/server/shop/lib/product-mirror.mjs"
 import { resolveProductUploadsDir } from "../src/server/shop/lib/uploads-storage.mjs"
 
 function inferMimeType(filePath) {
@@ -64,7 +63,6 @@ async function main() {
     }
   }
 
-  await syncAllProductMirrors()
   logInfo("product_images_cloud_migration_completed", {
     migratedImages,
     productsChecked: products.length,
