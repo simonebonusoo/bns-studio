@@ -1305,7 +1305,7 @@ export function ShopAdminPage() {
       {error ? <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
 
       {tab === "prodotti" ? (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
           <ProductFormCard
             editingProductId={editingProductId}
             selectedCount={selectedProductIds.length}

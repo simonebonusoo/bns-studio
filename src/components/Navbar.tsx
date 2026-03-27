@@ -1,3 +1,4 @@
+import type { WheelEvent } from "react"
 import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -10,7 +11,7 @@ import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
 import { formatPrice } from "../shop/lib/format"
-import { getPriceForFormat } from "../shop/lib/product"
+import { getPriceForVariant, getProductPrimaryImage } from "../shop/lib/product"
 import { ShopProduct } from "../shop/types"
 
 type SearchSuggestion =
@@ -35,7 +36,7 @@ function highlightMatch(text: string, query: string) {
   )
 }
 
-function containWheel(event: React.WheelEvent<HTMLElement>) {
+function containWheel(event: WheelEvent<HTMLElement>) {
   event.stopPropagation()
 }
 
@@ -86,7 +87,7 @@ export function Navbar() {
   const navH = 88
 
   const { user, login, updateProfile, logout, loading } = useShopAuth()
-  const { items, couponCode, clearCart } = useShopCart()
+  const { items, couponCode, clearCart, removeItem } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
   const profileRef = useRef<HTMLDivElement | null>(null)
@@ -263,7 +264,7 @@ export function Navbar() {
       {
         method: "POST",
         body: JSON.stringify({
-          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format })),
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null })),
           couponCode: couponCode || null,
         }),
       }
@@ -755,11 +756,11 @@ export function Navbar() {
                       ) : (
                         items.map((item) => (
                           <article
-                            key={`${item.productId}-${item.format || "A4"}`}
+                            key={`${item.productId}-${item.variantId || item.format || "default"}`}
                             className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
                           >
                             <img
-                              src={item.product.imageUrls[0]}
+                              src={getProductPrimaryImage(item.product)}
                               alt={item.product.title}
                               className="h-24 w-24 rounded-[18px] object-cover"
                             />
@@ -767,8 +768,17 @@ export function Navbar() {
                               <p className="text-xs uppercase tracking-[0.2em] text-white/45">{item.product.category}</p>
                               <h3 className="mt-2 line-clamp-2 text-base font-medium text-white">{item.product.title}</h3>
                               <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/65">
-                                <span>{item.format || "A4"} · Qtà {item.quantity}</span>
-                                <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForFormat(item.product, item.format) * item.quantity)}</span>
+                                <span>{item.variantLabel || item.format || "Variante"} · Qtà {item.quantity}</span>
+                                <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
+                              </div>
+                              <div className="mt-3">
+                                <button
+                                  type="button"
+                                  onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                                  className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70 transition hover:border-white/25 hover:text-white"
+                                >
+                                  Rimuovi
+                                </button>
                               </div>
                             </div>
                           </article>

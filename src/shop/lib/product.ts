@@ -82,7 +82,12 @@ export function getProductVariants(product: ShopProduct) {
 
 export function getDefaultVariant(product: ShopProduct) {
   const variants = getProductVariants(product)
-  return variants.find((variant) => variant.isDefault) || variants[0]
+  return (
+    variants.find((variant) => variant.isDefault && variant.stock > 0) ||
+    variants.find((variant) => variant.stock > 0) ||
+    variants.find((variant) => variant.isDefault) ||
+    variants[0]
+  )
 }
 
 export function getVariantById(product: ShopProduct, variantId?: number | null) {
@@ -124,11 +129,49 @@ export function getPriceForVariant(product: ShopProduct, variantId?: number | nu
 }
 
 export function isProductPurchasable(product: ShopProduct, variantId?: number | null) {
-  const variant = resolveSelectedVariant(product, { variantId })
-  return product.status === "active" && Boolean(variant) && variant.stock > 0 && variant.isActive !== false && product.isPurchasable !== false
+  if (product.status !== "active" || product.isPurchasable === false) {
+    return false
+  }
+
+  if (typeof variantId === "number") {
+    const variant = resolveSelectedVariant(product, { variantId })
+    return Boolean(variant) && variant.stock > 0 && variant.isActive !== false
+  }
+
+  return getProductVariants(product).some((variant) => variant.isActive !== false && variant.stock > 0)
+}
+
+function getAggregateVariantInventory(product: ShopProduct) {
+  const activeVariants = getProductVariants(product).filter((variant) => variant.isActive !== false)
+  const sellableVariants = activeVariants.filter((variant) => variant.stock > 0)
+  const totalAvailableStock = sellableVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
+  const threshold = sellableVariants.reduce((sum, variant) => sum + Number(variant.lowStockThreshold ?? 5), 0)
+
+  return {
+    activeVariants,
+    totalAvailableStock,
+    threshold,
+  }
 }
 
 export function getProductStockStatus(product: ShopProduct, variantId?: number | null) {
+  if (typeof variantId !== "number") {
+    if (product.status === "out_of_stock") {
+      return "out_of_stock"
+    }
+
+    const inventory = getAggregateVariantInventory(product)
+    if (!inventory.activeVariants.length || inventory.totalAvailableStock <= 0) {
+      return "out_of_stock"
+    }
+
+    if (inventory.totalAvailableStock <= Math.max(inventory.threshold, 1)) {
+      return "low_stock"
+    }
+
+    return "in_stock"
+  }
+
   const variant = resolveSelectedVariant(product, { variantId })
   if (!variant) {
     return product.stockStatus || "out_of_stock"
@@ -150,6 +193,21 @@ export function getProductStockStatus(product: ShopProduct, variantId?: number |
 }
 
 export function getProductStockLabel(product: ShopProduct, variantId?: number | null) {
+  if (typeof variantId !== "number") {
+    const inventory = getAggregateVariantInventory(product)
+    const status = getProductStockStatus(product)
+
+    if (status === "out_of_stock") {
+      return "Esaurito"
+    }
+
+    if (status === "low_stock") {
+      return `Ultimi ${inventory.totalAvailableStock}`
+    }
+
+    return `${inventory.totalAvailableStock} disponibili`
+  }
+
   const variant = resolveSelectedVariant(product, { variantId })
   if (!variant) {
     return product.stockLabel || "Esaurito"

@@ -14,8 +14,8 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   const availableFormats = getAvailableFormats(product)
   const purchasable = isProductPurchasable(product, defaultVariant?.id)
   const badges = getProductBadges(product)
-  const stockStatus = getProductStockStatus(product, defaultVariant?.id)
-  const stockLabel = getProductStockLabel(product, defaultVariant?.id)
+  const stockStatus = getProductStockStatus(product)
+  const stockLabel = getProductStockLabel(product)
 
   function handleBuyNow() {
     if (!purchasable) return
@@ -89,7 +89,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
           </div>
           {!purchasable ? (
             <div className="pb-3 text-xs uppercase tracking-[0.18em] text-amber-200/75">
-              {product.status === "out_of_stock" || product.stock <= 0 ? "Esaurito" : "Non disponibile"}
+              {stockStatus === "out_of_stock" ? "Esaurito" : "Non disponibile"}
             </div>
           ) : null}
           <div className="flex flex-col gap-3">

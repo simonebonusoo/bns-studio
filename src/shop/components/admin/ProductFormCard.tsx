@@ -134,16 +134,6 @@ export function ProductFormCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/60">
-            {statusLabel(productForm.status)}
-          </span>
-          <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${inventoryTone}`}>
-            {productForm.status === "out_of_stock" || totalVariantStock <= 0
-              ? "Esaurito"
-              : lowStockVariantCount > 0
-                ? "Low stock"
-                : "Disponibile"}
-          </span>
           {editingProductId && !isMultiEdit ? (
             <button type="button" onClick={onCancel} className="text-sm text-white/60 transition hover:text-white">
               Annulla modifica
@@ -519,7 +509,7 @@ export function ProductFormCard({
 
       <Section title="Badge prodotto">
         <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-white/60">Mostrati nel catalogo pubblico solo se li salvi qui manualmente.</p>
+          <div className="text-sm text-white/60">Aggiungi solo le etichette che vuoi davvero mostrare nel catalogo.</div>
           <Button
             type="button"
             variant="ghost"

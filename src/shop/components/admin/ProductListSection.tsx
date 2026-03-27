@@ -1,3 +1,4 @@
+import { Button } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 import { getAvailableFormats, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants } from "../../lib/product"
 import { ShopProduct } from "../../types"
@@ -90,15 +91,15 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => onEdit(product)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/70">
+                <Button type="button" variant="ghost" size="sm" text="Modifica" onClick={() => onEdit(product)}>
                   Modifica
-                </button>
-                <button type="button" onClick={() => void onDuplicate(product)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/70">
+                </Button>
+                <Button type="button" variant="ghost" size="sm" text="Duplica" onClick={() => void onDuplicate(product)}>
                   Duplica
-                </button>
-                <button type="button" onClick={() => void onDelete(product)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/70">
+                </Button>
+                <Button type="button" size="sm" text="Elimina" onClick={() => void onDelete(product)}>
                   Elimina
-                </button>
+                </Button>
               </div>
             </div>
           </article>

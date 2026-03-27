@@ -1,3 +1,5 @@
+import { Button } from "../../../components/Button"
+
 type ProductMediaManagerProps = {
   images: string[]
   existingImageUrls: string[]
@@ -28,8 +30,10 @@ export function ProductMediaManager({
           <p className="text-sm font-medium text-white">Immagini prodotto</p>
           <p className="mt-1 text-xs text-white/55">La cover pubblica è sempre la prima immagine. Puoi riordinarle senza cambiare gli URL già salvati.</p>
         </div>
-        <label className={`rounded-full border border-white/10 px-4 py-2 text-sm transition ${disabled ? "cursor-not-allowed text-white/35" : "text-white/75 hover:border-white/25 hover:text-white"}`}>
-          Carica immagini
+        <label className={disabled ? "pointer-events-none opacity-45" : ""}>
+          <Button type="button" size="sm" text="Carica immagini" className="pointer-events-none">
+            Carica immagini
+          </Button>
           <input type="file" multiple accept="image/*" className="hidden" disabled={disabled} onChange={(event) => onFileChange(event.target.files)} />
         </label>
       </div>
@@ -59,14 +63,11 @@ export function ProductMediaManager({
             <div className="space-y-3">
               {images.map((image, index) => (
                 <div key={image} className="grid gap-3 rounded-2xl border border-white/10 p-3 sm:grid-cols-[96px_minmax(0,1fr)]">
-                  <img src={image} alt="" className="h-24 w-full rounded-xl object-cover" />
+                  <img src={image} alt="" className="aspect-square w-full rounded-xl object-cover" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white">Immagine {index + 1}</p>
-                        <p className="truncate text-xs text-white/45">
-                          {index === 0 ? "Cover corrente" : "Immagine secondaria"}
-                        </p>
+                      <div className="min-w-0 text-xs text-white/45">
+                        {index === 0 ? "Prima immagine del prodotto" : "Riordina per cambiare la cover"}
                       </div>
                       {index === 0 ? (
                         <span className="rounded-full bg-[#e3f503] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-black">
@@ -77,7 +78,7 @@ export function ProductMediaManager({
                     <div className="mt-3 flex flex-wrap gap-2">
                       {index !== 0 ? (
                         <button type="button" onClick={() => onMakePrimary(image)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                          Imposta cover
+                          Porta in cover
                         </button>
                       ) : null}
                       <button type="button" onClick={() => onMoveBackward(image)} disabled={disabled || index === 0} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70 disabled:cursor-not-allowed disabled:opacity-40">

@@ -19,12 +19,14 @@ export function ShopProductPage() {
   const [relatedProducts, setRelatedProducts] = useState<ShopProduct[]>([])
   const [selectedImage, setSelectedImage] = useState("")
   const [selectedVariantKey, setSelectedVariantKey] = useState("")
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
 
   useEffect(() => {
     apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
       setProduct(data)
       setSelectedImage(getProductPrimaryImage(data))
       setSelectedVariantKey(getDefaultVariant(data)?.key || getDefaultVariant(data)?.title || "")
+      setIsLightboxOpen(false)
     })
   }, [slug])
 
@@ -75,9 +77,13 @@ export function ShopProductPage() {
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
-          <div className="shop-card overflow-hidden">
-            <img src={selectedImage} alt={product.title} className="aspect-[4/3] w-full object-cover" />
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsLightboxOpen(true)}
+            className="shop-card block overflow-hidden text-left transition hover:border-white/20"
+          >
+            <img src={selectedImage} alt={product.title} className="aspect-[4/5] w-full object-cover" />
+          </button>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {galleryImages.map((image, index) => (
               <button
@@ -138,8 +144,7 @@ export function ShopProductPage() {
                   </div>
                 </div>
                 <div className="rounded-[24px] border border-[#e3f503]/20 bg-[#e3f503]/10 px-5 py-4 text-right">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/55">Prezzo variante selezionata</p>
-                  <span className="mt-2 block text-2xl font-semibold text-[#e3f503]">{formatPrice(selectedPrice)}</span>
+                  <span className="block text-3xl font-semibold text-[#e3f503]">{formatPrice(selectedPrice)}</span>
                 </div>
               </div>
               <p className="text-sm leading-7 text-white/70">{product.description}</p>
@@ -176,10 +181,6 @@ export function ShopProductPage() {
                   <span>{selectedVariant?.sku || product.sku}</span>
                 </div>
               ) : null}
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
-                <span>Prezzo variante scelta</span>
-                <span>{formatPrice(selectedPrice)}</span>
-              </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Dettagli prodotto</p>
@@ -206,7 +207,7 @@ export function ShopProductPage() {
             ) : null}
             {!purchasable ? (
               <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-                {product.status === "out_of_stock" || product.stock <= 0
+                {stockStatus === "out_of_stock"
                   ? "Questo prodotto e visibile ma attualmente non acquistabile."
                   : "Questo prodotto non e disponibile per l'acquisto in questo momento."}
               </div>
@@ -261,6 +262,28 @@ export function ShopProductPage() {
               <ProductCard key={related.id} product={related} />
             ))}
           </div>
+        </div>
+      ) : null}
+
+      {isLightboxOpen ? (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 px-4 py-6 backdrop-blur-sm"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            aria-label="Chiudi anteprima immagine"
+            onClick={() => setIsLightboxOpen(false)}
+            className="absolute right-5 top-5 rounded-full border border-white/15 px-4 py-2 text-sm text-white/75 transition hover:border-white/30 hover:text-white"
+          >
+            Chiudi
+          </button>
+          <img
+            src={selectedImage}
+            alt={product.title}
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[88vh] max-w-[92vw] object-contain shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+          />
         </div>
       ) : null}
     </ShopLayout>
