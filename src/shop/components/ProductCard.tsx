@@ -33,21 +33,21 @@ export function ProductCard({ product }: { product: ShopProduct }) {
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col justify-end p-5 pt-4">
-        <div className="flex items-end justify-between gap-4">
-          <div className="min-w-0 space-y-2">
+      <div className="flex flex-1 flex-col p-5 pt-4">
+        <div className="min-w-0 space-y-2">
             <h2 className="overflow-hidden text-xl font-semibold text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {product.title}
             </h2>
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">{availableFormats.join(" · ")}</p>
-            <span className="shop-pill">{product.category}</span>
-          </div>
-          <div className="text-sm font-medium text-[#e3f503]">
-            {availableFormats.length > 1 ? `da ${formatPrice(getPriceForFormat(product, defaultFormat))}` : formatPrice(getPriceForFormat(product, defaultFormat))}
-          </div>
+          <p className="text-xs uppercase tracking-[0.18em] text-white/45">{availableFormats.join(" · ")}</p>
         </div>
 
         <div className="mt-auto pt-5">
+          <div className="flex items-end justify-between gap-4 pb-3">
+            <span className="shop-pill">{product.category}</span>
+            <div className="text-sm font-medium text-[#e3f503]">
+              {availableFormats.length > 1 ? `da ${formatPrice(getPriceForFormat(product, defaultFormat))}` : formatPrice(getPriceForFormat(product, defaultFormat))}
+            </div>
+          </div>
           <div className="flex flex-col gap-3">
             <Button
               type="button"
