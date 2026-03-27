@@ -9,6 +9,7 @@ import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductFormat } from "../lib/product-formats.mjs"
 import { isProductPurchasable, isPublicProductStatus } from "../lib/product-status.mjs"
+import { getProductStockLabel, getProductStockStatus } from "../lib/product-stock.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
@@ -28,12 +29,8 @@ function serializePublicProduct(product) {
     manualBadges: parseManualBadges(product.manualBadges),
     isPurchasable: isProductPurchasable(product),
     lowStockThreshold: product.lowStockThreshold,
-    stockStatus:
-      product.status === "out_of_stock" || product.stock <= 0
-        ? "out_of_stock"
-        : product.stock <= product.lowStockThreshold
-          ? "low_stock"
-          : "in_stock",
+    stockStatus: getProductStockStatus(product),
+    stockLabel: getProductStockLabel(product),
     badges: buildVisibleProductBadges(product),
     ...serializeTaxonomyRelations(product),
   }
@@ -298,7 +295,7 @@ router.get(
     const tagIds = (product.productTags || []).map((entry) => entry.tagId)
     const collectionIds = (product.productCollections || []).map((entry) => entry.collectionId)
 
-    const related = await prisma.product.findMany({
+    const relatedCandidates = await prisma.product.findMany({
       where: {
         id: { not: product.id },
         status: { in: ["active", "out_of_stock"] },
@@ -309,9 +306,29 @@ router.get(
         ].filter(Boolean),
       },
       include: productRelationInclude(),
-      take: 4,
+      take: 16,
       orderBy: { createdAt: "desc" },
     })
+
+    const related = relatedCandidates
+      .map((candidate) => {
+        const sharedTagCount = (candidate.productTags || []).filter((entry) => tagIds.includes(entry.tagId)).length
+        const sharedCollectionCount = (candidate.productCollections || []).filter((entry) => collectionIds.includes(entry.collectionId)).length
+        const sameCategory = candidate.category === product.category ? 1 : 0
+        const inStockBoost = getProductStockStatus(candidate) === "in_stock" ? 1 : 0
+        const featuredBoost = candidate.featured ? 1 : 0
+
+        return {
+          candidate,
+          score: sameCategory * 4 + sharedCollectionCount * 3 + sharedTagCount * 2 + inStockBoost + featuredBoost,
+        }
+      })
+      .sort((left, right) => {
+        if (right.score !== left.score) return right.score - left.score
+        return new Date(right.candidate.createdAt).getTime() - new Date(left.candidate.createdAt).getTime()
+      })
+      .slice(0, 4)
+      .map((entry) => entry.candidate)
 
     res.json(related.map(serializePublicProduct))
   })

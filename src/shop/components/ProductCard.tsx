@@ -3,7 +3,7 @@ import { Button } from "../../components/Button"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, isProductPurchasable } from "../lib/product"
 import { ShopProduct } from "../types"
 
 export function ProductCard({ product }: { product: ShopProduct }) {
@@ -14,6 +14,8 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   const availableFormats = getAvailableFormats(product)
   const purchasable = isProductPurchasable(product)
   const badges = getProductBadges(product)
+  const stockStatus = getProductStockStatus(product)
+  const stockLabel = getProductStockLabel(product)
 
   function handleBuyNow() {
     if (!purchasable) return
@@ -47,15 +49,35 @@ export function ProductCard({ product }: { product: ShopProduct }) {
 
       <div className="flex flex-1 flex-col p-5 pt-4">
         <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shop-pill">{product.category}</span>
+            {product.collections?.[0] ? (
+              <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/55">
+                {product.collections[0].title}
+              </span>
+            ) : null}
+          </div>
             <h2 className="overflow-hidden text-xl font-semibold text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {product.title}
             </h2>
           <p className="text-xs uppercase tracking-[0.18em] text-white/45">{availableFormats.join(" · ")}</p>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em]">
+            <span
+              className={`rounded-full border px-3 py-1 ${
+                stockStatus === "out_of_stock"
+                  ? "border-red-400/20 text-red-100/85"
+                  : stockStatus === "low_stock"
+                    ? "border-amber-300/20 text-amber-100/85"
+                    : "border-emerald-300/20 text-emerald-100/85"
+              }`}
+            >
+              {stockLabel}
+            </span>
+          </div>
         </div>
 
         <div className="mt-auto pt-5">
           <div className="flex items-end justify-between gap-4 pb-3">
-            <span className="shop-pill">{product.category}</span>
             <div className="text-sm font-medium text-[#e3f503]">
               {availableFormats.length > 1 ? `da ${formatPrice(getPriceForFormat(product, defaultFormat))}` : formatPrice(getPriceForFormat(product, defaultFormat))}
             </div>

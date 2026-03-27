@@ -11,6 +11,7 @@ import { getPersistenceStatus } from "../lib/persistence-status.mjs"
 import { buildVisibleProductBadges, parseManualBadges, sanitizeManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { normalizeProductStatus, PRODUCT_STATUSES } from "../lib/product-status.mjs"
+import { getProductStockLabel, getProductStockStatus } from "../lib/product-stock.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredProductOrder, saveProductOrder } from "../lib/product-order.mjs"
@@ -77,12 +78,8 @@ function serializeAdminProduct(product) {
     manualBadges: parseManualBadges(product.manualBadges),
     badges: buildVisibleProductBadges(product),
     ...serializeTaxonomyRelations(product),
-    stockStatus:
-      product.status === "out_of_stock" || product.stock <= 0
-        ? "out_of_stock"
-        : product.stock <= product.lowStockThreshold
-          ? "low_stock"
-          : "in_stock",
+    stockStatus: getProductStockStatus(product),
+    stockLabel: getProductStockLabel(product),
   }
 }
 

@@ -31,8 +31,47 @@ export function isProductPurchasable(product: ShopProduct) {
   return product.status === "active" && product.stock > 0 && product.isPurchasable !== false
 }
 
+export function getProductStockStatus(product: ShopProduct) {
+  if (product.stockStatus) {
+    return product.stockStatus
+  }
+
+  if (product.status === "out_of_stock" || product.stock <= 0) {
+    return "out_of_stock"
+  }
+
+  if (product.stock <= (product.lowStockThreshold ?? 5)) {
+    return "low_stock"
+  }
+
+  return "in_stock"
+}
+
+export function getProductStockLabel(product: ShopProduct) {
+  if (product.stockLabel) {
+    return product.stockLabel
+  }
+
+  const status = getProductStockStatus(product)
+  if (status === "out_of_stock") {
+    return "Esaurito"
+  }
+
+  if (status === "low_stock") {
+    return `Ultimi ${product.stock}`
+  }
+
+  return `${product.stock} disponibili`
+}
+
 export function getProductPrimaryImage(product: ShopProduct) {
   return product.coverImageUrl || product.imageUrls[0] || ""
+}
+
+export function getProductGalleryImages(product: ShopProduct) {
+  const primary = getProductPrimaryImage(product)
+  const others = product.imageUrls.filter((image) => image && image !== primary)
+  return primary ? [primary, ...others] : others
 }
 
 export function getProductBadges(product: ShopProduct) {
@@ -41,4 +80,17 @@ export function getProductBadges(product: ShopProduct) {
   }
 
   return [] as ProductVisibleBadge[]
+}
+
+export function getProductPriceLabel(product: ShopProduct) {
+  const formats = getAvailableFormats(product)
+  const prices = formats.map((format) => getPriceForFormat(product, format))
+  const minPrice = Math.min(...prices)
+  const maxPrice = Math.max(...prices)
+
+  if (minPrice === maxPrice) {
+    return `${minPrice}`
+  }
+
+  return `${minPrice}-${maxPrice}`
 }

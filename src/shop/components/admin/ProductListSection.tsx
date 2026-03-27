@@ -1,5 +1,5 @@
 import { formatPrice } from "../../lib/format"
-import { getProductPrimaryImage } from "../../lib/product"
+import { getAvailableFormats, getPriceForFormat, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus } from "../../lib/product"
 import { ShopProduct } from "../../types"
 
 function statusLabel(status: ShopProduct["status"]) {
@@ -49,20 +49,40 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                   <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
                     {statusLabel(product.status)}
                   </span>
-                  {product.stockStatus === "low_stock" ? (
-                    <span className="rounded-full border border-amber-300/20 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-amber-100/80">
-                      Low stock
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] ${
+                      getProductStockStatus(product) === "out_of_stock"
+                        ? "border-red-400/20 text-red-100/80"
+                        : getProductStockStatus(product) === "low_stock"
+                          ? "border-amber-300/20 text-amber-100/80"
+                          : "border-emerald-300/20 text-emerald-100/80"
+                    }`}
+                  >
+                    {getProductStockStatus(product) === "out_of_stock"
+                      ? "Esaurito"
+                      : getProductStockStatus(product) === "low_stock"
+                        ? "Low stock"
+                        : "Disponibile"}
+                  </span>
+                  {product.featured ? (
+                    <span className="rounded-full border border-[#e3f503]/30 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
+                      Featured
                     </span>
                   ) : null}
                 </div>
                 <p className="text-sm text-white/60">
-                  {product.category} · {product.availableFormats?.join(" / ") || "A4"} ·
-                  {product.hasA4 !== false ? ` A4 ${formatPrice(product.priceA4 ?? product.price)}` : ""}
-                  {product.hasA3 ? ` · A3 ${formatPrice(product.priceA3 ?? product.price)}` : ""}
-                  {" · "}disponibilita {product.stock}
+                  {product.category} · {getAvailableFormats(product).join(" / ")} · prezzo{" "}
+                  {getAvailableFormats(product).length > 1
+                    ? `${formatPrice(getPriceForFormat(product, "A4"))}${product.hasA3 ? ` - ${formatPrice(getPriceForFormat(product, "A3"))}` : ""}`
+                    : formatPrice(getPriceForFormat(product))}
                 </p>
                 <p className="text-xs text-white/45">
-                  SKU {product.sku || "—"} {product.tags?.length ? `· Tag: ${product.tags.map((tag) => tag.name).join(", ")}` : ""}
+                  SKU {product.sku || "—"} · {getProductStockLabel(product)}
+                  {product.collections?.length ? ` · Collezioni: ${product.collections.map((collection) => collection.title).join(", ")}` : ""}
+                </p>
+                <p className="text-xs text-white/45">
+                  {product.tags?.length ? `Tag: ${product.tags.map((tag) => tag.name).join(", ")}` : "Nessun tag"}
+                  {getProductBadges(product).length ? ` · Badge: ${getProductBadges(product).map((badge) => badge.label).join(", ")}` : ""}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

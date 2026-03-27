@@ -58,6 +58,7 @@ export type ShopProduct = {
   stock: number
   lowStockThreshold?: number
   stockStatus?: StockStatus
+  stockLabel?: string
   manualBadges?: ProductManualBadge[]
   badges?: ProductVisibleBadge[]
   tags?: ProductTag[]

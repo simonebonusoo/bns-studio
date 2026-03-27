@@ -6,7 +6,7 @@ import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, isProductPurchasable } from "../lib/product"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct } from "../types"
 
@@ -40,9 +40,12 @@ export function ShopProductPage() {
   }
 
   const availableFormats = getAvailableFormats(product)
+  const galleryImages = getProductGalleryImages(product)
   const selectedPrice = getPriceForFormat(product, selectedFormat)
   const purchasable = isProductPurchasable(product)
   const badges = getProductBadges(product)
+  const stockStatus = getProductStockStatus(product)
+  const stockLabel = getProductStockLabel(product)
 
   function handleBuyNow() {
     if (!purchasable) return
@@ -63,20 +66,23 @@ export function ShopProductPage() {
 
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
-      <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
           <div className="shop-card overflow-hidden">
             <img src={selectedImage} alt={product.title} className="aspect-[4/3] w-full object-cover" />
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {product.imageUrls.map((image) => (
+            {galleryImages.map((image, index) => (
               <button
                 key={image}
                 type="button"
                 onClick={() => setSelectedImage(image)}
-                className={`overflow-hidden rounded-[20px] border ${selectedImage === image ? "border-[#e3f503]" : "border-white/10"}`}
+                className={`overflow-hidden rounded-[20px] border text-left ${selectedImage === image ? "border-[#e3f503]" : "border-white/10"}`}
               >
                 <img src={image} alt={product.title} className="aspect-square w-full object-cover" />
+                <div className="border-t border-white/10 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-white/60">
+                  {index === 0 ? "Cover" : `Gallery ${index}`}
+                </div>
               </button>
             ))}
           </div>
@@ -84,7 +90,20 @@ export function ShopProductPage() {
 
         <div className="shop-card flex flex-col justify-between gap-8 p-6 md:p-8">
           <div>
-            <span className="shop-pill">{product.category}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="shop-pill">{product.category}</span>
+              <span
+                className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${
+                  stockStatus === "out_of_stock"
+                    ? "border-red-400/20 text-red-100/85"
+                    : stockStatus === "low_stock"
+                      ? "border-amber-300/20 text-amber-100/85"
+                      : "border-emerald-300/20 text-emerald-100/85"
+                }`}
+              >
+                {stockLabel}
+              </span>
+            </div>
             {badges.length ? (
               <div className="mt-4 flex flex-wrap gap-2">
                 {badges.map((badge) => (
@@ -94,11 +113,30 @@ export function ShopProductPage() {
                 ))}
               </div>
             ) : null}
-            <div className="mt-5 flex items-center justify-between gap-4">
-              <h2 className="text-3xl font-semibold text-white">{product.title}</h2>
-              <span className="text-lg font-medium text-[#e3f503]">{formatPrice(selectedPrice)}</span>
+            <div className="mt-5 space-y-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="space-y-3">
+                  <h2 className="text-3xl font-semibold text-white">{product.title}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {product.collections?.map((collection) => (
+                      <button
+                        key={collection.id}
+                        type="button"
+                        onClick={() => navigate(`/shop?collectionSlug=${collection.slug}`)}
+                        className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70 transition hover:border-white/25 hover:text-white"
+                      >
+                        {collection.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-[24px] border border-[#e3f503]/20 bg-[#e3f503]/10 px-5 py-4 text-right">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/55">Prezzo formato selezionato</p>
+                  <span className="mt-2 block text-2xl font-semibold text-[#e3f503]">{formatPrice(selectedPrice)}</span>
+                </div>
+              </div>
+              <p className="text-sm leading-7 text-white/70">{product.description}</p>
             </div>
-            <p className="mt-5 text-sm leading-7 text-white/70">{product.description}</p>
           </div>
 
           <div className="space-y-4">
@@ -122,13 +160,7 @@ export function ShopProductPage() {
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                 <span>Disponibilità</span>
-                <span>
-                  {product.status === "out_of_stock" || product.stock <= 0
-                    ? "Esaurito"
-                    : product.stockStatus === "low_stock"
-                      ? `Ultimi ${product.stock}`
-                      : `${product.stock}`}
-                </span>
+                <span>{stockLabel}</span>
               </div>
               {product.sku ? (
                 <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
@@ -140,6 +172,20 @@ export function ShopProductPage() {
                 <span>Prezzo formato scelto</span>
                 <span>{formatPrice(selectedPrice)}</span>
               </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Dettagli prodotto</p>
+                  <p className="mt-2 text-sm leading-6 text-white/70">
+                    Prodotto disponibile nei formati {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Spedizione e acquisto</p>
+                  <p className="mt-2 text-sm leading-6 text-white/70">
+                    Il checkout conserva formato selezionato, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.
+                  </p>
+                </div>
+              </div>
             </div>
             {product.tags?.length ? (
               <div className="flex flex-wrap gap-2">
@@ -147,20 +193,6 @@ export function ShopProductPage() {
                   <span key={tag.slug} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
                     #{tag.name}
                   </span>
-                ))}
-              </div>
-            ) : null}
-            {product.collections?.length ? (
-              <div className="flex flex-wrap gap-2">
-                {product.collections.map((collection) => (
-                  <button
-                    key={collection.id}
-                    type="button"
-                    onClick={() => navigate(`/shop?collectionSlug=${collection.slug}`)}
-                    className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70 transition hover:border-white/25 hover:text-white"
-                  >
-                    {collection.title}
-                  </button>
                 ))}
               </div>
             ) : null}
@@ -203,7 +235,7 @@ export function ShopProductPage() {
         <div className="mt-14 space-y-6">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.32em] text-white/45">Correlati</p>
-            <h3 className="text-2xl font-semibold text-white">Altri prodotti che possono interessarti</h3>
+            <h3 className="text-2xl font-semibold text-white">Prodotti collegati per categoria, tag o collezione</h3>
           </div>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
             {relatedProducts.map((related) => (

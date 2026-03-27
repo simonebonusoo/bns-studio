@@ -290,6 +290,18 @@ function sortImages(main: string, images: string[]) {
   return [main, ...images.filter((image) => image !== main)]
 }
 
+function moveImageByStep(target: string, images: string[], step: -1 | 1) {
+  const currentIndex = images.indexOf(target)
+  if (currentIndex === -1) return images
+
+  const nextIndex = currentIndex + step
+  if (nextIndex < 0 || nextIndex >= images.length) return images
+
+  const next = [...images]
+  ;[next[currentIndex], next[nextIndex]] = [next[nextIndex], next[currentIndex]]
+  return next
+}
+
 function containWheel(event: React.WheelEvent<HTMLElement>) {
   event.stopPropagation()
 }
@@ -522,7 +534,7 @@ export function ShopAdminPage() {
       description: product.description,
       priceA4: formatEuroInput(product.priceA4 ?? product.price),
       priceA3: product.priceA3 ? formatEuroInput(product.priceA3) : "",
-      costPrice: "",
+      costPrice: product.costPrice ? formatEuroInput(product.costPrice) : "",
       hasA4: product.hasA4 !== false,
       hasA3: Boolean(product.hasA3),
       category: product.category,
@@ -618,6 +630,36 @@ export function ShopAdminPage() {
     setProductFiles(nextFiles)
   }
 
+  function moveImageBackward(imageUrl: string) {
+    if (productForm.existingImageUrls.includes(imageUrl)) {
+      setProductForm((current) => ({
+        ...current,
+        existingImageUrls: moveImageByStep(imageUrl, current.existingImageUrls, -1),
+      }))
+      return
+    }
+
+    const nextPreviewUrls = moveImageByStep(imageUrl, productPreviewUrls, -1)
+    const nextFiles = nextPreviewUrls.map((previewUrl) => productFiles[productPreviewUrls.indexOf(previewUrl)])
+    setProductPreviewUrls(nextPreviewUrls)
+    setProductFiles(nextFiles)
+  }
+
+  function moveImageForward(imageUrl: string) {
+    if (productForm.existingImageUrls.includes(imageUrl)) {
+      setProductForm((current) => ({
+        ...current,
+        existingImageUrls: moveImageByStep(imageUrl, current.existingImageUrls, 1),
+      }))
+      return
+    }
+
+    const nextPreviewUrls = moveImageByStep(imageUrl, productPreviewUrls, 1)
+    const nextFiles = nextPreviewUrls.map((previewUrl) => productFiles[productPreviewUrls.indexOf(previewUrl)])
+    setProductPreviewUrls(nextPreviewUrls)
+    setProductFiles(nextFiles)
+  }
+
   async function uploadProductImages() {
     if (!productFiles.length) return []
 
@@ -654,7 +696,7 @@ export function ShopAdminPage() {
                 ? (productForm.hasA4 ? productForm.priceA4 : productForm.priceA3)
                 : formatEuroInput(product.hasA4 !== false ? (product.priceA4 ?? product.price) : (product.priceA3 ?? product.price)),
             ),
-            costPrice: 0,
+            costPrice: productTouchedFields.costPrice ? parseEuroToCents(productForm.costPrice) : Number(product.costPrice || 0),
             hasA4: productTouchedFields.hasA4 ? productForm.hasA4 : product.hasA4 !== false,
             hasA3: productTouchedFields.hasA3 ? productForm.hasA3 : Boolean(product.hasA3),
             priceA4:
@@ -702,7 +744,7 @@ export function ShopAdminPage() {
         sku: productForm.sku || null,
         description: productForm.description,
         price: parseEuroToCents(productForm.hasA4 ? productForm.priceA4 : productForm.priceA3),
-        costPrice: 0,
+        costPrice: parseEuroToCents(productForm.costPrice),
         hasA4: productForm.hasA4,
         hasA3: productForm.hasA3,
         priceA4: productForm.hasA4 ? parseEuroToCents(productForm.priceA4) : null,
@@ -1137,6 +1179,8 @@ export function ShopAdminPage() {
             onChange={handleProductFormChange}
             onFileChange={handleProductFileChange}
             onMakePrimary={moveImageToPrimary}
+            onMoveImageBackward={moveImageBackward}
+            onMoveImageForward={moveImageForward}
             onRemoveExisting={removeExistingImage}
           />
 
