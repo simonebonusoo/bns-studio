@@ -6,7 +6,7 @@ import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getDefaultVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct } from "../types"
 
@@ -18,13 +18,13 @@ export function ShopProductPage() {
   const [product, setProduct] = useState<ShopProduct | null>(null)
   const [relatedProducts, setRelatedProducts] = useState<ShopProduct[]>([])
   const [selectedImage, setSelectedImage] = useState("")
-  const [selectedFormat, setSelectedFormat] = useState<"A3" | "A4">("A4")
+  const [selectedVariantKey, setSelectedVariantKey] = useState("")
 
   useEffect(() => {
     apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
       setProduct(data)
       setSelectedImage(getProductPrimaryImage(data))
-      setSelectedFormat(getDefaultFormat(data))
+      setSelectedVariantKey(getDefaultVariant(data)?.key || getDefaultVariant(data)?.title || "")
     })
   }, [slug])
 
@@ -40,16 +40,23 @@ export function ShopProductPage() {
   }
 
   const availableFormats = getAvailableFormats(product)
+  const variants = getProductVariants(product)
   const galleryImages = getProductGalleryImages(product)
-  const selectedPrice = getPriceForFormat(product, selectedFormat)
-  const purchasable = isProductPurchasable(product)
+  const selectedVariant = resolveSelectedVariant(product, { format: selectedVariantKey }) || getDefaultVariant(product)
+  const selectedPrice = getPriceForVariant(product, selectedVariant?.id)
+  const purchasable = isProductPurchasable(product, selectedVariant?.id)
   const badges = getProductBadges(product)
-  const stockStatus = getProductStockStatus(product)
-  const stockLabel = getProductStockLabel(product)
+  const stockStatus = getProductStockStatus(product, selectedVariant?.id)
+  const stockLabel = getProductStockLabel(product, selectedVariant?.id)
 
   function handleBuyNow() {
     if (!purchasable) return
-    beginCheckout(product, 1, selectedFormat)
+    beginCheckout(product, 1, {
+      variantId: selectedVariant?.id ?? null,
+      format: selectedVariant?.title || null,
+      variantLabel: selectedVariant?.title || null,
+      variantSku: selectedVariant?.sku || null,
+    })
     if (!user) {
       window.dispatchEvent(new CustomEvent("bns:open-profile"))
       return
@@ -131,7 +138,7 @@ export function ShopProductPage() {
                   </div>
                 </div>
                 <div className="rounded-[24px] border border-[#e3f503]/20 bg-[#e3f503]/10 px-5 py-4 text-right">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/55">Prezzo formato selezionato</p>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/55">Prezzo variante selezionata</p>
                   <span className="mt-2 block text-2xl font-semibold text-[#e3f503]">{formatPrice(selectedPrice)}</span>
                 </div>
               </div>
@@ -142,18 +149,19 @@ export function ShopProductPage() {
           <div className="space-y-4">
             <div className="grid gap-3 text-sm text-white/65">
               <div className="rounded-2xl border border-white/10 px-4 py-3">
-                <span className="text-white">Formato disponibile</span>
+                <span className="text-white">Varianti disponibili</span>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {availableFormats.map((format) => (
+                  {variants.map((variant) => (
                     <button
-                      key={format}
+                      key={`${variant.id ?? variant.key}-${variant.position}`}
                       type="button"
-                      onClick={() => setSelectedFormat(format)}
+                      onClick={() => setSelectedVariantKey(variant.key || variant.title)}
                       className={`rounded-full border px-4 py-2 text-sm transition ${
-                        selectedFormat === format ? "border-[#e3f503] text-[#e3f503]" : "border-white/10 text-white/70 hover:border-white/25 hover:text-white"
+                        selectedVariant?.key === variant.key ? "border-[#e3f503] text-[#e3f503]" : "border-white/10 text-white/70 hover:border-white/25 hover:text-white"
                       }`}
+                      disabled={!variant.isActive}
                     >
-                      {format}
+                      {variant.title}
                     </button>
                   ))}
                 </div>
@@ -162,27 +170,27 @@ export function ShopProductPage() {
                 <span>Disponibilità</span>
                 <span>{stockLabel}</span>
               </div>
-              {product.sku ? (
+              {product.sku || selectedVariant?.sku ? (
                 <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                   <span>SKU</span>
-                  <span>{product.sku}</span>
+                  <span>{selectedVariant?.sku || product.sku}</span>
                 </div>
               ) : null}
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
-                <span>Prezzo formato scelto</span>
+                <span>Prezzo variante scelta</span>
                 <span>{formatPrice(selectedPrice)}</span>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Dettagli prodotto</p>
                   <p className="mt-2 text-sm leading-6 text-white/70">
-                    Prodotto disponibile nei formati {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.
+                    Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-white/10 px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Spedizione e acquisto</p>
                   <p className="mt-2 text-sm leading-6 text-white/70">
-                    Il checkout conserva formato selezionato, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.
+                    Il checkout conserva variante selezionata, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.
                   </p>
                 </div>
               </div>
@@ -204,7 +212,18 @@ export function ShopProductPage() {
               </div>
             ) : null}
             <div className="flex flex-col gap-3 md:flex-row md:flex-nowrap md:items-center">
-              <Button onClick={() => addItem(product, 1, selectedFormat)} disabled={!purchasable} className="w-full md:min-w-0 md:flex-1">
+              <Button
+                onClick={() =>
+                  addItem(product, 1, {
+                    variantId: selectedVariant?.id ?? null,
+                    format: selectedVariant?.title || null,
+                    variantLabel: selectedVariant?.title || null,
+                    variantSku: selectedVariant?.sku || null,
+                  })
+                }
+                disabled={!purchasable}
+                className="w-full md:min-w-0 md:flex-1"
+              >
                 Aggiungi al carrello
               </Button>
               <Button

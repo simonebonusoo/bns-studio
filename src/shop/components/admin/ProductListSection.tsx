@@ -1,5 +1,5 @@
 import { formatPrice } from "../../lib/format"
-import { getAvailableFormats, getPriceForFormat, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus } from "../../lib/product"
+import { getAvailableFormats, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants } from "../../lib/product"
 import { ShopProduct } from "../../types"
 
 function statusLabel(status: ShopProduct["status"]) {
@@ -27,12 +27,18 @@ type ProductListSectionProps = {
 export function ProductListSection({ products, selectedIds, onToggleSelected, onEdit, onDuplicate, onDelete }: ProductListSectionProps) {
   return (
     <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
-        {!products.length ? (
-          <div className="rounded-2xl border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/55">
-            Nessun prodotto trovato con i filtri attuali.
-          </div>
-        ) : null}
-        {products.map((product) => (
+      {!products.length ? (
+        <div className="rounded-2xl border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/55">
+          Nessun prodotto trovato con i filtri attuali.
+        </div>
+      ) : null}
+      {products.map((product) => {
+        const variants = getProductVariants(product)
+        const prices = variants.map((variant) => variant.price)
+        const minPrice = prices.length ? Math.min(...prices) : product.price
+        const maxPrice = prices.length ? Math.max(...prices) : product.price
+
+        return (
           <article key={product.id} className="shop-card overflow-hidden">
             <div className="grid gap-4 p-5 md:grid-cols-[auto_120px_1fr_auto] md:items-center">
               <label className="flex items-center justify-center">
@@ -72,9 +78,7 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                 </div>
                 <p className="text-sm text-white/60">
                   {product.category} · {getAvailableFormats(product).join(" / ")} · prezzo{" "}
-                  {getAvailableFormats(product).length > 1
-                    ? `${formatPrice(getPriceForFormat(product, "A4"))}${product.hasA3 ? ` - ${formatPrice(getPriceForFormat(product, "A3"))}` : ""}`
-                    : formatPrice(getPriceForFormat(product))}
+                  {minPrice === maxPrice ? formatPrice(minPrice) : `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`}
                 </p>
                 <p className="text-xs text-white/45">
                   SKU {product.sku || "—"} · {getProductStockLabel(product)}
@@ -98,7 +102,8 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
               </div>
             </div>
           </article>
-        ))}
+        )
+      })}
     </div>
   )
 }

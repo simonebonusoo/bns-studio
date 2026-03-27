@@ -16,6 +16,7 @@ import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredProductOrder, saveProductOrder } from "../lib/product-order.mjs"
 import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
+import { buildLegacyProductFieldsFromVariants, deriveLegacyVariantsFromProduct, serializeProductVariants, syncProductVariants } from "../lib/product-variants.mjs"
 
 const router = Router()
 const uploadsDir = resolveProductUploadsDir()
@@ -69,12 +70,16 @@ function slugifyProductTitle(value) {
 
 function serializeAdminProduct(product) {
   const parsedImages = JSON.parse(product.imageUrls)
+  const variants = serializeProductVariants(product)
+  const defaultVariant = variants.find((variant) => variant.isDefault) || variants[0] || null
   return {
     ...product,
     price: getBaseProductPrice(product),
     availableFormats: getAvailableProductFormats(product),
     imageUrls: parsedImages,
     coverImageUrl: parsedImages[0] || "",
+    variants,
+    defaultVariantId: defaultVariant?.id ?? null,
     manualBadges: parseManualBadges(product.manualBadges),
     badges: buildVisibleProductBadges(product),
     ...serializeTaxonomyRelations(product),
@@ -225,6 +230,26 @@ async function getCategories() {
 }
 
 function resolveProductPayload(body, fallbackPrice = 0) {
+  if (Array.isArray(body.variants) && body.variants.length) {
+    const { summary } = buildLegacyProductFieldsFromVariants(body.variants)
+
+    return {
+      title: body.title.trim(),
+      description: body.description.trim(),
+      costPrice: summary.costPrice ?? 0,
+      category: body.category.trim(),
+      manualBadges: JSON.stringify(sanitizeManualBadges(body.manualBadges)),
+      featured: Boolean(body.featured),
+      stock: summary.stock,
+      lowStockThreshold: summary.lowStockThreshold,
+      hasA3: summary.hasA3,
+      hasA4: summary.hasA4,
+      priceA3: summary.priceA3,
+      priceA4: summary.priceA4,
+      price: summary.price ?? fallbackPrice ?? 0,
+    }
+  }
+
   const hasA3 = Boolean(body.hasA3)
   const hasA4 = body.hasA4 ?? true
 
@@ -279,6 +304,23 @@ const productSchema = z.object({
   priceA4: z.number().min(0).optional().nullable(),
   category: z.string().min(1),
   imageUrls: z.array(z.string().min(1)).min(1),
+  variants: z
+    .array(
+      z.object({
+        id: z.number().int().positive().optional().nullable(),
+        title: z.string().min(1),
+        key: z.string().optional().nullable(),
+        sku: z.string().optional().nullable(),
+        price: z.number().min(0),
+        costPrice: z.number().min(0).default(0),
+        stock: z.number().int().min(0).default(0),
+        lowStockThreshold: z.number().int().min(0).default(5),
+        position: z.number().int().min(0).optional(),
+        isDefault: z.boolean().default(false),
+        isActive: z.boolean().default(true),
+      }),
+    )
+    .default([]),
   tags: z.array(z.string().min(1)).default([]),
   collectionIds: z.array(z.number().int().positive()).default([]),
   manualBadges: z
@@ -612,6 +654,7 @@ router.post(
       },
       include: productRelationInclude(),
     })
+    await syncProductVariants(prisma, product.id, body.variants.length ? body.variants : deriveLegacyVariantsFromProduct({ ...product, ...payload, sku }))
     await syncProductTags(product.id, body.tags)
     await syncProductCollections(product.id, body.collectionIds)
     const existingOrderSetting = await getStoredProductOrderSetting()
@@ -657,6 +700,7 @@ router.put(
       },
       include: productRelationInclude(),
     })
+    await syncProductVariants(prisma, product.id, body.variants.length ? body.variants : deriveLegacyVariantsFromProduct({ ...existingProduct, ...payload, sku }))
     await syncProductTags(product.id, body.tags)
     await syncProductCollections(product.id, body.collectionIds)
     const hydrated = await prisma.product.findUnique({
@@ -704,6 +748,18 @@ router.post(
       include: productRelationInclude(),
     })
 
+    await syncProductVariants(prisma, duplicated.id, serializeProductVariants(product).map((variant) => ({
+      title: variant.title,
+      key: variant.key,
+      sku: null,
+      price: variant.price,
+      costPrice: variant.costPrice || 0,
+      stock: variant.stock,
+      lowStockThreshold: variant.lowStockThreshold,
+      position: variant.position,
+      isDefault: variant.isDefault,
+      isActive: variant.isActive,
+    })))
     await syncProductTags(duplicated.id, (product.productTags || []).map((entry) => entry.tag.name))
     await syncProductCollections(duplicated.id, (product.productCollections || []).map((entry) => entry.collection.id))
 

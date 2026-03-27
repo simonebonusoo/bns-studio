@@ -108,6 +108,9 @@ export async function syncProductCollections(productId, collectionIds = []) {
 
 export function productRelationInclude() {
   return {
+    variants: {
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+    },
     productTags: {
       include: {
         tag: true,

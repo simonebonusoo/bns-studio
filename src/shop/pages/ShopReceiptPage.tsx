@@ -119,7 +119,7 @@ export function ShopReceiptPage() {
           <div className="space-y-3 border-t border-white/10 pt-4">
             {order.items.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-4 text-sm text-white/70">
-                <span>{item.title} · {item.format || "Formato non specificato"} x {item.quantity}</span>
+                <span>{item.title} · {item.variantLabel || item.format || "Variante"} x {item.quantity}</span>
                 <span>{formatPrice(item.lineTotal)}</span>
               </div>
             ))}

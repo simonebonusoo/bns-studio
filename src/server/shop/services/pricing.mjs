@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma.mjs"
 import { HttpError } from "../lib/http.mjs"
 import { getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { isProductPurchasable } from "../lib/product-status.mjs"
+import { resolveSelectedVariant } from "../lib/product-variants.mjs"
 
 function getSetting(settings, key, fallback) {
   return settings.find((entry) => entry.key === key)?.value ?? fallback
@@ -15,6 +16,11 @@ export async function calculatePricing(cartItems, couponCode) {
   const products = await prisma.product.findMany({
     where: {
       id: { in: cartItems.map((item) => item.productId) },
+    },
+    include: {
+      variants: {
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+      },
     },
   })
 
@@ -43,17 +49,29 @@ export async function calculatePricing(cartItems, couponCode) {
       throw new HttpError(400, `${product.title} non è acquistabile in questo momento`)
     }
 
-    if (quantity > product.stock) {
+    const imageUrls = JSON.parse(product.imageUrls)
+    const selectedVariant = resolveSelectedVariant(product, {
+      variantId: item.variantId,
+      format: item.format,
+    })
+
+    if (!selectedVariant || !selectedVariant.isActive) {
+      throw new HttpError(400, `${product.title} non ha una variante valida selezionata`)
+    }
+
+    if (quantity > selectedVariant.stock) {
       throw new HttpError(400, `${product.title} supera la disponibilita di magazzino`)
     }
 
-    const imageUrls = JSON.parse(product.imageUrls)
-    const format = normalizeProductFormat(product, item.format)
-    const unitPrice = getProductPriceForFormat(product, format)
-    const unitCost = getProductCostForFormat(product, format)
+    const format = selectedVariant.title || normalizeProductFormat(product, item.format)
+    const unitPrice = selectedVariant.price ?? getProductPriceForFormat(product, format)
+    const unitCost = selectedVariant.costPrice ?? getProductCostForFormat(product, format)
 
     return {
       productId: product.id,
+      variantId: selectedVariant.id ?? null,
+      variantLabel: selectedVariant.title,
+      variantSku: selectedVariant.sku ?? null,
       slug: product.slug,
       title: product.title,
       imageUrl: imageUrls[0] || "",

@@ -10,6 +10,7 @@ import { calculatePricing } from "../services/pricing.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductFormat } from "../lib/product-formats.mjs"
 import { isProductPurchasable, isPublicProductStatus } from "../lib/product-status.mjs"
 import { getProductStockLabel, getProductStockStatus } from "../lib/product-stock.mjs"
+import { serializeProductVariants } from "../lib/product-variants.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
@@ -17,6 +18,8 @@ const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
 function serializePublicProduct(product) {
   const { imageUrls, costPrice: _costPrice, ...rest } = product
   const parsedImages = JSON.parse(imageUrls)
+  const variants = serializeProductVariants(product)
+  const defaultVariant = variants.find((variant) => variant.isDefault) || variants[0] || null
   return {
     ...rest,
     price: getBaseProductPrice(product),
@@ -26,6 +29,8 @@ function serializePublicProduct(product) {
     availableFormats: getAvailableProductFormats(product),
     imageUrls: parsedImages,
     coverImageUrl: parsedImages[0] || "",
+    variants,
+    defaultVariantId: defaultVariant?.id ?? null,
     manualBadges: parseManualBadges(product.manualBadges),
     isPurchasable: isProductPurchasable(product),
     lowStockThreshold: product.lowStockThreshold,
@@ -359,7 +364,8 @@ router.post(
           z.object({
             productId: z.number(),
             quantity: z.number().int().min(1),
-            format: z.enum(["A3", "A4"]).optional(),
+            format: z.string().optional(),
+            variantId: z.number().int().positive().optional().nullable(),
           })
         ),
         couponCode: z.string().optional().nullable(),

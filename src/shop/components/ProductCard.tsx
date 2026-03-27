@@ -3,23 +3,28 @@ import { Button } from "../../components/Button"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getDefaultVariant, getPriceForVariant, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, isProductPurchasable } from "../lib/product"
 import { ShopProduct } from "../types"
 
 export function ProductCard({ product }: { product: ShopProduct }) {
   const navigate = useNavigate()
   const { user } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
-  const defaultFormat = getDefaultFormat(product)
+  const defaultVariant = getDefaultVariant(product)
   const availableFormats = getAvailableFormats(product)
-  const purchasable = isProductPurchasable(product)
+  const purchasable = isProductPurchasable(product, defaultVariant?.id)
   const badges = getProductBadges(product)
-  const stockStatus = getProductStockStatus(product)
-  const stockLabel = getProductStockLabel(product)
+  const stockStatus = getProductStockStatus(product, defaultVariant?.id)
+  const stockLabel = getProductStockLabel(product, defaultVariant?.id)
 
   function handleBuyNow() {
     if (!purchasable) return
-    beginCheckout(product, 1, defaultFormat)
+    beginCheckout(product, 1, {
+      variantId: defaultVariant?.id ?? null,
+      format: defaultVariant?.title || null,
+      variantLabel: defaultVariant?.title || null,
+      variantSku: defaultVariant?.sku || null,
+    })
     if (!user) {
       window.dispatchEvent(new CustomEvent("bns:open-profile"))
       return
@@ -79,7 +84,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
         <div className="mt-auto pt-5">
           <div className="flex items-end justify-between gap-4 pb-3">
             <div className="text-sm font-medium text-[#e3f503]">
-              {availableFormats.length > 1 ? `da ${formatPrice(getPriceForFormat(product, defaultFormat))}` : formatPrice(getPriceForFormat(product, defaultFormat))}
+              {availableFormats.length > 1 ? `da ${formatPrice(getPriceForVariant(product, defaultVariant?.id))}` : formatPrice(getPriceForVariant(product, defaultVariant?.id))}
             </div>
           </div>
           {!purchasable ? (
@@ -91,7 +96,14 @@ export function ProductCard({ product }: { product: ShopProduct }) {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => addItem(product, 1, defaultFormat)}
+              onClick={() =>
+                addItem(product, 1, {
+                  variantId: defaultVariant?.id ?? null,
+                  format: defaultVariant?.title || null,
+                  variantLabel: defaultVariant?.title || null,
+                  variantSku: defaultVariant?.sku || null,
+                })
+              }
               className="w-full"
               disabled={!purchasable}
             >

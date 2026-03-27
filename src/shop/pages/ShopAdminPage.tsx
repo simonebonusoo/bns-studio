@@ -1,3 +1,4 @@
+import type { FormEvent, WheelEvent } from "react"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
@@ -8,7 +9,7 @@ import { ProductListSection } from "../components/admin/ProductListSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { downloadInvoicePdf } from "../lib/invoice"
-import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopReview, ShopSettings, ProductStatus } from "../types"
+import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
   id: number
@@ -76,6 +77,18 @@ type ProductFormState = {
   lowStockThreshold: number
   status: ProductStatus
   existingImageUrls: string[]
+  variants: Array<{
+    id: number | null
+    title: string
+    key: string
+    sku: string
+    price: string
+    costPrice: string
+    stock: number
+    lowStockThreshold: number
+    isDefault: boolean
+    isActive: boolean
+  }>
 }
 
 type ProductTouchedState = Partial<Record<keyof ProductFormState, boolean>>
@@ -209,6 +222,20 @@ const emptyProductForm = (): ProductFormState => ({
   lowStockThreshold: 5,
   status: "active",
   existingImageUrls: [],
+  variants: [
+    {
+      id: null,
+      title: "A4",
+      key: "a4",
+      sku: "",
+      price: "",
+      costPrice: "",
+      stock: 0,
+      lowStockThreshold: 5,
+      isDefault: true,
+      isActive: true,
+    },
+  ],
 })
 
 const emptyCollectionForm = (): CollectionFormState => ({
@@ -302,7 +329,7 @@ function moveImageByStep(target: string, images: string[], step: -1 | 1) {
   return next
 }
 
-function containWheel(event: React.WheelEvent<HTMLElement>) {
+function containWheel(event: WheelEvent<HTMLElement>) {
   event.stopPropagation()
 }
 
@@ -314,6 +341,82 @@ function parseEuroToCents(value: string) {
   const normalized = Number(String(value).replace(",", "."))
   if (!Number.isFinite(normalized) || normalized < 0) return 0
   return Math.round(normalized * 100)
+}
+
+function slugifyVariantKey(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+}
+
+function mapProductVariantToForm(variant: ShopProductVariant, index: number) {
+  return {
+    id: typeof variant.id === "number" ? variant.id : null,
+    title: variant.title,
+    key: variant.key || slugifyVariantKey(variant.title) || `variant-${index + 1}`,
+    sku: variant.sku || "",
+    price: formatEuroInput(variant.price),
+    costPrice: variant.costPrice ? formatEuroInput(variant.costPrice) : "",
+    stock: variant.stock,
+    lowStockThreshold: variant.lowStockThreshold ?? 5,
+    isDefault: Boolean(variant.isDefault),
+    isActive: variant.isActive !== false,
+  }
+}
+
+function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
+  const normalized = variants
+    .filter((variant) => variant.isActive !== false)
+    .map((variant, index) => ({
+      ...variant,
+      title: variant.title.trim() || `Variante ${index + 1}`,
+      key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
+      priceCents: parseEuroToCents(variant.price),
+      costPriceCents: parseEuroToCents(variant.costPrice),
+    }))
+
+  const fallbackVariants = normalized.length
+    ? normalized
+    : variants.map((variant, index) => ({
+        ...variant,
+        title: variant.title.trim() || `Variante ${index + 1}`,
+        key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
+        priceCents: parseEuroToCents(variant.price),
+        costPriceCents: parseEuroToCents(variant.costPrice),
+      }))
+
+  const defaultVariant = fallbackVariants.find((variant) => variant.isDefault) || fallbackVariants[0]
+  const a4Variant = fallbackVariants.find((variant) => variant.title.trim().toUpperCase() === "A4")
+  const a3Variant = fallbackVariants.find((variant) => variant.title.trim().toUpperCase() === "A3")
+
+  return {
+    variants: variants.map((variant, index) => ({
+      id: variant.id,
+      title: variant.title.trim() || `Variante ${index + 1}`,
+      key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
+      sku: variant.sku.trim() || null,
+      price: parseEuroToCents(variant.price),
+      costPrice: parseEuroToCents(variant.costPrice),
+      stock: Number(variant.stock || 0),
+      lowStockThreshold: Number(variant.lowStockThreshold || 0),
+      position: index,
+      isDefault: defaultVariant ? (variant.id ? variant.id === defaultVariant.id : slugifyVariantKey(variant.key || variant.title) === defaultVariant.key) : index === 0,
+      isActive: variant.isActive !== false,
+    })),
+    summary: {
+      price: Math.min(...fallbackVariants.map((variant) => variant.priceCents)),
+      costPrice: defaultVariant?.costPriceCents ?? 0,
+      hasA4: Boolean(a4Variant),
+      hasA3: Boolean(a3Variant),
+      priceA4: a4Variant?.priceCents ?? null,
+      priceA3: a3Variant?.priceCents ?? null,
+      stock: fallbackVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0),
+      lowStockThreshold: Number(defaultVariant?.lowStockThreshold || 5),
+    },
+  }
 }
 
 function parseHomepageSetting<T extends Record<string, unknown>>(value: string | undefined, fallback: T[]) {
@@ -546,6 +649,41 @@ export function ShopAdminPage() {
       lowStockThreshold: product.lowStockThreshold || 5,
       status: product.status,
       existingImageUrls: product.imageUrls,
+      variants: (product.variants?.length
+        ? product.variants
+        : [
+            {
+              id: null,
+              title: product.hasA4 !== false ? "A4" : product.hasA3 ? "A3" : "Standard",
+              key: product.hasA4 !== false ? "a4" : product.hasA3 ? "a3" : "standard",
+              sku: product.sku || null,
+              price: product.hasA4 !== false ? (product.priceA4 ?? product.price) : (product.priceA3 ?? product.price),
+              costPrice: product.costPrice ?? 0,
+              stock: product.stock,
+              lowStockThreshold: product.lowStockThreshold || 5,
+              position: 0,
+              isDefault: true,
+              isActive: true,
+            },
+            ...(product.hasA3
+              ? [
+                  {
+                    id: null,
+                    title: "A3",
+                    key: "a3",
+                    sku: null,
+                    price: product.priceA3 ?? product.price,
+                    costPrice: product.costPrice ?? 0,
+                    stock: product.stock,
+                    lowStockThreshold: product.lowStockThreshold || 5,
+                    position: 1,
+                    isDefault: product.hasA4 === false,
+                    isActive: true,
+                  },
+                ]
+              : []),
+          ]
+      ).map(mapProductVariantToForm),
     })
   }
 
@@ -673,7 +811,7 @@ export function ShopAdminPage() {
     return data.files.map((file) => file.url)
   }
 
-  async function saveProduct(event: React.FormEvent) {
+  async function saveProduct(event: FormEvent) {
     event.preventDefault()
     clearFeedback()
 
@@ -739,25 +877,28 @@ export function ShopAdminPage() {
         throw new Error("Carica almeno un'immagine per il prodotto.")
       }
 
+      const variantSummary = buildLegacyVariantSummary(productForm.variants)
+
       const payload = {
         title: productForm.title,
         sku: productForm.sku || null,
         description: productForm.description,
-        price: parseEuroToCents(productForm.hasA4 ? productForm.priceA4 : productForm.priceA3),
-        costPrice: parseEuroToCents(productForm.costPrice),
-        hasA4: productForm.hasA4,
-        hasA3: productForm.hasA3,
-        priceA4: productForm.hasA4 ? parseEuroToCents(productForm.priceA4) : null,
-        priceA3: productForm.hasA3 ? parseEuroToCents(productForm.priceA3) : null,
+        price: variantSummary.summary.price,
+        costPrice: variantSummary.summary.costPrice,
+        hasA4: variantSummary.summary.hasA4,
+        hasA3: variantSummary.summary.hasA3,
+        priceA4: variantSummary.summary.priceA4,
+        priceA3: variantSummary.summary.priceA3,
         category: productForm.category,
         tags: productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
         collectionIds: productForm.collectionIds,
         manualBadges: productForm.manualBadges,
         featured: productForm.featured,
-        stock: Number(productForm.stock),
-        lowStockThreshold: Number(productForm.lowStockThreshold),
+        stock: variantSummary.summary.stock,
+        lowStockThreshold: variantSummary.summary.lowStockThreshold,
         status: productForm.status,
         imageUrls,
+        variants: variantSummary.variants,
       }
 
       let savedProduct: ShopProduct
@@ -809,7 +950,7 @@ export function ShopAdminPage() {
     }
   }
 
-  async function createCategory(event: React.FormEvent) {
+  async function createCategory(event: FormEvent) {
     event.preventDefault()
     clearFeedback()
     try {
@@ -877,7 +1018,7 @@ export function ShopAdminPage() {
     setCollectionForm(emptyCollectionForm())
   }
 
-  async function saveCollection(event: React.FormEvent) {
+  async function saveCollection(event: FormEvent) {
     event.preventDefault()
     clearFeedback()
     try {
@@ -952,7 +1093,7 @@ export function ShopAdminPage() {
     })
   }
 
-  async function saveCoupon(event: React.FormEvent) {
+  async function saveCoupon(event: FormEvent) {
     event.preventDefault()
     clearFeedback()
     try {
@@ -1004,7 +1145,7 @@ export function ShopAdminPage() {
     })
   }
 
-  async function saveRule(event: React.FormEvent) {
+  async function saveRule(event: FormEvent) {
     event.preventDefault()
     clearFeedback()
     try {
@@ -1048,7 +1189,7 @@ export function ShopAdminPage() {
     }
   }
 
-  async function saveSettings(event: React.FormEvent) {
+  async function saveSettings(event: FormEvent) {
     event.preventDefault()
     clearFeedback()
     try {

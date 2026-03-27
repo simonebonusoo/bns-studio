@@ -1,6 +1,22 @@
 export type ProductStatus = "draft" | "active" | "hidden" | "out_of_stock"
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock"
 
+export type ShopProductVariant = {
+  id?: number | null
+  title: string
+  key: string
+  sku?: string | null
+  price: number
+  costPrice?: number
+  stock: number
+  lowStockThreshold: number
+  position: number
+  isDefault: boolean
+  isActive: boolean
+  legacyFormat?: string | null
+  stockStatus?: StockStatus
+}
+
 export type ProductTag = {
   id: number
   name: string
@@ -59,6 +75,8 @@ export type ShopProduct = {
   lowStockThreshold?: number
   stockStatus?: StockStatus
   stockLabel?: string
+  variants?: ShopProductVariant[]
+  defaultVariantId?: number | null
   manualBadges?: ProductManualBadge[]
   badges?: ProductVisibleBadge[]
   tags?: ProductTag[]
@@ -87,7 +105,10 @@ export type AdminCollection = ProductCollection & {
 export type ShopCartItem = {
   productId: number
   quantity: number
-  format?: "A3" | "A4"
+  format?: string
+  variantId?: number | null
+  variantLabel?: string | null
+  variantSku?: string | null
   product: ShopProduct
 }
 
@@ -96,7 +117,10 @@ export type PricingItem = {
   slug: string
   title: string
   imageUrl: string
-  format?: "A3" | "A4"
+  format?: string
+  variantId?: number | null
+  variantLabel?: string | null
+  variantSku?: string | null
   unitPrice: number
   unitCost?: number
   quantity: number
@@ -120,9 +144,12 @@ export type ShopPricing = {
 export type ShopOrderItem = {
   id: number
   productId: number
+  variantId?: number | null
   title: string
   imageUrl: string
   format?: string | null
+  variantLabel?: string | null
+  variantSku?: string | null
   unitPrice: number
   unitCost?: number
   quantity: number

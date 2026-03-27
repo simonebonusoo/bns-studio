@@ -43,8 +43,30 @@ model Product {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   orderItems  OrderItem[]
+  variants    ProductVariant[]
   productTags ProductTag[]
   productCollections ProductCollection[]
+}
+
+model ProductVariant {
+  id                Int        @id @default(autoincrement())
+  productId         Int
+  title             String
+  key               String
+  sku               String?    @unique
+  price             Int
+  costPrice         Int        @default(0)
+  stock             Int        @default(0)
+  lowStockThreshold Int        @default(5)
+  position          Int        @default(0)
+  isDefault         Boolean    @default(false)
+  isActive          Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  product           Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems        OrderItem[]
+
+  @@unique([productId, key])
 }
 
 model Tag {
@@ -114,9 +136,12 @@ model OrderItem {
   id        Int     @id @default(autoincrement())
   orderId   Int
   productId Int
+  variantId Int?
   title     String
   imageUrl  String
   format    String?
+  variantLabel String?
+  variantSku String?
   unitPrice Int
   unitCost  Int     @default(0)
   quantity  Int
@@ -124,6 +149,7 @@ model OrderItem {
   costTotal Int     @default(0)
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 }
 
 model PageView {

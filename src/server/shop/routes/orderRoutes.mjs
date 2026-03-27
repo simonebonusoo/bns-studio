@@ -7,6 +7,7 @@ import { prisma } from "../lib/prisma.mjs"
 import { requireAuth } from "../middleware/auth.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
 import { buildPaypalRedirect } from "../services/paypal.mjs"
+import { syncProductVariants } from "../lib/product-variants.mjs"
 
 const router = Router()
 const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
@@ -27,6 +28,27 @@ async function applyOrderCompletionSideEffects(db, order) {
       : order.pricingBreakdown
 
   for (const item of order.items) {
+    if (item.variantId) {
+      await db.productVariant.update({
+        where: { id: item.variantId },
+        data: { stock: { decrement: item.quantity } },
+      })
+
+      const productWithVariants = await db.product.findUnique({
+        where: { id: item.productId },
+        include: {
+          variants: {
+            orderBy: [{ position: "asc" }, { id: "asc" }],
+          },
+        },
+      })
+
+      if (productWithVariants) {
+        await syncProductVariants(db, productWithVariants.id, productWithVariants.variants)
+      }
+      continue
+    }
+
     await db.product.update({
       where: { id: item.productId },
       data: { stock: { decrement: item.quantity } },
@@ -55,7 +77,8 @@ const checkoutSchema = z.object({
     z.object({
       productId: z.number(),
       quantity: z.number().int().min(1),
-      format: z.enum(["A3", "A4"]).optional(),
+      format: z.string().optional(),
+      variantId: z.number().int().positive().optional().nullable(),
     })
   ),
 })
@@ -254,9 +277,12 @@ router.post(
         items: {
           create: pricing.items.map((item) => ({
             productId: item.productId,
+            variantId: item.variantId || null,
             title: item.title,
             imageUrl: item.imageUrl,
             format: item.format || null,
+            variantLabel: item.variantLabel || null,
+            variantSku: item.variantSku || null,
             unitPrice: item.unitPrice,
             unitCost: item.unitCost || 0,
             quantity: item.quantity,

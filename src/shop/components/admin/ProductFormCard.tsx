@@ -4,6 +4,19 @@ import { Button } from "../../../components/Button"
 import { AdminCollection, ProductManualBadge, ProductStatus } from "../../types"
 import { ProductMediaManager } from "./ProductMediaManager"
 
+type ProductVariantFormState = {
+  id: number | null
+  title: string
+  key: string
+  sku: string
+  price: string
+  costPrice: string
+  stock: number
+  lowStockThreshold: number
+  isDefault: boolean
+  isActive: boolean
+}
+
 type ProductFormState = {
   title: string
   sku: string
@@ -22,6 +35,7 @@ type ProductFormState = {
   lowStockThreshold: number
   status: ProductStatus
   existingImageUrls: string[]
+  variants: ProductVariantFormState[]
 }
 
 type ProductFormCardProps = {
@@ -94,10 +108,13 @@ export function ProductFormCard({
   onMoveImageForward,
   onRemoveExisting,
 }: ProductFormCardProps) {
+  const activeVariants = productForm.variants.filter((variant) => variant.isActive)
+  const totalVariantStock = activeVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
+  const lowStockVariantCount = activeVariants.filter((variant) => variant.stock > 0 && variant.stock <= variant.lowStockThreshold).length
   const inventoryTone =
-    productForm.status === "out_of_stock" || productForm.stock <= 0
+    productForm.status === "out_of_stock" || totalVariantStock <= 0
       ? "border-red-400/20 bg-red-400/10 text-red-100"
-      : productForm.stock <= productForm.lowStockThreshold
+      : lowStockVariantCount > 0
         ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
         : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
 
@@ -111,8 +128,8 @@ export function ProductFormCard({
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
             {isMultiEdit
-              ? `Stai modificando ${selectedCount} prodotti selezionati. Aggiorna solo i campi che vuoi propagare davvero.`
-              : "Organizza il prodotto in blocchi chiari: identità, merchandising, formati, disponibilità, media e contenuti."}
+              ? `Stai modificando ${selectedCount} prodotti selezionati. Aggiorna solo i campi prodotto che vuoi propagare davvero.`
+              : "Ora il prodotto distingue meglio dati generali e varianti: merchandising, media, inventory e pricing restano leggibili e più vicini a un backoffice ecommerce reale."}
           </p>
         </div>
 
@@ -121,9 +138,9 @@ export function ProductFormCard({
             {statusLabel(productForm.status)}
           </span>
           <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${inventoryTone}`}>
-            {productForm.status === "out_of_stock" || productForm.stock <= 0
+            {productForm.status === "out_of_stock" || totalVariantStock <= 0
               ? "Esaurito"
-              : productForm.stock <= productForm.lowStockThreshold
+              : lowStockVariantCount > 0
                 ? "Low stock"
                 : "Disponibile"}
           </span>
@@ -137,7 +154,7 @@ export function ProductFormCard({
 
       <Section
         title="Identita prodotto"
-        description="I campi che definiscono il prodotto nel catalogo e nell’admin: titolo, SKU, stato e descrizione principale."
+        description="Titolo, descrizione, SKU master e stato generale del prodotto restano separati dalle varianti."
       >
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
           <div className="space-y-4">
@@ -161,7 +178,7 @@ export function ProductFormCard({
           <div className="space-y-4">
             <input
               className="shop-input"
-              placeholder="SKU (opzionale)"
+              placeholder="SKU prodotto (opzionale)"
               aria-label="SKU"
               value={productForm.sku}
               disabled={isMultiEdit}
@@ -190,7 +207,7 @@ export function ProductFormCard({
 
       <Section
         title="Taxonomy e merchandising"
-        description="Categoria, collezioni e tag aiutano listing, filtri, collegamenti editoriali e prodotti correlati."
+        description="Categoria, collezioni e tag restano a livello prodotto per listing, filtri e percorsi editoriali."
       >
         <div className="grid gap-4 xl:grid-cols-2">
           <select
@@ -220,7 +237,7 @@ export function ProductFormCard({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-white">Collezioni</p>
-              <p className="mt-1 text-xs text-white/55">Usale per raggruppare il prodotto in percorsi editoriali e pagine dedicate.</p>
+              <p className="mt-1 text-xs text-white/55">Servono a raggruppare il prodotto in percorsi trasversali e temi editoriali.</p>
             </div>
             <span className="text-xs text-white/45">{productForm.collectionIds.length} selezionate</span>
           </div>
@@ -250,102 +267,255 @@ export function ProductFormCard({
         </div>
       </Section>
 
-      <Section
-        title="Formati e prezzi"
-        description="Mantiene stabile la logica attuale A3/A4, ma rende più leggibile cosa è acquistabile e a quale prezzo."
-      >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-          <div className="rounded-2xl border border-white/10 p-4">
-            <p className="text-sm font-medium text-white">Formati disponibili</p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <label className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/75">
-                <input type="checkbox" checked={productForm.hasA4} onChange={(event) => onChange({ ...productForm, hasA4: event.target.checked })} />
-                A4
-              </label>
-              <label className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/75">
-                <input type="checkbox" checked={productForm.hasA3} onChange={(event) => onChange({ ...productForm, hasA3: event.target.checked })} />
-                A3
-              </label>
+      {!isMultiEdit ? (
+        <Section
+          title="Varianti"
+          description="Prezzo, stock, SKU e disponibilità ora vivono a livello variante. Il prodotto resta il contenitore editoriale e commerciale."
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${inventoryTone}`}>
+              <p className="font-medium">{activeVariants.length} varianti attive</p>
+              <p className="mt-1 opacity-80">
+                Stock totale {totalVariantStock} · varianti low stock {lowStockVariantCount}
+              </p>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                onChange({
+                  ...productForm,
+                  variants: [
+                    ...productForm.variants,
+                    {
+                      id: null,
+                      title: `Variante ${productForm.variants.length + 1}`,
+                      key: `variant-${productForm.variants.length + 1}`,
+                      sku: "",
+                      price: "",
+                      costPrice: "",
+                      stock: 0,
+                      lowStockThreshold: 5,
+                      isDefault: productForm.variants.length === 0,
+                      isActive: true,
+                    },
+                  ],
+                })
+              }
+            >
+              Aggiungi variante
+            </Button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <input
-              className="shop-input"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="Prezzo A4"
-              aria-label="Prezzo A4 in euro"
-              value={productForm.priceA4}
-              disabled={!productForm.hasA4}
-              onChange={(event) => onChange({ ...productForm, priceA4: event.target.value })}
-            />
-            <input
-              className="shop-input"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="Prezzo A3"
-              aria-label="Prezzo A3 in euro"
-              value={productForm.priceA3}
-              disabled={!productForm.hasA3}
-              onChange={(event) => onChange({ ...productForm, priceA3: event.target.value })}
-            />
-            <input
-              className="shop-input"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="Costo interno"
-              aria-label="Costo interno in euro"
-              value={productForm.costPrice}
-              onChange={(event) => onChange({ ...productForm, costPrice: event.target.value })}
-            />
-          </div>
-        </div>
-      </Section>
+          <div className="space-y-3">
+            {productForm.variants.map((variant, index) => (
+              <div key={`${variant.id ?? "new"}-${index}`} className="rounded-[24px] border border-white/10 bg-white/[0.02] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-white">{variant.title || `Variante ${index + 1}`}</p>
+                    {variant.isDefault ? (
+                      <span className="rounded-full bg-[#e3f503] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-black">
+                        Default
+                      </span>
+                    ) : null}
+                    {!variant.isActive ? (
+                      <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/55">
+                        Inattiva
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={index === 0}
+                      onClick={() => {
+                        const next = [...productForm.variants]
+                        ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
+                        onChange({ ...productForm, variants: next })
+                      }}
+                    >
+                      Su
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={index === productForm.variants.length - 1}
+                      onClick={() => {
+                        const next = [...productForm.variants]
+                        ;[next[index + 1], next[index]] = [next[index], next[index + 1]]
+                        onChange({ ...productForm, variants: next })
+                      }}
+                    >
+                      Giu
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.filter((_, variantIndex) => variantIndex !== index),
+                        })
+                      }
+                    >
+                      Rimuovi
+                    </Button>
+                  </div>
+                </div>
 
-      <Section
-        title="Disponibilita"
-        description="Stock reale, soglia low stock e stato prodotto vengono mostrati con segnali più chiari anche nel catalogo pubblico."
-      >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
-          <input
-            className="shop-input"
-            type="number"
-            min="0"
-            placeholder="Stock disponibile"
-            aria-label="Stock disponibile"
-            value={productForm.stock}
-            onChange={(event) => onChange({ ...productForm, stock: Number(event.target.value) })}
-          />
-          <input
-            className="shop-input"
-            type="number"
-            min="0"
-            placeholder="Soglia low stock"
-            aria-label="Soglia stock basso"
-            value={productForm.lowStockThreshold}
-            onChange={(event) => onChange({ ...productForm, lowStockThreshold: Number(event.target.value) })}
-          />
-          <div className={`rounded-2xl border px-4 py-3 text-sm ${inventoryTone}`}>
-            <p className="font-medium">
-              {productForm.status === "out_of_stock" || productForm.stock <= 0
-                ? "Prodotto esaurito"
-                : productForm.stock <= productForm.lowStockThreshold
-                  ? "Prodotto quasi esaurito"
-                  : "Prodotto disponibile"}
-            </p>
-            <p className="mt-1 opacity-80">
-              {productForm.stock} pezzi a stock · soglia alert {productForm.lowStockThreshold}
-            </p>
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  <input
+                    className="shop-input"
+                    placeholder="Nome variante"
+                    value={variant.title}
+                    onChange={(event) =>
+                      onChange({
+                        ...productForm,
+                        variants: productForm.variants.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, title: event.target.value } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <input
+                    className="shop-input"
+                    placeholder="Key interna"
+                    value={variant.key}
+                    onChange={(event) =>
+                      onChange({
+                        ...productForm,
+                        variants: productForm.variants.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, key: event.target.value } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <input
+                    className="shop-input"
+                    placeholder="SKU variante"
+                    value={variant.sku}
+                    onChange={(event) =>
+                      onChange({
+                        ...productForm,
+                        variants: productForm.variants.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, sku: event.target.value } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <input
+                    className="shop-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Prezzo"
+                    value={variant.price}
+                    onChange={(event) =>
+                      onChange({
+                        ...productForm,
+                        variants: productForm.variants.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, price: event.target.value } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <input
+                    className="shop-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Costo interno"
+                    value={variant.costPrice}
+                    onChange={(event) =>
+                      onChange({
+                        ...productForm,
+                        variants: productForm.variants.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, costPrice: event.target.value } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <input
+                    className="shop-input"
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={variant.stock}
+                    onChange={(event) =>
+                      onChange({
+                        ...productForm,
+                        variants: productForm.variants.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, stock: Number(event.target.value) } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <input
+                    className="shop-input"
+                    type="number"
+                    min="0"
+                    placeholder="Soglia low stock"
+                    value={variant.lowStockThreshold}
+                    onChange={(event) =>
+                      onChange({
+                        ...productForm,
+                        variants: productForm.variants.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, lowStockThreshold: Number(event.target.value) } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <div className="flex flex-wrap gap-3">
+                    <label className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70">
+                      <input
+                        type="checkbox"
+                        checked={variant.isDefault}
+                        onChange={() =>
+                          onChange({
+                            ...productForm,
+                            variants: productForm.variants.map((entry, entryIndex) => ({
+                              ...entry,
+                              isDefault: entryIndex === index,
+                            })),
+                          })
+                        }
+                      />
+                      Variante default
+                    </label>
+                    <label className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70">
+                      <input
+                        type="checkbox"
+                        checked={variant.isActive}
+                        onChange={(event) =>
+                          onChange({
+                            ...productForm,
+                            variants: productForm.variants.map((entry, entryIndex) =>
+                              entryIndex === index ? { ...entry, isActive: event.target.checked } : entry,
+                            ),
+                          })
+                        }
+                      />
+                      Variante attiva
+                    </label>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      </Section>
+        </Section>
+      ) : (
+        <Section
+          title="Varianti"
+          description="La modifica multipla non tocca la matrice varianti per evitare di sovrascrivere prezzi, stock o SKU specifici di prodotto."
+        >
+          <p className="text-sm text-white/50">Per modificare varianti, prezzi o inventory specifica apri il singolo prodotto.</p>
+        </Section>
+      )}
 
       <Section title="Badge prodotto">
         <div className="flex items-center justify-between gap-4">
@@ -467,7 +637,7 @@ export function ProductFormCard({
       ) : (
         <Section
           title="Media"
-          description="La modifica multipla non tocca la gallery per evitare di sovrascrivere immagini o cover tra prodotti diversi."
+          description="La modifica multipla non tocca la gallery per evitare di sovrascrivere cover o immagini tra prodotti diversi."
         >
           <p className="text-sm text-white/50">Per cambiare cover o ordine immagini, apri il singolo prodotto in modifica dedicata.</p>
         </Section>
@@ -476,8 +646,8 @@ export function ProductFormCard({
       <div className="flex flex-col gap-3 border-t border-white/8 pt-5 md:flex-row md:items-center md:justify-between">
         <p className="text-sm text-white/50">
           {isMultiEdit
-            ? "La modifica multipla aggiorna solo i campi realmente toccati."
-            : "Il salvataggio mantiene compatibilità con prodotti esistenti, immagini e formati A3/A4."}
+            ? "La modifica multipla aggiorna solo i campi prodotto realmente toccati."
+            : "Varianti, immagini e contenuto prodotto restano compatibili con il catalogo già in produzione e con i dati legacy A3/A4."}
         </p>
         <Button type="submit" disabled={!canSubmit} className="md:min-w-[16rem]">
           {editingProductId || isMultiEdit ? (isMultiEdit ? "Aggiorna prodotti" : "Aggiorna prodotto") : "Crea prodotto"}

@@ -1,67 +1,170 @@
-import { ProductVisibleBadge, ShopProduct } from "../types"
+import { ProductVisibleBadge, ShopProduct, ShopProductVariant } from "../types"
 
 export const PRODUCT_STATUSES = ["draft", "active", "hidden", "out_of_stock"] as const
 
-export function getAvailableFormats(product: ShopProduct) {
-  if (product.availableFormats?.length) {
-    return product.availableFormats
+function normalizeLegacyFormat(value?: string | null) {
+  const normalized = String(value || "").trim().toUpperCase()
+  return normalized === "A3" || normalized === "A4" ? normalized : null
+}
+
+export function getProductVariants(product: ShopProduct) {
+  const variants = Array.isArray(product.variants) ? [...product.variants] : []
+  const activeVariants = variants
+    .filter((variant) => variant.isActive !== false)
+    .sort((left, right) => {
+      if ((left.position ?? 0) !== (right.position ?? 0)) return (left.position ?? 0) - (right.position ?? 0)
+      return Number(Boolean(right.isDefault)) - Number(Boolean(left.isDefault))
+    })
+
+  if (activeVariants.length) {
+    return activeVariants
   }
 
-  const formats: Array<"A3" | "A4"> = []
-  if (product.hasA4 !== false) formats.push("A4")
-  if (product.hasA3) formats.push("A3")
-  return formats.length ? formats : ["A4"]
+  const legacyVariants: ShopProductVariant[] = []
+  const shouldHaveA4 = product.hasA4 !== false || (!product.hasA3 && !product.hasA4)
+
+  if (shouldHaveA4) {
+    legacyVariants.push({
+      id: null,
+      title: "A4",
+      key: "a4",
+      sku: product.sku || null,
+      price: product.priceA4 ?? product.price,
+      costPrice: product.costPrice ?? 0,
+      stock: product.stock,
+      lowStockThreshold: product.lowStockThreshold ?? 5,
+      position: 0,
+      isDefault: true,
+      isActive: true,
+      legacyFormat: "A4",
+      stockStatus: product.stockStatus,
+    })
+  }
+
+  if (product.hasA3) {
+    legacyVariants.push({
+      id: null,
+      title: "A3",
+      key: "a3",
+      sku: null,
+      price: product.priceA3 ?? product.priceA4 ?? product.price,
+      costPrice: product.costPrice ?? 0,
+      stock: product.stock,
+      lowStockThreshold: product.lowStockThreshold ?? 5,
+      position: legacyVariants.length,
+      isDefault: !legacyVariants.length,
+      isActive: true,
+      legacyFormat: "A3",
+      stockStatus: product.stockStatus,
+    })
+  }
+
+  if (!legacyVariants.length) {
+    legacyVariants.push({
+      id: null,
+      title: "Standard",
+      key: "standard",
+      sku: product.sku || null,
+      price: product.price,
+      costPrice: product.costPrice ?? 0,
+      stock: product.stock,
+      lowStockThreshold: product.lowStockThreshold ?? 5,
+      position: 0,
+      isDefault: true,
+      isActive: true,
+      legacyFormat: null,
+      stockStatus: product.stockStatus,
+    })
+  }
+
+  return legacyVariants
+}
+
+export function getDefaultVariant(product: ShopProduct) {
+  const variants = getProductVariants(product)
+  return variants.find((variant) => variant.isDefault) || variants[0]
+}
+
+export function getVariantById(product: ShopProduct, variantId?: number | null) {
+  if (!variantId) return null
+  return getProductVariants(product).find((variant) => Number(variant.id) === Number(variantId)) || null
+}
+
+export function getVariantByLabel(product: ShopProduct, value?: string | null) {
+  if (!value) return null
+  const normalized = String(value).trim().toUpperCase()
+  return (
+    getProductVariants(product).find(
+      (variant) =>
+        variant.title.toUpperCase() === normalized ||
+        variant.key.toUpperCase() === normalized ||
+        normalizeLegacyFormat(variant.legacyFormat) === normalized,
+    ) || null
+  )
+}
+
+export function resolveSelectedVariant(product: ShopProduct, selection?: { variantId?: number | null; format?: string | null }) {
+  return getVariantById(product, selection?.variantId) || getVariantByLabel(product, selection?.format) || getDefaultVariant(product)
+}
+
+export function getAvailableFormats(product: ShopProduct) {
+  return getProductVariants(product).map((variant) => variant.title)
 }
 
 export function getDefaultFormat(product: ShopProduct) {
-  return product.defaultFormat || getAvailableFormats(product)[0] || "A4"
+  return getDefaultVariant(product)?.title || "A4"
 }
 
 export function getPriceForFormat(product: ShopProduct, format?: string | null) {
-  const normalized = format === "A3" ? "A3" : format === "A4" ? "A4" : getDefaultFormat(product)
-
-  if (normalized === "A3") {
-    return product.priceA3 ?? product.priceA4 ?? product.price
-  }
-
-  return product.priceA4 ?? product.priceA3 ?? product.price
+  return resolveSelectedVariant(product, { format })?.price ?? product.price
 }
 
-export function isProductPurchasable(product: ShopProduct) {
-  return product.status === "active" && product.stock > 0 && product.isPurchasable !== false
+export function getPriceForVariant(product: ShopProduct, variantId?: number | null) {
+  return resolveSelectedVariant(product, { variantId })?.price ?? getDefaultVariant(product)?.price ?? product.price
 }
 
-export function getProductStockStatus(product: ShopProduct) {
-  if (product.stockStatus) {
-    return product.stockStatus
+export function isProductPurchasable(product: ShopProduct, variantId?: number | null) {
+  const variant = resolveSelectedVariant(product, { variantId })
+  return product.status === "active" && Boolean(variant) && variant.stock > 0 && variant.isActive !== false && product.isPurchasable !== false
+}
+
+export function getProductStockStatus(product: ShopProduct, variantId?: number | null) {
+  const variant = resolveSelectedVariant(product, { variantId })
+  if (!variant) {
+    return product.stockStatus || "out_of_stock"
   }
 
-  if (product.status === "out_of_stock" || product.stock <= 0) {
+  if (variant.stockStatus) {
+    return variant.stockStatus
+  }
+
+  if (variant.stock <= 0) {
     return "out_of_stock"
   }
 
-  if (product.stock <= (product.lowStockThreshold ?? 5)) {
+  if (variant.stock <= (variant.lowStockThreshold ?? 5)) {
     return "low_stock"
   }
 
   return "in_stock"
 }
 
-export function getProductStockLabel(product: ShopProduct) {
-  if (product.stockLabel) {
-    return product.stockLabel
+export function getProductStockLabel(product: ShopProduct, variantId?: number | null) {
+  const variant = resolveSelectedVariant(product, { variantId })
+  if (!variant) {
+    return product.stockLabel || "Esaurito"
   }
 
-  const status = getProductStockStatus(product)
+  const status = getProductStockStatus(product, variant.id)
   if (status === "out_of_stock") {
     return "Esaurito"
   }
 
   if (status === "low_stock") {
-    return `Ultimi ${product.stock}`
+    return `Ultimi ${variant.stock}`
   }
 
-  return `${product.stock} disponibili`
+  return `${variant.stock} disponibili`
 }
 
 export function getProductPrimaryImage(product: ShopProduct) {
@@ -80,17 +183,4 @@ export function getProductBadges(product: ShopProduct) {
   }
 
   return [] as ProductVisibleBadge[]
-}
-
-export function getProductPriceLabel(product: ShopProduct) {
-  const formats = getAvailableFormats(product)
-  const prices = formats.map((format) => getPriceForFormat(product, format))
-  const minPrice = Math.min(...prices)
-  const maxPrice = Math.max(...prices)
-
-  if (minPrice === maxPrice) {
-    return `${minPrice}`
-  }
-
-  return `${minPrice}-${maxPrice}`
 }

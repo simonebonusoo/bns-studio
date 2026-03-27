@@ -60,6 +60,7 @@ async function main() {
   logConfiguration()
   console.log("[bootstrap] Seed mode=if-empty")
   await run("npx", ["prisma", "db", "push", "--skip-generate"], { env: runtimeEnv })
+  await run("node", ["prisma/sync-product-variants.mjs"], { env: runtimeEnv })
   await run("node", ["prisma/backfill-usernames.mjs"], { env: runtimeEnv })
   await run("node", ["prisma/seed.mjs"], { env: runtimeEnv })
   await run("node", ["src/server/shop/server.mjs"], { env: runtimeEnv })

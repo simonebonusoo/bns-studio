@@ -6,7 +6,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { getPriceForFormat, getProductPrimaryImage } from "../lib/product"
+import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
 import { ShopPricing } from "../types"
 
 export function ShopCartPage() {
@@ -33,7 +33,7 @@ export function ShopCartPage() {
     apiFetch<ShopPricing>("/store/pricing/preview", {
       method: "POST",
       body: JSON.stringify({
-        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format })),
+        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null })),
         couponCode: couponCode || null,
       }),
     })
@@ -86,12 +86,12 @@ export function ShopCartPage() {
       <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-4">
           {items.map((item) => (
-            <article key={`${item.productId}-${item.format || "A4"}`} className="shop-card flex flex-col gap-4 p-4 md:flex-row md:items-center">
+            <article key={`${item.productId}-${item.variantId || item.format || "default"}`} className="shop-card flex flex-col gap-4 p-4 md:flex-row md:items-center">
               <img src={getProductPrimaryImage(item.product)} alt={item.product.title} className="h-28 w-full rounded-[20px] object-cover md:w-40" />
               <div className="min-w-0 flex-1">
                 <span className="shop-pill">{item.product.category}</span>
                 <h2 className="mt-3 text-xl font-semibold text-white">{item.product.title}</h2>
-                <p className="mt-2 text-sm text-white/65">{item.format || "A4"} · {formatPrice(getPriceForFormat(item.product, item.format))}</p>
+                <p className="mt-2 text-sm text-white/65">{item.variantLabel || item.format || "Variante"} · {formatPrice(getPriceForVariant(item.product, item.variantId))}</p>
               </div>
               <div className="flex items-center gap-3">
                 <input
@@ -99,9 +99,9 @@ export function ShopCartPage() {
                   type="number"
                   min="1"
                   value={item.quantity}
-                  onChange={(event) => updateItem(item.productId, Number(event.target.value), item.format)}
+                  onChange={(event) => updateItem(item.productId, Number(event.target.value), { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
                 />
-                <button type="button" onClick={() => removeItem(item.productId, item.format)} className="text-sm text-white/55 transition hover:text-white">
+                <button type="button" onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })} className="text-sm text-white/55 transition hover:text-white">
                   Rimuovi
                 </button>
               </div>
