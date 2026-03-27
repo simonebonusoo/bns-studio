@@ -1140,7 +1140,7 @@ export function ShopAdminPage() {
             onRemoveExisting={removeExistingImage}
           />
 
-          <div className="flex min-h-0 flex-col gap-4">
+          <div className="shop-card flex h-full min-h-0 flex-col gap-4 p-6">
             <ProductFiltersBar
               search={productSearch}
               category={productCategoryFilter}
@@ -1180,22 +1180,9 @@ export function ShopAdminPage() {
           </div>
 
           <section className="shop-card space-y-4 p-6 xl:col-span-2">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-3xl">
-                <h2 className="text-xl font-semibold text-white">Gestione categorie</h2>
-                <p className="mt-1 text-sm text-white/55">Organizza le categorie prodotto in un unico pannello largo e compatto.</p>
-              </div>
-              <form onSubmit={createCategory} className="flex w-full flex-col gap-3 md:w-auto md:min-w-[420px] md:flex-row">
-                <input
-                  className="h-11 rounded-lg border border-white/12 bg-white/[0.03] px-4 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/25"
-                  placeholder="Nuova categoria"
-                  value={newCategoryName}
-                  onChange={(event) => setNewCategoryName(event.target.value)}
-                />
-                <button type="submit" className="h-11 rounded-lg border border-white/12 bg-white px-4 text-sm font-medium text-black transition hover:bg-white/90">
-                  Crea
-                </button>
-              </form>
+            <div className="max-w-3xl">
+              <h2 className="text-xl font-semibold text-white">Gestione categorie</h2>
+              <p className="mt-1 text-sm text-white/55">Organizza le categorie prodotto in un unico pannello largo e compatto.</p>
             </div>
             <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
               {categories.map((category) => (
@@ -1229,6 +1216,19 @@ export function ShopAdminPage() {
                   )}
                 </div>
               ))}
+            </div>
+            <div className="flex justify-end">
+              <form onSubmit={createCategory} className="flex w-full max-w-[420px] flex-col gap-3 md:flex-row md:items-center">
+                <input
+                  className="h-11 flex-1 rounded-lg border border-white/12 bg-white/[0.03] px-4 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/25"
+                  placeholder="Nuova categoria"
+                  value={newCategoryName}
+                  onChange={(event) => setNewCategoryName(event.target.value)}
+                />
+                <button type="submit" className="h-11 rounded-lg border border-white/12 bg-white px-4 text-sm font-medium text-black transition hover:bg-white/90">
+                  Crea
+                </button>
+              </form>
             </div>
           </section>
 

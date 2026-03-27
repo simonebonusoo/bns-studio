@@ -20,7 +20,7 @@ export function ProductFiltersBar({
   onStatusChange,
 }: ProductFiltersBarProps) {
   return (
-    <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-white">Lista prodotti</h2>

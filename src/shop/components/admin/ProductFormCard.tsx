@@ -196,13 +196,8 @@ export function ProductFormCard({
       </div>
 
       <div className="space-y-3 rounded-2xl border border-white/10 p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-white">Badge prodotto</p>
-            <p className="mt-1 text-xs text-white/55">
-              I badge manuali compaiono per primi nell&apos;ordine che scegli qui. I badge automatici di sistema restano attivi solo se non duplicano lo stesso testo.
-            </p>
-          </div>
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm font-medium text-white">Badge prodotto</p>
           <Button
             type="button"
             variant="ghost"
