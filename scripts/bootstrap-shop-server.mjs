@@ -44,6 +44,7 @@ function logConfiguration() {
   console.log(`[bootstrap] IS_RENDER=${persistence.environment.isRender}`)
   console.log(`[bootstrap] STORAGE_GUARANTEED=${persistence.storage.storageGuaranteed}`)
   console.log(`[bootstrap] RENDER_DISK_PATH=${persistence.storage.renderDiskMountPath || "(unset)"}`)
+  console.log(`[bootstrap] FORCE_PERSISTENT_STORAGE=${process.env.FORCE_PERSISTENT_STORAGE === "true" ? "true" : "false"}`)
   console.log(`[bootstrap] LEGACY_STORAGE_MIGRATION=${process.env.SHOP_ALLOW_LEGACY_STORAGE_MIGRATION === "true" ? "enabled" : "disabled"}`)
 }
 
