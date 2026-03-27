@@ -15,6 +15,14 @@ function legacyMigrationEnabled() {
     .toLowerCase() === "true"
 }
 
+function isRenderRuntime() {
+  return Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
+}
+
+function getRenderPersistentRoot() {
+  return process.env.RENDER_DISK_PATH || RENDER_PERSISTENT_ROOT
+}
+
 function migrateLegacyProductUploads(targetRootDir) {
   if (!legacyMigrationEnabled()) {
     ensureDir(path.join(targetRootDir, "products"))
@@ -42,12 +50,25 @@ function migrateLegacyProductUploads(targetRootDir) {
 }
 
 export function resolveUploadsRootDir(rawValue = process.env.UPLOADS_DIR || "") {
-  const uploadsRootDir =
-    rawValue
-      ? path.resolve(rawValue)
-      : process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL
-        ? path.join(RENDER_PERSISTENT_ROOT, "uploads")
-        : defaultUploadsRootDir
+  const isRender = isRenderRuntime()
+  const renderRoot = getRenderPersistentRoot()
+  let uploadsRootDir = defaultUploadsRootDir
+
+  if (isRender) {
+    const expectedPath = path.join(renderRoot, "uploads")
+    const candidate = rawValue ? path.resolve(rawValue) : expectedPath
+    if (candidate.startsWith(renderRoot)) {
+      uploadsRootDir = candidate
+    } else {
+      console.warn(
+        `[persistence] Ignoring non-persistent UPLOADS_DIR on Render: ${candidate}. Falling back to ${expectedPath}`,
+      )
+      uploadsRootDir = expectedPath
+    }
+  } else if (rawValue) {
+    uploadsRootDir = path.resolve(rawValue)
+  }
+
   ensureDir(uploadsRootDir)
   migrateLegacyProductUploads(uploadsRootDir)
   return uploadsRootDir

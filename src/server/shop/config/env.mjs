@@ -19,11 +19,12 @@ function parseList(value) {
 
 const clientUrl = requireEnv("CLIENT_URL", "http://localhost:5173")
 const clientOrigins = Array.from(new Set([clientUrl, ...parseList(process.env.CLIENT_ORIGINS)]))
+const isRenderRuntime = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
 
 export const env = {
   port: Number(process.env.PORT || 4000),
   nodeEnv: process.env.NODE_ENV || "development",
-  renderDiskPath: process.env.RENDER_DISK_PATH || "",
+  renderDiskPath: process.env.RENDER_DISK_PATH || (isRenderRuntime ? "/var/data" : ""),
   jwtSecret: requireEnv("JWT_SECRET", "bns-shop-local-secret"),
   clientUrl,
   clientOrigins,

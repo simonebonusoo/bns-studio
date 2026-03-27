@@ -34,6 +34,7 @@ function logConfiguration() {
   const persistence = getPersistenceStatus()
 
   console.log("[bootstrap] Starting BNS Studio shop backend")
+  console.log(`[bootstrap] NODE_ENV=${process.env.NODE_ENV || "development"}`)
   console.log(`[bootstrap] DATABASE_URL=${databaseUrl}`)
   console.log(`[bootstrap] DATABASE_PATH=${databasePath}`)
   console.log(`[bootstrap] DATABASE_EXISTS_BEFORE_START=${databaseExists}`)
