@@ -22,10 +22,15 @@ const clientOrigins = Array.from(new Set([clientUrl, ...parseList(process.env.CL
 
 export const env = {
   port: Number(process.env.PORT || 4000),
+  nodeEnv: process.env.NODE_ENV || "development",
   jwtSecret: requireEnv("JWT_SECRET", "bns-shop-local-secret"),
   clientUrl,
   clientOrigins,
   uploadsDir: process.env.UPLOADS_DIR || "",
+  assetStorageMode: process.env.ASSET_STORAGE_MODE || "local",
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
+  cloudinaryUploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || "",
+  cloudinaryFolder: process.env.CLOUDINARY_FOLDER || "",
   paypalMeLink: process.env.PAYPAL_ME_LINK || "",
   paypalBusinessEmail: process.env.PAYPAL_BUSINESS_EMAIL || "",
   paypalCurrencyCode: process.env.PAYPAL_CURRENCY_CODE || "EUR",

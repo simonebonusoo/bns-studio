@@ -5,6 +5,8 @@ import multer from "multer"
 import { z } from "zod"
 
 import { asyncHandler, HttpError } from "../lib/http.mjs"
+import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
+import { getPersistenceStatus } from "../lib/persistence-status.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
@@ -17,7 +19,7 @@ const uploadsDir = resolveProductUploadsDir()
 fs.mkdirSync(uploadsDir, { recursive: true })
 const CUSTOMER_ORDER_WHERE = { user: { role: "customer" } }
 
-const storage = multer.diskStorage({
+const localDiskStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase()
@@ -27,7 +29,7 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({
-  storage,
+  storage: getAssetStorageMode() === "cloudinary" ? multer.memoryStorage() : localDiskStorage,
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
       cb(new HttpError(400, "Sono consentite solo immagini"))
@@ -303,12 +305,17 @@ router.post(
   upload.array("images", 8),
   asyncHandler(async (req, res) => {
     const files = Array.isArray(req.files) ? req.files : []
+    const storedFiles = await storeUploadedProductImages(files)
     res.status(201).json({
-      files: files.map((file) => ({
-        name: file.originalname,
-        url: `/uploads/products/${file.filename}`,
-      })),
+      files: storedFiles,
     })
+  })
+)
+
+router.get(
+  "/runtime-status",
+  asyncHandler(async (_req, res) => {
+    res.json(getPersistenceStatus())
   })
 )
 

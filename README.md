@@ -21,3 +21,4 @@ npm run preview
 - Documentazione completa: `docs/catalog-persistence.md`
 - Database locale predefinito: `data/shop/dev.db`
 - Upload immagini prodotto: `data/uploads/products/`
+- Asset storage mode: `ASSET_STORAGE_MODE=local|cloudinary`

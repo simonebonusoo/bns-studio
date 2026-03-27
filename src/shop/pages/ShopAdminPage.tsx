@@ -127,6 +127,26 @@ type AdminAnalytics = {
   shippingCostsTracked: boolean
 }
 
+type AdminRuntimeStatus = {
+  environment: {
+    nodeEnv: string
+    isProduction: boolean
+    isRender: boolean
+  }
+  storage: {
+    databaseUrl: string
+    databasePath: string
+    uploadsRootDir: string
+    assetStorageMode: string
+    renderDiskMountPath: string
+    persistentStorageEnabled: boolean
+    databaseGuaranteed: boolean
+    uploadsGuaranteed: boolean
+    storageGuaranteed: boolean
+  }
+  warnings: string[]
+}
+
 type OrderProfitSummary = {
   orderId: number
   orderReference: string
@@ -286,6 +306,7 @@ export function ShopAdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [usersTotal, setUsersTotal] = useState(0)
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
+  const [runtimeStatus, setRuntimeStatus] = useState<AdminRuntimeStatus | null>(null)
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [rules, setRules] = useState<DiscountRule[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -396,7 +417,7 @@ export function ShopAdminPage() {
   }, [settings])
 
   async function refresh() {
-    const [productData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData] = await Promise.all([
+    const [productData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData] = await Promise.all([
       apiFetch<ShopProduct[]>("/admin/products"),
       apiFetch<AdminReview[]>("/admin/reviews"),
       apiFetch<ShopOrder[]>("/admin/orders"),
@@ -406,6 +427,7 @@ export function ShopAdminPage() {
       apiFetch<DiscountRule[]>("/admin/discount-rules"),
       apiFetch<string[]>("/admin/categories"),
       apiFetch<SettingEntry[]>("/admin/settings"),
+      apiFetch<AdminRuntimeStatus>("/admin/runtime-status"),
     ])
 
     setProducts(productData)
@@ -418,6 +440,7 @@ export function ShopAdminPage() {
     setRules(ruleData)
     setCategories(categoryData)
     setSettings(settingsData)
+    setRuntimeStatus(runtimeData)
   }
 
   function clearFeedback() {
@@ -806,6 +829,22 @@ export function ShopAdminPage() {
       title="Gestione shop"
       intro="Prodotti, categorie, ordini, coupon, recensioni e regole sconto vengono gestiti direttamente nello shop integrato, con una lettura più ampia e coerente con il layout principale del sito."
     >
+      {runtimeStatus && !runtimeStatus.storage.storageGuaranteed ? (
+        <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+          <div className="font-medium">Storage runtime non garantito in questo ambiente.</div>
+          <div className="mt-1 text-amber-100/80">
+            Database: {runtimeStatus.storage.databasePath || runtimeStatus.storage.databaseUrl}
+          </div>
+          <div className="text-amber-100/80">Upload: {runtimeStatus.storage.uploadsRootDir}</div>
+          <div className="text-amber-100/80">Asset storage mode: {runtimeStatus.storage.assetStorageMode}</div>
+          {runtimeStatus.warnings.length ? (
+            <div className="mt-2 text-amber-100/80">
+              {runtimeStatus.warnings[0]}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-3">
         {[
           ["prodotti", "Prodotti"],

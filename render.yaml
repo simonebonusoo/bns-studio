@@ -3,9 +3,13 @@ services:
     name: bnsstudio-shop-api
     rootDir: .
     runtime: node
-    plan: free
+    plan: starter
     buildCommand: npm run render:build
     startCommand: npm run render:start
+    disk:
+      name: shop-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 5
     envVars:
       - key: NODE_VERSION
         value: 22
@@ -13,6 +17,10 @@ services:
         value: file:/opt/render/project/src/data/shop/dev.db
       - key: UPLOADS_DIR
         value: /opt/render/project/src/data/uploads
+      - key: ASSET_STORAGE_MODE
+        value: local
+      - key: PERSISTENT_STORAGE_ENABLED
+        value: "true"
       - key: CLIENT_URL
         sync: false
       - key: CLIENT_ORIGINS
@@ -27,3 +35,9 @@ services:
         value: EUR
       - key: PAYPAL_STORE_NAME
         value: BNS Studio Shop
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_UPLOAD_PRESET
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        value: bns-studio/products
