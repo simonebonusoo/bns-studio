@@ -46,11 +46,23 @@ Se non passi un path esplicito, il comando usa l'ultimo backup disponibile.
 
 - il restore richiede sempre `--force`
 - prima di sovrascrivere i dati attuali crea automaticamente un `pre-restore-<timestamp>/`
+- il restore ripristina lo **stesso file SQLite usato dal runtime**, risolto con `resolve-database-url.mjs`
+- se presenti, vengono gestiti anche eventuali file SQLite sidecar `-wal` e `-shm`
 
 ## Limiti operativi
 
 - il restore e pensato per `DATABASE_URL=file:...`
 - prima del restore e consigliato fermare il server, per evitare scritture concorrenti sul DB SQLite
+- dopo il restore devi riavviare il server shop, cosi Prisma riapre la connessione sul database ripristinato
+
+## Seed e restart
+
+Il bootstrap del backend continua a eseguire `prisma db push` e `prisma/seed.mjs`, ma il seed ora lavora in modalita `if-empty`:
+
+- database vuoto -> crea i dati iniziali
+- database gia popolato o ripristinato -> non reinserisce prodotti/default demo
+
+Questo evita che un restore valido venga alterato dal seed al restart.
 
 ## Strategia consigliata
 

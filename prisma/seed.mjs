@@ -159,6 +159,23 @@ const seededReviews = [
 async function main() {
   console.log("[seed] Seeding shop data")
 
+  const existingState = await prisma.$transaction([
+    prisma.user.count(),
+    prisma.product.count(),
+    prisma.coupon.count(),
+    prisma.discountRule.count(),
+    prisma.setting.count(),
+    prisma.review.count(),
+  ])
+
+  const [userCount, productCount, couponCount, ruleCount, settingCount, reviewCount] = existingState
+  const databaseAlreadyInitialized = userCount > 0 || productCount > 0 || couponCount > 0 || ruleCount > 0 || settingCount > 0 || reviewCount > 0
+
+  if (databaseAlreadyInitialized && process.env.FORCE_SHOP_SEED !== "true") {
+    console.log("[seed] Database gia inizializzato: seed non distruttivo saltato")
+    return
+  }
+
   await prisma.user.upsert({
     where: { email: "admin@bnsstudio.com" },
     update: {},
@@ -293,7 +310,7 @@ async function main() {
     })
   }
 
-  const [userCount, productCount, reviewCount, categorySetting] = await Promise.all([
+  const [seededUserCount, seededProductCount, seededReviewCount, categorySetting] = await Promise.all([
     prisma.user.count(),
     prisma.product.count(),
     prisma.review.count(),
@@ -301,7 +318,7 @@ async function main() {
   ])
 
   console.log(`[seed] Admin ready: admin@bnsstudio.com / admin1234`)
-  console.log(`[seed] Users=${userCount} Products=${productCount} Reviews=${reviewCount}`)
+  console.log(`[seed] Users=${seededUserCount} Products=${seededProductCount} Reviews=${seededReviewCount}`)
   console.log(`[seed] Categories=${categorySetting?.value || "[]"}`)
 }
 

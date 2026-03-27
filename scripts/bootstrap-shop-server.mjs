@@ -31,13 +31,16 @@ function logConfiguration() {
 }
 
 async function main() {
+  const resolvedDatabaseUrl = resolveDatabaseUrl()
+  const resolvedUploadsDir = process.env.UPLOADS_DIR || resolveUploadsRootDir()
   const runtimeEnv = {
     ...process.env,
-    DATABASE_URL: resolveDatabaseUrl(),
-    UPLOADS_DIR: process.env.UPLOADS_DIR || resolveUploadsRootDir(),
+    DATABASE_URL: resolvedDatabaseUrl,
+    UPLOADS_DIR: resolvedUploadsDir,
   }
 
   logConfiguration()
+  console.log("[bootstrap] Seed mode=if-empty")
   await run("npx", ["prisma", "db", "push", "--skip-generate"], { env: runtimeEnv })
   await run("node", ["prisma/backfill-usernames.mjs"], { env: runtimeEnv })
   await run("node", ["prisma/seed.mjs"], { env: runtimeEnv })

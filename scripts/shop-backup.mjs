@@ -4,6 +4,7 @@ import path from "node:path"
 import { resolveDatabaseUrl } from "../prisma/resolve-database-url.mjs"
 import { reportError, logInfo } from "../src/server/shop/lib/monitoring.mjs"
 import { resolveProductsArchiveRoot } from "../src/server/shop/lib/product-mirror.mjs"
+import { resolveSqliteRelatedFiles } from "../src/server/shop/lib/sqlite-files.mjs"
 import { resolveBackupsRootDir } from "../src/server/shop/lib/storage-paths.mjs"
 import { resolveUploadsRootDir } from "../src/server/shop/lib/uploads-storage.mjs"
 
@@ -32,11 +33,17 @@ async function main() {
   const productsMirrorRoot = resolveProductsArchiveRoot()
   const backupsRoot = resolveBackupsRootDir()
   const backupDir = path.join(backupsRoot, timestamp())
+  const sqliteFiles = resolveSqliteRelatedFiles(databasePath)
 
   fs.mkdirSync(backupDir, { recursive: true })
 
   const copied = {
-    database: copyPathIfExists(databasePath, path.join(backupDir, "shop-db", path.basename(databasePath))),
+    databaseFiles: sqliteFiles
+      .map((filePath) => ({
+        source: filePath,
+        copied: copyPathIfExists(filePath, path.join(backupDir, "shop-db", path.basename(filePath))),
+      }))
+      .filter((entry) => entry.copied),
     uploads: copyPathIfExists(uploadsRoot, path.join(backupDir, "uploads")),
     productsMirror: copyPathIfExists(productsMirrorRoot, path.join(backupDir, "Prodotti")),
   }
@@ -45,6 +52,7 @@ async function main() {
     createdAt: new Date().toISOString(),
     backupDir,
     databasePath,
+    sqliteFiles,
     uploadsRoot,
     productsMirrorRoot,
     copied,

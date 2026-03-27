@@ -4,6 +4,7 @@ import path from "node:path"
 import { resolveDatabaseUrl } from "../prisma/resolve-database-url.mjs"
 import { reportError, logInfo, logWarning } from "../src/server/shop/lib/monitoring.mjs"
 import { resolveProductsArchiveRoot } from "../src/server/shop/lib/product-mirror.mjs"
+import { removeSqliteRelatedFiles, resolveSqliteRelatedFiles } from "../src/server/shop/lib/sqlite-files.mjs"
 import { resolveBackupsRootDir } from "../src/server/shop/lib/storage-paths.mjs"
 import { resolveUploadsRootDir } from "../src/server/shop/lib/uploads-storage.mjs"
 
@@ -79,6 +80,7 @@ async function main() {
   const uploadsRoot = resolveUploadsRootDir()
   const productsMirrorRoot = resolveProductsArchiveRoot()
   const backupsRoot = resolveBackupsRootDir()
+  const sqliteFiles = resolveSqliteRelatedFiles(databasePath)
 
   if (!fs.existsSync(manifestPath)) {
     throw new Error(`Manifest backup mancante: ${manifestPath}`)
@@ -86,26 +88,36 @@ async function main() {
 
   const safetyBackupDir = path.join(backupsRoot, createSafetyBackupName())
   fs.mkdirSync(safetyBackupDir, { recursive: true })
-  restorePath(databasePath, path.join(safetyBackupDir, "shop-db", path.basename(databasePath)))
+  sqliteFiles.forEach((filePath) => {
+    restorePath(filePath, path.join(safetyBackupDir, "shop-db", path.basename(filePath)))
+  })
   restorePath(uploadsRoot, path.join(safetyBackupDir, "uploads"))
   restorePath(productsMirrorRoot, path.join(safetyBackupDir, "Prodotti"))
 
+  removeSqliteRelatedFiles(databasePath)
+
   const restored = {
-    database: restorePath(path.join(backupDir, "shop-db", path.basename(databasePath)), databasePath),
+    databaseFiles: sqliteFiles.map((filePath) => ({
+      target: filePath,
+      restored: restorePath(path.join(backupDir, "shop-db", path.basename(filePath)), filePath),
+    })),
     uploads: restorePath(path.join(backupDir, "uploads"), uploadsRoot),
     productsMirror: restorePath(path.join(backupDir, "Prodotti"), productsMirrorRoot),
   }
 
   const payload = {
     restoredFrom: backupDir,
+    databasePath,
     safetyBackupDir,
     restored,
   }
 
   logWarning("shop_restore_executed", payload)
   logInfo("shop_restore_safety_backup_created", { safetyBackupDir })
+  console.log(`[shop-restore] DATABASE_URL runtime ripristinato su ${databasePath}`)
   console.log(`[shop-restore] Restore completato da ${backupDir}`)
   console.log(`[shop-restore] Safety backup creato in ${safetyBackupDir}`)
+  console.log("[shop-restore] Riavvia il server shop per rileggere il database ripristinato.")
 }
 
 main().catch((error) => {
