@@ -162,17 +162,31 @@ async function main() {
   const existingState = await prisma.$transaction([
     prisma.user.count(),
     prisma.product.count(),
+    prisma.tag.count(),
+    prisma.collection.count(),
+    prisma.order.count(),
+    prisma.pageView.count(),
     prisma.coupon.count(),
     prisma.discountRule.count(),
     prisma.setting.count(),
     prisma.review.count(),
   ])
 
-  const [userCount, productCount, couponCount, ruleCount, settingCount, reviewCount] = existingState
-  const databaseAlreadyInitialized = userCount > 0 || productCount > 0 || couponCount > 0 || ruleCount > 0 || settingCount > 0 || reviewCount > 0
+  const [userCount, productCount, tagCount, collectionCount, orderCount, pageViewCount, couponCount, ruleCount, settingCount, reviewCount] = existingState
+  const databaseAlreadyInitialized =
+    userCount > 0 ||
+    productCount > 0 ||
+    tagCount > 0 ||
+    collectionCount > 0 ||
+    orderCount > 0 ||
+    pageViewCount > 0 ||
+    couponCount > 0 ||
+    ruleCount > 0 ||
+    settingCount > 0 ||
+    reviewCount > 0
 
   console.log(
-    `[seed] Existing counts users=${userCount} products=${productCount} coupons=${couponCount} rules=${ruleCount} settings=${settingCount} reviews=${reviewCount}`
+    `[seed] Existing counts users=${userCount} products=${productCount} tags=${tagCount} collections=${collectionCount} orders=${orderCount} pageViews=${pageViewCount} coupons=${couponCount} rules=${ruleCount} settings=${settingCount} reviews=${reviewCount}`
   )
 
   if (databaseAlreadyInitialized && process.env.FORCE_SHOP_SEED !== "true") {
