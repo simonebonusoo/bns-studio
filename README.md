@@ -21,5 +21,6 @@ npm run preview
 - Documentazione completa: `docs/catalog-persistence.md`
 - Database locale predefinito: `data/shop/dev.db`
 - Upload immagini prodotto: `data/uploads/products/`
+- Archivio file-based prodotti: `data/Prodotti/<slug>/`
 - Asset storage mode: `ASSET_STORAGE_MODE=local|cloudinary`
 - Render persistent disk consigliato: `/var/data`

@@ -34,6 +34,89 @@ Le immagini caricate da admin vengono salvate sul filesystem locale del server.
 - Directory persistente locale predefinita: `data/uploads/products/`
 - URL pubblici serviti dall'app: `/uploads/products/<nome-file>`
 
+## Archivio file-based strutturato del catalogo
+
+Oltre al database, il backend mantiene ora anche uno **specchio persistente strutturato** del catalogo sul filesystem.
+
+- Root locale predefinita: `data/Prodotti/`
+- Root Render con disk persistente: `/var/data/Prodotti/`
+
+Per ogni prodotto viene creata una cartella dedicata basata sullo slug:
+
+```text
+Prodotti/
+  <slug-prodotto>/
+    descrizione.txt
+    product.json
+    immagini/
+      cover.jpg
+      extra-1.jpg
+```
+
+Contenuti:
+
+- `descrizione.txt`: descrizione estesa del prodotto
+- `product.json`: metadati strutturati del prodotto
+- `immagini/`: archivio immagini collegate al prodotto
+
+Il file `product.json` include almeno:
+
+- `id`
+- `slug`
+- `title`
+- `category`
+- `description`
+- `availableFormats`
+- `defaultFormat`
+- `priceA4`
+- `priceA3`
+- `stock`
+- `order`
+- `imageUrls`
+- `archivedImages`
+
+### Fonte primaria vs specchio file-based
+
+La **fonte di verita** del catalogo resta il database Prisma/SQLite.
+
+L'archivio `Prodotti/` non sostituisce il DB: serve come:
+
+- specchio persistente leggibile da filesystem
+- backup strutturato del catalogo
+- base piu semplice da copiare, ispezionare e migrare
+
+Questo evita regressioni nello shop esistente e mantiene compatibilita completa con admin, catalogo, ordini e pricing gia in uso.
+
+### Come si aggiorna
+
+L'archivio viene sincronizzato automaticamente quando admin:
+
+- crea un prodotto
+- modifica un prodotto
+- elimina un prodotto
+- riordina il catalogo
+- rinomina categorie collegate ai prodotti
+
+Viene inoltre riallineato all'avvio del server.
+
+### Immagini locali e immagini remote
+
+Se un prodotto usa immagini caricate nello shop:
+
+- i file vengono copiati davvero dentro `Prodotti/<slug>/immagini/`
+
+Se un prodotto usa invece URL remoti legacy non gestiti come file locali del progetto:
+
+- l'archivio crea file `.url` dentro `immagini/`
+- ogni file `.url` contiene l'URL sorgente reale
+
+Quindi:
+
+- upload locali recenti -> archivio con file immagine reali
+- immagini remote legacy -> archivio con riferimenti `.url`
+
+Questo comportamento evita download fragili o dipendenti dalla rete durante la sync del mirror.
+
 ## Strategia ambiente-based
 
 ### Locale
@@ -83,6 +166,7 @@ Queste path **non sono escluse** dal `.gitignore` principale:
 
 - `data/shop/`
 - `data/uploads/products/`
+- `data/Prodotti/`
 
 Questo significa che:
 
@@ -97,6 +181,7 @@ Quindi:
 
 - se modifichi prodotti in locale e non fai commit del DB aggiornato, un `git clone` su un'altra macchina **non** vedra quelle modifiche;
 - se carichi immagini in `data/uploads/products/` e non fai `git add` dei file immagine, un `git clone` su un'altra macchina **non** le avra.
+- se aggiorni l'archivio `data/Prodotti/` ma non lo committi, git **non** lo portera su un'altra macchina.
 
 ## Cosa succede in locale
 
@@ -226,6 +311,7 @@ Salva periodicamente:
 
 - `data/shop/dev.db`
 - `data/uploads/products/`
+- `data/Prodotti/`
 
 ### Backup via git
 
@@ -248,15 +334,17 @@ Per spostare il catalogo completo su un altro ambiente locale:
 
 1. copia `data/shop/dev.db`
 2. copia `data/uploads/products/`
-3. mantieni gli stessi path relativi nel progetto
-4. avvia il server normalmente
+3. copia `data/Prodotti/`
+4. mantieni gli stessi path relativi nel progetto
+5. avvia il server normalmente
 
 Se usi git come trasporto:
 
 1. committa `data/shop/dev.db`
 2. committa le immagini in `data/uploads/products/`
-3. fai push
-4. clona il repository sull'altra macchina
+3. committa anche `data/Prodotti/` se vuoi trasferire lo specchio file-based
+4. fai push
+5. clona il repository sull'altra macchina
 
 ## Conclusione pratica
 

@@ -8,6 +8,7 @@ import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
 import { getPersistenceStatus } from "../lib/persistence-status.mjs"
 import { prisma } from "../lib/prisma.mjs"
+import { removeProductMirror, syncAllProductMirrors } from "../lib/product-mirror.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredProductOrder, saveProductOrder } from "../lib/product-order.mjs"
@@ -421,6 +422,7 @@ router.put(
     }
 
     await saveProductOrder(normalizedIds)
+    await syncAllProductMirrors()
     const orderedProducts = await loadProductsWithStoredOrder({ orderBy: { createdAt: "desc" } })
     res.json(orderedProducts.map(serializeAdminProduct))
   })
@@ -444,6 +446,7 @@ router.post(
       const nextOrder = [...parseStoredProductOrder(existingOrderSetting.value), product.id]
       await saveProductOrder(nextOrder)
     }
+    await syncAllProductMirrors()
     res.status(201).json(serializeAdminProduct({ ...product, imageUrls: JSON.stringify(body.imageUrls) }))
   })
 )
@@ -469,6 +472,7 @@ router.put(
       where: { id: productId },
       data: { ...payload, slug, imageUrls: JSON.stringify(body.imageUrls) },
     })
+    await syncAllProductMirrors()
     res.json(serializeAdminProduct({ ...product, imageUrls: JSON.stringify(body.imageUrls) }))
   })
 )
@@ -484,6 +488,10 @@ router.delete(
       const nextOrder = parseStoredProductOrder(existingOrderSetting.value).filter((id) => id !== productId)
       await saveProductOrder(nextOrder)
     }
+    if (product) {
+      removeProductMirror(product.slug)
+    }
+    await syncAllProductMirrors()
     if (product) {
       JSON.parse(product.imageUrls).forEach((url) => {
         if (typeof url === "string" && url.startsWith("/uploads/products/")) {
@@ -549,6 +557,7 @@ router.put(
       where: { category: currentName },
       data: { category: normalizedName },
     })
+    await syncAllProductMirrors()
     res.json(next)
   })
 )

@@ -1,0 +1,34 @@
+{
+  "id": 2,
+  "slug": "social-launch-pack",
+  "title": "Social Launch Pack",
+  "category": "Social",
+  "description": "Template set per lancio social con cover, storie e visual coordinati pensati per attivazioni rapide ma curate.",
+  "availableFormats": [
+    "A4"
+  ],
+  "defaultFormat": "A4",
+  "priceA4": 4900,
+  "priceA3": null,
+  "featured": true,
+  "stock": 32,
+  "order": 2,
+  "createdAt": "2026-03-19T16:58:50.036Z",
+  "updatedAt": "2026-03-26T18:37:56.997Z",
+  "imageUrls": [
+    "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "archivedImages": [
+    {
+      "kind": "remote-url",
+      "sourceUrl": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+      "archivedPath": "immagini/cover.url"
+    },
+    {
+      "kind": "remote-url",
+      "sourceUrl": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
+      "archivedPath": "immagini/extra-1.url"
+    }
+  ]
+}
