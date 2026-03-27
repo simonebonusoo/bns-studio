@@ -13,13 +13,12 @@ import reviewRoutes from "./routes/reviewRoutes.mjs"
 import metricsRoutes from "./routes/metricsRoutes.mjs"
 import { env } from "./config/env.mjs"
 import { errorHandler } from "./middleware/error.mjs"
+import { resolveUploadsRootDir } from "./lib/uploads-storage.mjs"
 
 const app = express()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const uploadsDir = env.uploadsDir
-  ? path.resolve(env.uploadsDir)
-  : path.resolve(__dirname, "../../uploads")
+const uploadsDir = resolveUploadsRootDir(env.uploadsDir)
 const allowedOrigins = new Set(env.clientOrigins)
 
 fs.mkdirSync(path.join(uploadsDir, "products"), { recursive: true })

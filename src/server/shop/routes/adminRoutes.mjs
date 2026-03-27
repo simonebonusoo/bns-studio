@@ -1,23 +1,18 @@
 import { Router } from "express"
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 import multer from "multer"
 import { z } from "zod"
 
-import { env } from "../config/env.mjs"
 import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
+import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredProductOrder, saveProductOrder } from "../lib/product-order.mjs"
+import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
 
 const router = Router()
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const uploadsRootDir = env.uploadsDir
-  ? path.resolve(env.uploadsDir)
-  : path.resolve(__dirname, "../../uploads")
-const uploadsDir = path.join(uploadsRootDir, "products")
+const uploadsDir = resolveProductUploadsDir()
 
 fs.mkdirSync(uploadsDir, { recursive: true })
 const CUSTOMER_ORDER_WHERE = { user: { role: "customer" } }
@@ -389,8 +384,38 @@ router.get(
 router.get(
   "/products",
   asyncHandler(async (_req, res) => {
-    const products = await prisma.product.findMany({ orderBy: { createdAt: "desc" } })
+    const products = await loadProductsWithStoredOrder({ orderBy: { createdAt: "desc" } })
     res.json(products.map(serializeAdminProduct))
+  })
+)
+
+router.put(
+  "/products/order",
+  asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        productIds: z.array(z.number().int().positive()).min(1),
+      })
+      .parse(req.body)
+
+    const existingProducts = await prisma.product.findMany({
+      select: { id: true },
+      orderBy: { createdAt: "desc" },
+    })
+
+    const existingIds = existingProducts.map((product) => product.id)
+    const normalizedIds = Array.from(new Set(body.productIds))
+
+    if (
+      normalizedIds.length !== existingIds.length ||
+      normalizedIds.some((id) => !existingIds.includes(id))
+    ) {
+      throw new HttpError(400, "Ordine prodotti non valido")
+    }
+
+    await saveProductOrder(normalizedIds)
+    const orderedProducts = await loadProductsWithStoredOrder({ orderBy: { createdAt: "desc" } })
+    res.json(orderedProducts.map(serializeAdminProduct))
   })
 )
 
@@ -407,6 +432,11 @@ router.post(
     const product = await prisma.product.create({
       data: { ...payload, slug, imageUrls: JSON.stringify(body.imageUrls) },
     })
+    const existingOrderSetting = await getStoredProductOrderSetting()
+    if (existingOrderSetting) {
+      const nextOrder = [...parseStoredProductOrder(existingOrderSetting.value), product.id]
+      await saveProductOrder(nextOrder)
+    }
     res.status(201).json(serializeAdminProduct({ ...product, imageUrls: JSON.stringify(body.imageUrls) }))
   })
 )
@@ -439,8 +469,14 @@ router.put(
 router.delete(
   "/products/:id",
   asyncHandler(async (req, res) => {
-    const product = await prisma.product.findUnique({ where: { id: Number(req.params.id) } })
-    await prisma.product.delete({ where: { id: Number(req.params.id) } })
+    const productId = Number(req.params.id)
+    const product = await prisma.product.findUnique({ where: { id: productId } })
+    await prisma.product.delete({ where: { id: productId } })
+    const existingOrderSetting = await getStoredProductOrderSetting()
+    if (existingOrderSetting) {
+      const nextOrder = parseStoredProductOrder(existingOrderSetting.value).filter((id) => id !== productId)
+      await saveProductOrder(nextOrder)
+    }
     if (product) {
       JSON.parse(product.imageUrls).forEach((url) => {
         if (typeof url === "string" && url.startsWith("/uploads/products/")) {

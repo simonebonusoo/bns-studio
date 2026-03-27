@@ -1,10 +1,12 @@
 import { spawn } from "node:child_process"
+import { resolveDatabaseUrl } from "../prisma/resolve-database-url.mjs"
+import { resolveUploadsRootDir } from "../src/server/shop/lib/uploads-storage.mjs"
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       stdio: "inherit",
-      env: process.env,
+      env: options.env || process.env,
       ...options,
     })
 
@@ -21,19 +23,25 @@ function run(command, args, options = {}) {
 }
 
 function logConfiguration() {
-  const databaseUrl = process.env.DATABASE_URL || "file:./dev.db"
-  const uploadsDir = process.env.UPLOADS_DIR || "./src/uploads"
+  const databaseUrl = resolveDatabaseUrl()
+  const uploadsDir = process.env.UPLOADS_DIR || resolveUploadsRootDir()
   console.log("[bootstrap] Starting BNS Studio shop backend")
   console.log(`[bootstrap] DATABASE_URL=${databaseUrl}`)
   console.log(`[bootstrap] UPLOADS_DIR=${uploadsDir}`)
 }
 
 async function main() {
+  const runtimeEnv = {
+    ...process.env,
+    DATABASE_URL: resolveDatabaseUrl(),
+    UPLOADS_DIR: process.env.UPLOADS_DIR || resolveUploadsRootDir(),
+  }
+
   logConfiguration()
-  await run("npx", ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"])
-  await run("node", ["prisma/backfill-usernames.mjs"])
-  await run("node", ["prisma/seed.mjs"])
-  await run("node", ["src/server/shop/server.mjs"])
+  await run("npx", ["prisma", "db", "push", "--skip-generate"], { env: runtimeEnv })
+  await run("node", ["prisma/backfill-usernames.mjs"], { env: runtimeEnv })
+  await run("node", ["prisma/seed.mjs"], { env: runtimeEnv })
+  await run("node", ["src/server/shop/server.mjs"], { env: runtimeEnv })
 }
 
 main().catch((error) => {

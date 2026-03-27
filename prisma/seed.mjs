@@ -161,9 +161,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "admin@bnsstudio.com" },
-    update: {
-      username: "admin.bns",
-    },
+    update: {},
     create: {
       email: "admin@bnsstudio.com",
       username: "admin.bns",
@@ -176,9 +174,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "customer@bnsstudio.com" },
-    update: {
-      username: "sample.customer",
-    },
+    update: {},
     create: {
       email: "customer@bnsstudio.com",
       username: "sample.customer",
@@ -192,11 +188,7 @@ async function main() {
   for (const demoUser of reviewUsers) {
     await prisma.user.upsert({
       where: { email: demoUser.email },
-      update: {
-        username: demoUser.username,
-        firstName: demoUser.firstName,
-        lastName: demoUser.lastName,
-      },
+      update: {},
       create: {
         email: demoUser.email,
         username: demoUser.username,
@@ -211,14 +203,14 @@ async function main() {
   for (const product of products) {
     await prisma.product.upsert({
       where: { slug: product.slug },
-      update: product,
+      update: {},
       create: product,
     })
   }
 
   await prisma.coupon.upsert({
     where: { code: "BNS10" },
-    update: { type: "percentage", amount: 10, active: true },
+    update: {},
     create: {
       code: "BNS10",
       type: "percentage",
@@ -230,16 +222,7 @@ async function main() {
 
   await prisma.discountRule.upsert({
     where: { id: 1 },
-    update: {
-      name: "Bundle 3 prodotti",
-      description: "Sconto automatico del 15% quando il carrello raggiunge 3 prodotti.",
-      ruleType: "quantity_percentage",
-      threshold: 3,
-      discountType: "percentage",
-      amount: 15,
-      priority: 10,
-      active: true,
-    },
+    update: {},
     create: {
       id: 1,
       name: "Bundle 3 prodotti",
@@ -255,16 +238,7 @@ async function main() {
 
   await prisma.discountRule.upsert({
     where: { id: 2 },
-    update: {
-      name: "Spedizione gratuita",
-      description: "Azzeramento spedizione con almeno 2 prodotti nel carrello.",
-      ruleType: "free_shipping_quantity",
-      threshold: 2,
-      discountType: "shipping",
-      amount: 100,
-      priority: 20,
-      active: true,
-    },
+    update: {},
     create: {
       id: 2,
       name: "Spedizione gratuita",
@@ -291,7 +265,7 @@ async function main() {
   for (const [key, value] of settings) {
     await prisma.setting.upsert({
       where: { key },
-      update: { value },
+      update: {},
       create: { key, value },
     })
   }
@@ -305,15 +279,7 @@ async function main() {
 
     await prisma.review.upsert({
       where: { publicId: review.publicId },
-      update: {
-        userId: reviewUser.id,
-        rating: review.rating,
-        title: review.title,
-        body: review.body,
-        tag: review.tag,
-        status: "approved",
-        showOnHomepage: review.showOnHomepage,
-      },
+      update: {},
       create: {
         publicId: review.publicId,
         userId: reviewUser.id,

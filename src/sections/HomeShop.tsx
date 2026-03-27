@@ -320,10 +320,9 @@ export function HomeShop() {
   async function saveCatalogOrder() {
     try {
       setSavingCatalogOrder(true)
-      const payload = [{ key: "homepageProductOrder", value: JSON.stringify(catalogDraft.map((product) => product.id)) }]
-      await apiFetch("/admin/settings", {
+      await apiFetch("/admin/products/order", {
         method: "PUT",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ productIds: catalogDraft.map((product) => product.id) }),
       })
       setProducts(catalogDraft)
       setCatalogEditMode(false)

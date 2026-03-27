@@ -3,30 +3,12 @@ import { z } from "zod"
 
 import { asyncHandler } from "../lib/http.mjs"
 import { prisma } from "../lib/prisma.mjs"
+import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductFormat } from "../lib/product-formats.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
-
-function applyStoredProductOrder(products, orderValue) {
-  if (!orderValue) return products
-
-  try {
-    const parsed = JSON.parse(orderValue)
-    if (!Array.isArray(parsed) || !parsed.length) return products
-    const rank = new Map(parsed.map((id, index) => [Number(id), index]))
-
-    return [...products].sort((a, b) => {
-      const aRank = rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER
-      const bRank = rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER
-      if (aRank !== bRank) return aRank - bRank
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-  } catch {
-    return products
-  }
-}
 
 function serializePublicProduct(product) {
   const { imageUrls, costPrice: _costPrice, ...rest } = product
@@ -116,32 +98,28 @@ router.get(
     const category = String(req.query.category || "")
     const maxPrice = Number(req.query.maxPrice || 0)
 
-    const [products, orderSetting] = await Promise.all([
-      prisma.product.findMany({
-        where: {
-          title: search ? { contains: search } : undefined,
-          category: category || undefined,
-          price: maxPrice ? { lte: maxPrice } : undefined,
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.setting.findUnique({ where: { key: "homepageProductOrder" } }),
-    ])
+    const products = await loadProductsWithStoredOrder({
+      where: {
+        title: search ? { contains: search } : undefined,
+        category: category || undefined,
+        price: maxPrice ? { lte: maxPrice } : undefined,
+      },
+      orderBy: { createdAt: "desc" },
+    })
 
-    res.json(applyStoredProductOrder(products, orderSetting?.value).map(serializePublicProduct))
+    res.json(products.map(serializePublicProduct))
   })
 )
 
 router.get(
   "/products/featured",
   asyncHandler(async (_req, res) => {
-    const products = await prisma.product.findMany({
+    const products = await loadProductsWithStoredOrder({
       where: { featured: true },
       orderBy: { createdAt: "desc" },
-      take: 3,
     })
 
-    res.json(products.map(serializePublicProduct))
+    res.json(products.slice(0, 3).map(serializePublicProduct))
   })
 )
 
