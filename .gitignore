@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 .DS_Store
+data/backups/*
+!data/backups/.gitkeep
+data/logs/*
+!data/logs/.gitkeep

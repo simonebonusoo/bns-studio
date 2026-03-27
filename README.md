@@ -19,8 +19,13 @@ npm run preview
 
 ## Persistenza catalogo shop
 - Documentazione completa: `docs/catalog-persistence.md`
+- Backup e restore: `docs/shop-backup-restore.md`
+- Storage immagini: `docs/asset-storage.md`
+- Monitoring: `docs/monitoring.md`
 - Database locale predefinito: `data/shop/dev.db`
 - Upload immagini prodotto: `data/uploads/products/`
 - Archivio file-based prodotti: `data/Prodotti/<slug>/`
+- Backup locali: `data/backups/shop/`
+- Log strutturati: `data/logs/`
 - Asset storage mode: `ASSET_STORAGE_MODE=local|cloudinary`
 - Render persistent disk consigliato: `/var/data`

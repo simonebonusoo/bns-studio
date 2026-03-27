@@ -34,6 +34,8 @@ function resolveProductsArchiveRoot() {
   return path.join(path.dirname(resolveUploadsRootDir()), PRODUCTS_ARCHIVE_DIRNAME)
 }
 
+export { resolveProductsArchiveRoot }
+
 function resolveProductArchiveDir(slug) {
   return path.join(resolveProductsArchiveRoot(), safeFileName(slug, "prodotto"))
 }

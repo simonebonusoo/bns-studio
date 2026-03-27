@@ -1,6 +1,7 @@
 import { resolveDatabaseUrl } from "../../../../prisma/resolve-database-url.mjs"
 import { env } from "../config/env.mjs"
 import { assetStorageWritesAreConfigured, getAssetStorageMode, isCloudinaryConfigured } from "./asset-storage.mjs"
+import { logInfo, logWarning } from "./monitoring.mjs"
 import { resolveUploadsRootDir } from "./uploads-storage.mjs"
 
 function normalizeFileUrlPath(fileUrl) {
@@ -95,8 +96,12 @@ export function getPersistenceStatus() {
 export function logPersistenceStatus() {
   const status = getPersistenceStatus()
 
-  console.log(`[persistence] DATABASE_URL=${status.storage.databaseUrl}`)
-  console.log(`[persistence] UPLOADS_DIR=${status.storage.uploadsRootDir}`)
+  logInfo("persistence_status", {
+    databaseUrl: status.storage.databaseUrl,
+    uploadsRootDir: status.storage.uploadsRootDir,
+    assetStorageMode: status.storage.assetStorageMode,
+    storageGuaranteed: status.storage.storageGuaranteed,
+  })
 
   if (status.storage.storageGuaranteed) {
     console.log("[persistence] Runtime storage status: OK")
@@ -104,6 +109,7 @@ export function logPersistenceStatus() {
     console.warn("[persistence] Runtime storage status: NOT GUARANTEED")
     status.warnings.forEach((warning) => {
       console.warn(`[persistence] ${warning}`)
+      logWarning("persistence_warning", { warning })
     })
   }
 

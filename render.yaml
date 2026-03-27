@@ -17,6 +17,10 @@ services:
         value: file:/var/data/shop/dev.db
       - key: UPLOADS_DIR
         value: /var/data/uploads
+      - key: BACKUPS_DIR
+        value: /var/data/backups/shop
+      - key: MONITORING_DIR
+        value: /var/data/logs
       - key: RENDER_DISK_PATH
         value: /var/data
       - key: ASSET_STORAGE_MODE
@@ -43,3 +47,5 @@ services:
         sync: false
       - key: CLOUDINARY_FOLDER
         value: bns-studio/products
+      - key: MONITORING_SENTRY_DSN
+        sync: false

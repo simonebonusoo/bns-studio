@@ -2,6 +2,12 @@
 
 Questa nota descrive dove vengono salvati i dati reali del catalogo e cosa resta persistente davvero in locale, via git e in deploy.
 
+Guide collegate:
+
+- `docs/shop-backup-restore.md`
+- `docs/asset-storage.md`
+- `docs/monitoring.md`
+
 ## Fonte di verità del catalogo
 
 Il catalogo prodotti usa **Prisma + SQLite** come fonte di verità unica.
