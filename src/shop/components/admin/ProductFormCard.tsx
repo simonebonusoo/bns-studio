@@ -1,11 +1,12 @@
 import type { FormEvent } from "react"
 
 import { Button } from "../../../components/Button"
-import { ProductStatus } from "../../types"
+import { AdminCollection, ProductStatus } from "../../types"
 import { ProductMediaManager } from "./ProductMediaManager"
 
 type ProductFormState = {
   title: string
+  sku: string
   description: string
   priceA4: string
   priceA3: string
@@ -13,8 +14,11 @@ type ProductFormState = {
   hasA4: boolean
   hasA3: boolean
   category: string
+  tags: string
+  collectionIds: number[]
   featured: boolean
   stock: number
+  lowStockThreshold: number
   status: ProductStatus
   existingImageUrls: string[]
 }
@@ -23,6 +27,7 @@ type ProductFormCardProps = {
   editingProductId: number | null
   productForm: ProductFormState
   categories: string[]
+  collections: AdminCollection[]
   productImages: string[]
   onSubmit: (event: FormEvent) => void
   onCancel: () => void
@@ -36,6 +41,7 @@ export function ProductFormCard({
   editingProductId,
   productForm,
   categories,
+  collections,
   productImages,
   onSubmit,
   onCancel,
@@ -61,6 +67,14 @@ export function ProductFormCard({
         aria-label="Titolo"
         value={productForm.title}
         onChange={(event) => onChange({ ...productForm, title: event.target.value })}
+      />
+
+      <input
+        className="shop-input"
+        placeholder="SKU (opzionale)"
+        aria-label="SKU"
+        value={productForm.sku}
+        onChange={(event) => onChange({ ...productForm, sku: event.target.value })}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -141,6 +155,25 @@ export function ProductFormCard({
           value={productForm.stock}
           onChange={(event) => onChange({ ...productForm, stock: Number(event.target.value) })}
         />
+        <input
+          className="shop-input"
+          type="number"
+          min="0"
+          placeholder="Soglia stock basso"
+          aria-label="Soglia stock basso"
+          value={productForm.lowStockThreshold}
+          onChange={(event) => onChange({ ...productForm, lowStockThreshold: Number(event.target.value) })}
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <input
+          className="shop-input"
+          placeholder="Tag separati da virgola"
+          aria-label="Tag"
+          value={productForm.tags}
+          onChange={(event) => onChange({ ...productForm, tags: event.target.value })}
+        />
         <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
           <input type="checkbox" checked={productForm.featured} onChange={(event) => onChange({ ...productForm, featured: event.target.checked })} />
           Metti in evidenza
@@ -154,6 +187,36 @@ export function ProductFormCard({
         value={productForm.description}
         onChange={(event) => onChange({ ...productForm, description: event.target.value })}
       />
+
+      <div className="space-y-3 rounded-2xl border border-white/10 p-4">
+        <div>
+          <p className="text-sm font-medium text-white">Collezioni</p>
+          <p className="mt-1 text-xs text-white/55">Associa il prodotto a una o più collezioni reali.</p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {collections.length ? (
+            collections.map((collection) => (
+              <label key={collection.id} className="flex items-center gap-2 rounded-xl border border-white/8 px-3 py-2 text-sm text-white/70">
+                <input
+                  type="checkbox"
+                  checked={productForm.collectionIds.includes(collection.id)}
+                  onChange={(event) =>
+                    onChange({
+                      ...productForm,
+                      collectionIds: event.target.checked
+                        ? [...productForm.collectionIds, collection.id]
+                        : productForm.collectionIds.filter((id) => id !== collection.id),
+                    })
+                  }
+                />
+                {collection.title}
+              </label>
+            ))
+          ) : (
+            <p className="text-sm text-white/50">Nessuna collezione disponibile.</p>
+          )}
+        </div>
+      </div>
 
       <ProductMediaManager
         images={productImages}

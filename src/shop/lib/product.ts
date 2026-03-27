@@ -34,3 +34,30 @@ export function isProductPurchasable(product: ShopProduct) {
 export function getProductPrimaryImage(product: ShopProduct) {
   return product.coverImageUrl || product.imageUrls[0] || ""
 }
+
+export function getProductBadges(product: ShopProduct) {
+  if (product.badges?.length) {
+    return product.badges
+  }
+
+  return [
+    product.featured ? "featured" : null,
+    product.status === "out_of_stock" || product.stock <= 0 ? "out_of_stock" : null,
+    product.stockStatus === "low_stock" ? "low_stock" : null,
+  ].filter(Boolean) as string[]
+}
+
+export function getBadgeLabel(badge: string) {
+  switch (badge) {
+    case "new":
+      return "Nuovo"
+    case "featured":
+      return "In evidenza"
+    case "low_stock":
+      return "Ultimi pezzi"
+    case "out_of_stock":
+      return "Esaurito"
+    default:
+      return badge
+  }
+}

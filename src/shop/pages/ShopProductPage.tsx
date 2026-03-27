@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Button } from "../../components/Button"
+import { ProductCard } from "../components/ProductCard"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getBadgeLabel, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct } from "../types"
 
@@ -15,6 +16,7 @@ export function ShopProductPage() {
   const { user } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
   const [product, setProduct] = useState<ShopProduct | null>(null)
+  const [relatedProducts, setRelatedProducts] = useState<ShopProduct[]>([])
   const [selectedImage, setSelectedImage] = useState("")
   const [selectedFormat, setSelectedFormat] = useState<"A3" | "A4">("A4")
 
@@ -26,6 +28,13 @@ export function ShopProductPage() {
     })
   }, [slug])
 
+  useEffect(() => {
+    if (!slug) return
+    apiFetch<ShopProduct[]>(`/store/products/${slug}/related`)
+      .then(setRelatedProducts)
+      .catch(() => setRelatedProducts([]))
+  }, [slug])
+
   if (!product) {
     return <div className="px-6 py-20 text-center text-white/60">Caricamento scheda prodotto...</div>
   }
@@ -33,6 +42,7 @@ export function ShopProductPage() {
   const availableFormats = getAvailableFormats(product)
   const selectedPrice = getPriceForFormat(product, selectedFormat)
   const purchasable = isProductPurchasable(product)
+  const badges = getProductBadges(product)
 
   function handleBuyNow() {
     if (!purchasable) return
@@ -75,6 +85,15 @@ export function ShopProductPage() {
         <div className="shop-card flex flex-col justify-between gap-8 p-6 md:p-8">
           <div>
             <span className="shop-pill">{product.category}</span>
+            {badges.length ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {badges.map((badge) => (
+                  <span key={badge} className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/75">
+                    {getBadgeLabel(badge)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <div className="mt-5 flex items-center justify-between gap-4">
               <h2 className="text-3xl font-semibold text-white">{product.title}</h2>
               <span className="text-lg font-medium text-[#e3f503]">{formatPrice(selectedPrice)}</span>
@@ -104,14 +123,47 @@ export function ShopProductPage() {
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                 <span>Disponibilità</span>
                 <span>
-                  {product.status === "out_of_stock" || product.stock <= 0 ? "Esaurito" : `${product.stock}`}
+                  {product.status === "out_of_stock" || product.stock <= 0
+                    ? "Esaurito"
+                    : product.stockStatus === "low_stock"
+                      ? `Ultimi ${product.stock}`
+                      : `${product.stock}`}
                 </span>
               </div>
+              {product.sku ? (
+                <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
+                  <span>SKU</span>
+                  <span>{product.sku}</span>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                 <span>Prezzo formato scelto</span>
                 <span>{formatPrice(selectedPrice)}</span>
               </div>
             </div>
+            {product.tags?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {product.tags.map((tag) => (
+                  <span key={tag.slug} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                    #{tag.name}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {product.collections?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {product.collections.map((collection) => (
+                  <button
+                    key={collection.id}
+                    type="button"
+                    onClick={() => navigate(`/shop?collectionSlug=${collection.slug}`)}
+                    className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70 transition hover:border-white/25 hover:text-white"
+                  >
+                    {collection.title}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {!purchasable ? (
               <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
                 {product.status === "out_of_stock" || product.stock <= 0
@@ -146,6 +198,20 @@ export function ShopProductPage() {
           </div>
         </div>
       </div>
+
+      {relatedProducts.length ? (
+        <div className="mt-14 space-y-6">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.32em] text-white/45">Correlati</p>
+            <h3 className="text-2xl font-semibold text-white">Altri prodotti che possono interessarti</h3>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+            {relatedProducts.map((related) => (
+              <ProductCard key={related.id} product={related} />
+            ))}
+          </div>
+        </div>
+      ) : null}
     </ShopLayout>
   )
 }

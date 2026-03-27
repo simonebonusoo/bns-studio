@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom"
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
-import { ShopProduct, ShopProductListResponse } from "../types"
+import { AdminCollection, ShopProduct, ShopProductListResponse } from "../types"
 
 const SORT_OPTIONS = [
   { value: "manual", label: "Ordine catalogo" },
@@ -18,6 +18,7 @@ const PAGE_SIZE = 12
 
 export function ShopPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
+  const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -26,6 +27,8 @@ export function ShopPage() {
       search: searchParams.get("search") || "",
       category: searchParams.get("category") || "",
       format: (searchParams.get("format") || "").toUpperCase(),
+      tag: searchParams.get("tag") || "",
+      collectionSlug: searchParams.get("collectionSlug") || "",
       availability: searchParams.get("availability") || "",
       maxPrice: searchParams.get("maxPrice") || "",
       sort: searchParams.get("sort") || "manual",
@@ -36,10 +39,18 @@ export function ShopPage() {
   )
 
   useEffect(() => {
+    apiFetch<AdminCollection[]>("/store/collections")
+      .then(setCollections)
+      .catch(() => setCollections([]))
+  }, [])
+
+  useEffect(() => {
     const params = new URLSearchParams()
     if (filters.search) params.set("search", filters.search)
     if (filters.category) params.set("category", filters.category)
     if (filters.format === "A3" || filters.format === "A4") params.set("format", filters.format)
+    if (filters.tag) params.set("tag", filters.tag)
+    if (filters.collectionSlug) params.set("collectionSlug", filters.collectionSlug)
     if (filters.availability) params.set("availability", filters.availability)
     if (filters.maxPrice) params.set("maxPrice", filters.maxPrice)
     params.set("sort", filters.collection === "new" ? "newest" : filters.collection === "discount" ? "price_asc" : filters.sort)
@@ -53,7 +64,7 @@ export function ShopPage() {
       setProducts(data.items)
       setPagination(data.pagination)
     })
-  }, [filters.availability, filters.category, filters.collection, filters.format, filters.maxPrice, filters.page, filters.search, filters.sort])
+  }, [filters.availability, filters.category, filters.collection, filters.collectionSlug, filters.format, filters.maxPrice, filters.page, filters.search, filters.sort, filters.tag])
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(searchParams)
@@ -76,6 +87,8 @@ export function ShopPage() {
     filters.search ? `Ricerca: ${filters.search}` : null,
     filters.category ? `Categoria: ${filters.category}` : null,
     filters.format ? `Formato: ${filters.format}` : null,
+    filters.tag ? `Tag: ${filters.tag}` : null,
+    filters.collectionSlug ? `Collezione: ${collections.find((collection) => collection.slug === filters.collectionSlug)?.title || filters.collectionSlug}` : null,
     filters.availability === "available"
       ? "Disponibili"
       : filters.availability === "out_of_stock"
@@ -100,7 +113,7 @@ export function ShopPage() {
       title="Asset pronti, integrati nel sito."
       intro="Catalogo BNS Studio con ricerca centralizzata, filtri più robusti, ordinamento reale e paginazione server-side per mantenere il flusso shop leggibile anche quando il catalogo cresce."
     >
-      <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4 md:grid-cols-2 xl:grid-cols-6">
+      <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4 md:grid-cols-2 xl:grid-cols-8">
         <input
           className="shop-input xl:col-span-2"
           placeholder="Cerca per titolo, slug o descrizione"
@@ -117,6 +130,20 @@ export function ShopPage() {
           <option value="">Tutti i formati</option>
           <option value="A4">A4</option>
           <option value="A3">A3</option>
+        </select>
+        <input
+          className="shop-input"
+          placeholder="Tag"
+          value={filters.tag}
+          onChange={(event) => updateParam("tag", event.target.value)}
+        />
+        <select className="shop-select" value={filters.collectionSlug} onChange={(event) => updateParam("collectionSlug", event.target.value)}>
+          <option value="">Tutte le collezioni</option>
+          {collections.map((collection) => (
+            <option key={collection.id} value={collection.slug}>
+              {collection.title}
+            </option>
+          ))}
         </select>
         <select
           className="shop-select"

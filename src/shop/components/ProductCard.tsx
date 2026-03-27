@@ -3,7 +3,7 @@ import { Button } from "../../components/Button"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getBadgeLabel, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
 import { ShopProduct } from "../types"
 
 export function ProductCard({ product }: { product: ShopProduct }) {
@@ -13,6 +13,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   const defaultFormat = getDefaultFormat(product)
   const availableFormats = getAvailableFormats(product)
   const purchasable = isProductPurchasable(product)
+  const badges = getProductBadges(product)
 
   function handleBuyNow() {
     if (!purchasable) return
@@ -30,8 +31,17 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   return (
     <article className="shop-card flex h-full flex-col overflow-hidden">
       <Link to={`/shop/${product.slug}`} className="block">
-        <div className="h-[300px] overflow-hidden bg-white/5 sm:h-[320px]">
+        <div className="relative h-[300px] overflow-hidden bg-white/5 sm:h-[320px]">
           <img src={getProductPrimaryImage(product)} alt={product.title} className="h-[300px] w-full object-cover transition duration-500 hover:scale-[1.03] sm:h-[320px]" />
+          {badges.length ? (
+            <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+              {badges.slice(0, 3).map((badge) => (
+                <span key={badge} className="rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/85 backdrop-blur">
+                  {getBadgeLabel(badge)}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </Link>
 

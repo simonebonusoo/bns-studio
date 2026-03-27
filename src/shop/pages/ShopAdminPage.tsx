@@ -8,7 +8,7 @@ import { ProductListSection } from "../components/admin/ProductListSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { downloadInvoicePdf } from "../lib/invoice"
-import { ShopOrder, ShopProduct, ShopReview, ShopSettings, ProductStatus } from "../types"
+import { AdminCollection, ShopOrder, ShopProduct, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
   id: number
@@ -60,6 +60,7 @@ type HomepageShowcase = {
 
 type ProductFormState = {
   title: string
+  sku: string
   description: string
   priceA4: string
   priceA3: string
@@ -67,10 +68,20 @@ type ProductFormState = {
   hasA4: boolean
   hasA3: boolean
   category: string
+  tags: string
+  collectionIds: number[]
   featured: boolean
   stock: number
+  lowStockThreshold: number
   status: ProductStatus
   existingImageUrls: string[]
+}
+
+type CollectionFormState = {
+  title: string
+  slug: string
+  description: string
+  active: boolean
 }
 
 type AdminReview = ShopReview & {
@@ -179,6 +190,7 @@ type OrderProfitSummary = {
 
 const emptyProductForm = (): ProductFormState => ({
   title: "",
+  sku: "",
   description: "",
   priceA4: "",
   priceA3: "",
@@ -186,10 +198,20 @@ const emptyProductForm = (): ProductFormState => ({
   hasA4: true,
   hasA3: false,
   category: "",
+  tags: "",
+  collectionIds: [],
   featured: false,
   stock: 0,
+  lowStockThreshold: 5,
   status: "active",
   existingImageUrls: [],
+})
+
+const emptyCollectionForm = (): CollectionFormState => ({
+  title: "",
+  slug: "",
+  description: "",
+  active: true,
 })
 
 const emptyCouponForm = (): CouponFormState => ({
@@ -306,6 +328,7 @@ export function ShopAdminPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [products, setProducts] = useState<ShopProduct[]>([])
+  const [collections, setCollections] = useState<AdminCollection[]>([])
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
   const [users, setUsers] = useState<AdminUser[]>([])
@@ -334,9 +357,16 @@ export function ShopAdminPage() {
   const [productStatusFilter, setProductStatusFilter] = useState<"all" | ProductStatus>("all")
   const [productSort, setProductSort] = useState<"title" | "createdAt" | "updatedAt" | "price">("updatedAt")
   const [productSortDirection, setProductSortDirection] = useState<"asc" | "desc">("desc")
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([])
+  const [bulkAction, setBulkAction] = useState<"set_status" | "set_category" | "delete" | "add_tags" | "remove_tags">("set_status")
+  const [bulkStatus, setBulkStatus] = useState<ProductStatus>("active")
+  const [bulkCategory, setBulkCategory] = useState("")
+  const [bulkTags, setBulkTags] = useState("")
   const [newCategoryName, setNewCategoryName] = useState("")
   const [renamingCategory, setRenamingCategory] = useState<string | null>(null)
   const [renamedCategoryValue, setRenamedCategoryValue] = useState("")
+  const [collectionForm, setCollectionForm] = useState<CollectionFormState>(emptyCollectionForm)
+  const [editingCollectionId, setEditingCollectionId] = useState<number | null>(null)
 
   const [couponForm, setCouponForm] = useState<CouponFormState>(emptyCouponForm)
   const [editingCouponId, setEditingCouponId] = useState<number | null>(null)
@@ -419,6 +449,7 @@ export function ShopAdminPage() {
     setMessage("")
     setError("")
     setOrderProfit(null)
+    setSelectedProductIds([])
   }, [tab])
 
   useEffect(() => {
@@ -443,7 +474,7 @@ export function ShopAdminPage() {
   }
 
   async function refresh() {
-    const [, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData] = await Promise.all([
+    const [, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData, collectionsData] = await Promise.all([
       refreshProducts(),
       apiFetch<AdminReview[]>("/admin/reviews"),
       apiFetch<ShopOrder[]>("/admin/orders"),
@@ -454,6 +485,7 @@ export function ShopAdminPage() {
       apiFetch<string[]>("/admin/categories"),
       apiFetch<SettingEntry[]>("/admin/settings"),
       apiFetch<AdminRuntimeStatus>("/admin/runtime-status"),
+      apiFetch<AdminCollection[]>("/admin/collections"),
     ])
 
     setReviews(reviewData)
@@ -466,6 +498,7 @@ export function ShopAdminPage() {
     setCategories(categoryData)
     setSettings(settingsData)
     setRuntimeStatus(runtimeData)
+    setCollections(collectionsData)
   }
 
   function clearFeedback() {
@@ -487,6 +520,7 @@ export function ShopAdminPage() {
     setEditingProductId(product.id)
     setProductForm({
       title: product.title,
+      sku: product.sku || "",
       description: product.description,
       priceA4: formatEuroInput(product.priceA4 ?? product.price),
       priceA3: product.priceA3 ? formatEuroInput(product.priceA3) : "",
@@ -494,8 +528,11 @@ export function ShopAdminPage() {
       hasA4: product.hasA4 !== false,
       hasA3: Boolean(product.hasA3),
       category: product.category,
+      tags: product.tags?.map((tag) => tag.name).join(", ") || "",
+      collectionIds: product.collections?.map((collection) => collection.id) || [],
       featured: product.featured,
       stock: product.stock,
+      lowStockThreshold: product.lowStockThreshold || 5,
       status: product.status,
       existingImageUrls: product.imageUrls,
     })
@@ -564,6 +601,7 @@ export function ShopAdminPage() {
 
       const payload = {
         title: productForm.title,
+        sku: productForm.sku || null,
         description: productForm.description,
         price: parseEuroToCents(productForm.hasA4 ? productForm.priceA4 : productForm.priceA3),
         costPrice: 0,
@@ -572,8 +610,11 @@ export function ShopAdminPage() {
         priceA4: productForm.hasA4 ? parseEuroToCents(productForm.priceA4) : null,
         priceA3: productForm.hasA3 ? parseEuroToCents(productForm.priceA3) : null,
         category: productForm.category,
+        tags: productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+        collectionIds: productForm.collectionIds,
         featured: productForm.featured,
         stock: Number(productForm.stock),
+        lowStockThreshold: Number(productForm.lowStockThreshold),
         status: productForm.status,
         imageUrls,
       }
@@ -669,6 +710,114 @@ export function ShopAdminPage() {
       setMessage("Categoria eliminata correttamente.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della categoria.")
+    }
+  }
+
+  function startEditCollection(collection: AdminCollection) {
+    clearFeedback()
+    setEditingCollectionId(collection.id)
+    setCollectionForm({
+      title: collection.title,
+      slug: collection.slug,
+      description: collection.description || "",
+      active: collection.active,
+    })
+  }
+
+  function resetCollectionForm() {
+    setEditingCollectionId(null)
+    setCollectionForm(emptyCollectionForm())
+  }
+
+  async function saveCollection(event: React.FormEvent) {
+    event.preventDefault()
+    clearFeedback()
+    try {
+      const payload = {
+        title: collectionForm.title,
+        slug: collectionForm.slug || undefined,
+        description: collectionForm.description || null,
+        active: collectionForm.active,
+      }
+
+      if (editingCollectionId) {
+        await apiFetch(`/admin/collections/${editingCollectionId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        })
+        setMessage("Collezione aggiornata correttamente.")
+      } else {
+        await apiFetch("/admin/collections", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        })
+        setMessage("Collezione creata correttamente.")
+      }
+
+      resetCollectionForm()
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il salvataggio della collezione.")
+    }
+  }
+
+  async function deleteCollection(collectionId: number) {
+    clearFeedback()
+    try {
+      await apiFetch(`/admin/collections/${collectionId}`, {
+        method: "DELETE",
+      })
+      if (collectionForm && editingCollectionId === collectionId) {
+        resetCollectionForm()
+      }
+      await refresh()
+      setMessage("Collezione eliminata correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della collezione.")
+    }
+  }
+
+  async function duplicateProduct(product: ShopProduct) {
+    clearFeedback()
+    try {
+      await apiFetch(`/admin/products/${product.id}/duplicate`, {
+        method: "POST",
+      })
+      await refresh()
+      setMessage("Prodotto duplicato correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante la duplicazione del prodotto.")
+    }
+  }
+
+  async function runBulkAction() {
+    clearFeedback()
+    if (!selectedProductIds.length) {
+      setError("Seleziona almeno un prodotto.")
+      return
+    }
+
+    if (bulkAction === "delete" && !window.confirm(`Vuoi eliminare ${selectedProductIds.length} prodotti?`)) {
+      return
+    }
+
+    try {
+      await apiFetch("/admin/products/bulk", {
+        method: "POST",
+        body: JSON.stringify({
+          productIds: selectedProductIds,
+          action: bulkAction,
+          status: bulkAction === "set_status" ? bulkStatus : undefined,
+          category: bulkAction === "set_category" ? bulkCategory : undefined,
+          tags: bulkAction === "add_tags" || bulkAction === "remove_tags" ? bulkTags.split(",").map((tag) => tag.trim()).filter(Boolean) : undefined,
+        }),
+      })
+      setSelectedProductIds([])
+      setBulkTags("")
+      await refresh()
+      setMessage("Azione bulk completata correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'azione bulk.")
     }
   }
 
@@ -902,6 +1051,7 @@ export function ShopAdminPage() {
             editingProductId={editingProductId}
             productForm={productForm}
             categories={categories}
+            collections={collections}
             productImages={productImages}
             onSubmit={saveProduct}
             onCancel={resetProductForm}
@@ -926,10 +1076,63 @@ export function ShopAdminPage() {
               onSortChange={(value) => setProductSort(value as "title" | "createdAt" | "updatedAt" | "price")}
               onDirectionChange={setProductSortDirection}
             />
+            <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Azioni massive</p>
+                  <p className="mt-1 text-xs text-white/55">{selectedProductIds.length} prodotti selezionati</p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 xl:flex xl:flex-wrap">
+                  <select className="shop-select min-w-[12rem]" value={bulkAction} onChange={(event) => setBulkAction(event.target.value as typeof bulkAction)}>
+                    <option value="set_status">Cambia stato</option>
+                    <option value="set_category">Cambia categoria</option>
+                    <option value="add_tags">Aggiungi tag</option>
+                    <option value="remove_tags">Rimuovi tag</option>
+                    <option value="delete">Elimina prodotti</option>
+                  </select>
+                  {bulkAction === "set_status" ? (
+                    <select className="shop-select min-w-[12rem]" value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value as ProductStatus)}>
+                      <option value="active">Active</option>
+                      <option value="draft">Draft</option>
+                      <option value="hidden">Hidden</option>
+                      <option value="out_of_stock">Out of stock</option>
+                    </select>
+                  ) : null}
+                  {bulkAction === "set_category" ? (
+                    <select className="shop-select min-w-[12rem]" value={bulkCategory} onChange={(event) => setBulkCategory(event.target.value)}>
+                      <option value="">Categoria</option>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  {(bulkAction === "add_tags" || bulkAction === "remove_tags") ? (
+                    <input
+                      className="shop-input min-w-[16rem]"
+                      placeholder="Tag separati da virgola"
+                      value={bulkTags}
+                      onChange={(event) => setBulkTags(event.target.value)}
+                    />
+                  ) : null}
+                  <button type="button" onClick={runBulkAction} className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90">
+                    Applica
+                  </button>
+                </div>
+              </div>
+            </section>
             <div onWheelCapture={containWheel} className="min-h-0 flex-1">
               <ProductListSection
                 products={products}
+                selectedIds={selectedProductIds}
+                onToggleSelected={(productId, checked) =>
+                  setSelectedProductIds((current) =>
+                    checked ? Array.from(new Set([...current, productId])) : current.filter((id) => id !== productId),
+                  )
+                }
                 onEdit={startEditProduct}
+                onDuplicate={duplicateProduct}
                 onDelete={async (product) => {
                   clearFeedback()
                   try {
@@ -994,6 +1197,62 @@ export function ShopAdminPage() {
                   )}
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="shop-card space-y-4 p-6 xl:col-span-2">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+              <form onSubmit={saveCollection} className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">Gestione collezioni</h2>
+                    <p className="mt-1 text-sm text-white/55">Collezioni reali collegate ai prodotti e riusabili nel catalogo pubblico.</p>
+                  </div>
+                  {editingCollectionId ? (
+                    <button type="button" onClick={resetCollectionForm} className="text-sm text-white/60 transition hover:text-white">
+                      Annulla modifica
+                    </button>
+                  ) : null}
+                </div>
+                <input className="shop-input" placeholder="Titolo collezione" value={collectionForm.title} onChange={(event) => setCollectionForm({ ...collectionForm, title: event.target.value })} />
+                <input className="shop-input" placeholder="Slug (opzionale)" value={collectionForm.slug} onChange={(event) => setCollectionForm({ ...collectionForm, slug: event.target.value })} />
+                <textarea className="shop-textarea min-h-28 resize-none" placeholder="Descrizione collezione" value={collectionForm.description} onChange={(event) => setCollectionForm({ ...collectionForm, description: event.target.value })} />
+                <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
+                  <input type="checkbox" checked={collectionForm.active} onChange={(event) => setCollectionForm({ ...collectionForm, active: event.target.checked })} />
+                  Collezione attiva nel catalogo pubblico
+                </label>
+                <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+                  {editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}
+                </button>
+              </form>
+
+              <div className="space-y-3">
+                {collections.map((collection) => (
+                  <div key={collection.id} className="rounded-2xl border border-white/10 px-4 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-white">{collection.title}</p>
+                          <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-white/55">
+                            {collection.active ? "Active" : "Hidden"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-white/45">/{collection.slug} · {collection._count?.products || 0} prodotti</p>
+                        {collection.description ? <p className="text-sm text-white/60">{collection.description}</p> : null}
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => startEditCollection(collection)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                          Modifica
+                        </button>
+                        <button type="button" onClick={() => deleteCollection(collection.id)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                          Elimina
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {!collections.length ? <p className="text-sm text-white/50">Nessuna collezione creata.</p> : null}
+              </div>
             </div>
           </section>
         </div>

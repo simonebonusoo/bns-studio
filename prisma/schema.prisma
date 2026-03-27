@@ -25,6 +25,7 @@ model Product {
   id          Int         @id @default(autoincrement())
   title       String
   slug        String      @unique
+  sku         String?     @unique
   description String
   status      String      @default("active")
   price       Int
@@ -37,9 +38,50 @@ model Product {
   imageUrls   String
   featured    Boolean     @default(false)
   stock       Int         @default(100)
+  lowStockThreshold Int   @default(5)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   orderItems  OrderItem[]
+  productTags ProductTag[]
+  productCollections ProductCollection[]
+}
+
+model Tag {
+  id          Int          @id @default(autoincrement())
+  name        String
+  slug        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  products    ProductTag[]
+}
+
+model ProductTag {
+  productId Int
+  tagId     Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+}
+
+model Collection {
+  id          Int                 @id @default(autoincrement())
+  title       String
+  slug        String              @unique
+  description String?
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  products    ProductCollection[]
+}
+
+model ProductCollection {
+  productId    Int
+  collectionId Int
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, collectionId])
 }
 
 model Order {

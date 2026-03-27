@@ -6,6 +6,7 @@ import { z } from "zod"
 
 import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
+import { ensureUniqueSlug, normalizeSku, normalizeTagNames, productRelationInclude, serializeTaxonomyRelations, slugifyCatalogText, syncProductCollections, syncProductTags } from "../lib/catalog-taxonomy.mjs"
 import { getPersistenceStatus } from "../lib/persistence-status.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { normalizeProductStatus, PRODUCT_STATUSES } from "../lib/product-status.mjs"
@@ -61,14 +62,7 @@ function normalizeCouponCode(value) {
 }
 
 function slugifyProductTitle(value) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-")
-    .slice(0, 80)
+  return slugifyCatalogText(value)
 }
 
 function serializeAdminProduct(product) {
@@ -79,6 +73,13 @@ function serializeAdminProduct(product) {
     availableFormats: getAvailableProductFormats(product),
     imageUrls: parsedImages,
     coverImageUrl: parsedImages[0] || "",
+    ...serializeTaxonomyRelations(product),
+    stockStatus:
+      product.status === "out_of_stock" || product.stock <= 0
+        ? "out_of_stock"
+        : product.stock <= product.lowStockThreshold
+          ? "low_stock"
+          : "in_stock",
   }
 }
 
@@ -184,18 +185,21 @@ function buildAnalyticsSnapshot({ orders, pageViews }) {
 }
 
 async function ensureUniqueProductSlug(baseValue, excludeId) {
-  const base = slugifyProductTitle(baseValue) || `product-${Date.now()}`
+  return ensureUniqueSlug("product", baseValue, excludeId)
+}
 
-  for (let suffix = 0; suffix < 1000; suffix += 1) {
-    const candidate =
-      suffix === 0 ? base : `${base.slice(0, Math.max(1, 80 - String(suffix).length - 1))}-${suffix}`
-    const existing = await prisma.product.findUnique({ where: { slug: candidate } })
-    if (!existing || existing.id === excludeId) {
-      return candidate
-    }
+async function ensureUniqueCollectionSlug(baseValue, excludeId) {
+  return ensureUniqueSlug("collection", baseValue, excludeId)
+}
+
+async function ensureUniqueSku(value, excludeId) {
+  const normalized = normalizeSku(value)
+  if (!normalized) return null
+  const existing = await prisma.product.findUnique({ where: { sku: normalized } })
+  if (existing && existing.id !== excludeId) {
+    throw new HttpError(409, "Esiste gia un prodotto con questo SKU")
   }
-
-  throw new HttpError(500, "Impossibile generare uno slug univoco")
+  return normalized
 }
 
 async function ensureCategoriesSetting() {
@@ -259,6 +263,7 @@ const productSchema = z.object({
   slug: z.string().min(1).optional(),
   description: z.string().min(1),
   status: z.enum(PRODUCT_STATUSES).default("active"),
+  sku: z.string().optional().nullable(),
   price: z.number().min(0).optional(),
   costPrice: z.number().min(0).default(0),
   hasA3: z.boolean().default(false),
@@ -267,8 +272,18 @@ const productSchema = z.object({
   priceA4: z.number().min(0).optional().nullable(),
   category: z.string().min(1),
   imageUrls: z.array(z.string().min(1)).min(1),
+  tags: z.array(z.string().min(1)).default([]),
+  collectionIds: z.array(z.number().int().positive()).default([]),
   featured: z.boolean().default(false),
   stock: z.number().int().min(0).default(0),
+  lowStockThreshold: z.number().int().min(0).default(5),
+})
+
+const collectionSchema = z.object({
+  title: z.string().min(1),
+  slug: z.string().optional(),
+  description: z.string().optional().nullable(),
+  active: z.boolean().default(true),
 })
 
 const reviewAdminSchema = z.object({
@@ -399,6 +414,8 @@ router.get(
       search: z.string().optional(),
       category: z.string().optional(),
       status: z.enum(["all", ...PRODUCT_STATUSES]).optional(),
+      tag: z.string().optional(),
+      collectionId: z.coerce.number().int().positive().optional(),
       sort: z.enum(["title", "createdAt", "updatedAt", "price"]).optional(),
       direction: z.enum(["asc", "desc"]).optional(),
     })
@@ -407,25 +424,123 @@ router.get(
     const search = String(query.search || "").trim()
     const category = String(query.category || "").trim()
     const status = query.status || "all"
+    const tag = String(query.tag || "").trim()
+    const collectionId = query.collectionId
     const sort = query.sort || "createdAt"
     const direction = query.direction || "desc"
 
     const orderBy = sort === "price" ? { price: direction } : { [sort]: direction }
 
-    const products = await loadProductsWithStoredOrder({
+    const products = await prisma.product.findMany({
       where: {
         category: category || undefined,
         status: status === "all" ? undefined : status,
+        productTags: tag
+          ? {
+              some: {
+                tag: {
+                  OR: [{ name: { contains: tag } }, { slug: { contains: slugifyCatalogText(tag) } }],
+                },
+              },
+            }
+          : undefined,
+        productCollections: collectionId
+          ? {
+              some: {
+                collectionId,
+              },
+            }
+          : undefined,
         OR: search
           ? [
               { title: { contains: search } },
               { slug: { contains: search } },
+              { sku: { contains: search } },
             ]
           : undefined,
       },
       orderBy,
+      include: productRelationInclude(),
     })
     res.json(products.map(serializeAdminProduct))
+  })
+)
+
+router.get(
+  "/tags",
+  asyncHandler(async (_req, res) => {
+    const tags = await prisma.tag.findMany({
+      orderBy: { name: "asc" },
+    })
+    res.json(tags)
+  })
+)
+
+router.get(
+  "/collections",
+  asyncHandler(async (_req, res) => {
+    const collections = await prisma.collection.findMany({
+      orderBy: { title: "asc" },
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
+    })
+    res.json(collections)
+  })
+)
+
+router.post(
+  "/collections",
+  asyncHandler(async (req, res) => {
+    const body = collectionSchema.parse(req.body)
+    const slug = await ensureUniqueCollectionSlug(body.slug || body.title)
+    const collection = await prisma.collection.create({
+      data: {
+        title: body.title.trim(),
+        slug,
+        description: body.description?.trim() || null,
+        active: body.active,
+      },
+    })
+    res.status(201).json(collection)
+  })
+)
+
+router.put(
+  "/collections/:id",
+  asyncHandler(async (req, res) => {
+    const body = collectionSchema.parse(req.body)
+    const collectionId = Number(req.params.id)
+    const existing = await prisma.collection.findUnique({ where: { id: collectionId } })
+    if (!existing) {
+      throw new HttpError(404, "Collezione non trovata")
+    }
+
+    const slug = body.slug
+      ? await ensureUniqueCollectionSlug(body.slug, collectionId)
+      : await ensureUniqueCollectionSlug(body.title, collectionId)
+
+    const collection = await prisma.collection.update({
+      where: { id: collectionId },
+      data: {
+        title: body.title.trim(),
+        slug,
+        description: body.description?.trim() || null,
+        active: body.active,
+      },
+    })
+    res.json(collection)
+  })
+)
+
+router.delete(
+  "/collections/:id",
+  asyncHandler(async (req, res) => {
+    const collectionId = Number(req.params.id)
+    await prisma.collection.delete({ where: { id: collectionId } })
+    res.status(204).send()
   })
 )
 
@@ -469,15 +584,30 @@ router.post(
     }
     const payload = resolveProductPayload(body)
     const slug = await ensureUniqueProductSlug(body.slug || body.title)
+    const sku = await ensureUniqueSku(body.sku)
     const product = await prisma.product.create({
-      data: { ...payload, status: normalizeProductStatus(body.status), slug, imageUrls: JSON.stringify(body.imageUrls) },
+      data: {
+        ...payload,
+        sku,
+        lowStockThreshold: body.lowStockThreshold,
+        status: normalizeProductStatus(body.status),
+        slug,
+        imageUrls: JSON.stringify(body.imageUrls),
+      },
+      include: productRelationInclude(),
     })
+    await syncProductTags(product.id, body.tags)
+    await syncProductCollections(product.id, body.collectionIds)
     const existingOrderSetting = await getStoredProductOrderSetting()
     if (existingOrderSetting) {
       const nextOrder = [...parseStoredProductOrder(existingOrderSetting.value), product.id]
       await saveProductOrder(nextOrder)
     }
-    res.status(201).json(serializeAdminProduct({ ...product, imageUrls: JSON.stringify(body.imageUrls) }))
+    const hydrated = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: productRelationInclude(),
+    })
+    res.status(201).json(serializeAdminProduct(hydrated))
   })
 )
 
@@ -495,14 +625,153 @@ router.put(
       throw new HttpError(400, "Categoria non valida")
     }
     const payload = resolveProductPayload(body, existingProduct.price)
+    const sku = await ensureUniqueSku(body.sku, productId)
     const slug = body.slug
       ? await ensureUniqueProductSlug(body.slug, productId)
       : existingProduct.slug
     const product = await prisma.product.update({
       where: { id: productId },
-      data: { ...payload, status: normalizeProductStatus(body.status), slug, imageUrls: JSON.stringify(body.imageUrls) },
+      data: {
+        ...payload,
+        sku,
+        lowStockThreshold: body.lowStockThreshold,
+        status: normalizeProductStatus(body.status),
+        slug,
+        imageUrls: JSON.stringify(body.imageUrls),
+      },
+      include: productRelationInclude(),
     })
-    res.json(serializeAdminProduct({ ...product, imageUrls: JSON.stringify(body.imageUrls) }))
+    await syncProductTags(product.id, body.tags)
+    await syncProductCollections(product.id, body.collectionIds)
+    const hydrated = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: productRelationInclude(),
+    })
+    res.json(serializeAdminProduct(hydrated))
+  })
+)
+
+router.post(
+  "/products/:id/duplicate",
+  asyncHandler(async (req, res) => {
+    const productId = Number(req.params.id)
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: productRelationInclude(),
+    })
+
+    if (!product) {
+      throw new HttpError(404, "Prodotto non trovato")
+    }
+
+    const slug = await ensureUniqueProductSlug(`${product.title} copia`)
+    const duplicated = await prisma.product.create({
+      data: {
+        title: `${product.title} copia`,
+        slug,
+        sku: null,
+        description: product.description,
+        status: "draft",
+        price: product.price,
+        priceA3: product.priceA3,
+        priceA4: product.priceA4,
+        costPrice: product.costPrice,
+        hasA3: product.hasA3,
+        hasA4: product.hasA4,
+        category: product.category,
+        imageUrls: product.imageUrls,
+        featured: false,
+        stock: product.stock,
+        lowStockThreshold: product.lowStockThreshold,
+      },
+      include: productRelationInclude(),
+    })
+
+    await syncProductTags(duplicated.id, (product.productTags || []).map((entry) => entry.tag.name))
+    await syncProductCollections(duplicated.id, (product.productCollections || []).map((entry) => entry.collection.id))
+
+    const existingOrderSetting = await getStoredProductOrderSetting()
+    if (existingOrderSetting) {
+      const nextOrder = [...parseStoredProductOrder(existingOrderSetting.value), duplicated.id]
+      await saveProductOrder(nextOrder)
+    }
+
+    const hydrated = await prisma.product.findUnique({
+      where: { id: duplicated.id },
+      include: productRelationInclude(),
+    })
+    res.status(201).json(serializeAdminProduct(hydrated))
+  })
+)
+
+router.post(
+  "/products/bulk",
+  asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        productIds: z.array(z.number().int().positive()).min(1),
+        action: z.enum(["set_status", "set_category", "delete", "add_tags", "remove_tags"]),
+        status: z.enum(PRODUCT_STATUSES).optional(),
+        category: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      })
+      .parse(req.body)
+
+    const productIds = Array.from(new Set(body.productIds))
+
+    if (body.action === "set_status") {
+      if (!body.status) throw new HttpError(400, "Stato non valido")
+      await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { status: normalizeProductStatus(body.status) },
+      })
+    }
+
+    if (body.action === "set_category") {
+      const category = String(body.category || "").trim()
+      const categories = await getCategories()
+      if (!category || !categories.includes(category)) {
+        throw new HttpError(400, "Categoria non valida")
+      }
+      await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { category },
+      })
+    }
+
+    if (body.action === "delete") {
+      await prisma.product.deleteMany({
+        where: { id: { in: productIds } },
+      })
+      const existingOrderSetting = await getStoredProductOrderSetting()
+      if (existingOrderSetting) {
+        const nextOrder = parseStoredProductOrder(existingOrderSetting.value).filter((id) => !productIds.includes(id))
+        await saveProductOrder(nextOrder)
+      }
+    }
+
+    if (body.action === "add_tags" || body.action === "remove_tags") {
+      const targetTags = normalizeTagNames(body.tags || [])
+      const products = await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        include: productRelationInclude(),
+      })
+
+      for (const product of products) {
+        const currentTags = (product.productTags || []).map((entry) => entry.tag.name)
+        const nextTags =
+          body.action === "add_tags"
+            ? normalizeTagNames([...currentTags, ...targetTags])
+            : currentTags.filter((tag) => !targetTags.some((target) => target.toLowerCase() === tag.toLowerCase()))
+        await syncProductTags(product.id, nextTags)
+      }
+    }
+
+    const products = await prisma.product.findMany({
+      include: productRelationInclude(),
+      orderBy: { updatedAt: "desc" },
+    })
+    res.json(products.map(serializeAdminProduct))
   })
 )
 

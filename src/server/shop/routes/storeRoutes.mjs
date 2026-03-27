@@ -2,6 +2,7 @@ import { Router } from "express"
 import { z } from "zod"
 
 import { asyncHandler } from "../lib/http.mjs"
+import { productRelationInclude, serializeTaxonomyRelations, slugifyCatalogText } from "../lib/catalog-taxonomy.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
@@ -24,6 +25,20 @@ function serializePublicProduct(product) {
     imageUrls: parsedImages,
     coverImageUrl: parsedImages[0] || "",
     isPurchasable: isProductPurchasable(product),
+    lowStockThreshold: product.lowStockThreshold,
+    stockStatus:
+      product.status === "out_of_stock" || product.stock <= 0
+        ? "out_of_stock"
+        : product.stock <= product.lowStockThreshold
+          ? "low_stock"
+          : "in_stock",
+    badges: [
+      product.featured ? "featured" : null,
+      product.status === "out_of_stock" || product.stock <= 0 ? "out_of_stock" : null,
+      product.stock > 0 && product.stock <= product.lowStockThreshold ? "low_stock" : null,
+      new Date(product.createdAt).getTime() > Date.now() - 14 * 24 * 60 * 60 * 1000 ? "new" : null,
+    ].filter(Boolean),
+    ...serializeTaxonomyRelations(product),
   }
 }
 
@@ -34,6 +49,8 @@ function buildPublicProductsWhere(filters) {
   const format = String(filters.format || "").trim().toUpperCase()
   const availability = String(filters.availability || "").trim().toLowerCase()
   const featured = String(filters.featured || "").trim().toLowerCase() === "true"
+  const tag = String(filters.tag || "").trim()
+  const collection = String(filters.collection || filters.collectionSlug || "").trim()
   const conditions = []
 
   if (search) {
@@ -41,8 +58,18 @@ function buildPublicProductsWhere(filters) {
       OR: [
         { title: { contains: search } },
         { slug: { contains: search } },
+        { sku: { contains: search } },
         { description: { contains: search } },
         { category: { contains: search } },
+        {
+          productTags: {
+            some: {
+              tag: {
+                OR: [{ name: { contains: search } }, { slug: { contains: slugifyCatalogText(search) } }],
+              },
+            },
+          },
+        },
       ],
     })
   }
@@ -57,6 +84,31 @@ function buildPublicProductsWhere(filters) {
 
   if (featured) {
     conditions.push({ featured: true })
+  }
+
+  if (tag) {
+    conditions.push({
+      productTags: {
+        some: {
+          tag: {
+            OR: [{ name: { contains: tag } }, { slug: { contains: slugifyCatalogText(tag) } }],
+          },
+        },
+      },
+    })
+  }
+
+  if (collection) {
+    conditions.push({
+      productCollections: {
+        some: {
+          collection: {
+            slug: collection,
+            active: true,
+          },
+        },
+      },
+    })
   }
 
   if (format === "A4") {
@@ -181,7 +233,11 @@ router.get(
     const sort = String(req.query.sort || "manual")
     const where = buildPublicProductsWhere(req.query)
 
-    const products = await loadProductsWithStoredOrder({ where, orderBy: { createdAt: "desc" } })
+    const products = await loadProductsWithStoredOrder({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: productRelationInclude(),
+    })
     const sortedProducts = sortPublicProducts(products, sort)
     const total = sortedProducts.length
     const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -207,6 +263,7 @@ router.get(
     const products = await loadProductsWithStoredOrder({
       where: { featured: true, status: { in: ["active", "out_of_stock"] } },
       orderBy: { createdAt: "desc" },
+      include: productRelationInclude(),
     })
 
     res.json(products.slice(0, 3).map(serializePublicProduct))
@@ -216,13 +273,66 @@ router.get(
 router.get(
   "/products/:slug",
   asyncHandler(async (req, res) => {
-    const product = await prisma.product.findUnique({ where: { slug: req.params.slug } })
+    const product = await prisma.product.findUnique({
+      where: { slug: req.params.slug },
+      include: productRelationInclude(),
+    })
 
     if (!product || !isPublicProductStatus(product.status)) {
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 
     res.json(serializePublicProduct(product))
+  })
+)
+
+router.get(
+  "/products/:slug/related",
+  asyncHandler(async (req, res) => {
+    const product = await prisma.product.findUnique({
+      where: { slug: req.params.slug },
+      include: productRelationInclude(),
+    })
+
+    if (!product || !isPublicProductStatus(product.status)) {
+      return res.status(404).json({ message: "Prodotto non trovato" })
+    }
+
+    const tagIds = (product.productTags || []).map((entry) => entry.tagId)
+    const collectionIds = (product.productCollections || []).map((entry) => entry.collectionId)
+
+    const related = await prisma.product.findMany({
+      where: {
+        id: { not: product.id },
+        status: { in: ["active", "out_of_stock"] },
+        OR: [
+          { category: product.category },
+          tagIds.length ? { productTags: { some: { tagId: { in: tagIds } } } } : undefined,
+          collectionIds.length ? { productCollections: { some: { collectionId: { in: collectionIds } } } } : undefined,
+        ].filter(Boolean),
+      },
+      include: productRelationInclude(),
+      take: 4,
+      orderBy: { createdAt: "desc" },
+    })
+
+    res.json(related.map(serializePublicProduct))
+  })
+)
+
+router.get(
+  "/collections",
+  asyncHandler(async (_req, res) => {
+    const collections = await prisma.collection.findMany({
+      where: { active: true },
+      orderBy: { title: "asc" },
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
+    })
+    res.json(collections)
   })
 )
 

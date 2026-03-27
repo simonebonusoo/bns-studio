@@ -1,4 +1,19 @@
 export type ProductStatus = "draft" | "active" | "hidden" | "out_of_stock"
+export type StockStatus = "in_stock" | "low_stock" | "out_of_stock"
+
+export type ProductTag = {
+  id: number
+  name: string
+  slug: string
+}
+
+export type ProductCollection = {
+  id: number
+  title: string
+  slug: string
+  description?: string
+  active: boolean
+}
 
 export type ShopUser = {
   id: number
@@ -13,6 +28,7 @@ export type ShopProduct = {
   id: number
   title: string
   slug: string
+  sku?: string | null
   description: string
   status: ProductStatus
   price: number
@@ -28,6 +44,11 @@ export type ShopProduct = {
   coverImageUrl?: string
   featured: boolean
   stock: number
+  lowStockThreshold?: number
+  stockStatus?: StockStatus
+  badges?: string[]
+  tags?: ProductTag[]
+  collections?: ProductCollection[]
   isPurchasable?: boolean
   createdAt?: string
   updatedAt?: string
@@ -40,6 +61,12 @@ export type ShopProductListResponse = {
     pageSize: number
     total: number
     totalPages: number
+  }
+}
+
+export type AdminCollection = ProductCollection & {
+  _count?: {
+    products: number
   }
 }
 
