@@ -2,7 +2,6 @@ import fs from "node:fs"
 import path from "node:path"
 
 const RENDER_PERSISTENT_ROOT = "/var/data"
-
 function isRenderRuntime() {
   return Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
 }
@@ -11,8 +10,29 @@ function getRenderPersistentRoot() {
   return process.env.RENDER_DISK_PATH || RENDER_PERSISTENT_ROOT
 }
 
+function getRenderEphemeralRoot() {
+  return path.resolve(process.cwd(), "data")
+}
+
+function isTruthy(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase())
+}
+
+function persistentStorageForced() {
+  return isTruthy(process.env.FORCE_PERSISTENT_STORAGE)
+}
+
 function ensureDir(targetPath) {
   fs.mkdirSync(targetPath, { recursive: true })
+}
+
+function tryEnsureDir(targetPath) {
+  try {
+    ensureDir(targetPath)
+    return true
+  } catch {
+    return false
+  }
 }
 
 function legacyMigrationEnabled() {
@@ -46,10 +66,28 @@ export function resolveDatabaseUrl() {
 
   if (isRender) {
     const expectedPath = path.join(renderRoot, "shop", "dev.db")
+    const fallbackPath = path.join(getRenderEphemeralRoot(), "dev.db")
+    const strictPersistence = persistentStorageForced()
+
+    const resolveRenderTarget = (candidatePath) => {
+      if (!tryEnsureDir(path.dirname(candidatePath))) {
+        if (strictPersistence) {
+          throw new Error(
+            `[persistence] FORCE_PERSISTENT_STORAGE=true but database path is not writable: ${candidatePath}`,
+          )
+        }
+        console.warn(
+          `[persistence] Persistent database path unavailable on Render (${candidatePath}). Falling back to file:${fallbackPath}`,
+        )
+        tryEnsureDir(path.dirname(fallbackPath))
+        return `file:${fallbackPath}`
+      }
+      return `file:${candidatePath}`
+    }
 
     if (!rawValue) {
       migrateLegacyDatabase(expectedPath, [])
-      return `file:${expectedPath}`
+      return resolveRenderTarget(expectedPath)
     }
 
     if (!rawValue.startsWith("file:")) {
@@ -58,15 +96,20 @@ export function resolveDatabaseUrl() {
 
     const rawPath = rawValue.slice("file:".length)
     if (path.isAbsolute(rawPath) && rawPath.startsWith(renderRoot)) {
-      ensureDir(path.dirname(rawPath))
-      return rawValue
+      return resolveRenderTarget(rawPath)
+    }
+
+    if (strictPersistence) {
+      throw new Error(
+        `[persistence] FORCE_PERSISTENT_STORAGE=true but DATABASE_URL is outside the Render disk mount: ${rawValue}`,
+      )
     }
 
     console.warn(
-      `[persistence] Ignoring non-persistent DATABASE_URL on Render: ${rawValue}. Falling back to file:${expectedPath}`,
+      `[persistence] Non-persistent DATABASE_URL on Render detected: ${rawValue}. Falling back to file:${fallbackPath}`,
     )
-    migrateLegacyDatabase(expectedPath, [])
-    return `file:${expectedPath}`
+    tryEnsureDir(path.dirname(fallbackPath))
+    return `file:${fallbackPath}`
   }
 
   if (rawValue) {

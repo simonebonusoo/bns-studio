@@ -27,6 +27,7 @@ export function getPersistenceStatus() {
   const isRender = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
   const renderDiskMountPath = env.renderDiskPath || ""
   const persistentStorageEnabled = isTruthy(process.env.PERSISTENT_STORAGE_ENABLED)
+  const forcePersistentStorage = isTruthy(process.env.FORCE_PERSISTENT_STORAGE)
   const renderDiskConfigured = Boolean(renderDiskMountPath)
 
   const databaseUnderRenderDisk =
@@ -44,11 +45,14 @@ export function getPersistenceStatus() {
   const uploadsGuaranteed =
     assetStorageMode === "cloudinary"
       ? isCloudinaryConfigured()
-      : !isProduction || (isRender ? uploadsUnderRenderDisk : persistentStorageEnabled || renderDiskConfigured)
+      : isRender
+        ? uploadsUnderRenderDisk
+        : !isProduction || persistentStorageEnabled || renderDiskConfigured
 
   const databaseGuaranteed =
-    !isProduction ||
-    (isRender ? databaseUnderRenderDisk : persistentStorageEnabled || renderDiskConfigured || isExternalDatabaseUrl(databaseUrl))
+    isRender
+      ? databaseUnderRenderDisk
+      : !isProduction || persistentStorageEnabled || renderDiskConfigured || isExternalDatabaseUrl(databaseUrl)
 
   const storageGuaranteed = databaseGuaranteed && uploadsGuaranteed && assetStorageWritesAreConfigured()
 
@@ -58,6 +62,10 @@ export function getPersistenceStatus() {
     warnings.push(
       "Storage runtime non garantito: il catalogo puo sembrare scrivibile, ma database e upload locali potrebbero perdersi dopo restart o redeploy."
     )
+  }
+
+  if (isRender && !forcePersistentStorage && !storageGuaranteed) {
+    warnings.push("Render sta usando fallback non persistente. Per forzare il disk, abilita FORCE_PERSISTENT_STORAGE=true solo dopo l'upgrade del piano.")
   }
 
   if (isRender && databaseOnRenderEphemeralFs) {
@@ -85,6 +93,7 @@ export function getPersistenceStatus() {
       assetStorageMode,
       renderDiskMountPath,
       persistentStorageEnabled,
+      forcePersistentStorage,
       databaseGuaranteed,
       uploadsGuaranteed,
       storageGuaranteed,

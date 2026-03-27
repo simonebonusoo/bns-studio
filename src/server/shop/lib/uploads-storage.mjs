@@ -9,6 +9,19 @@ function ensureDir(targetPath) {
   fs.mkdirSync(targetPath, { recursive: true })
 }
 
+function tryEnsureDir(targetPath) {
+  try {
+    ensureDir(targetPath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function isTruthy(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase())
+}
+
 function legacyMigrationEnabled() {
   return String(process.env.SHOP_ALLOW_LEGACY_STORAGE_MIGRATION || "")
     .trim()
@@ -21,6 +34,14 @@ function isRenderRuntime() {
 
 function getRenderPersistentRoot() {
   return process.env.RENDER_DISK_PATH || RENDER_PERSISTENT_ROOT
+}
+
+function getRenderEphemeralRoot() {
+  return path.resolve(process.cwd(), "data")
+}
+
+function persistentStorageForced() {
+  return isTruthy(process.env.FORCE_PERSISTENT_STORAGE)
 }
 
 function migrateLegacyProductUploads(targetRootDir) {
@@ -56,14 +77,34 @@ export function resolveUploadsRootDir(rawValue = process.env.UPLOADS_DIR || "") 
 
   if (isRender) {
     const expectedPath = path.join(renderRoot, "uploads")
+    const fallbackPath = path.join(getRenderEphemeralRoot(), "uploads")
     const candidate = rawValue ? path.resolve(rawValue) : expectedPath
+    const strictPersistence = persistentStorageForced()
+
     if (candidate.startsWith(renderRoot)) {
-      uploadsRootDir = candidate
+      if (tryEnsureDir(candidate)) {
+        uploadsRootDir = candidate
+      } else if (strictPersistence) {
+        throw new Error(
+          `[persistence] FORCE_PERSISTENT_STORAGE=true but uploads path is not writable: ${candidate}`,
+        )
+      } else {
+        console.warn(
+          `[persistence] Persistent uploads path unavailable on Render (${candidate}). Falling back to ${fallbackPath}`,
+        )
+        tryEnsureDir(fallbackPath)
+        uploadsRootDir = fallbackPath
+      }
+    } else if (strictPersistence) {
+      throw new Error(
+        `[persistence] FORCE_PERSISTENT_STORAGE=true but UPLOADS_DIR is outside the Render disk mount: ${candidate}`,
+      )
     } else {
       console.warn(
-        `[persistence] Ignoring non-persistent UPLOADS_DIR on Render: ${candidate}. Falling back to ${expectedPath}`,
+        `[persistence] Non-persistent UPLOADS_DIR on Render detected: ${candidate}. Falling back to ${fallbackPath}`,
       )
-      uploadsRootDir = expectedPath
+      tryEnsureDir(fallbackPath)
+      uploadsRootDir = fallbackPath
     }
   } else if (rawValue) {
     uploadsRootDir = path.resolve(rawValue)
