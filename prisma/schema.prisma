@@ -36,6 +36,7 @@ model Product {
   hasA3       Boolean     @default(false)
   category    String
   imageUrls   String
+  manualBadges String    @default("[]")
   featured    Boolean     @default(false)
   stock       Int         @default(100)
   lowStockThreshold Int   @default(5)

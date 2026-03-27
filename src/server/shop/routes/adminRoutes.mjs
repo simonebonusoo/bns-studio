@@ -8,6 +8,7 @@ import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
 import { ensureUniqueSlug, normalizeSku, normalizeTagNames, productRelationInclude, serializeTaxonomyRelations, slugifyCatalogText, syncProductCollections, syncProductTags } from "../lib/catalog-taxonomy.mjs"
 import { getPersistenceStatus } from "../lib/persistence-status.mjs"
+import { buildVisibleProductBadges, parseManualBadges, sanitizeManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { normalizeProductStatus, PRODUCT_STATUSES } from "../lib/product-status.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
@@ -73,6 +74,8 @@ function serializeAdminProduct(product) {
     availableFormats: getAvailableProductFormats(product),
     imageUrls: parsedImages,
     coverImageUrl: parsedImages[0] || "",
+    manualBadges: parseManualBadges(product.manualBadges),
+    badges: buildVisibleProductBadges(product),
     ...serializeTaxonomyRelations(product),
     stockStatus:
       product.status === "out_of_stock" || product.stock <= 0
@@ -253,6 +256,7 @@ function resolveProductPayload(body, fallbackPrice = 0) {
     description: body.description.trim(),
     costPrice: body.costPrice ?? 0,
     category: body.category.trim(),
+    manualBadges: JSON.stringify(sanitizeManualBadges(body.manualBadges)),
     featured: Boolean(body.featured),
     stock: Number(body.stock),
     lowStockThreshold: Number(body.lowStockThreshold ?? 5),
@@ -280,6 +284,15 @@ const productSchema = z.object({
   imageUrls: z.array(z.string().min(1)).min(1),
   tags: z.array(z.string().min(1)).default([]),
   collectionIds: z.array(z.number().int().positive()).default([]),
+  manualBadges: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        label: z.string().trim().min(1),
+        enabled: z.boolean().default(true),
+      }),
+    )
+    .default([]),
   featured: z.boolean().default(false),
   stock: z.number().int().min(0).default(0),
   lowStockThreshold: z.number().int().min(0).default(5),
@@ -686,6 +699,7 @@ router.post(
         hasA4: product.hasA4,
         category: product.category,
         imageUrls: product.imageUrls,
+        manualBadges: product.manualBadges,
         featured: false,
         stock: product.stock,
         lowStockThreshold: product.lowStockThreshold,

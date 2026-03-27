@@ -3,7 +3,7 @@ import { Button } from "../../components/Button"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getBadgeLabel, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
 import { ShopProduct } from "../types"
 
 export function ProductCard({ product }: { product: ShopProduct }) {
@@ -36,8 +36,8 @@ export function ProductCard({ product }: { product: ShopProduct }) {
           {badges.length ? (
             <div className="absolute left-3 top-3 flex flex-wrap gap-2">
               {badges.slice(0, 3).map((badge) => (
-                <span key={badge} className="rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/85 backdrop-blur">
-                  {getBadgeLabel(badge)}
+                <span key={badge.key} className="rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/85 backdrop-blur">
+                  {badge.label}
                 </span>
               ))}
             </div>

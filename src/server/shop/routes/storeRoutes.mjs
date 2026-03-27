@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { asyncHandler } from "../lib/http.mjs"
 import { productRelationInclude, serializeTaxonomyRelations, slugifyCatalogText } from "../lib/catalog-taxonomy.mjs"
+import { buildVisibleProductBadges, parseManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
@@ -24,6 +25,7 @@ function serializePublicProduct(product) {
     availableFormats: getAvailableProductFormats(product),
     imageUrls: parsedImages,
     coverImageUrl: parsedImages[0] || "",
+    manualBadges: parseManualBadges(product.manualBadges),
     isPurchasable: isProductPurchasable(product),
     lowStockThreshold: product.lowStockThreshold,
     stockStatus:
@@ -32,12 +34,7 @@ function serializePublicProduct(product) {
         : product.stock <= product.lowStockThreshold
           ? "low_stock"
           : "in_stock",
-    badges: [
-      product.featured ? "featured" : null,
-      product.status === "out_of_stock" || product.stock <= 0 ? "out_of_stock" : null,
-      product.stock > 0 && product.stock <= product.lowStockThreshold ? "low_stock" : null,
-      new Date(product.createdAt).getTime() > Date.now() - 14 * 24 * 60 * 60 * 1000 ? "new" : null,
-    ].filter(Boolean),
+    badges: buildVisibleProductBadges(product),
     ...serializeTaxonomyRelations(product),
   }
 }

@@ -8,7 +8,7 @@ import { ProductListSection } from "../components/admin/ProductListSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { downloadInvoicePdf } from "../lib/invoice"
-import { AdminCollection, ShopOrder, ShopProduct, ShopReview, ShopSettings, ProductStatus } from "../types"
+import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
   id: number
@@ -70,6 +70,7 @@ type ProductFormState = {
   category: string
   tags: string
   collectionIds: number[]
+  manualBadges: ProductManualBadge[]
   featured: boolean
   stock: number
   lowStockThreshold: number
@@ -200,6 +201,7 @@ const emptyProductForm = (): ProductFormState => ({
   category: "",
   tags: "",
   collectionIds: [],
+  manualBadges: [],
   featured: false,
   stock: 0,
   lowStockThreshold: 5,
@@ -530,6 +532,7 @@ export function ShopAdminPage() {
       category: product.category,
       tags: product.tags?.map((tag) => tag.name).join(", ") || "",
       collectionIds: product.collections?.map((collection) => collection.id) || [],
+      manualBadges: product.manualBadges || [],
       featured: product.featured,
       stock: product.stock,
       lowStockThreshold: product.lowStockThreshold || 5,
@@ -612,6 +615,7 @@ export function ShopAdminPage() {
         category: productForm.category,
         tags: productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
         collectionIds: productForm.collectionIds,
+        manualBadges: productForm.manualBadges,
         featured: productForm.featured,
         stock: Number(productForm.stock),
         lowStockThreshold: Number(productForm.lowStockThreshold),

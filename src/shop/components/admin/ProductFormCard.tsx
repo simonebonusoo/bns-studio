@@ -1,7 +1,7 @@
 import type { FormEvent } from "react"
 
 import { Button } from "../../../components/Button"
-import { AdminCollection, ProductStatus } from "../../types"
+import { AdminCollection, ProductManualBadge, ProductStatus } from "../../types"
 import { ProductMediaManager } from "./ProductMediaManager"
 
 type ProductFormState = {
@@ -16,6 +16,7 @@ type ProductFormState = {
   category: string
   tags: string
   collectionIds: number[]
+  manualBadges: ProductManualBadge[]
   featured: boolean
   stock: number
   lowStockThreshold: number
@@ -178,6 +179,122 @@ export function ProductFormCard({
           <input type="checkbox" checked={productForm.featured} onChange={(event) => onChange({ ...productForm, featured: event.target.checked })} />
           Metti in evidenza
         </label>
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-white/10 p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-white">Badge prodotto</p>
+            <p className="mt-1 text-xs text-white/55">
+              I badge manuali compaiono per primi nell&apos;ordine che scegli qui. I badge automatici di sistema restano attivi solo se non duplicano lo stesso testo.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              onChange({
+                ...productForm,
+                manualBadges: [
+                  ...productForm.manualBadges,
+                  { id: `manual-${Date.now()}`, label: "", enabled: true },
+                ],
+              })
+            }
+          >
+            Aggiungi badge
+          </Button>
+        </div>
+
+        {productForm.manualBadges.length ? (
+          <div className="space-y-3">
+            {productForm.manualBadges.map((badge, index) => (
+              <div key={badge.id} className="grid gap-3 rounded-2xl border border-white/8 p-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <div className="space-y-2">
+                  <input
+                    className="shop-input"
+                    placeholder="Testo badge"
+                    aria-label={`Testo badge ${index + 1}`}
+                    value={badge.label}
+                    onChange={(event) =>
+                      onChange({
+                        ...productForm,
+                        manualBadges: productForm.manualBadges.map((entry) =>
+                          entry.id === badge.id ? { ...entry, label: event.target.value } : entry,
+                        ),
+                      })
+                    }
+                  />
+                  <label className="flex items-center gap-2 text-xs text-white/65">
+                    <input
+                      type="checkbox"
+                      checked={badge.enabled}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          manualBadges: productForm.manualBadges.map((entry) =>
+                            entry.id === badge.id ? { ...entry, enabled: event.target.checked } : entry,
+                          ),
+                        })
+                      }
+                    />
+                    Badge attivo
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={index === 0}
+                    onClick={() => {
+                      if (index === 0) return
+                      const next = [...productForm.manualBadges]
+                      ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
+                      onChange({ ...productForm, manualBadges: next })
+                    }}
+                  >
+                    Su
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={index === productForm.manualBadges.length - 1}
+                    onClick={() => {
+                      if (index === productForm.manualBadges.length - 1) return
+                      const next = [...productForm.manualBadges]
+                      ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
+                      onChange({ ...productForm, manualBadges: next })
+                    }}
+                  >
+                    Giu
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      onChange({
+                        ...productForm,
+                        manualBadges: productForm.manualBadges.filter((entry) => entry.id !== badge.id),
+                      })
+                    }
+                  >
+                    Rimuovi
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-white/50">Nessun badge manuale impostato. Puoi aggiungere etichette come Bestseller, Edizione limitata o Promo.</p>
+        )}
       </div>
 
       <textarea

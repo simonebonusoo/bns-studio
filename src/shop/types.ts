@@ -15,6 +15,18 @@ export type ProductCollection = {
   active: boolean
 }
 
+export type ProductManualBadge = {
+  id: string
+  label: string
+  enabled: boolean
+}
+
+export type ProductVisibleBadge = {
+  key: string
+  label: string
+  source: "manual" | "automatic"
+}
+
 export type ShopUser = {
   id: number
   email: string
@@ -46,7 +58,8 @@ export type ShopProduct = {
   stock: number
   lowStockThreshold?: number
   stockStatus?: StockStatus
-  badges?: string[]
+  manualBadges?: ProductManualBadge[]
+  badges?: ProductVisibleBadge[]
   tags?: ProductTag[]
   collections?: ProductCollection[]
   isPurchasable?: boolean

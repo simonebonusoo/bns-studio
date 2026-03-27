@@ -6,7 +6,7 @@ import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getBadgeLabel, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductBadges, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct } from "../types"
 
@@ -88,8 +88,8 @@ export function ShopProductPage() {
             {badges.length ? (
               <div className="mt-4 flex flex-wrap gap-2">
                 {badges.map((badge) => (
-                  <span key={badge} className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/75">
-                    {getBadgeLabel(badge)}
+                  <span key={badge.key} className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/75">
+                    {badge.label}
                   </span>
                 ))}
               </div>

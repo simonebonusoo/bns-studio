@@ -1,4 +1,4 @@
-import { ShopProduct } from "../types"
+import { ProductVisibleBadge, ShopProduct } from "../types"
 
 export const PRODUCT_STATUSES = ["draft", "active", "hidden", "out_of_stock"] as const
 
@@ -41,23 +41,8 @@ export function getProductBadges(product: ShopProduct) {
   }
 
   return [
-    product.featured ? "featured" : null,
-    product.status === "out_of_stock" || product.stock <= 0 ? "out_of_stock" : null,
-    product.stockStatus === "low_stock" ? "low_stock" : null,
-  ].filter(Boolean) as string[]
-}
-
-export function getBadgeLabel(badge: string) {
-  switch (badge) {
-    case "new":
-      return "Nuovo"
-    case "featured":
-      return "In evidenza"
-    case "low_stock":
-      return "Ultimi pezzi"
-    case "out_of_stock":
-      return "Esaurito"
-    default:
-      return badge
-  }
+    product.featured ? { key: "featured", label: "In evidenza", source: "automatic" } : null,
+    product.status === "out_of_stock" || product.stock <= 0 ? { key: "out_of_stock", label: "Esaurito", source: "automatic" } : null,
+    product.stockStatus === "low_stock" ? { key: "low_stock", label: "Ultimi pezzi", source: "automatic" } : null,
+  ].filter(Boolean) as ProductVisibleBadge[]
 }
