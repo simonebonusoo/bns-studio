@@ -9,7 +9,18 @@ function ensureDir(targetPath) {
   fs.mkdirSync(targetPath, { recursive: true })
 }
 
+function legacyMigrationEnabled() {
+  return String(process.env.SHOP_ALLOW_LEGACY_STORAGE_MIGRATION || "")
+    .trim()
+    .toLowerCase() === "true"
+}
+
 function migrateLegacyProductUploads(targetRootDir) {
+  if (!legacyMigrationEnabled()) {
+    ensureDir(path.join(targetRootDir, "products"))
+    return
+  }
+
   const targetProductsDir = path.join(targetRootDir, "products")
   const legacyProductsDir = path.join(legacyUploadsRootDir, "products")
 

@@ -7,7 +7,18 @@ function ensureDir(targetPath) {
   fs.mkdirSync(targetPath, { recursive: true })
 }
 
+function legacyMigrationEnabled() {
+  return String(process.env.SHOP_ALLOW_LEGACY_STORAGE_MIGRATION || "")
+    .trim()
+    .toLowerCase() === "true"
+}
+
 function migrateLegacyDatabase(targetPath, legacyCandidates) {
+  if (!legacyMigrationEnabled()) {
+    ensureDir(path.dirname(targetPath))
+    return
+  }
+
   if (fs.existsSync(targetPath)) {
     return
   }
@@ -24,6 +35,7 @@ export function resolveDatabaseUrl() {
   const rawValue = process.env.DATABASE_URL
   if (rawValue) {
     if (rawValue.startsWith("file:/")) {
+      ensureDir(path.dirname(rawValue.slice("file:".length)))
       return rawValue
     }
     if (rawValue.startsWith("file:./") || rawValue.startsWith("file:../")) {
@@ -40,12 +52,7 @@ export function resolveDatabaseUrl() {
 
   if (process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL) {
     const targetPath = path.join(RENDER_PERSISTENT_ROOT, "shop", "dev.db")
-    migrateLegacyDatabase(targetPath, [
-      path.resolve("/opt/render/project/src/data/shop/dev.db"),
-      path.resolve("/opt/render/project/src/data/dev.db"),
-      path.resolve(process.cwd(), "prisma", "dev.db"),
-      path.resolve(process.cwd(), "dev.db"),
-    ])
+    migrateLegacyDatabase(targetPath, [])
     return `file:${targetPath}`
   }
 

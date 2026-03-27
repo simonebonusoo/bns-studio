@@ -2,6 +2,10 @@ node_modules
 dist
 .env
 .DS_Store
+/dev.db
+/prisma/dev.db
+/prisma/prisma/dev.db
+/sito shop/server/prisma/*.db
 data/shop/*.db
 data/shop/*.db-*
 !data/shop/.gitkeep

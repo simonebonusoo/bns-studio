@@ -1,5 +1,8 @@
 import { spawn } from "node:child_process"
+import fs from "node:fs"
+import path from "node:path"
 import { resolveDatabaseUrl } from "../prisma/resolve-database-url.mjs"
+import { getPersistenceStatus } from "../src/server/shop/lib/persistence-status.mjs"
 import { resolveUploadsRootDir } from "../src/server/shop/lib/uploads-storage.mjs"
 
 function run(command, args, options = {}) {
@@ -25,9 +28,22 @@ function run(command, args, options = {}) {
 function logConfiguration() {
   const databaseUrl = resolveDatabaseUrl()
   const uploadsDir = process.env.UPLOADS_DIR || resolveUploadsRootDir()
+  const databasePath = databaseUrl.startsWith("file:") ? databaseUrl.slice("file:".length) : databaseUrl
+  const databaseExists = databaseUrl.startsWith("file:") ? fs.existsSync(databasePath) : "external"
+  const uploadsExists = fs.existsSync(path.join(uploadsDir, "products"))
+  const persistence = getPersistenceStatus()
+
   console.log("[bootstrap] Starting BNS Studio shop backend")
   console.log(`[bootstrap] DATABASE_URL=${databaseUrl}`)
+  console.log(`[bootstrap] DATABASE_PATH=${databasePath}`)
+  console.log(`[bootstrap] DATABASE_EXISTS_BEFORE_START=${databaseExists}`)
   console.log(`[bootstrap] UPLOADS_DIR=${uploadsDir}`)
+  console.log(`[bootstrap] UPLOADS_PRODUCTS_DIR=${path.join(uploadsDir, "products")}`)
+  console.log(`[bootstrap] UPLOADS_EXISTS_BEFORE_START=${uploadsExists}`)
+  console.log(`[bootstrap] IS_RENDER=${persistence.environment.isRender}`)
+  console.log(`[bootstrap] STORAGE_GUARANTEED=${persistence.storage.storageGuaranteed}`)
+  console.log(`[bootstrap] RENDER_DISK_PATH=${persistence.storage.renderDiskMountPath || "(unset)"}`)
+  console.log(`[bootstrap] LEGACY_STORAGE_MIGRATION=${process.env.SHOP_ALLOW_LEGACY_STORAGE_MIGRATION === "true" ? "enabled" : "disabled"}`)
 }
 
 async function main() {

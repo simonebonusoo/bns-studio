@@ -171,6 +171,10 @@ async function main() {
   const [userCount, productCount, couponCount, ruleCount, settingCount, reviewCount] = existingState
   const databaseAlreadyInitialized = userCount > 0 || productCount > 0 || couponCount > 0 || ruleCount > 0 || settingCount > 0 || reviewCount > 0
 
+  console.log(
+    `[seed] Existing counts users=${userCount} products=${productCount} coupons=${couponCount} rules=${ruleCount} settings=${settingCount} reviews=${reviewCount}`
+  )
+
   if (databaseAlreadyInitialized && process.env.FORCE_SHOP_SEED !== "true") {
     console.log("[seed] Database gia inizializzato: seed non distruttivo saltato")
     return
