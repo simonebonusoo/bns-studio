@@ -1,3 +1,5 @@
+export type ProductStatus = "draft" | "active" | "hidden" | "out_of_stock"
+
 export type ShopUser = {
   id: number
   email: string
@@ -12,6 +14,7 @@ export type ShopProduct = {
   title: string
   slug: string
   description: string
+  status: ProductStatus
   price: number
   priceA3?: number | null
   priceA4?: number | null
@@ -22,10 +25,22 @@ export type ShopProduct = {
   availableFormats?: Array<"A3" | "A4">
   category: string
   imageUrls: string[]
+  coverImageUrl?: string
   featured: boolean
   stock: number
+  isPurchasable?: boolean
   createdAt?: string
   updatedAt?: string
+}
+
+export type ShopProductListResponse = {
+  items: ShopProduct[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
 }
 
 export type ShopCartItem = {

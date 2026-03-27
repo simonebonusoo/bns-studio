@@ -6,7 +6,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { getPriceForFormat } from "../lib/product"
+import { getPriceForFormat, getProductPrimaryImage } from "../lib/product"
 import { ShopOrder, ShopPayment, ShopPricing } from "../types"
 
 type CheckoutStep = "review" | "details" | "payment"
@@ -181,7 +181,7 @@ export function ShopCheckoutPage() {
           <section className="space-y-4">
             {items.map((item) => (
               <article key={`${item.productId}-${item.format || "A4"}`} className="shop-card flex flex-col gap-4 p-4 md:flex-row md:items-center">
-                <img src={item.product.imageUrls[0]} alt={item.product.title} className="h-28 w-full rounded-[20px] object-cover md:w-40" />
+                <img src={getProductPrimaryImage(item.product)} alt={item.product.title} className="h-28 w-full rounded-[20px] object-cover md:w-40" />
                 <div className="min-w-0 flex-1">
                   <span className="shop-pill">{item.product.category}</span>
                   <h2 className="mt-3 text-xl font-semibold text-white">{item.product.title}</h2>

@@ -6,12 +6,14 @@ import { prisma } from "../lib/prisma.mjs"
 import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductFormat } from "../lib/product-formats.mjs"
+import { isProductPurchasable, isPublicProductStatus } from "../lib/product-status.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
 
 function serializePublicProduct(product) {
   const { imageUrls, costPrice: _costPrice, ...rest } = product
+  const parsedImages = JSON.parse(imageUrls)
   return {
     ...rest,
     price: getBaseProductPrice(product),
@@ -19,7 +21,87 @@ function serializePublicProduct(product) {
     priceA4: product.priceA4 ?? product.price,
     defaultFormat: getDefaultProductFormat(product),
     availableFormats: getAvailableProductFormats(product),
-    imageUrls: JSON.parse(imageUrls),
+    imageUrls: parsedImages,
+    coverImageUrl: parsedImages[0] || "",
+    isPurchasable: isProductPurchasable(product),
+  }
+}
+
+function buildPublicProductsWhere(filters) {
+  const search = String(filters.search || "").trim()
+  const category = String(filters.category || "").trim()
+  const maxPrice = Number(filters.maxPrice || 0)
+  const format = String(filters.format || "").trim().toUpperCase()
+  const availability = String(filters.availability || "").trim().toLowerCase()
+  const featured = String(filters.featured || "").trim().toLowerCase() === "true"
+  const conditions = []
+
+  if (search) {
+    conditions.push({
+      OR: [
+        { title: { contains: search } },
+        { slug: { contains: search } },
+        { description: { contains: search } },
+        { category: { contains: search } },
+      ],
+    })
+  }
+
+  if (category) {
+    conditions.push({ category })
+  }
+
+  if (maxPrice) {
+    conditions.push({ price: { lte: maxPrice } })
+  }
+
+  if (featured) {
+    conditions.push({ featured: true })
+  }
+
+  if (format === "A4") {
+    conditions.push({ hasA4: true })
+  }
+
+  if (format === "A3") {
+    conditions.push({ hasA3: true })
+  }
+
+  if (availability === "available") {
+    conditions.push({ status: "active" })
+    conditions.push({ stock: { gt: 0 } })
+  } else if (availability === "out_of_stock") {
+    conditions.push({
+      OR: [
+        { status: "out_of_stock" },
+        {
+          AND: [
+            { status: { in: ["active", "out_of_stock"] } },
+            { stock: { lte: 0 } },
+          ],
+        },
+      ],
+    })
+  } else {
+    conditions.push({ status: { in: ["active", "out_of_stock"] } })
+  }
+
+  return conditions.length ? { AND: conditions } : {}
+}
+
+function sortPublicProducts(products, sort) {
+  switch (sort) {
+    case "manual":
+      return products
+    case "price_asc":
+      return [...products].sort((a, b) => getBaseProductPrice(a) - getBaseProductPrice(b))
+    case "price_desc":
+      return [...products].sort((a, b) => getBaseProductPrice(b) - getBaseProductPrice(a))
+    case "title_asc":
+      return [...products].sort((a, b) => a.title.localeCompare(b.title, "it"))
+    case "newest":
+    default:
+      return [...products].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   }
 }
 
@@ -94,20 +176,28 @@ router.get(
 router.get(
   "/products",
   asyncHandler(async (req, res) => {
-    const search = String(req.query.search || "")
-    const category = String(req.query.category || "")
-    const maxPrice = Number(req.query.maxPrice || 0)
+    const page = Math.max(1, Number(req.query.page || 1))
+    const pageSize = Math.min(48, Math.max(1, Number(req.query.pageSize || 12)))
+    const sort = String(req.query.sort || "manual")
+    const where = buildPublicProductsWhere(req.query)
 
-    const products = await loadProductsWithStoredOrder({
-      where: {
-        title: search ? { contains: search } : undefined,
-        category: category || undefined,
-        price: maxPrice ? { lte: maxPrice } : undefined,
+    const products = await loadProductsWithStoredOrder({ where, orderBy: { createdAt: "desc" } })
+    const sortedProducts = sortPublicProducts(products, sort)
+    const total = sortedProducts.length
+    const totalPages = Math.max(1, Math.ceil(total / pageSize))
+    const safePage = Math.min(page, totalPages)
+    const start = (safePage - 1) * pageSize
+    const items = sortedProducts.slice(start, start + pageSize)
+
+    res.json({
+      items: items.map(serializePublicProduct),
+      pagination: {
+        page: safePage,
+        pageSize,
+        total,
+        totalPages,
       },
-      orderBy: { createdAt: "desc" },
     })
-
-    res.json(products.map(serializePublicProduct))
   })
 )
 
@@ -115,7 +205,7 @@ router.get(
   "/products/featured",
   asyncHandler(async (_req, res) => {
     const products = await loadProductsWithStoredOrder({
-      where: { featured: true },
+      where: { featured: true, status: { in: ["active", "out_of_stock"] } },
       orderBy: { createdAt: "desc" },
     })
 
@@ -128,7 +218,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const product = await prisma.product.findUnique({ where: { slug: req.params.slug } })
 
-    if (!product) {
+    if (!product || !isPublicProductStatus(product.status)) {
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 

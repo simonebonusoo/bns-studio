@@ -5,8 +5,9 @@ import { Button } from "../components/Button";
 import { Container } from "../components/Container";
 import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
-import type { ShopProduct } from "../shop/types";
+import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
+import type { ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
   title: string;
@@ -198,7 +199,7 @@ function pickProductImage(products: ShopProduct[], query: string, fallbackIndex:
     const haystack = [
       product.title,
       product.description,
-      product.category?.name ?? "",
+      product.category || "",
     ]
       .join(" ")
       .toLowerCase();
@@ -206,10 +207,10 @@ function pickProductImage(products: ShopProduct[], query: string, fallbackIndex:
   });
 
   if (directMatch?.imageUrls[0]) {
-    return directMatch.imageUrls[0];
+    return getProductPrimaryImage(directMatch);
   }
 
-  return products[fallbackIndex % products.length]?.imageUrls[0] ?? null;
+  return products[fallbackIndex % products.length] ? getProductPrimaryImage(products[fallbackIndex % products.length]) : null;
 }
 
 function parseHomepageEntries<T extends { title: string; href: string; query: string }>(
@@ -242,6 +243,7 @@ export function HomeShop() {
   const navigate = useNavigate();
   const { user } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [catalogEditMode, setCatalogEditMode] = useState(false);
@@ -256,11 +258,12 @@ export function HomeShop() {
       try {
         setStatus("loading");
         const [productData, settingsData] = await Promise.all([
-          apiFetch<ShopProduct[]>("/store/products"),
+          apiFetch<ShopProductListResponse>("/store/products?page=1&pageSize=100&sort=manual"),
           apiFetch<Record<string, string>>("/store/settings"),
         ]);
         if (!cancelled) {
-          setProducts(productData);
+          setProducts(productData.items);
+          setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
           setStatus("idle");
         }
@@ -279,7 +282,7 @@ export function HomeShop() {
     };
   }, []);
 
-  const productCountLabel = `Totale: ${products.length} ${products.length === 1 ? "prodotto" : "prodotti"}`;
+  const productCountLabel = `Totale: ${productTotal} ${productTotal === 1 ? "prodotto" : "prodotti"}`;
 
   const popularCategories = useMemo(
     () => parseHomepageEntries<DiscoveryCard>(shopSettings.homepagePopularCategories, defaultPopularCategories),

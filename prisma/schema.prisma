@@ -26,6 +26,7 @@ model Product {
   title       String
   slug        String      @unique
   description String
+  status      String      @default("active")
   price       Int
   priceA4     Int?
   priceA3     Int?

@@ -8,6 +8,7 @@ import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
 import { getPersistenceStatus } from "../lib/persistence-status.mjs"
 import { prisma } from "../lib/prisma.mjs"
+import { normalizeProductStatus, PRODUCT_STATUSES } from "../lib/product-status.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredProductOrder, saveProductOrder } from "../lib/product-order.mjs"
@@ -71,11 +72,13 @@ function slugifyProductTitle(value) {
 }
 
 function serializeAdminProduct(product) {
+  const parsedImages = JSON.parse(product.imageUrls)
   return {
     ...product,
     price: getBaseProductPrice(product),
     availableFormats: getAvailableProductFormats(product),
-    imageUrls: JSON.parse(product.imageUrls),
+    imageUrls: parsedImages,
+    coverImageUrl: parsedImages[0] || "",
   }
 }
 
@@ -255,6 +258,7 @@ const productSchema = z.object({
   title: z.string().min(1),
   slug: z.string().min(1).optional(),
   description: z.string().min(1),
+  status: z.enum(PRODUCT_STATUSES).default("active"),
   price: z.number().min(0).optional(),
   costPrice: z.number().min(0).default(0),
   hasA3: z.boolean().default(false),
@@ -391,7 +395,36 @@ router.get(
 router.get(
   "/products",
   asyncHandler(async (_req, res) => {
-    const products = await loadProductsWithStoredOrder({ orderBy: { createdAt: "desc" } })
+    const querySchema = z.object({
+      search: z.string().optional(),
+      category: z.string().optional(),
+      status: z.enum(["all", ...PRODUCT_STATUSES]).optional(),
+      sort: z.enum(["title", "createdAt", "updatedAt", "price"]).optional(),
+      direction: z.enum(["asc", "desc"]).optional(),
+    })
+
+    const query = querySchema.parse(_req.query)
+    const search = String(query.search || "").trim()
+    const category = String(query.category || "").trim()
+    const status = query.status || "all"
+    const sort = query.sort || "createdAt"
+    const direction = query.direction || "desc"
+
+    const orderBy = sort === "price" ? { price: direction } : { [sort]: direction }
+
+    const products = await loadProductsWithStoredOrder({
+      where: {
+        category: category || undefined,
+        status: status === "all" ? undefined : status,
+        OR: search
+          ? [
+              { title: { contains: search } },
+              { slug: { contains: search } },
+            ]
+          : undefined,
+      },
+      orderBy,
+    })
     res.json(products.map(serializeAdminProduct))
   })
 )
@@ -437,7 +470,7 @@ router.post(
     const payload = resolveProductPayload(body)
     const slug = await ensureUniqueProductSlug(body.slug || body.title)
     const product = await prisma.product.create({
-      data: { ...payload, slug, imageUrls: JSON.stringify(body.imageUrls) },
+      data: { ...payload, status: normalizeProductStatus(body.status), slug, imageUrls: JSON.stringify(body.imageUrls) },
     })
     const existingOrderSetting = await getStoredProductOrderSetting()
     if (existingOrderSetting) {
@@ -467,7 +500,7 @@ router.put(
       : existingProduct.slug
     const product = await prisma.product.update({
       where: { id: productId },
-      data: { ...payload, slug, imageUrls: JSON.stringify(body.imageUrls) },
+      data: { ...payload, status: normalizeProductStatus(body.status), slug, imageUrls: JSON.stringify(body.imageUrls) },
     })
     res.json(serializeAdminProduct({ ...product, imageUrls: JSON.stringify(body.imageUrls) }))
   })

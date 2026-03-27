@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma.mjs"
 import { HttpError } from "../lib/http.mjs"
 import { getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
+import { isProductPurchasable } from "../lib/product-status.mjs"
 
 function getSetting(settings, key, fallback) {
   return settings.find((entry) => entry.key === key)?.value ?? fallback
@@ -36,6 +37,10 @@ export async function calculatePricing(cartItems, couponCode) {
 
     if (!product || !Number.isInteger(quantity) || quantity < 1) {
       throw new HttpError(400, "Elemento del carrello non valido")
+    }
+
+    if (!isProductPurchasable(product)) {
+      throw new HttpError(400, `${product.title} non è acquistabile in questo momento`)
     }
 
     if (quantity > product.stock) {

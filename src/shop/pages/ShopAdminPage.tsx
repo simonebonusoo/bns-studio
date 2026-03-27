@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { ShopLayout } from "../components/ShopLayout"
+import { ProductFiltersBar } from "../components/admin/ProductFiltersBar"
+import { ProductFormCard } from "../components/admin/ProductFormCard"
+import { ProductListSection } from "../components/admin/ProductListSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { downloadInvoicePdf } from "../lib/invoice"
-import { ShopOrder, ShopProduct, ShopReview, ShopSettings } from "../types"
+import { ShopOrder, ShopProduct, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
   id: number
@@ -66,6 +69,7 @@ type ProductFormState = {
   category: string
   featured: boolean
   stock: number
+  status: ProductStatus
   existingImageUrls: string[]
 }
 
@@ -184,6 +188,7 @@ const emptyProductForm = (): ProductFormState => ({
   category: "",
   featured: false,
   stock: 0,
+  status: "active",
   existingImageUrls: [],
 })
 
@@ -324,6 +329,11 @@ export function ShopAdminPage() {
   const [productFiles, setProductFiles] = useState<File[]>([])
   const [productPreviewUrls, setProductPreviewUrls] = useState<string[]>([])
   const [editingProductId, setEditingProductId] = useState<number | null>(null)
+  const [productSearch, setProductSearch] = useState("")
+  const [productCategoryFilter, setProductCategoryFilter] = useState("")
+  const [productStatusFilter, setProductStatusFilter] = useState<"all" | ProductStatus>("all")
+  const [productSort, setProductSort] = useState<"title" | "createdAt" | "updatedAt" | "price">("updatedAt")
+  const [productSortDirection, setProductSortDirection] = useState<"asc" | "desc">("desc")
   const [newCategoryName, setNewCategoryName] = useState("")
   const [renamingCategory, setRenamingCategory] = useState<string | null>(null)
   const [renamedCategoryValue, setRenamedCategoryValue] = useState("")
@@ -355,6 +365,10 @@ export function ShopAdminPage() {
   useEffect(() => {
     refresh()
   }, [])
+
+  useEffect(() => {
+    void refreshProducts()
+  }, [productCategoryFilter, productSearch, productSort, productSortDirection, productStatusFilter])
 
   useEffect(() => {
     const editProductId = Number(searchParams.get("editProduct") || 0)
@@ -416,9 +430,21 @@ export function ShopAdminPage() {
     setHomepageShowcases(parseHomepageSetting(settingValue("homepageShowcases"), defaultHomepageShowcases))
   }, [settings])
 
+  async function refreshProducts() {
+    const params = new URLSearchParams()
+    if (productSearch.trim()) params.set("search", productSearch.trim())
+    if (productCategoryFilter) params.set("category", productCategoryFilter)
+    if (productStatusFilter !== "all") params.set("status", productStatusFilter)
+    params.set("sort", productSort)
+    params.set("direction", productSortDirection)
+
+    const productData = await apiFetch<ShopProduct[]>(`/admin/products?${params.toString()}`)
+    setProducts(productData)
+  }
+
   async function refresh() {
-    const [productData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData] = await Promise.all([
-      apiFetch<ShopProduct[]>("/admin/products"),
+    const [, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData] = await Promise.all([
+      refreshProducts(),
       apiFetch<AdminReview[]>("/admin/reviews"),
       apiFetch<ShopOrder[]>("/admin/orders"),
       apiFetch<AdminUsersResponse>("/admin/users"),
@@ -430,7 +456,6 @@ export function ShopAdminPage() {
       apiFetch<AdminRuntimeStatus>("/admin/runtime-status"),
     ])
 
-    setProducts(productData)
     setReviews(reviewData)
     setOrders(orderData)
     setUsers(usersData.users)
@@ -471,6 +496,7 @@ export function ShopAdminPage() {
       category: product.category,
       featured: product.featured,
       stock: product.stock,
+      status: product.status,
       existingImageUrls: product.imageUrls,
     })
   }
@@ -548,6 +574,7 @@ export function ShopAdminPage() {
         category: productForm.category,
         featured: productForm.featured,
         stock: Number(productForm.stock),
+        status: productForm.status,
         imageUrls,
       }
 
@@ -871,209 +898,51 @@ export function ShopAdminPage() {
 
       {tab === "prodotti" ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <form onSubmit={saveProduct} className="shop-card h-full space-y-4 p-6">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-xl font-semibold text-white">{editingProductId ? "Modifica prodotto" : "Nuovo prodotto"}</h2>
-                {editingProductId ? (
-                  <button
-                    type="button"
-                    onClick={resetProductForm}
-                    className="text-sm text-white/60 transition hover:text-white"
-                  >
-                    Annulla modifica
-                  </button>
-                ) : null}
-              </div>
+          <ProductFormCard
+            editingProductId={editingProductId}
+            productForm={productForm}
+            categories={categories}
+            productImages={productImages}
+            onSubmit={saveProduct}
+            onCancel={resetProductForm}
+            onChange={setProductForm}
+            onFileChange={handleProductFileChange}
+            onMakePrimary={moveImageToPrimary}
+            onRemoveExisting={removeExistingImage}
+          />
 
-              <input
-                className="shop-input"
-                placeholder="Titolo"
-                aria-label="Titolo"
-                value={productForm.title}
-                onChange={(event) => setProductForm({ ...productForm, title: event.target.value })}
+          <div className="flex min-h-0 flex-col gap-4">
+            <ProductFiltersBar
+              search={productSearch}
+              category={productCategoryFilter}
+              status={productStatusFilter}
+              sort={productSort}
+              direction={productSortDirection}
+              categories={categories}
+              total={products.length}
+              onSearchChange={setProductSearch}
+              onCategoryChange={setProductCategoryFilter}
+              onStatusChange={(value) => setProductStatusFilter(value as "all" | ProductStatus)}
+              onSortChange={(value) => setProductSort(value as "title" | "createdAt" | "updatedAt" | "price")}
+              onDirectionChange={setProductSortDirection}
+            />
+            <div onWheelCapture={containWheel} className="min-h-0 flex-1">
+              <ProductListSection
+                products={products}
+                onEdit={startEditProduct}
+                onDelete={async (product) => {
+                  clearFeedback()
+                  try {
+                    await apiFetch(`/admin/products/${product.id}`, { method: "DELETE" })
+                    await refresh()
+                    setMessage("Prodotto eliminato correttamente.")
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : "Errore durante l'eliminazione del prodotto.")
+                  }
+                }}
               />
-
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                <select
-                  className="shop-select"
-                  aria-label="Categoria"
-                  value={productForm.category}
-                  onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}
-                >
-                  <option value="">Categoria</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                <div className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
-                  <div className="flex flex-wrap gap-3">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={productForm.hasA4}
-                        onChange={(event) => setProductForm({ ...productForm, hasA4: event.target.checked })}
-                      />
-                      A4
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={productForm.hasA3}
-                        onChange={(event) => setProductForm({ ...productForm, hasA3: event.target.checked })}
-                      />
-                      A3
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <input
-                  className="shop-input"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prezzo A4"
-                  aria-label="Prezzo A4 in euro"
-                  value={productForm.priceA4}
-                  disabled={!productForm.hasA4}
-                  onChange={(event) => setProductForm({ ...productForm, priceA4: event.target.value })}
-                />
-                <input
-                  className="shop-input"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prezzo A3"
-                  aria-label="Prezzo A3 in euro"
-                  value={productForm.priceA3}
-                  disabled={!productForm.hasA3}
-                  onChange={(event) => setProductForm({ ...productForm, priceA3: event.target.value })}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  className="shop-input"
-                  type="number"
-                  min="0"
-                  placeholder="Quantità"
-                  aria-label="Quantità"
-                  value={productForm.stock}
-                  onChange={(event) => setProductForm({ ...productForm, stock: Number(event.target.value) })}
-                />
-                <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
-                  <input type="checkbox" checked={productForm.featured} onChange={(event) => setProductForm({ ...productForm, featured: event.target.checked })} />
-                  Metti in evidenza
-                </label>
-              </div>
-              <textarea
-                className="shop-textarea min-h-32 resize-none"
-                placeholder="Descrizione"
-                aria-label="Descrizione"
-                value={productForm.description}
-                onChange={(event) => setProductForm({ ...productForm, description: event.target.value })}
-              />
-
-              <div className="space-y-3 rounded-2xl border border-white/10 p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-white">Immagini prodotto</p>
-                    <p className="mt-1 text-xs text-white/55">La prima immagine viene usata come principale.</p>
-                  </div>
-                  <label className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
-                    Carica immagini
-                    <input type="file" multiple accept="image/*" className="hidden" onChange={(event) => handleProductFileChange(event.target.files)} />
-                  </label>
-                </div>
-
-                {productImages.length ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {productImages.map((image, index) => (
-                      <div key={image} className="rounded-2xl border border-white/10 p-3">
-                        <img src={image} alt="" className="aspect-[4/3] w-full rounded-xl object-cover" />
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {index !== 0 ? (
-                            <button type="button" onClick={() => moveImageToPrimary(image)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                              Imposta principale
-                            </button>
-                          ) : (
-                            <span className="rounded-full bg-[#e3f503] px-3 py-1 text-xs font-medium text-black">Immagine principale</span>
-                          )}
-                          {productForm.existingImageUrls.includes(image) ? (
-                            <button type="button" onClick={() => removeExistingImage(image)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                              Rimuovi
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-white/50">Nessuna immagine caricata.</p>
-                )}
-              </div>
-
-              <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                {editingProductId ? "Aggiorna prodotto" : "Salva prodotto"}
-              </button>
-          </form>
-
-          <section className="shop-card flex h-full min-h-0 flex-col p-6">
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Lista prodotti</h2>
-                <p className="mt-1 text-sm text-white/55">Panoramica rapida dei prodotti già pubblicati nello shop.</p>
-              </div>
-              <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/65">{products.length} elementi</span>
             </div>
-            <div
-              className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1"
-              onWheelCapture={containWheel}
-            >
-            {products.map((product) => (
-              <article key={product.id} className="shop-card overflow-hidden">
-                <div className="grid gap-4 p-5 md:grid-cols-[120px_1fr_auto] md:items-center">
-                  <img src={product.imageUrls[0]} alt={product.title} className="h-24 w-full rounded-2xl object-cover" />
-                  <div>
-                    <p className="text-lg font-semibold text-white">{product.title}</p>
-                    <p className="mt-1 text-sm text-white/60">
-                      {product.category} · {product.availableFormats?.join(" / ") || "A4"} ·
-                      {product.hasA4 !== false ? ` A4 ${formatPrice(product.priceA4 ?? product.price)}` : ""}
-                      {product.hasA3 ? ` · A3 ${formatPrice(product.priceA3 ?? product.price)}` : ""}
-                      {" · "}disponibilita {product.stock}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => startEditProduct(product)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/70">
-                      Modifica
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        clearFeedback()
-                        try {
-                          await apiFetch(`/admin/products/${product.id}`, { method: "DELETE" })
-                          await refresh()
-                          setMessage("Prodotto eliminato correttamente.")
-                        } catch (err) {
-                          setError(err instanceof Error ? err.message : "Errore durante l'eliminazione del prodotto.")
-                        }
-                      }}
-                      className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/70"
-                    >
-                      Elimina
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-            </div>
-          </section>
+          </div>
 
           <section className="shop-card space-y-4 p-6 xl:col-span-2">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">

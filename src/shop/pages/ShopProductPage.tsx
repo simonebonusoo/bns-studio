@@ -5,7 +5,7 @@ import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getDefaultFormat, getPriceForFormat } from "../lib/product"
+import { getAvailableFormats, getDefaultFormat, getPriceForFormat, getProductPrimaryImage, isProductPurchasable } from "../lib/product"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct } from "../types"
 
@@ -21,7 +21,7 @@ export function ShopProductPage() {
   useEffect(() => {
     apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
       setProduct(data)
-      setSelectedImage(data.imageUrls[0])
+      setSelectedImage(getProductPrimaryImage(data))
       setSelectedFormat(getDefaultFormat(data))
     })
   }, [slug])
@@ -32,8 +32,10 @@ export function ShopProductPage() {
 
   const availableFormats = getAvailableFormats(product)
   const selectedPrice = getPriceForFormat(product, selectedFormat)
+  const purchasable = isProductPurchasable(product)
 
   function handleBuyNow() {
+    if (!purchasable) return
     beginCheckout(product, 1, selectedFormat)
     if (!user) {
       window.dispatchEvent(new CustomEvent("bns:open-profile"))
@@ -101,21 +103,31 @@ export function ShopProductPage() {
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                 <span>Disponibilità</span>
-                <span>{product.stock}</span>
+                <span>
+                  {product.status === "out_of_stock" || product.stock <= 0 ? "Esaurito" : `${product.stock}`}
+                </span>
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                 <span>Prezzo formato scelto</span>
                 <span>{formatPrice(selectedPrice)}</span>
               </div>
             </div>
+            {!purchasable ? (
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                {product.status === "out_of_stock" || product.stock <= 0
+                  ? "Questo prodotto e visibile ma attualmente non acquistabile."
+                  : "Questo prodotto non e disponibile per l'acquisto in questo momento."}
+              </div>
+            ) : null}
             <div className="flex flex-col gap-3 md:flex-row md:flex-nowrap md:items-center">
-              <Button onClick={() => addItem(product, 1, selectedFormat)} className="w-full md:min-w-0 md:flex-1">
+              <Button onClick={() => addItem(product, 1, selectedFormat)} disabled={!purchasable} className="w-full md:min-w-0 md:flex-1">
                 Aggiungi al carrello
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 onClick={handleBuyNow}
+                disabled={!purchasable}
                 className="w-full md:min-w-0 md:flex-1"
               >
                 Acquista ora

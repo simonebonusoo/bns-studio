@@ -1,5 +1,7 @@
 import { ShopProduct } from "../types"
 
+export const PRODUCT_STATUSES = ["draft", "active", "hidden", "out_of_stock"] as const
+
 export function getAvailableFormats(product: ShopProduct) {
   if (product.availableFormats?.length) {
     return product.availableFormats
@@ -23,4 +25,12 @@ export function getPriceForFormat(product: ShopProduct, format?: string | null) 
   }
 
   return product.priceA4 ?? product.priceA3 ?? product.price
+}
+
+export function isProductPurchasable(product: ShopProduct) {
+  return product.status === "active" && product.stock > 0 && product.isPurchasable !== false
+}
+
+export function getProductPrimaryImage(product: ShopProduct) {
+  return product.coverImageUrl || product.imageUrls[0] || ""
 }
