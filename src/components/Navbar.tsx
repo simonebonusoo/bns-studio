@@ -129,10 +129,15 @@ export function Navbar() {
   }, [])
 
   useEffect(() => {
-    const openProfile = () => {
+    const openProfile = (event: Event) => {
+      const detail =
+        event instanceof CustomEvent
+          ? (event.detail as { step?: "initial" | "login" | "register" } | undefined)
+          : undefined
+
       setSearchOpen(false)
       setCartOpen(false)
-      setProfileStep("initial")
+      setProfileStep(detail?.step || "initial")
       setProfileLoggedStep("overview")
       setProfileEditField(null)
       setProfileOpen(true)

@@ -13,6 +13,8 @@ import { getAvailableFormats, getDefaultVariant, getPriceForVariant, getProductB
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct, ShopSettings } from "../types"
 
+const PENDING_NOTIFY_KEY = "bns_pending_back_in_stock"
+
 export function ShopProductPage() {
   const navigate = useNavigate()
   const { slug = "" } = useParams()
@@ -27,6 +29,7 @@ export function ShopProductPage() {
   const [quantity, setQuantity] = useState(1)
   const [settings, setSettings] = useState<ShopSettings>({})
   const [notifyInterest, setNotifyInterest] = useState(false)
+  const [notifyMessage, setNotifyMessage] = useState("")
   const [variantMenuOpen, setVariantMenuOpen] = useState(false)
   const [openInfoSection, setOpenInfoSection] = useState<"details" | "shipping" | "delivery" | null>(null)
 
@@ -42,6 +45,7 @@ export function ShopProductPage() {
         setIsLightboxOpen(false)
         setQuantity(1)
         setNotifyInterest(false)
+        setNotifyMessage("")
         setVariantMenuOpen(false)
         setOpenInfoSection(null)
       })
@@ -72,6 +76,7 @@ export function ShopProductPage() {
   const stockStatus = product ? getProductStockStatus(product, selectedVariant?.id) : "out_of_stock"
   const stockLabel = product ? getProductStockLabel(product, selectedVariant?.id) : "Esaurito"
   const maxQuantity = Math.max(selectedVariant?.stock ?? product?.stock ?? 1, 1)
+  const subtotal = selectedPrice * quantity
   const shippingCostValue = Number(settings.shippingCost || 0)
   const shippingCostLabel = shippingCostValue > 0 ? new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(shippingCostValue) : "calcolata al checkout"
   const purchaseState = getProductPurchaseState({
@@ -123,7 +128,30 @@ export function ShopProductPage() {
     setQuantity(Math.min(Math.max(nextValue, 1), maxQuantity))
   }
 
+  function openLoginFlow() {
+    window.dispatchEvent(new CustomEvent("bns:open-profile", { detail: { step: "login" } }))
+  }
+
+  async function createBackInStockSubscription() {
+    if (!product) return
+
+    const response = await apiFetch<{ message: string }>("/store/back-in-stock-subscriptions", {
+      method: "POST",
+      body: JSON.stringify({
+        productId: product.id,
+        variantId: selectedVariant?.id ?? null,
+      }),
+    })
+
+    setNotifyInterest(true)
+    setNotifyMessage(response.message || "Ti avviseremo via email quando tornera disponibile.")
+  }
+
   function handleBuyNow() {
+    if (!user) {
+      openLoginFlow()
+      return
+    }
     if (!product) return
     if (!purchasable) return
     beginCheckout(product, quantity, {
@@ -146,6 +174,67 @@ export function ShopProductPage() {
     if (!product) return
     navigate(`/shop/admin?editProduct=${product.id}`)
   }
+
+  async function handleNotifyInterest() {
+    if (!product) return
+
+    if (!user) {
+      localStorage.setItem(
+        PENDING_NOTIFY_KEY,
+        JSON.stringify({
+          slug,
+          productId: product.id,
+          variantId: selectedVariant?.id ?? null,
+        })
+      )
+      openLoginFlow()
+      return
+    }
+
+    try {
+      await createBackInStockSubscription()
+      localStorage.removeItem(PENDING_NOTIFY_KEY)
+    } catch (err) {
+      setNotifyInterest(true)
+      setNotifyMessage(err instanceof Error ? err.message : "Impossibile registrare la notifica disponibilita.")
+    }
+  }
+
+  function handleAddToCart() {
+    if (!product) return
+
+    if (!user) {
+      openLoginFlow()
+      return
+    }
+
+    addItem(product, quantity, {
+      variantId: selectedVariant?.id ?? null,
+      format: selectedVariant?.title || null,
+      variantLabel: selectedVariant?.title || null,
+      variantSku: selectedVariant?.sku || null,
+    })
+  }
+
+  useEffect(() => {
+    if (!user || !product) return
+
+    const rawPending = localStorage.getItem(PENDING_NOTIFY_KEY)
+    if (!rawPending) return
+
+    try {
+      const pending = JSON.parse(rawPending)
+      if (pending?.productId !== product.id && pending?.slug !== slug) {
+        return
+      }
+
+      createBackInStockSubscription()
+        .then(() => localStorage.removeItem(PENDING_NOTIFY_KEY))
+        .catch(() => {})
+    } catch {
+      localStorage.removeItem(PENDING_NOTIFY_KEY)
+    }
+  }, [product, slug, user])
 
   if (productError) {
     return (
@@ -175,6 +264,7 @@ export function ShopProductPage() {
           <ProductPurchasePanel
             badges={badges}
             selectedPrice={selectedPrice}
+            subtotal={subtotal}
             stockLabel={stockLabel}
             productCategory={product.category}
             sku={selectedVariant?.sku || product.sku}
@@ -186,28 +276,22 @@ export function ShopProductPage() {
             purchasable={purchasable}
             purchaseState={purchaseState}
             stockStatus={stockStatus}
-            notifyInterest={notifyInterest}
             onCategoryClick={() => navigate(`/shop?category=${encodeURIComponent(product.category)}`)}
             onToggleVariantMenu={() => setVariantMenuOpen((current) => !current)}
             onSelectVariant={(variant) => {
               setSelectedVariantKey(variant.key || variant.title)
               setQuantity(1)
               setNotifyInterest(false)
+              setNotifyMessage("")
               setVariantMenuOpen(false)
             }}
             onDecreaseQuantity={() => updateQuantity(quantity - 1)}
             onIncreaseQuantity={() => updateQuantity(quantity + 1)}
-            onAddToCart={() =>
-              addItem(product, quantity, {
-                variantId: selectedVariant?.id ?? null,
-                format: selectedVariant?.title || null,
-                variantLabel: selectedVariant?.title || null,
-                variantSku: selectedVariant?.sku || null,
-              })
-            }
+            onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onEdit={handleEditProduct}
-            onNotify={() => setNotifyInterest(true)}
+            onNotify={handleNotifyInterest}
+            notifyMessage={notifyMessage}
             getVariantStockLabel={(variantId) => getProductStockLabel(product, variantId)}
           />
         </div>

@@ -7,6 +7,7 @@ import { ProductVariantSelector } from "./ProductVariantSelector"
 type ProductPurchasePanelProps = {
   badges: ProductVisibleBadge[]
   selectedPrice: number
+  subtotal: number
   stockLabel: string
   productCategory: string
   sku?: string | null
@@ -18,7 +19,6 @@ type ProductPurchasePanelProps = {
   purchasable: boolean
   purchaseState: ProductPurchaseState
   stockStatus: string
-  notifyInterest: boolean
   onCategoryClick: () => void
   onToggleVariantMenu: () => void
   onSelectVariant: (variant: ShopProductVariant) => void
@@ -27,13 +27,15 @@ type ProductPurchasePanelProps = {
   onAddToCart: () => void
   onBuyNow: () => void
   onEdit: () => void
-  onNotify: () => void
+  onNotify: () => void | Promise<void>
+  notifyMessage: string
   getVariantStockLabel: (variantId?: number | null) => string
 }
 
 export function ProductPurchasePanel({
   badges,
   selectedPrice,
+  subtotal,
   stockLabel,
   productCategory,
   sku,
@@ -45,7 +47,6 @@ export function ProductPurchasePanel({
   purchasable,
   purchaseState,
   stockStatus,
-  notifyInterest,
   onCategoryClick,
   onToggleVariantMenu,
   onSelectVariant,
@@ -55,6 +56,7 @@ export function ProductPurchasePanel({
   onBuyNow,
   onEdit,
   onNotify,
+  notifyMessage,
   getVariantStockLabel,
 }: ProductPurchasePanelProps) {
   return (
@@ -75,7 +77,15 @@ export function ProductPurchasePanel({
               ) : null}
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-4">
-              <span className="block text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
+              <div className="flex items-start justify-between gap-4">
+                <span className="block text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
+                {subtotal > selectedPrice ? (
+                  <div className="pt-1 text-right">
+                    <span className="block text-[10px] uppercase tracking-[0.16em] text-white/40">Subtotale</span>
+                    <span className="mt-1 block text-sm text-white/68">{formatPrice(subtotal)}</span>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
@@ -135,8 +145,8 @@ export function ProductPurchasePanel({
         {!purchasable ? (
           <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
             {stockStatus === "out_of_stock"
-              ? "Questo prodotto e visibile ma attualmente non acquistabile."
-              : "Questo prodotto non e disponibile per l'acquisto in questo momento."}
+              ? "Prodotto esaurito, torna presto disponibile."
+              : "Al momento non disponibile per l'acquisto."}
           </div>
         ) : null}
         {purchaseState.showNotifyAction ? (
@@ -144,9 +154,9 @@ export function ProductPurchasePanel({
             <Button type="button" variant="ghost" onClick={onNotify} className="w-full">
               Notificami quando disponibile
             </Button>
-            {purchaseState.showNotifyFeedback && notifyInterest ? (
+            {purchaseState.showNotifyFeedback && notifyMessage ? (
               <p className="text-sm text-white/55">
-                Registriamo il tuo interesse per questa variante. Possiamo collegare le notifiche reali in un passaggio successivo.
+                {notifyMessage}
               </p>
             ) : null}
             {purchaseState.showEditAction ? (

@@ -1,4 +1,5 @@
 import { HttpError } from "./http.mjs"
+import { markBackInStockSubscriptionsReady } from "../services/back-in-stock.mjs"
 
 function normalizeOptionEntry(option) {
   const name = String(option?.name || option?.label || "").trim()
@@ -210,7 +211,13 @@ export async function syncProductVariants(db, productId, rawVariants = []) {
   const { variants, summary } = buildLegacyProductFieldsFromVariants(rawVariants)
   const existingVariants = await db.productVariant.findMany({
     where: { productId },
-    select: { id: true },
+    select: {
+      id: true,
+      title: true,
+      key: true,
+      stock: true,
+      isActive: true,
+    },
   })
 
   const existingIds = new Set(existingVariants.map((variant) => variant.id))
@@ -271,6 +278,23 @@ export async function syncProductVariants(db, productId, rawVariants = []) {
       stock: summary.stock,
       lowStockThreshold: summary.lowStockThreshold,
     },
+  })
+
+  const nextVariants = await db.productVariant.findMany({
+    where: { productId },
+    select: {
+      id: true,
+      title: true,
+      key: true,
+      stock: true,
+      isActive: true,
+    },
+  })
+
+  await markBackInStockSubscriptionsReady(db, {
+    productId,
+    previousVariants: existingVariants,
+    nextVariants,
   })
 }
 

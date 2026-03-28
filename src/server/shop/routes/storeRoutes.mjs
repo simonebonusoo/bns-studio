@@ -7,11 +7,13 @@ import { buildVisibleProductBadges, parseManualBadges } from "../lib/product-bad
 import { prisma } from "../lib/prisma.mjs"
 import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
+import { createBackInStockSubscription } from "../services/back-in-stock.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductFormat } from "../lib/product-formats.mjs"
 import { isProductPurchasable, isPublicProductStatus } from "../lib/product-status.mjs"
 import { getProductStockLabel, getProductStockStatus } from "../lib/product-stock.mjs"
-import { serializeProductVariants } from "../lib/product-variants.mjs"
+import { resolveSelectedVariant, serializeProductVariants } from "../lib/product-variants.mjs"
 import { scoreRelatedProduct, sortCatalogSearchProducts } from "../lib/product-discovery.mjs"
+import { requireAuth } from "../middleware/auth.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
@@ -347,6 +349,52 @@ router.get(
       },
     })
     res.json(collections)
+  })
+)
+
+router.post(
+  "/back-in-stock-subscriptions",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        productId: z.number().int().positive(),
+        variantId: z.number().int().positive().optional().nullable(),
+      })
+      .parse(req.body)
+
+    const product = await prisma.product.findUnique({
+      where: { id: body.productId },
+      include: productRelationInclude(),
+    })
+
+    if (!product || !isPublicProductStatus(product.status)) {
+      return res.status(404).json({ message: "Prodotto non trovato" })
+    }
+
+    const selectedVariant = body.variantId ? resolveSelectedVariant(product, { variantId: body.variantId }) : null
+    if (body.variantId && (!selectedVariant || Number(selectedVariant.id) !== Number(body.variantId))) {
+      return res.status(404).json({ message: "Variante non trovata" })
+    }
+
+    const selectedStatus = getProductStockStatus(product, body.variantId ?? undefined)
+    if (selectedStatus !== "out_of_stock") {
+      return res.status(409).json({ message: "Questo prodotto e gia disponibile." })
+    }
+
+    const { subscription, created } = await createBackInStockSubscription(prisma, {
+      userId: req.user.id,
+      email: req.user.email,
+      productId: product.id,
+      variantId: selectedVariant?.id ?? null,
+    })
+
+    res.status(created ? 201 : 200).json({
+      subscription,
+      message: created
+        ? "Ti avviseremo via email quando tornera disponibile."
+        : "Hai gia una richiesta attiva per questa disponibilita.",
+    })
   })
 )
 
