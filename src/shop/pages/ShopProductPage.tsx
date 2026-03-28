@@ -8,7 +8,7 @@ import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { getAvailableFormats, getDefaultVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { ShopLayout } from "../components/ShopLayout"
-import { ShopProduct } from "../types"
+import { ShopProduct, ShopSettings } from "../types"
 
 export function ShopProductPage() {
   const navigate = useNavigate()
@@ -20,6 +20,8 @@ export function ShopProductPage() {
   const [selectedImage, setSelectedImage] = useState("")
   const [selectedVariantKey, setSelectedVariantKey] = useState("")
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [settings, setSettings] = useState<ShopSettings>({})
 
   useEffect(() => {
     apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
@@ -27,6 +29,7 @@ export function ShopProductPage() {
       setSelectedImage(getProductPrimaryImage(data))
       setSelectedVariantKey(getDefaultVariant(data)?.key || getDefaultVariant(data)?.title || "")
       setIsLightboxOpen(false)
+      setQuantity(1)
     })
   }, [slug])
 
@@ -36,6 +39,10 @@ export function ShopProductPage() {
       .then(setRelatedProducts)
       .catch(() => setRelatedProducts([]))
   }, [slug])
+
+  useEffect(() => {
+    apiFetch<ShopSettings>("/store/settings").then(setSettings).catch(() => setSettings({}))
+  }, [])
 
   if (!product) {
     return <div className="px-6 py-20 text-center text-white/60">Caricamento scheda prodotto...</div>
@@ -50,10 +57,17 @@ export function ShopProductPage() {
   const badges = getProductBadges(product)
   const stockStatus = getProductStockStatus(product, selectedVariant?.id)
   const stockLabel = getProductStockLabel(product, selectedVariant?.id)
+  const maxQuantity = Math.max(selectedVariant?.stock ?? product.stock ?? 1, 1)
+  const shippingCostValue = Number(settings.shippingCost || 0)
+  const shippingCostLabel = shippingCostValue > 0 ? formatPrice(shippingCostValue) : "calcolata al checkout"
+
+  function updateQuantity(nextValue: number) {
+    setQuantity(Math.min(Math.max(nextValue, 1), maxQuantity))
+  }
 
   function handleBuyNow() {
     if (!purchasable) return
-    beginCheckout(product, 1, {
+    beginCheckout(product, quantity, {
       variantId: selectedVariant?.id ?? null,
       format: selectedVariant?.title || null,
       variantLabel: selectedVariant?.title || null,
@@ -104,8 +118,8 @@ export function ShopProductPage() {
         </div>
 
         <div className="shop-card flex flex-col justify-between gap-6 p-5 md:p-6">
-          <div className="space-y-4">
-            <div className="flex flex-col gap-4">
+          <div className="space-y-5">
+            <div className="space-y-4 border-b border-white/10 pb-5">
               {badges.length ? (
                 <div className="flex flex-wrap gap-2">
                   {badges.map((badge) => (
@@ -115,29 +129,14 @@ export function ShopProductPage() {
                   ))}
                 </div>
               ) : null}
-              <div className="rounded-[24px] border border-[#e3f503]/20 bg-[#e3f503]/10 px-5 py-4 text-right">
-                <span className="block text-3xl font-semibold text-[#e3f503]">{formatPrice(selectedPrice)}</span>
+              <div className="space-y-2">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">Prezzo</p>
+                <div className="rounded-[24px] border border-[#e3f503]/20 bg-[#e3f503]/10 px-5 py-4">
+                  <span className="block text-4xl font-semibold leading-none text-[#e3f503]">{formatPrice(selectedPrice)}</span>
+                </div>
               </div>
             </div>
             <div className="grid gap-3 text-sm text-white/65">
-              <div className="rounded-2xl border border-white/10 px-4 py-3">
-                <span className="text-white">Varianti disponibili</span>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {variants.map((variant) => (
-                    <button
-                      key={`${variant.id ?? variant.key}-${variant.position}`}
-                      type="button"
-                      onClick={() => setSelectedVariantKey(variant.key || variant.title)}
-                      className={`rounded-full border px-4 py-2 text-sm transition ${
-                        selectedVariant?.key === variant.key ? "border-[#e3f503] text-[#e3f503]" : "border-white/10 text-white/70 hover:border-white/25 hover:text-white"
-                      }`}
-                      disabled={!variant.isActive}
-                    >
-                      {variant.title}
-                    </button>
-                  ))}
-                </div>
-              </div>
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                 <span>Disponibilità</span>
                 <span>{stockLabel}</span>
@@ -158,6 +157,69 @@ export function ShopProductPage() {
                   <span>{selectedVariant?.sku || product.sku}</span>
                 </div>
               ) : null}
+              <div className="rounded-2xl border border-white/10 px-4 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Varianti</p>
+                    <p className="mt-1 text-sm text-white/70">Seleziona la versione che vuoi acquistare.</p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-2">
+                  {variants.map((variant) => {
+                    const isSelected = selectedVariant?.key === variant.key
+                    const variantLabel = getProductStockLabel(product, variant.id)
+                    return (
+                      <button
+                        key={`${variant.id ?? variant.key}-${variant.position}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedVariantKey(variant.key || variant.title)
+                          setQuantity(1)
+                        }}
+                        className={`flex items-center justify-between gap-4 rounded-[20px] border px-4 py-3 text-left transition ${
+                          isSelected
+                            ? "border-[#e3f503] bg-[#e3f503]/8 text-white"
+                            : "border-white/10 text-white/78 hover:border-white/25 hover:bg-white/[0.03] hover:text-white"
+                        }`}
+                        disabled={!variant.isActive}
+                      >
+                        <div>
+                          <span className="block text-sm font-medium text-white">{variant.title}</span>
+                          <span className="mt-1 block text-xs text-white/55">{variantLabel}</span>
+                        </div>
+                        <span className={`text-sm font-medium ${isSelected ? "text-[#e3f503]" : "text-white/70"}`}>{formatPrice(variant.price)}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 px-4 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Quantità</p>
+                    <p className="mt-1 text-sm text-white/70">Scegli quante copie aggiungere al carrello.</p>
+                  </div>
+                  <div className="inline-flex items-center overflow-hidden rounded-full border border-white/12 bg-white/[0.03]">
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(quantity - 1)}
+                      disabled={quantity <= 1}
+                      className="h-11 w-11 text-lg text-white/75 transition hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:text-white/25"
+                    >
+                      -
+                    </button>
+                    <span className="min-w-[52px] px-3 text-center text-base font-medium text-white">{quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(quantity + 1)}
+                      disabled={!purchasable || quantity >= maxQuantity}
+                      className="h-11 w-11 text-lg text-white/75 transition hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:text-white/25"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Dettagli prodotto</p>
@@ -189,10 +251,10 @@ export function ShopProductPage() {
                   : "Questo prodotto non e disponibile per l'acquisto in questo momento."}
               </div>
             ) : null}
-            <div className="flex flex-col gap-3 md:flex-row md:flex-nowrap md:items-center">
+            <div className="flex flex-col gap-3">
               <Button
                 onClick={() =>
-                  addItem(product, 1, {
+                  addItem(product, quantity, {
                     variantId: selectedVariant?.id ?? null,
                     format: selectedVariant?.title || null,
                     variantLabel: selectedVariant?.title || null,
@@ -200,7 +262,7 @@ export function ShopProductPage() {
                   })
                 }
                 disabled={!purchasable}
-                className="w-full md:min-w-0 md:flex-1"
+                className="w-full"
               >
                 Aggiungi al carrello
               </Button>
@@ -209,7 +271,7 @@ export function ShopProductPage() {
                 variant="ghost"
                 onClick={handleBuyNow}
                 disabled={!purchasable}
-                className="w-full md:min-w-0 md:flex-1"
+                className="w-full"
               >
                 Acquista ora
               </Button>
@@ -218,11 +280,26 @@ export function ShopProductPage() {
                   type="button"
                   variant="ghost"
                   onClick={handleEditProduct}
-                  className="w-full md:min-w-0 md:flex-1"
+                  className="w-full"
                 >
                   Modifica
                 </Button>
               ) : null}
+            </div>
+            <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/72">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Consegna</p>
+                  <p className="mt-1 text-white">3-5 giorni lavorativi</p>
+                </div>
+                <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/55">
+                  Shop info
+                </span>
+              </div>
+              <div className="grid gap-2 text-white/65">
+                <p>Spedizione {shippingCostValue > 0 ? `da ${shippingCostLabel}` : shippingCostLabel}.</p>
+                <p>La variante scelta viene verificata di nuovo al checkout prima della conferma ordine.</p>
+              </div>
             </div>
           </div>
         </div>
