@@ -355,69 +355,81 @@ export function ProductFormCard({
                 </div>
 
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                  <input
-                    className="shop-input"
-                    placeholder="Nome variante"
-                    value={variant.title}
-                    onChange={(event) =>
-                      onChange({
-                        ...productForm,
-                        variants: productForm.variants.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, title: event.target.value } : entry,
-                        ),
-                      })
-                    }
-                  />
-                  <input
-                    className="shop-input"
-                    placeholder="Key interna"
-                    value={variant.key}
-                    onChange={(event) =>
-                      onChange({
-                        ...productForm,
-                        variants: productForm.variants.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, key: event.target.value } : entry,
-                        ),
-                      })
-                    }
-                  />
-                  <input
-                    className="shop-input"
-                    placeholder="SKU variante"
-                    value={variant.sku}
-                    onChange={(event) =>
-                      onChange({
-                        ...productForm,
-                        variants: productForm.variants.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, sku: event.target.value } : entry,
-                        ),
-                      })
-                    }
-                  />
-                  <input
-                    className="shop-input"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Prezzo"
-                    value={variant.price}
-                    onChange={(event) =>
-                      onChange({
-                        ...productForm,
-                        variants: productForm.variants.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, price: event.target.value } : entry,
-                        ),
-                      })
-                    }
-                  />
                   <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Costo produzione</span>
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Nome variante</span>
+                    <input
+                      className="shop-input"
+                      placeholder="A4"
+                      value={variant.title}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, title: event.target.value } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Key variante</span>
+                    <input
+                      className="shop-input"
+                      placeholder="a4"
+                      value={variant.key}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, key: event.target.value } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">SKU variante</span>
+                    <input
+                      className="shop-input"
+                      placeholder="PRINT-A4"
+                      value={variant.sku}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, sku: event.target.value } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Prezzo di vendita (€)</span>
                     <input
                       className="shop-input"
                       type="number"
                       min="0"
                       step="0.01"
-                      placeholder="Costo produzione"
+                      placeholder="20"
+                      value={variant.price}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, price: event.target.value } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Costo produzione (€)</span>
+                    <input
+                      className="shop-input"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="10"
                       value={variant.costPrice}
                       onChange={(event) =>
                         onChange({
@@ -430,36 +442,42 @@ export function ProductFormCard({
                     />
                     <p className="text-xs leading-5 text-white/45">Usato per calcolare il guadagno netto su questa variante.</p>
                   </label>
-                  <input
-                    className="shop-input"
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={variant.stock}
-                    onChange={(event) =>
-                      onChange({
-                        ...productForm,
-                        variants: productForm.variants.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, stock: Number(event.target.value) } : entry,
-                        ),
-                      })
-                    }
-                  />
-                  <input
-                    className="shop-input"
-                    type="number"
-                    min="0"
-                    placeholder="Soglia low stock"
-                    value={variant.lowStockThreshold}
-                    onChange={(event) =>
-                      onChange({
-                        ...productForm,
-                        variants: productForm.variants.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, lowStockThreshold: Number(event.target.value) } : entry,
-                        ),
-                      })
-                    }
-                  />
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Stock disponibile</span>
+                    <input
+                      className="shop-input"
+                      type="number"
+                      min="0"
+                      placeholder="50"
+                      value={variant.stock}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, stock: Number(event.target.value) } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Soglia scorte basse</span>
+                    <input
+                      className="shop-input"
+                      type="number"
+                      min="0"
+                      placeholder="5"
+                      value={variant.lowStockThreshold}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, lowStockThreshold: Number(event.target.value) } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
                   <div className="flex flex-wrap gap-3">
                     <label className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70">
                       <input
