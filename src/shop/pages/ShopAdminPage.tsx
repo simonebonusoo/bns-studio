@@ -314,22 +314,6 @@ function toDatetimeLocal(value?: string | null) {
   return normalized.toISOString().slice(0, 16)
 }
 
-function sortImages(main: string, images: string[]) {
-  return [main, ...images.filter((image) => image !== main)]
-}
-
-function moveImageByStep(target: string, images: string[], step: -1 | 1) {
-  const currentIndex = images.indexOf(target)
-  if (currentIndex === -1) return images
-
-  const nextIndex = currentIndex + step
-  if (nextIndex < 0 || nextIndex >= images.length) return images
-
-  const next = [...images]
-  ;[next[currentIndex], next[nextIndex]] = [next[nextIndex], next[currentIndex]]
-  return next
-}
-
 function containWheel(event: WheelEvent<HTMLElement>) {
   event.stopPropagation()
 }
@@ -742,59 +726,33 @@ export function ShopAdminPage() {
     setProductPreviewUrls(nextPreviewUrls)
   }
 
-  function removeExistingImage(imageUrl: string) {
-    setProductForm((current) => ({
-      ...current,
-      existingImageUrls: current.existingImageUrls.filter((image) => image !== imageUrl),
-    }))
-  }
-
-  function moveImageToPrimary(imageUrl: string) {
+  function removeProductImage(imageUrl: string) {
     if (productForm.existingImageUrls.includes(imageUrl)) {
       setProductForm((current) => ({
         ...current,
-        existingImageUrls: sortImages(imageUrl, current.existingImageUrls),
+        existingImageUrls: current.existingImageUrls.filter((image) => image !== imageUrl),
       }))
       return
     }
 
-    const index = productPreviewUrls.indexOf(imageUrl)
-    if (index === -1) return
-    const nextPreviewUrls = sortImages(imageUrl, productPreviewUrls)
-    const nextFiles = sortImages(imageUrl, productPreviewUrls).map((previewUrl) => {
-      const fileIndex = productPreviewUrls.indexOf(previewUrl)
-      return productFiles[fileIndex]
+    const nextPreviewUrls = productPreviewUrls.filter((image) => image !== imageUrl)
+    const nextFiles = nextPreviewUrls.map((previewUrl) => productFiles[productPreviewUrls.indexOf(previewUrl)])
+    setProductPreviewUrls(nextPreviewUrls)
+    setProductFiles(nextFiles)
+  }
+
+  function reorderProductImages(nextImages: string[]) {
+    setProductForm((current) => {
+      const existingSet = new Set(current.existingImageUrls)
+      return {
+        ...current,
+        existingImageUrls: nextImages.filter((image) => existingSet.has(image)),
+      }
     })
-    setProductPreviewUrls(nextPreviewUrls)
-    setProductFiles(nextFiles)
-  }
 
-  function moveImageBackward(imageUrl: string) {
-    if (productForm.existingImageUrls.includes(imageUrl)) {
-      setProductForm((current) => ({
-        ...current,
-        existingImageUrls: moveImageByStep(imageUrl, current.existingImageUrls, -1),
-      }))
-      return
-    }
-
-    const nextPreviewUrls = moveImageByStep(imageUrl, productPreviewUrls, -1)
-    const nextFiles = nextPreviewUrls.map((previewUrl) => productFiles[productPreviewUrls.indexOf(previewUrl)])
-    setProductPreviewUrls(nextPreviewUrls)
-    setProductFiles(nextFiles)
-  }
-
-  function moveImageForward(imageUrl: string) {
-    if (productForm.existingImageUrls.includes(imageUrl)) {
-      setProductForm((current) => ({
-        ...current,
-        existingImageUrls: moveImageByStep(imageUrl, current.existingImageUrls, 1),
-      }))
-      return
-    }
-
-    const nextPreviewUrls = moveImageByStep(imageUrl, productPreviewUrls, 1)
-    const nextFiles = nextPreviewUrls.map((previewUrl) => productFiles[productPreviewUrls.indexOf(previewUrl)])
+    const previewIndexMap = new Map(productPreviewUrls.map((url, index) => [url, index]))
+    const nextPreviewUrls = nextImages.filter((image) => previewIndexMap.has(image))
+    const nextFiles = nextPreviewUrls.map((previewUrl) => productFiles[previewIndexMap.get(previewUrl) ?? 0]).filter(Boolean)
     setProductPreviewUrls(nextPreviewUrls)
     setProductFiles(nextFiles)
   }
@@ -1320,10 +1278,8 @@ export function ShopAdminPage() {
             onCancel={resetProductForm}
             onChange={handleProductFormChange}
             onFileChange={handleProductFileChange}
-            onMakePrimary={moveImageToPrimary}
-            onMoveImageBackward={moveImageBackward}
-            onMoveImageForward={moveImageForward}
-            onRemoveExisting={removeExistingImage}
+            onReorderImages={reorderProductImages}
+            onRemoveImage={removeProductImage}
           />
 
           <div className="shop-card flex h-full min-h-0 flex-col gap-4 p-6">

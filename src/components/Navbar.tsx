@@ -14,9 +14,6 @@ import { formatPrice } from "../shop/lib/format"
 import { getPriceForVariant, getProductPrimaryImage } from "../shop/lib/product"
 import { ShopProduct } from "../shop/types"
 
-type SearchSuggestion =
-  | { label: string; href: string; type: "search" | "category" | "collection" }
-
 function highlightMatch(text: string, query: string) {
   const normalized = query.trim()
   if (!normalized) return text
@@ -53,7 +50,6 @@ export function Navbar() {
   const [profileEditField, setProfileEditField] = useState<null | "username" | "email" | "password">(null)
   const [search, setSearch] = useState("")
   const [products, setProducts] = useState<ShopProduct[]>([])
-  const [categories, setCategories] = useState<string[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [cartPricing, setCartPricing] = useState<{
     subtotal: number
@@ -115,10 +111,6 @@ export function Navbar() {
 
     window.addEventListener("bns:open-profile", openProfile)
     return () => window.removeEventListener("bns:open-profile", openProfile)
-  }, [])
-
-  useEffect(() => {
-    apiFetch<string[]>("/store/categories").then(setCategories).catch(() => setCategories([]))
   }, [])
 
   useEffect(() => {
@@ -294,33 +286,13 @@ export function Navbar() {
       .slice(0, 6)
   }, [products, trimmedSearch])
 
-  const emptySuggestions = useMemo<SearchSuggestion[]>(() => {
-    const categorySuggestions = categories.slice(0, 4).map((category) => ({
-      label: category,
-      href: `/shop?category=${encodeURIComponent(category)}`,
-      type: "category" as const,
-    }))
-
-    return [
-      { label: "Poster", href: "/shop?search=poster", type: "search" },
-      { label: "Brand kit", href: "/shop?search=brand%20kit", type: "search" },
-      { label: "Landing", href: "/shop?search=landing", type: "search" },
-      { label: "Social pack", href: "/shop?search=social", type: "search" },
-      ...categorySuggestions,
-      { label: "Novita", href: "/shop?collection=new", type: "collection" },
-      { label: "In evidenza", href: "/shop?collection=best", type: "collection" },
-      { label: "Sconti", href: "/shop?collection=discount", type: "collection" },
-    ]
-  }, [categories])
-
   function submitSearch(nextSearch = trimmedSearch) {
     const value = nextSearch.trim()
     navigate(value ? `/shop?search=${encodeURIComponent(value)}` : "/shop")
     setSearchOpen(false)
   }
 
-  const popularSuggestions = emptySuggestions.slice(0, 4)
-  const exploreSuggestions = emptySuggestions.slice(4)
+  const suggestedProducts = useMemo(() => products.slice(0, 6), [products])
   const profileView = user ? "logged" : profileStep
   const displayUsername = user?.username || user?.email?.split("@")[0] || "cliente"
 
@@ -565,38 +537,41 @@ export function Navbar() {
                   className="overflow-hidden rounded-[32px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-2xl"
                 >
                   {!trimmedSearch ? (
-                    <div className="grid gap-6 p-4 md:grid-cols-2 md:p-6">
-                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                        <p className="text-xs uppercase tracking-[0.26em] text-white/45">Ricerche popolari</p>
-                        <div className="mt-5 space-y-2">
-                          {popularSuggestions.map((item) => (
-                            <button
-                              key={`${item.type}-${item.label}`}
-                              type="button"
-                              onClick={() => navigate(item.href)}
-                              className="flex w-full items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm text-white/75 transition hover:border-white/20 hover:text-white"
-                            >
-                              <span>{item.label}</span>
-                              <span className="text-xs uppercase tracking-[0.2em] text-white/35">{item.type}</span>
-                            </button>
-                          ))}
+                    <div className="p-4 md:p-6">
+                      <div className="mb-5 flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.26em] text-white/45">Suggerimenti</p>
+                          <p className="mt-2 text-sm text-white/65">Apri prodotti reali direttamente dalla ricerca.</p>
                         </div>
                       </div>
-
-                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                        <p className="text-xs uppercase tracking-[0.26em] text-white/45">Altro</p>
-                        <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                          {exploreSuggestions.map((item) => (
+                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {suggestedProducts.length ? (
+                          suggestedProducts.map((product) => (
                             <button
-                              key={`${item.type}-${item.label}`}
+                              key={product.id}
                               type="button"
-                              onClick={() => navigate(item.href)}
-                              className="rounded-2xl border border-white/10 px-4 py-3 text-left text-sm text-white/75 transition hover:border-white/20 hover:text-white"
+                              onClick={() => navigate(`/shop/${product.slug}`)}
+                              className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] text-left transition hover:-translate-y-0.5 hover:border-white/20"
                             >
-                              {item.label}
+                              <div className="aspect-[4/3] overflow-hidden bg-white/[0.04]">
+                                <img
+                                  src={getProductPrimaryImage(product)}
+                                  alt={product.title}
+                                  className="h-full w-full object-cover transition duration-500 hover:scale-[1.03]"
+                                />
+                              </div>
+                              <div className="space-y-2 p-4">
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">{product.category}</p>
+                                <h3 className="line-clamp-2 text-base font-medium text-white">{product.title}</h3>
+                                <p className="text-sm font-medium text-[#e3f503]">{formatPrice(product.price)}</p>
+                              </div>
                             </button>
-                          ))}
-                        </div>
+                          ))
+                        ) : (
+                          <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
+                            Nessun prodotto suggerito disponibile.
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (

@@ -51,10 +51,8 @@ type ProductFormCardProps = {
   onCancel: () => void
   onChange: (next: ProductFormState) => void
   onFileChange: (files: FileList | null) => void
-  onMakePrimary: (imageUrl: string) => void
-  onMoveImageBackward: (imageUrl: string) => void
-  onMoveImageForward: (imageUrl: string) => void
-  onRemoveExisting: (imageUrl: string) => void
+  onReorderImages: (nextImages: string[]) => void
+  onRemoveImage: (imageUrl: string) => void
 }
 
 function Section({
@@ -103,10 +101,8 @@ export function ProductFormCard({
   onCancel,
   onChange,
   onFileChange,
-  onMakePrimary,
-  onMoveImageBackward,
-  onMoveImageForward,
-  onRemoveExisting,
+  onReorderImages,
+  onRemoveImage,
 }: ProductFormCardProps) {
   const activeVariants = productForm.variants.filter((variant) => variant.isActive)
   const totalVariantStock = activeVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
@@ -617,12 +613,9 @@ export function ProductFormCard({
       {!isMultiEdit ? (
         <ProductMediaManager
           images={productImages}
-          existingImageUrls={productForm.existingImageUrls}
           onFileChange={onFileChange}
-          onMakePrimary={onMakePrimary}
-          onMoveBackward={onMoveImageBackward}
-          onMoveForward={onMoveImageForward}
-          onRemoveExisting={onRemoveExisting}
+          onReorder={onReorderImages}
+          onRemoveImage={onRemoveImage}
         />
       ) : (
         <Section

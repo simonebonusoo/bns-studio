@@ -75,15 +75,15 @@ export function ShopProductPage() {
 
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
-      <div className="mx-auto grid max-w-[1120px] gap-6 lg:grid-cols-[0.9fr_0.78fr]">
+      <div className="mx-auto grid max-w-[1280px] gap-6 lg:grid-cols-[0.98fr_0.82fr]">
         <div className="space-y-4">
           <button
             type="button"
             onClick={() => setIsLightboxOpen(true)}
             className="shop-card block overflow-hidden text-left transition hover:border-white/20"
           >
-            <div className="flex min-h-[420px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[520px]">
-              <img src={selectedImage} alt={product.title} className="max-h-[480px] w-full object-contain md:max-h-[560px]" />
+            <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[440px]">
+              <img src={selectedImage} alt={product.title} className="max-h-[420px] w-full object-contain md:max-h-[500px]" />
             </div>
           </button>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -105,21 +105,8 @@ export function ShopProductPage() {
 
         <div className="shop-card flex flex-col justify-between gap-6 p-5 md:p-6">
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${
-                  stockStatus === "out_of_stock"
-                    ? "border-red-400/20 text-red-100/85"
-                    : stockStatus === "low_stock"
-                      ? "border-amber-300/20 text-amber-100/85"
-                      : "border-emerald-300/20 text-emerald-100/85"
-                }`}
-              >
-                {stockLabel}
-              </span>
-            </div>
             {badges.length ? (
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                 {badges.map((badge) => (
                   <span key={badge.key} className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/75">
                     {badge.label}
