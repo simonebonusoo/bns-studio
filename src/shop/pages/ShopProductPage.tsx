@@ -75,18 +75,9 @@ export function ShopProductPage() {
 
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
-      <div className="mx-auto grid max-w-[1280px] gap-6 lg:grid-cols-[0.98fr_0.82fr]">
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => setIsLightboxOpen(true)}
-            className="shop-card block overflow-hidden text-left transition hover:border-white/20"
-          >
-            <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[440px]">
-              <img src={selectedImage} alt={product.title} className="max-h-[420px] w-full object-contain md:max-h-[500px]" />
-            </div>
-          </button>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="mx-auto grid max-w-[1380px] gap-8 lg:grid-cols-[1.02fr_0.88fr]">
+        <div className="grid gap-4 md:grid-cols-[92px_minmax(0,1fr)] md:items-start">
+          <div className="grid grid-cols-4 gap-3 md:grid-cols-1">
             {galleryImages.map((image, index) => (
               <button
                 key={image}
@@ -95,12 +86,21 @@ export function ShopProductPage() {
                 className={`overflow-hidden rounded-[20px] border text-left ${selectedImage === image ? "border-[#e3f503]" : "border-white/10"}`}
               >
                 <img src={image} alt={product.title} className="aspect-square w-full object-cover" />
-                <div className="border-t border-white/10 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-white/60">
-                  {index === 0 ? "Cover" : `Gallery ${index}`}
+                <div className="border-t border-white/10 px-2 py-2 text-[10px] uppercase tracking-[0.16em] text-white/55">
+                  {index === 0 ? "Cover" : `${index + 1}`}
                 </div>
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setIsLightboxOpen(true)}
+            className="shop-card block overflow-hidden text-left transition hover:border-white/20"
+          >
+            <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[460px]">
+              <img src={selectedImage} alt={product.title} className="max-h-[420px] w-full object-contain md:max-h-[520px]" />
+            </div>
+          </button>
         </div>
 
         <div className="shop-card flex flex-col justify-between gap-6 p-5 md:p-6">

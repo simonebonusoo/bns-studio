@@ -14,6 +14,10 @@ import { formatPrice } from "../shop/lib/format"
 import { getPriceForVariant, getProductPrimaryImage } from "../shop/lib/product"
 import { ShopProduct } from "../shop/types"
 
+type StoreProductsResponse = {
+  items: ShopProduct[]
+}
+
 function highlightMatch(text: string, query: string) {
   const normalized = query.trim()
   if (!normalized) return text
@@ -117,8 +121,9 @@ export function Navbar() {
     if (!searchOpen || products.length) return
 
     setLoadingProducts(true)
-    apiFetch<ShopProduct[]>("/store/products")
-      .then(setProducts)
+    apiFetch<StoreProductsResponse>("/store/products?pageSize=24&sort=manual")
+      .then((data) => setProducts(Array.isArray(data.items) ? data.items : []))
+      .catch(() => setProducts([]))
       .finally(() => setLoadingProducts(false))
   }, [products.length, searchOpen])
 
@@ -521,6 +526,7 @@ export function Navbar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={overlayTransition}
+              onClick={() => setSearchOpen(false)}
               className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
             />
 
@@ -604,7 +610,7 @@ export function Navbar() {
                             >
                               <div className="aspect-[4/3] overflow-hidden bg-white/[0.04]">
                                 <img
-                                  src={product.imageUrls[0]}
+                                  src={getProductPrimaryImage(product)}
                                   alt={product.title}
                                   className="h-full w-full object-cover transition duration-500 hover:scale-[1.03]"
                                 />
