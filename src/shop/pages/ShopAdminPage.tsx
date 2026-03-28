@@ -2,6 +2,7 @@ import type { FormEvent, WheelEvent } from "react"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
+import { Button } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
 import { ProductFiltersBar } from "../components/admin/ProductFiltersBar"
 import { ProductFormCard } from "../components/admin/ProductFormCard"
@@ -1375,27 +1376,29 @@ export function ShopAdminPage() {
                   {renamingCategory === category ? (
                     <div className="flex flex-col gap-3 md:flex-row">
                       <input className="shop-input" value={renamedCategoryValue} onChange={(event) => setRenamedCategoryValue(event.target.value)} />
-                      <button type="button" onClick={() => renameCategory(category)} className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black">
+                      <Button type="button" text="Salva nome" onClick={() => renameCategory(category)}>
                         Salva nome
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-sm text-white">{category}</span>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
+                          text="Rinomina"
                           onClick={() => {
                             setRenamingCategory(category)
                             setRenamedCategoryValue(category)
                           }}
-                          className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
                         >
                           Rinomina
-                        </button>
-                        <button type="button" onClick={() => deleteCategory(category)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                        </Button>
+                        <Button type="button" size="sm" text="Elimina" onClick={() => deleteCategory(category)}>
                           Elimina
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -1410,9 +1413,9 @@ export function ShopAdminPage() {
                   value={newCategoryName}
                   onChange={(event) => setNewCategoryName(event.target.value)}
                 />
-                <button type="submit" className="h-11 rounded-lg border border-white/12 bg-white px-4 text-sm font-medium text-black transition hover:bg-white/90">
+                <Button type="submit" className="h-11">
                   Crea
-                </button>
+                </Button>
               </form>
             </div>
           </section>
@@ -1446,9 +1449,9 @@ export function ShopAdminPage() {
                     <input type="checkbox" checked={collectionForm.active} onChange={(event) => setCollectionForm({ ...collectionForm, active: event.target.checked })} />
                     Collezione attiva nel catalogo pubblico
                   </label>
-                  <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+                  <Button type="submit" text={editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}>
                     {editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}
-                  </button>
+                  </Button>
                 </form>
               </div>
 
@@ -1472,12 +1475,12 @@ export function ShopAdminPage() {
                           {collection.description ? <p className="text-sm text-white/60">{collection.description}</p> : null}
                         </div>
                         <div className="flex gap-2">
-                          <button type="button" onClick={() => startEditCollection(collection)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                          <Button type="button" variant="ghost" size="sm" text="Modifica" onClick={() => startEditCollection(collection)}>
                             Modifica
-                          </button>
-                          <button type="button" onClick={() => deleteCollection(collection.id)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                          </Button>
+                          <Button type="button" size="sm" text="Elimina" onClick={() => deleteCollection(collection.id)}>
                             Elimina
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>

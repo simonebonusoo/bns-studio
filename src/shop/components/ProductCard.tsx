@@ -66,24 +66,24 @@ export function ProductCard({ product }: { product: ShopProduct }) {
               {product.title}
             </h2>
           <p className="text-xs uppercase tracking-[0.18em] text-white/45">{availableFormats.join(" · ")}</p>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em]">
-            <span
-              className={`rounded-full border px-3 py-1 ${
-                stockStatus === "out_of_stock"
-                  ? "border-red-400/20 text-red-100/85"
-                  : stockStatus === "low_stock"
-                    ? "border-amber-300/20 text-amber-100/85"
-                    : "border-emerald-300/20 text-emerald-100/85"
-              }`}
-            >
-              {stockLabel}
-            </span>
-          </div>
         </div>
 
         <div className="mt-auto pt-5">
-          <div className="flex items-end justify-between gap-4 pb-3">
-            <div className="text-sm font-medium text-[#e3f503]">
+          <div className="flex items-center justify-between gap-4 pb-3">
+            <div className="flex min-h-[28px] items-center text-[11px] uppercase tracking-[0.18em]">
+              <span
+                className={`rounded-full border px-3 py-1 ${
+                  stockStatus === "out_of_stock"
+                    ? "border-red-400/20 text-red-100/85"
+                    : stockStatus === "low_stock"
+                      ? "border-amber-300/20 text-amber-100/85"
+                      : "border-emerald-300/20 text-emerald-100/85"
+                }`}
+              >
+                {stockLabel}
+              </span>
+            </div>
+            <div className="text-right text-sm font-medium text-[#e3f503]">
               {availableFormats.length > 1 ? `da ${formatPrice(getPriceForVariant(product, defaultVariant?.id))}` : formatPrice(getPriceForVariant(product, defaultVariant?.id))}
             </div>
           </div>

@@ -75,14 +75,16 @@ export function ShopProductPage() {
 
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mx-auto grid max-w-[1120px] gap-6 lg:grid-cols-[0.9fr_0.78fr]">
         <div className="space-y-4">
           <button
             type="button"
             onClick={() => setIsLightboxOpen(true)}
             className="shop-card block overflow-hidden text-left transition hover:border-white/20"
           >
-            <img src={selectedImage} alt={product.title} className="aspect-[4/5] w-full object-cover" />
+            <div className="flex min-h-[420px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[520px]">
+              <img src={selectedImage} alt={product.title} className="max-h-[480px] w-full object-contain md:max-h-[560px]" />
+            </div>
           </button>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {galleryImages.map((image, index) => (
@@ -101,10 +103,9 @@ export function ShopProductPage() {
           </div>
         </div>
 
-        <div className="shop-card flex flex-col justify-between gap-8 p-6 md:p-8">
+        <div className="shop-card flex flex-col justify-between gap-6 p-5 md:p-6">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="shop-pill">{product.category}</span>
               <span
                 className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${
                   stockStatus === "out_of_stock"
@@ -174,6 +175,16 @@ export function ShopProductPage() {
               <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
                 <span>Disponibilità</span>
                 <span>{stockLabel}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
+                <span>Categoria</span>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/shop?category=${encodeURIComponent(product.category)}`)}
+                  className="text-sm text-white/80 transition hover:text-[#e3f503]"
+                >
+                  {product.category}
+                </button>
               </div>
               {product.sku || selectedVariant?.sku ? (
                 <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">

@@ -80,13 +80,13 @@ function Section({
 function statusLabel(status: ProductStatus) {
   switch (status) {
     case "draft":
-      return "Draft"
+      return "Bozza"
     case "hidden":
-      return "Hidden"
+      return "Nascosto"
     case "out_of_stock":
-      return "Out of stock"
+      return "Esaurito"
     default:
-      return "Active"
+      return "Attivo"
   }
 }
 
@@ -181,10 +181,10 @@ export function ProductFormCard({
               value={productForm.status}
               onChange={(event) => onChange({ ...productForm, status: event.target.value as ProductStatus })}
             >
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="hidden">Hidden</option>
-              <option value="out_of_stock">Out of stock</option>
+              <option value="active">Attivo</option>
+              <option value="draft">Bozza</option>
+              <option value="hidden">Nascosto</option>
+              <option value="out_of_stock">Esaurito</option>
             </select>
 
             <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
@@ -271,8 +271,8 @@ export function ProductFormCard({
             </div>
             <Button
               type="button"
-              variant="ghost"
               size="sm"
+              text="Aggiungi variante"
               onClick={() =>
                 onChange({
                   ...productForm,
@@ -344,8 +344,8 @@ export function ProductFormCard({
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
                       size="sm"
+                      text="Rimuovi"
                       onClick={() =>
                         onChange({
                           ...productForm,
@@ -510,13 +510,13 @@ export function ProductFormCard({
       <Section title="Badge prodotto">
         <div className="flex items-center justify-between gap-4">
           <div className="text-sm text-white/60">Aggiungi solo le etichette che vuoi davvero mostrare nel catalogo.</div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              onChange({
-                ...productForm,
+            <Button
+              type="button"
+              size="sm"
+              text="Aggiungi badge"
+              onClick={() =>
+                onChange({
+                  ...productForm,
                 manualBadges: [
                   ...productForm.manualBadges,
                   { id: `manual-${Date.now()}`, label: "", enabled: true },
