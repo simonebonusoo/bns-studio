@@ -10,7 +10,7 @@ import { getOrderStatusLabel } from "../lib/order"
 import { ShopOrder, ShopSettings } from "../types"
 
 export function ShopProfilePage() {
-  const { user } = useShopAuth()
+  const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview } = useShopAuth()
   const [orders, setOrders] = useState<ShopOrder[]>([])
   const [settings, setSettings] = useState<ShopSettings>({})
 
@@ -20,7 +20,34 @@ export function ShopProfilePage() {
   }, [])
 
   return (
-    <ShopLayout eyebrow="Profilo" title={`Ciao, ${user?.username || user?.firstName || "cliente"}`} intro="Gestisci e controlla i tuoi ordini passati." actions={user?.role === "admin" ? <Link to="/shop/admin" className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white">Admin</Link> : null}>
+    <ShopLayout
+      eyebrow="Profilo"
+      title={`Ciao, ${user?.username || user?.firstName || "cliente"}`}
+      intro="Gestisci e controlla i tuoi ordini passati."
+      actions={
+        user?.role === "admin" ? (
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => (isGuestPreview ? disableGuestPreview() : enableGuestPreview())}
+              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white"
+            >
+              {isGuestPreview ? "Torna admin" : "Vedi come ospite"}
+            </button>
+            {effectiveRole === "admin" ? (
+              <Link to="/shop/admin" className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white">
+                Admin
+              </Link>
+            ) : null}
+          </div>
+        ) : null
+      }
+    >
+      {isGuestPreview ? (
+        <div className="mb-6 rounded-[24px] border border-amber-300/20 bg-amber-300/10 px-5 py-4 text-sm text-amber-100">
+          Modalità preview cliente attiva. I controlli admin sono nascosti e il checkout finale non avvia il pagamento PayPal reale.
+        </div>
+      ) : null}
       {!orders.length ? <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">Nessun ordine registrato per questo account.</div> : null}
 
       <div className="grid gap-5 xl:grid-cols-2">

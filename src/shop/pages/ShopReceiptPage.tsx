@@ -20,7 +20,7 @@ function mapPaypalErrorMessage(message: string) {
 }
 
 export function ShopReceiptPage() {
-  const { user } = useShopAuth()
+  const { effectiveRole } = useShopAuth()
   const location = useLocation()
   const { orderReference = "" } = useParams()
   const state = location.state as { order?: ShopOrder; payment?: ShopPayment | null; paymentError?: string | null } | null
@@ -52,7 +52,7 @@ export function ShopReceiptPage() {
   }
 
   const isPaid = order.status === "paid" || order.status === "shipped"
-  const isAdminView = user?.role === "admin"
+  const isAdminView = effectiveRole === "admin"
 
   async function handlePayPalClick() {
     if (isRedirectingToPaypal) {

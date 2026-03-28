@@ -13,7 +13,7 @@ import { ShopProduct, ShopSettings } from "../types"
 export function ShopProductPage() {
   const navigate = useNavigate()
   const { slug = "" } = useParams()
-  const { user } = useShopAuth()
+  const { user, effectiveRole } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
   const [product, setProduct] = useState<ShopProduct | null>(null)
   const [relatedProducts, setRelatedProducts] = useState<ShopProduct[]>([])
@@ -22,6 +22,7 @@ export function ShopProductPage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [settings, setSettings] = useState<ShopSettings>({})
+  const [notifyInterest, setNotifyInterest] = useState(false)
 
   useEffect(() => {
     apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
@@ -30,6 +31,7 @@ export function ShopProductPage() {
       setSelectedVariantKey(getDefaultVariant(data)?.key || getDefaultVariant(data)?.title || "")
       setIsLightboxOpen(false)
       setQuantity(1)
+      setNotifyInterest(false)
     })
   }, [slug])
 
@@ -131,8 +133,8 @@ export function ShopProductPage() {
               ) : null}
               <div className="space-y-2">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">Prezzo</p>
-                <div className="rounded-[24px] border border-[#e3f503]/20 bg-[#e3f503]/10 px-5 py-4">
-                  <span className="block text-4xl font-semibold leading-none text-[#e3f503]">{formatPrice(selectedPrice)}</span>
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-4">
+                  <span className="block text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
                 </div>
               </div>
             </div>
@@ -175,13 +177,14 @@ export function ShopProductPage() {
                         onClick={() => {
                           setSelectedVariantKey(variant.key || variant.title)
                           setQuantity(1)
+                          setNotifyInterest(false)
                         }}
                         className={`flex items-center justify-between gap-4 rounded-[20px] border px-4 py-3 text-left transition ${
                           isSelected
                             ? "border-[#e3f503] bg-[#e3f503]/8 text-white"
                             : "border-white/10 text-white/78 hover:border-white/25 hover:bg-white/[0.03] hover:text-white"
                         }`}
-                        disabled={!variant.isActive}
+                        disabled={variant.isActive === false}
                       >
                         <div>
                           <span className="block text-sm font-medium text-white">{variant.title}</span>
@@ -251,41 +254,52 @@ export function ShopProductPage() {
                   : "Questo prodotto non e disponibile per l'acquisto in questo momento."}
               </div>
             ) : null}
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={() =>
-                  addItem(product, quantity, {
-                    variantId: selectedVariant?.id ?? null,
-                    format: selectedVariant?.title || null,
-                    variantLabel: selectedVariant?.title || null,
-                    variantSku: selectedVariant?.sku || null,
-                  })
-                }
-                disabled={!purchasable}
-                className="w-full"
-              >
-                Aggiungi al carrello
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleBuyNow}
-                disabled={!purchasable}
-                className="w-full"
-              >
-                Acquista ora
-              </Button>
-              {user?.role === "admin" ? (
+            {!purchasable ? (
+              <div className="space-y-3">
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={handleEditProduct}
+                  onClick={() => setNotifyInterest(true)}
                   className="w-full"
                 >
-                  Modifica
+                  Notificami quando disponibile
                 </Button>
-              ) : null}
-            </div>
+                {notifyInterest ? (
+                  <p className="text-sm text-white/55">
+                    Registriamo il tuo interesse per questa variante. Possiamo collegare le notifiche reali in un passaggio successivo.
+                  </p>
+                ) : null}
+                {effectiveRole === "admin" ? (
+                  <Button type="button" variant="ghost" onClick={handleEditProduct} className="w-full">
+                    Modifica
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={() =>
+                    addItem(product, quantity, {
+                      variantId: selectedVariant?.id ?? null,
+                      format: selectedVariant?.title || null,
+                      variantLabel: selectedVariant?.title || null,
+                      variantSku: selectedVariant?.sku || null,
+                    })
+                  }
+                  className="w-full"
+                >
+                  Aggiungi al carrello
+                </Button>
+                <Button type="button" variant="ghost" onClick={handleBuyNow} className="w-full">
+                  Acquista ora
+                </Button>
+                {effectiveRole === "admin" ? (
+                  <Button type="button" variant="ghost" onClick={handleEditProduct} className="w-full">
+                    Modifica
+                  </Button>
+                ) : null}
+              </div>
+            )}
             <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/72">
               <div className="flex items-start justify-between gap-4">
                 <div>

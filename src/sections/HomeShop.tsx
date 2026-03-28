@@ -241,7 +241,7 @@ function parseHomepageEntries<T extends { title: string; href: string; query: st
 
 export function HomeShop() {
   const navigate = useNavigate();
-  const { user } = useShopAuth();
+  const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
@@ -359,7 +359,7 @@ export function HomeShop() {
               Poster, stampe e pezzi creativi da collezionare.
             </h2>
           </div>
-          {user?.role === "admin" ? (
+          {effectiveRole === "admin" ? (
             <div className="flex flex-wrap gap-3 self-start sm:self-auto">
               {catalogEditMode ? (
                 <>
@@ -424,7 +424,7 @@ export function HomeShop() {
                 Collezioni curate per iniziare da una direzione forte.
               </h3>
             </div>
-            {user?.role === "admin" ? (
+            {effectiveRole === "admin" ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -493,7 +493,7 @@ export function HomeShop() {
                 Le direzioni piu cercate, subito a portata di scroll.
               </h3>
             </div>
-            {user?.role === "admin" ? (
+            {effectiveRole === "admin" ? (
               <Button
                 variant="ghost"
                 size="sm"

@@ -86,7 +86,7 @@ export function Navbar() {
   })
   const navH = 88
 
-  const { user, login, updateProfile, logout, loading } = useShopAuth()
+  const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview, login, updateProfile, logout, loading } = useShopAuth()
   const { items, couponCode, clearCart, removeItem } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
@@ -288,7 +288,7 @@ export function Navbar() {
         const haystack = [product.title, product.slug, product.category, product.description].join(" ").toLowerCase()
         return haystack.includes(query)
       })
-      .slice(0, 6)
+      .slice(0, 4)
   }, [products, trimmedSearch])
 
   function submitSearch(nextSearch = trimmedSearch) {
@@ -297,7 +297,7 @@ export function Navbar() {
     setSearchOpen(false)
   }
 
-  const suggestedProducts = useMemo(() => products.slice(0, 6), [products])
+  const suggestedProducts = useMemo(() => products.slice(0, 4), [products])
   const profileView = user ? "logged" : profileStep
   const displayUsername = user?.username || user?.email?.split("@")[0] || "cliente"
 
@@ -550,7 +550,7 @@ export function Navbar() {
                           <p className="mt-2 text-sm text-white/65">Apri prodotti reali direttamente dalla ricerca.</p>
                         </div>
                       </div>
-                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="grid gap-4 lg:grid-cols-4">
                         {suggestedProducts.length ? (
                           suggestedProducts.map((product) => (
                             <button
@@ -599,7 +599,7 @@ export function Navbar() {
                         </button>
                       </div>
 
-                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="grid gap-4 lg:grid-cols-4">
                         {liveResults.length ? (
                           liveResults.map((product) => (
                             <button
@@ -794,7 +794,7 @@ export function Navbar() {
                       ) : null}
 
                       <div className="mt-5 flex flex-col gap-3">
-                        {user?.role === "admin" ? (
+                        {effectiveRole === "admin" ? (
                           <>
                             <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
                               Gli account admin non possono completare ordini cliente o avviare il pagamento PayPal.
@@ -921,16 +921,37 @@ export function Navbar() {
 
                             <button
                               type="button"
-                              onClick={() => (user.role === "admin" ? navigate("/shop/admin") : navigate("/shop/profile"))}
+                              onClick={() => (effectiveRole === "admin" ? navigate("/shop/admin") : navigate("/shop/profile"))}
                               className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
                             >
-                              <div className="text-sm font-medium">{user.role === "admin" ? "Gestisci negozio" : "I miei ordini"}</div>
+                              <div className="text-sm font-medium">{effectiveRole === "admin" ? "Gestisci negozio" : "I miei ordini"}</div>
                               <div className="mt-1 text-sm text-white/55">
-                                {user.role === "admin"
+                                {effectiveRole === "admin"
                                   ? "Accedi rapidamente all'area admin dello shop."
                                   : "Controlla lo storico e scarica le ricevute."}
                               </div>
                             </button>
+                            {user.role === "admin" ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isGuestPreview) {
+                                    disableGuestPreview()
+                                  } else {
+                                    enableGuestPreview()
+                                  }
+                                  setProfileOpen(false)
+                                }}
+                                className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
+                              >
+                                <div className="text-sm font-medium">{isGuestPreview ? "Torna admin" : "Vedi come ospite"}</div>
+                                <div className="mt-1 text-sm text-white/55">
+                                  {isGuestPreview
+                                    ? "Esci dalla preview cliente e ripristina i controlli admin."
+                                    : "Naviga lo shop come cliente senza perdere il login admin."}
+                                </div>
+                              </button>
+                            ) : null}
                           </div>
                         </>
                       ) : (

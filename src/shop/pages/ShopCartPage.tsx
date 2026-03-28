@@ -10,7 +10,7 @@ import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
 import { ShopPricing } from "../types"
 
 export function ShopCartPage() {
-  const { user, loading } = useShopAuth()
+  const { user, loading, effectiveRole } = useShopAuth()
   const { items, updateItem, removeItem, couponCode, setCouponCode } = useShopCart()
   const [pricing, setPricing] = useState<ShopPricing | null>(null)
   const [error, setError] = useState("")
@@ -127,7 +127,7 @@ export function ShopCartPage() {
               <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
               <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
-              {user?.role === "admin" ? (
+              {effectiveRole === "admin" ? (
                 <>
                   <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
                     Gli account admin non possono effettuare ordini cliente o avviare pagamenti PayPal.

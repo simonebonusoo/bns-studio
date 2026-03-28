@@ -5,9 +5,10 @@ import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
 import { apiFetch } from "../lib/api"
+import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
-import { ShopOrder, ShopPayment, ShopPricing } from "../types"
+import { ShopOrder, ShopPayment, ShopPricing, ShopSettings } from "../types"
 
 type CheckoutStep = "review" | "details" | "payment"
 
@@ -22,7 +23,7 @@ function mapPaypalErrorMessage(message: string) {
 }
 
 export function ShopCheckoutPage() {
-  const { user } = useShopAuth()
+  const { user, isGuestPreview } = useShopAuth()
   const { items, couponCode, setCouponCode, clearCart } = useShopCart()
   const [step, setStep] = useState<CheckoutStep>("review")
   const [pricing, setPricing] = useState<ShopPricing | null>(null)
@@ -31,6 +32,7 @@ export function ShopCheckoutPage() {
   const [isRedirectingToPaypal, setIsRedirectingToPaypal] = useState(false)
   const [order, setOrder] = useState<ShopOrder | null>(null)
   const [payment, setPayment] = useState<ShopPayment | null>(null)
+  const [settings, setSettings] = useState<ShopSettings>({})
   const [paymentError, setPaymentError] = useState("")
   const [form, setForm] = useState({
     email: user?.email || "",
@@ -78,6 +80,10 @@ export function ShopCheckoutPage() {
     }))
   }, [user])
 
+  useEffect(() => {
+    apiFetch<ShopSettings>("/store/settings").then(setSettings).catch(() => setSettings({}))
+  }, [])
+
   async function handleCreateOrder(event: React.FormEvent) {
     event.preventDefault()
     setSubmitting(true)
@@ -85,6 +91,48 @@ export function ShopCheckoutPage() {
     setPaymentError("")
 
     try {
+      if (user?.role === "admin" && isGuestPreview && pricing) {
+        setOrder({
+          id: 0,
+          orderReference: `PREVIEW-${Date.now()}`,
+          email: form.email,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          addressLine1: form.addressLine1,
+          addressLine2: form.addressLine2 || null,
+          city: form.city,
+          postalCode: form.postalCode,
+          country: form.country,
+          status: "preview",
+          subtotal: pricing.subtotal,
+          discountTotal: pricing.discountTotal,
+          shippingTotal: pricing.shippingTotal,
+          total: pricing.total,
+          couponCode: couponCode || null,
+          createdAt: new Date().toISOString(),
+          pricingBreakdown: pricing,
+          items: pricing.items.map((item, index) => ({
+            id: index + 1,
+            productId: item.productId,
+            variantId: item.variantId ?? null,
+            title: item.title,
+            imageUrl: item.imageUrl,
+            format: item.format || null,
+            variantLabel: item.variantLabel || null,
+            variantSku: item.variantSku || null,
+            unitPrice: item.unitPrice,
+            unitCost: item.unitCost,
+            quantity: item.quantity,
+            lineTotal: item.lineTotal,
+            costTotal: item.costTotal,
+          })),
+        })
+        setPayment(null)
+        setPaymentError("")
+        setStep("payment")
+        return
+      }
+
       const data = await apiFetch<{ order: ShopOrder; payment: ShopPayment | null; paymentError?: string | null }>("/orders/checkout", {
         method: "POST",
         body: JSON.stringify({
@@ -156,7 +204,9 @@ export function ShopCheckoutPage() {
           ? "Controlla prodotti, formati, coupon e totale finale prima di proseguire."
           : step === "details"
             ? "Inserisci i dati di spedizione e conferma il riepilogo prima di passare al pagamento."
-            : "Questo è l'ultimo passaggio: l'ordine è pronto e PayPal compare solo qui."
+            : user?.role === "admin" && isGuestPreview
+              ? "Preview finale cliente: l'ordine viene simulato e PayPal non viene avviato."
+              : "Questo è l'ultimo passaggio: l'ordine è pronto e PayPal compare solo qui."
       }
     >
       <div className="mb-6 flex flex-wrap gap-3 text-xs uppercase tracking-[0.2em] text-white/45">
@@ -331,7 +381,11 @@ export function ShopCheckoutPage() {
               <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(order.shippingTotal)}</span></div>
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(order.total)}</span></div>
             </div>
-            {payment ? (
+            {user?.role === "admin" && isGuestPreview ? (
+              <div className="rounded-2xl border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">
+                Modalità preview cliente attiva: il pagamento PayPal reale è disattivato.
+              </div>
+            ) : payment ? (
               <p className="text-sm text-white/55">
                 {payment.mode === "paypal_standard"
                   ? "PayPal si aprirà con importo finale e riferimento ordine già precompilati."
@@ -344,14 +398,24 @@ export function ShopCheckoutPage() {
               </div>
             ) : null}
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handlePayPalClick}
-                disabled={isRedirectingToPaypal}
-                className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-wait disabled:opacity-70"
-              >
-                {isRedirectingToPaypal ? "Reindirizzamento a PayPal..." : "Paga con PayPal"}
-              </button>
+              {user?.role === "admin" && isGuestPreview ? (
+                <button
+                  type="button"
+                  onClick={() => downloadInvoicePdf(order, settings)}
+                  className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90"
+                >
+                  Scarica ricevuta anteprima
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handlePayPalClick}
+                  disabled={isRedirectingToPaypal}
+                  className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-wait disabled:opacity-70"
+                >
+                  {isRedirectingToPaypal ? "Reindirizzamento a PayPal..." : "Paga con PayPal"}
+                </button>
+              )}
             </div>
           </aside>
         </div>
