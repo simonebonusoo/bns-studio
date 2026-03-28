@@ -81,3 +81,74 @@ export async function markBackInStockSubscriptionsReady(db, { productId, previou
     restockedVariantIds,
   }
 }
+
+export async function getReadyBackInStockSubscriptions(db, limit = 50) {
+  return db.backInStockSubscription.findMany({
+    where: {
+      status: "ready",
+      cancelledAt: null,
+      notifiedAt: null,
+    },
+    take: limit,
+    orderBy: [{ restockedAt: "asc" }, { createdAt: "asc" }],
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      product: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
+      },
+      variant: {
+        select: {
+          id: true,
+          title: true,
+          key: true,
+        },
+      },
+    },
+  })
+}
+
+export function buildBackInStockNotificationPayloads(subscriptions = []) {
+  return subscriptions.map((subscription) => ({
+    subscriptionId: subscription.id,
+    email: subscription.email || subscription.user?.email || "",
+    productId: subscription.productId,
+    productTitle: subscription.product?.title || "Prodotto BNS Studio",
+    productSlug: subscription.product?.slug || "",
+    variantId: subscription.variantId ?? null,
+    variantLabel: subscription.variant?.title || null,
+    subject: `Di nuovo disponibile: ${subscription.product?.title || "Prodotto BNS Studio"}`,
+  }))
+}
+
+export async function markBackInStockSubscriptionsNotified(db, subscriptionIds = []) {
+  const ids = subscriptionIds.filter((id) => Number.isInteger(id))
+  if (!ids.length) {
+    return { count: 0 }
+  }
+
+  const result = await db.backInStockSubscription.updateMany({
+    where: {
+      id: { in: ids },
+      status: "ready",
+      cancelledAt: null,
+      notifiedAt: null,
+    },
+    data: {
+      status: "notified",
+      notifiedAt: new Date(),
+    },
+  })
+
+  return { count: result.count }
+}

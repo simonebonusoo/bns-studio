@@ -15,6 +15,7 @@
     "shop:backup": "node scripts/shop-backup.mjs",
     "shop:restore": "node scripts/shop-restore.mjs",
     "shop:verify-persistence": "node scripts/verify-shop-persistence.mjs",
+    "shop:process-back-in-stock": "node scripts/process-back-in-stock-notifications.mjs",
     "shop:assets:migrate-cloudinary": "node scripts/migrate-product-images-to-cloudinary.mjs",
     "render:build": "npm install && npx prisma generate",
     "render:start": "node scripts/bootstrap-shop-server.mjs",

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { ShopCartItem, ShopProduct } from "../types"
-import { getDefaultVariant, resolveSelectedVariant } from "../lib/product"
+import { addCartItem, beginCheckoutCart, normalizeStoredCartItems, removeCartItem, updateCartItem } from "../lib/cart-state.mjs"
 
 type VariantSelection = {
   variantId?: number | null
@@ -22,43 +22,9 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null)
 
-function normalizeSelection(product: ShopProduct, selection?: VariantSelection) {
-  const variant = resolveSelectedVariant(product, {
-    variantId: selection?.variantId,
-    format: selection?.format,
-  }) || getDefaultVariant(product)
-
-  return {
-    variantId: variant?.id ?? selection?.variantId ?? null,
-    format: selection?.format || variant?.title || null,
-    variantLabel: selection?.variantLabel || variant?.title || null,
-    variantSku: selection?.variantSku || variant?.sku || null,
-  }
-}
-
-function selectionMatches(item: ShopCartItem, selection: VariantSelection) {
-  if (selection.variantId && item.variantId) {
-    return Number(item.variantId) === Number(selection.variantId)
-  }
-
-  return String(item.format || "") === String(selection.format || "")
-}
-
 function readItems() {
   try {
-    return (JSON.parse(localStorage.getItem("bns_shop_cart") || "[]") as ShopCartItem[]).map((item) => {
-      const normalized = normalizeSelection(item.product, {
-        variantId: item.variantId,
-        format: item.format,
-        variantLabel: item.variantLabel,
-        variantSku: item.variantSku,
-      })
-
-      return {
-        ...item,
-        ...normalized,
-      }
-    })
+    return normalizeStoredCartItems(JSON.parse(localStorage.getItem("bns_shop_cart") || "[]") as ShopCartItem[])
   } catch {
     return []
   }
@@ -77,41 +43,19 @@ export function ShopCartProvider({ children }: { children: React.ReactNode }) {
   }, [couponCode])
 
   function addItem(product: ShopProduct, quantity = 1, selection?: VariantSelection) {
-    const normalized = normalizeSelection(product, selection)
-
-    setItems((current) => {
-      const existing = current.find((item) => item.productId === product.id && selectionMatches(item, normalized))
-      if (existing) {
-        return current.map((item) =>
-          item.productId === product.id && selectionMatches(item, normalized)
-            ? { ...item, quantity: item.quantity + quantity, product, ...normalized }
-            : item
-        )
-      }
-
-      return [...current, { productId: product.id, quantity, product, ...normalized }]
-    })
+    setItems((current) => addCartItem(current, product, quantity, selection))
   }
 
   function updateItem(productId: number, quantity: number, selection?: VariantSelection) {
-    setItems((current) =>
-      current
-        .map((item) =>
-          item.productId === productId && selectionMatches(item, selection || item)
-            ? { ...item, quantity }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    )
+    setItems((current) => updateCartItem(current, productId, quantity, selection))
   }
 
   function removeItem(productId: number, selection?: VariantSelection) {
-    setItems((current) => current.filter((item) => !(item.productId === productId && selectionMatches(item, selection || item))))
+    setItems((current) => removeCartItem(current, productId, selection))
   }
 
   function beginCheckout(product: ShopProduct, quantity = 1, selection?: VariantSelection) {
-    const normalized = normalizeSelection(product, selection)
-    setItems([{ productId: product.id, quantity, product, ...normalized }])
+    setItems(beginCheckoutCart(product, quantity, selection))
     setCouponCode("")
   }
 
