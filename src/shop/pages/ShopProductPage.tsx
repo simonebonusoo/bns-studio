@@ -50,7 +50,7 @@ export function ShopProductPage() {
   const [settings, setSettings] = useState<ShopSettings>({})
   const [notifyInterest, setNotifyInterest] = useState(false)
   const [variantMenuOpen, setVariantMenuOpen] = useState(false)
-  const [openInfoSection, setOpenInfoSection] = useState<"details" | "shipping" | "delivery" | null>("details")
+  const [openInfoSection, setOpenInfoSection] = useState<"details" | "shipping" | "delivery" | null>(null)
 
   useEffect(() => {
     apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
@@ -61,7 +61,7 @@ export function ShopProductPage() {
       setQuantity(1)
       setNotifyInterest(false)
       setVariantMenuOpen(false)
-      setOpenInfoSection("details")
+      setOpenInfoSection(null)
     })
   }, [slug])
 
@@ -122,8 +122,8 @@ export function ShopProductPage() {
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
       <div className="mx-auto max-w-[1380px] space-y-8">
-        <div className="grid gap-8 lg:grid-cols-[1.02fr_0.88fr]">
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_92px] md:items-start">
+        <div className="grid items-stretch gap-8 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.88fr)]">
+          <div className="min-w-0 grid gap-4 md:grid-cols-[minmax(0,1fr)_92px] md:items-start">
             <button
               type="button"
               onClick={() => setIsLightboxOpen(true)}
@@ -150,20 +150,22 @@ export function ShopProductPage() {
             </div>
           </div>
 
-          <div className="shop-card h-fit self-start p-5 md:p-6">
+          <div className="shop-card flex h-full min-w-0 flex-col p-5 md:p-6">
             <div className="space-y-4">
               <div className="space-y-3 border-b border-white/10 pb-4">
-                {badges.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {badges.map((badge) => (
-                      <span key={badge.key} className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/75">
-                        {badge.label}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
                 <div className="space-y-2">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">Prezzo</p>
+                  <div className="flex items-start justify-between gap-4">
+                    <p className="pt-1 text-[11px] uppercase tracking-[0.2em] text-white/45">Prezzo</p>
+                    {badges.length ? (
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {badges.map((badge) => (
+                          <span key={badge.key} className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/75">
+                            {badge.label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                   <div className="rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-4">
                     <span className="block text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
                   </div>
@@ -265,15 +267,6 @@ export function ShopProductPage() {
                   </div>
                 </div>
               </div>
-              {product.tags?.length ? (
-                <div className="flex flex-wrap gap-2">
-                  {product.tags.map((tag) => (
-                    <span key={tag.slug} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                      #{tag.name}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
               {!purchasable ? (
                 <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
                   {stockStatus === "out_of_stock"
@@ -331,13 +324,24 @@ export function ShopProductPage() {
           </div>
         </div>
 
-        <div className="grid items-start gap-3 lg:grid-cols-3">
+        <div className="grid items-start gap-3 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
           <ProductInfoAccordion
             title="Dettagli prodotto"
             open={openInfoSection === "details"}
             onToggle={() => setOpenInfoSection((current) => (current === "details" ? null : "details"))}
           >
-            Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.
+            <div className="grid gap-2">
+              <p>Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.</p>
+              {product.tags?.length ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {product.tags.map((tag) => (
+                    <span key={tag.slug} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                      #{tag.name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </ProductInfoAccordion>
           <ProductInfoAccordion
             title="Spedizione e acquisto"
