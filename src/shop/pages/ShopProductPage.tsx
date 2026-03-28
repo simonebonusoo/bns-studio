@@ -76,7 +76,16 @@ export function ShopProductPage() {
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
       <div className="mx-auto grid max-w-[1380px] gap-8 lg:grid-cols-[1.02fr_0.88fr]">
-        <div className="grid gap-4 md:grid-cols-[92px_minmax(0,1fr)] md:items-start">
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_92px] md:items-start">
+          <button
+            type="button"
+            onClick={() => setIsLightboxOpen(true)}
+            className="shop-card block overflow-hidden text-left transition hover:border-white/20"
+          >
+            <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[460px]">
+              <img src={selectedImage} alt={product.title} className="max-h-[420px] w-full object-contain md:max-h-[520px]" />
+            </div>
+          </button>
           <div className="grid grid-cols-4 gap-3 md:grid-cols-1">
             {galleryImages.map((image, index) => (
               <button
@@ -92,54 +101,24 @@ export function ShopProductPage() {
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setIsLightboxOpen(true)}
-            className="shop-card block overflow-hidden text-left transition hover:border-white/20"
-          >
-            <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[460px]">
-              <img src={selectedImage} alt={product.title} className="max-h-[420px] w-full object-contain md:max-h-[520px]" />
-            </div>
-          </button>
         </div>
 
         <div className="shop-card flex flex-col justify-between gap-6 p-5 md:p-6">
-          <div>
-            {badges.length ? (
-              <div className="flex flex-wrap gap-2">
-                {badges.map((badge) => (
-                  <span key={badge.key} className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/75">
-                    {badge.label}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            <div className="mt-5 space-y-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="space-y-3">
-                  <h2 className="text-3xl font-semibold text-white">{product.title}</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {product.collections?.map((collection) => (
-                      <button
-                        key={collection.id}
-                        type="button"
-                        onClick={() => navigate(`/shop?collectionSlug=${collection.slug}`)}
-                        className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70 transition hover:border-white/25 hover:text-white"
-                      >
-                        {collection.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="rounded-[24px] border border-[#e3f503]/20 bg-[#e3f503]/10 px-5 py-4 text-right">
-                  <span className="block text-3xl font-semibold text-[#e3f503]">{formatPrice(selectedPrice)}</span>
-                </div>
-              </div>
-              <p className="text-sm leading-7 text-white/70">{product.description}</p>
-            </div>
-          </div>
-
           <div className="space-y-4">
+            <div className="flex flex-col gap-4">
+              {badges.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {badges.map((badge) => (
+                    <span key={badge.key} className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/75">
+                      {badge.label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <div className="rounded-[24px] border border-[#e3f503]/20 bg-[#e3f503]/10 px-5 py-4 text-right">
+                <span className="block text-3xl font-semibold text-[#e3f503]">{formatPrice(selectedPrice)}</span>
+              </div>
+            </div>
             <div className="grid gap-3 text-sm text-white/65">
               <div className="rounded-2xl border border-white/10 px-4 py-3">
                 <span className="text-white">Varianti disponibili</span>
