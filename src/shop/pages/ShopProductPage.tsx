@@ -10,6 +10,32 @@ import { getAvailableFormats, getDefaultVariant, getPriceForVariant, getProductB
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct, ShopSettings } from "../types"
 
+function ProductInfoAccordion({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string
+  open: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-sm text-white/80 transition hover:bg-white/[0.03]"
+      >
+        <span>{title}</span>
+        <span className={`text-white/45 transition ${open ? "rotate-180" : ""}`}>⌄</span>
+      </button>
+      {open ? <div className="border-t border-white/10 px-4 py-3 text-sm leading-6 text-white/68">{children}</div> : null}
+    </div>
+  )
+}
+
 export function ShopProductPage() {
   const navigate = useNavigate()
   const { slug = "" } = useParams()
@@ -23,6 +49,8 @@ export function ShopProductPage() {
   const [quantity, setQuantity] = useState(1)
   const [settings, setSettings] = useState<ShopSettings>({})
   const [notifyInterest, setNotifyInterest] = useState(false)
+  const [variantMenuOpen, setVariantMenuOpen] = useState(false)
+  const [openInfoSection, setOpenInfoSection] = useState<"details" | "shipping" | "delivery" | null>("details")
 
   useEffect(() => {
     apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
@@ -32,6 +60,8 @@ export function ShopProductPage() {
       setIsLightboxOpen(false)
       setQuantity(1)
       setNotifyInterest(false)
+      setVariantMenuOpen(false)
+      setOpenInfoSection("details")
     })
   }, [slug])
 
@@ -119,9 +149,9 @@ export function ShopProductPage() {
           </div>
         </div>
 
-        <div className="shop-card flex flex-col justify-between gap-6 p-5 md:p-6">
-          <div className="space-y-5">
-            <div className="space-y-4 border-b border-white/10 pb-5">
+        <div className="shop-card h-fit self-start p-5 md:p-6 lg:max-h-[620px] lg:overflow-y-auto">
+          <div className="space-y-4">
+            <div className="space-y-3 border-b border-white/10 pb-4">
               {badges.length ? (
                 <div className="flex flex-wrap gap-2">
                   {badges.map((badge) => (
@@ -159,42 +189,49 @@ export function ShopProductPage() {
                   <span>{selectedVariant?.sku || product.sku}</span>
                 </div>
               ) : null}
-              <div className="rounded-2xl border border-white/10 px-4 py-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Varianti</p>
-                    <p className="mt-1 text-sm text-white/70">Seleziona la versione che vuoi acquistare.</p>
+              <div className="rounded-2xl border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setVariantMenuOpen((current) => !current)}
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-white/[0.03]"
+                >
+                  <span className="text-white/70">Variante</span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-sm text-white">{selectedVariant?.title || "Seleziona"}</span>
+                    <span className={`text-white/45 transition ${variantMenuOpen ? "rotate-180" : ""}`}>⌄</span>
+                  </span>
+                </button>
+                {variantMenuOpen ? (
+                  <div className="grid gap-2 border-t border-white/10 px-3 py-3">
+                    {variants.map((variant) => {
+                      const isSelected = selectedVariant?.key === variant.key
+                      const variantLabel = getProductStockLabel(product, variant.id)
+                      return (
+                        <button
+                          key={`${variant.id ?? variant.key}-${variant.position}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedVariantKey(variant.key || variant.title)
+                            setQuantity(1)
+                            setNotifyInterest(false)
+                            setVariantMenuOpen(false)
+                          }}
+                          className={`flex items-center justify-between gap-4 rounded-[18px] border px-4 py-3 text-left transition ${
+                            isSelected
+                              ? "border-[#e3f503] bg-[#e3f503]/8 text-white"
+                              : "border-white/10 text-white/78 hover:border-white/25 hover:bg-white/[0.03] hover:text-white"
+                          }`}
+                          disabled={variant.isActive === false}
+                        >
+                          <div>
+                            <span className="block text-sm font-medium text-white">{variant.title}</span>
+                            <span className="mt-1 block text-xs text-white/55">{variantLabel}</span>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
-                </div>
-                <div className="mt-4 grid gap-2">
-                  {variants.map((variant) => {
-                    const isSelected = selectedVariant?.key === variant.key
-                    const variantLabel = getProductStockLabel(product, variant.id)
-                    return (
-                      <button
-                        key={`${variant.id ?? variant.key}-${variant.position}`}
-                        type="button"
-                        onClick={() => {
-                          setSelectedVariantKey(variant.key || variant.title)
-                          setQuantity(1)
-                          setNotifyInterest(false)
-                        }}
-                        className={`flex items-center justify-between gap-4 rounded-[20px] border px-4 py-3 text-left transition ${
-                          isSelected
-                            ? "border-[#e3f503] bg-[#e3f503]/8 text-white"
-                            : "border-white/10 text-white/78 hover:border-white/25 hover:bg-white/[0.03] hover:text-white"
-                        }`}
-                        disabled={variant.isActive === false}
-                      >
-                        <div>
-                          <span className="block text-sm font-medium text-white">{variant.title}</span>
-                          <span className="mt-1 block text-xs text-white/55">{variantLabel}</span>
-                        </div>
-                        <span className={`text-sm font-medium ${isSelected ? "text-[#e3f503]" : "text-white/70"}`}>{formatPrice(variant.price)}</span>
-                      </button>
-                    )
-                  })}
-                </div>
+                ) : null}
               </div>
               <div className="rounded-2xl border border-white/10 px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
@@ -221,20 +258,6 @@ export function ShopProductPage() {
                       +
                     </button>
                   </div>
-                </div>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Dettagli prodotto</p>
-                  <p className="mt-2 text-sm leading-6 text-white/70">
-                    Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/10 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Spedizione e acquisto</p>
-                  <p className="mt-2 text-sm leading-6 text-white/70">
-                    Il checkout conserva variante selezionata, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.
-                  </p>
                 </div>
               </div>
             </div>
@@ -300,20 +323,31 @@ export function ShopProductPage() {
                 ) : null}
               </div>
             )}
-            <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/72">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Consegna</p>
-                  <p className="mt-1 text-white">3-5 giorni lavorativi</p>
+            <div className="grid gap-3">
+              <ProductInfoAccordion
+                title="Dettagli prodotto"
+                open={openInfoSection === "details"}
+                onToggle={() => setOpenInfoSection((current) => (current === "details" ? null : "details"))}
+              >
+                Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.
+              </ProductInfoAccordion>
+              <ProductInfoAccordion
+                title="Spedizione e acquisto"
+                open={openInfoSection === "shipping"}
+                onToggle={() => setOpenInfoSection((current) => (current === "shipping" ? null : "shipping"))}
+              >
+                Il checkout conserva variante selezionata, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.
+              </ProductInfoAccordion>
+              <ProductInfoAccordion
+                title="Consegna"
+                open={openInfoSection === "delivery"}
+                onToggle={() => setOpenInfoSection((current) => (current === "delivery" ? null : "delivery"))}
+              >
+                <div className="grid gap-2">
+                  <p>Consegna in 3-5 giorni lavorativi.</p>
+                  <p>Spedizione {shippingCostValue > 0 ? `da ${shippingCostLabel}` : shippingCostLabel}.</p>
                 </div>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/55">
-                  Shop info
-                </span>
-              </div>
-              <div className="grid gap-2 text-white/65">
-                <p>Spedizione {shippingCostValue > 0 ? `da ${shippingCostLabel}` : shippingCostLabel}.</p>
-                <p>La variante scelta viene verificata di nuovo al checkout prima della conferma ordine.</p>
-              </div>
+              </ProductInfoAccordion>
             </div>
           </div>
         </div>
