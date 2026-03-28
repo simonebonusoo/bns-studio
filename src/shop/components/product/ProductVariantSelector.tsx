@@ -35,7 +35,7 @@ export function ProductVariantSelector({
       </button>
       {open ? (
         <div className="grid gap-2 border-t border-white/10 px-3 py-3">
-          {variants.map((variant) => {
+          {variants.length ? variants.map((variant) => {
             const isSelected = selectedVariant?.key === variant.key
             return (
               <button
@@ -58,7 +58,7 @@ export function ProductVariantSelector({
                 </span>
               </button>
             )
-          })}
+          }) : <div className="px-2 py-2 text-sm text-white/45">Nessuna variante disponibile</div>}
         </div>
       ) : null}
     </div>

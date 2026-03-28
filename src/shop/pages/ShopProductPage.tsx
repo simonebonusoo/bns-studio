@@ -19,6 +19,7 @@ export function ShopProductPage() {
   const { user, effectiveRole } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
   const [product, setProduct] = useState<ShopProduct | null>(null)
+  const [productError, setProductError] = useState("")
   const [relatedProducts, setRelatedProducts] = useState<ShopProduct[]>([])
   const [selectedImage, setSelectedImage] = useState("")
   const [selectedVariantKey, setSelectedVariantKey] = useState("")
@@ -30,16 +31,24 @@ export function ShopProductPage() {
   const [openInfoSection, setOpenInfoSection] = useState<"details" | "shipping" | "delivery" | null>(null)
 
   useEffect(() => {
-    apiFetch<ShopProduct>(`/store/products/${slug}`).then((data) => {
-      setProduct(data)
-      setSelectedImage(getProductPrimaryImage(data))
-      setSelectedVariantKey(getDefaultVariant(data)?.key || getDefaultVariant(data)?.title || "")
-      setIsLightboxOpen(false)
-      setQuantity(1)
-      setNotifyInterest(false)
-      setVariantMenuOpen(false)
-      setOpenInfoSection(null)
-    })
+    setProduct(null)
+    setProductError("")
+
+    apiFetch<ShopProduct>(`/store/products/${slug}`)
+      .then((data) => {
+        setProduct(data)
+        setSelectedImage(getProductPrimaryImage(data))
+        setSelectedVariantKey(getDefaultVariant(data)?.key || getDefaultVariant(data)?.title || "")
+        setIsLightboxOpen(false)
+        setQuantity(1)
+        setNotifyInterest(false)
+        setVariantMenuOpen(false)
+        setOpenInfoSection(null)
+      })
+      .catch((err) => {
+        setProduct(null)
+        setProductError(err instanceof Error ? err.message : "Errore durante il caricamento del prodotto.")
+      })
   }, [slug])
 
   useEffect(() => {
@@ -53,20 +62,16 @@ export function ShopProductPage() {
     apiFetch<ShopSettings>("/store/settings").then(setSettings).catch(() => setSettings({}))
   }, [])
 
-  if (!product) {
-    return <div className="px-6 py-20 text-center text-white/60">Caricamento scheda prodotto...</div>
-  }
-
-  const availableFormats = getAvailableFormats(product)
-  const variants = getProductVariants(product)
-  const galleryImages = getProductGalleryImages(product)
-  const selectedVariant = resolveSelectedVariant(product, { format: selectedVariantKey }) || getDefaultVariant(product)
-  const selectedPrice = getPriceForVariant(product, selectedVariant?.id)
-  const purchasable = isProductPurchasable(product, selectedVariant?.id)
-  const badges = getProductBadges(product)
-  const stockStatus = getProductStockStatus(product, selectedVariant?.id)
-  const stockLabel = getProductStockLabel(product, selectedVariant?.id)
-  const maxQuantity = Math.max(selectedVariant?.stock ?? product.stock ?? 1, 1)
+  const availableFormats = product ? getAvailableFormats(product) : []
+  const variants = product ? getProductVariants(product) : []
+  const galleryImages = product ? getProductGalleryImages(product) : []
+  const selectedVariant = product ? resolveSelectedVariant(product, { format: selectedVariantKey }) || getDefaultVariant(product) : null
+  const selectedPrice = product ? getPriceForVariant(product, selectedVariant?.id) : 0
+  const purchasable = product ? isProductPurchasable(product, selectedVariant?.id) : false
+  const badges = product ? getProductBadges(product) : []
+  const stockStatus = product ? getProductStockStatus(product, selectedVariant?.id) : "out_of_stock"
+  const stockLabel = product ? getProductStockLabel(product, selectedVariant?.id) : "Esaurito"
+  const maxQuantity = Math.max(selectedVariant?.stock ?? product?.stock ?? 1, 1)
   const shippingCostValue = Number(settings.shippingCost || 0)
   const shippingCostLabel = shippingCostValue > 0 ? new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(shippingCostValue) : "calcolata al checkout"
   const purchaseState = getProductPurchaseState({
@@ -82,7 +87,7 @@ export function ShopProductPage() {
         content: (
           <div className="grid gap-2">
             <p>Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.</p>
-            {product.tags?.length ? (
+            {product?.tags?.length ? (
               <div className="flex flex-wrap gap-2 pt-1">
                 {product.tags.map((tag) => (
                   <span key={tag.slug} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
@@ -111,7 +116,7 @@ export function ShopProductPage() {
         ),
       },
     ],
-    [availableFormats, product.tags, shippingCostLabel, shippingCostValue]
+    [availableFormats, product?.tags, shippingCostLabel, shippingCostValue]
   )
 
   function updateQuantity(nextValue: number) {
@@ -119,6 +124,7 @@ export function ShopProductPage() {
   }
 
   function handleBuyNow() {
+    if (!product) return
     if (!purchasable) return
     beginCheckout(product, quantity, {
       variantId: selectedVariant?.id ?? null,
@@ -137,7 +143,21 @@ export function ShopProductPage() {
   }
 
   function handleEditProduct() {
+    if (!product) return
     navigate(`/shop/admin?editProduct=${product.id}`)
+  }
+
+  if (productError) {
+    return (
+      <div className="px-6 py-20 text-center text-white/60">
+        <p className="text-base text-white/80">Impossibile aprire la scheda prodotto.</p>
+        <p className="mt-2 text-sm text-white/55">{productError}</p>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return <div className="px-6 py-20 text-center text-white/60">Caricamento scheda prodotto...</div>
   }
 
   return (
@@ -213,7 +233,7 @@ export function ShopProductPage() {
         </div>
       ) : null}
 
-      <ProductLightbox open={isLightboxOpen} image={selectedImage} title={product.title} onClose={() => setIsLightboxOpen(false)} />
+      <ProductLightbox open={isLightboxOpen && Boolean(selectedImage)} image={selectedImage || getProductPrimaryImage(product)} title={product.title} onClose={() => setIsLightboxOpen(false)} />
     </ShopLayout>
   )
 }
