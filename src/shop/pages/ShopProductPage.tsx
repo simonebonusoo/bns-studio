@@ -22,7 +22,7 @@ function ProductInfoAccordion({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-2xl border border-white/10">
+    <div className="min-w-0 w-full rounded-2xl border border-white/10">
       <button
         type="button"
         onClick={onToggle}
@@ -31,7 +31,7 @@ function ProductInfoAccordion({
         <span>{title}</span>
         <span className={`text-white/45 transition ${open ? "rotate-180" : ""}`}>⌄</span>
       </button>
-      {open ? <div className="border-t border-white/10 px-4 py-3 text-sm leading-6 text-white/68">{children}</div> : null}
+      {open ? <div className="min-w-0 border-t border-white/10 px-4 py-3 text-sm leading-6 text-white/68">{children}</div> : null}
     </div>
   )
 }
@@ -121,8 +121,8 @@ export function ShopProductPage() {
 
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
-      <div className="mx-auto max-w-[1380px] space-y-8">
-        <div className="grid items-stretch gap-8 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.88fr)]">
+      <div className="mx-auto w-full max-w-[1380px] space-y-8">
+        <div className="grid w-full items-stretch gap-8 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.88fr)]">
           <div className="min-w-0 grid gap-4 md:grid-cols-[minmax(0,1fr)_92px] md:items-start">
             <button
               type="button"
@@ -324,7 +324,7 @@ export function ShopProductPage() {
           </div>
         </div>
 
-        <div className="grid items-start gap-3 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
+        <div className="grid w-full items-start gap-3 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
           <ProductInfoAccordion
             title="Dettagli prodotto"
             open={openInfoSection === "details"}
