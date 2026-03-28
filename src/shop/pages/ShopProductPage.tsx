@@ -149,7 +149,7 @@ export function ShopProductPage() {
           </div>
         </div>
 
-        <div className="shop-card h-fit self-start p-5 md:p-6 lg:max-h-[620px] lg:overflow-y-auto">
+        <div className="shop-card h-fit self-start p-5 md:p-6">
           <div className="space-y-4">
             <div className="space-y-3 border-b border-white/10 pb-4">
               {badges.length ? (
@@ -323,34 +323,35 @@ export function ShopProductPage() {
                 ) : null}
               </div>
             )}
-            <div className="grid gap-3">
-              <ProductInfoAccordion
-                title="Dettagli prodotto"
-                open={openInfoSection === "details"}
-                onToggle={() => setOpenInfoSection((current) => (current === "details" ? null : "details"))}
-              >
-                Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.
-              </ProductInfoAccordion>
-              <ProductInfoAccordion
-                title="Spedizione e acquisto"
-                open={openInfoSection === "shipping"}
-                onToggle={() => setOpenInfoSection((current) => (current === "shipping" ? null : "shipping"))}
-              >
-                Il checkout conserva variante selezionata, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.
-              </ProductInfoAccordion>
-              <ProductInfoAccordion
-                title="Consegna"
-                open={openInfoSection === "delivery"}
-                onToggle={() => setOpenInfoSection((current) => (current === "delivery" ? null : "delivery"))}
-              >
-                <div className="grid gap-2">
-                  <p>Consegna in 3-5 giorni lavorativi.</p>
-                  <p>Spedizione {shippingCostValue > 0 ? `da ${shippingCostLabel}` : shippingCostLabel}.</p>
-                </div>
-              </ProductInfoAccordion>
-            </div>
           </div>
         </div>
+      </div>
+
+      <div className="mx-auto mt-8 grid max-w-[1380px] gap-3">
+        <ProductInfoAccordion
+          title="Dettagli prodotto"
+          open={openInfoSection === "details"}
+          onToggle={() => setOpenInfoSection((current) => (current === "details" ? null : "details"))}
+        >
+          Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.
+        </ProductInfoAccordion>
+        <ProductInfoAccordion
+          title="Spedizione e acquisto"
+          open={openInfoSection === "shipping"}
+          onToggle={() => setOpenInfoSection((current) => (current === "shipping" ? null : "shipping"))}
+        >
+          Il checkout conserva variante selezionata, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.
+        </ProductInfoAccordion>
+        <ProductInfoAccordion
+          title="Consegna"
+          open={openInfoSection === "delivery"}
+          onToggle={() => setOpenInfoSection((current) => (current === "delivery" ? null : "delivery"))}
+        >
+          <div className="grid gap-2">
+            <p>Consegna in 3-5 giorni lavorativi.</p>
+            <p>Spedizione {shippingCostValue > 0 ? `da ${shippingCostLabel}` : shippingCostLabel}.</p>
+          </div>
+        </ProductInfoAccordion>
       </div>
 
       {relatedProducts.length ? (
