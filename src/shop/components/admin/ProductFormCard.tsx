@@ -410,22 +410,26 @@ export function ProductFormCard({
                       })
                     }
                   />
-                  <input
-                    className="shop-input"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Costo interno"
-                    value={variant.costPrice}
-                    onChange={(event) =>
-                      onChange({
-                        ...productForm,
-                        variants: productForm.variants.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, costPrice: event.target.value } : entry,
-                        ),
-                      })
-                    }
-                  />
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Costo produzione</span>
+                    <input
+                      className="shop-input"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Costo produzione"
+                      value={variant.costPrice}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, costPrice: event.target.value } : entry,
+                          ),
+                        })
+                      }
+                    />
+                    <p className="text-xs leading-5 text-white/45">Usato per calcolare il guadagno netto su questa variante.</p>
+                  </label>
                   <input
                     className="shop-input"
                     type="number"

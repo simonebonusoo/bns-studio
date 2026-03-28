@@ -3,19 +3,16 @@ import { z } from "zod"
 
 import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { env } from "../config/env.mjs"
+import { createCheckoutReference, parseCheckoutSessionItems, serializeCheckoutSessionAsPendingOrder } from "../lib/checkout-sessions.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { requireAuth } from "../middleware/auth.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
 import { buildPaypalRedirect } from "../services/paypal.mjs"
+import { notifyAdminOrderCompleted } from "../services/order-notifications.mjs"
 import { syncProductVariants } from "../lib/product-variants.mjs"
 
 const router = Router()
 const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
-
-function createOrderReference(orderId) {
-  const stamp = Date.now().toString(36).toUpperCase()
-  return `BNS-${stamp}-${orderId}`
-}
 
 async function applyOrderCompletionSideEffects(db, order) {
   if (order.status === "paid" || order.status === "shipped") {
@@ -60,6 +57,46 @@ async function applyOrderCompletionSideEffects(db, order) {
       where: { code: pricingBreakdown.appliedCoupon },
       data: { usageCount: { increment: 1 } },
     })
+  }
+}
+
+function buildOrderRecordFromCheckoutSession(session) {
+  const items = parseCheckoutSessionItems(session)
+
+  return {
+    orderReference: session.orderReference,
+    userId: session.userId,
+    email: session.email,
+    firstName: session.firstName,
+    lastName: session.lastName,
+    addressLine1: session.addressLine1,
+    addressLine2: session.addressLine2,
+    city: session.city,
+    postalCode: session.postalCode,
+    country: session.country,
+    status: "paid",
+    subtotal: session.subtotal,
+    discountTotal: session.discountTotal,
+    shippingTotal: session.shippingTotal,
+    total: session.total,
+    couponCode: session.couponCode,
+    pricingBreakdown: session.pricingBreakdown,
+    items: {
+      create: items.map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId || null,
+        title: item.title,
+        imageUrl: item.imageUrl,
+        format: item.format || null,
+        variantLabel: item.variantLabel || null,
+        variantSku: item.variantSku || null,
+        unitPrice: item.unitPrice,
+        unitCost: item.unitCost || 0,
+        quantity: item.quantity,
+        lineTotal: item.lineTotal,
+        costTotal: item.costTotal || 0,
+      })),
+    },
   }
 }
 
@@ -111,22 +148,35 @@ router.get(
       include: { items: true, user: { select: { role: true } } },
     })
 
-    if (!order) {
+    if (order) {
+      if (order.user.role !== "customer") {
+        throw new HttpError(404, "Ordine cliente non trovato")
+      }
+
+      if (req.user.role !== "admin" && order.userId !== req.user.id) {
+        throw new HttpError(403, "Operazione non consentita")
+      }
+
+      res.json({
+        ...order,
+        pricingBreakdown: JSON.parse(order.pricingBreakdown),
+      })
+      return
+    }
+
+    const checkoutSession = await prisma.checkoutSession.findUnique({
+      where: { orderReference: req.params.orderReference },
+    })
+
+    if (!checkoutSession) {
       throw new HttpError(404, "Ordine non trovato")
     }
 
-    if (order.user.role !== "customer") {
-      throw new HttpError(404, "Ordine cliente non trovato")
-    }
-
-    if (req.user.role !== "admin" && order.userId !== req.user.id) {
+    if (req.user.role !== "admin" && checkoutSession.userId !== req.user.id) {
       throw new HttpError(403, "Operazione non consentita")
     }
 
-    res.json({
-      ...order,
-      pricingBreakdown: JSON.parse(order.pricingBreakdown),
-    })
+    res.json(serializeCheckoutSessionAsPendingOrder(checkoutSession))
   })
 )
 
@@ -145,28 +195,46 @@ router.get(
       include: { user: { select: { role: true } } },
     })
 
-    if (!order) {
+    const checkoutSession =
+      order
+        ? null
+        : await prisma.checkoutSession.findUnique({
+            where: { orderReference: req.params.orderReference },
+          })
+
+    if (!order && !checkoutSession) {
       throw new HttpError(404, "Ordine non trovato")
     }
 
-    if (order.user.role !== "customer") {
-      throw new HttpError(404, "Ordine cliente non trovato")
-    }
+    if (order) {
+      if (order.user.role !== "customer") {
+        throw new HttpError(404, "Ordine cliente non trovato")
+      }
 
-    if (order.userId !== req.user.id) {
+      if (order.userId !== req.user.id) {
+        throw new HttpError(403, "Operazione non consentita")
+      }
+      if (order.status === "paid" || order.status === "shipped") {
+        throw new HttpError(400, "Pagamento già completato per questo ordine")
+      }
+    } else if (checkoutSession.userId !== req.user.id) {
       throw new HttpError(403, "Operazione non consentita")
+    } else if (checkoutSession.status !== "pending") {
+      throw new HttpError(400, "Pagamento già completato per questo checkout")
     }
 
-    console.log(`[shop] ordine trovato: ${order.orderReference} totale=${order.total} stato=${order.status}`)
+    const paymentTarget = order || checkoutSession
+
+    console.log(`[shop] ordine trovato: ${paymentTarget.orderReference} totale=${paymentTarget.total} stato=${paymentTarget.status}`)
     console.log(
-      `[shop] totali ordine: subtotal=${order.subtotal} shipping=${order.shippingTotal} discount=${order.discountTotal} total=${order.total}`
+      `[shop] totali ordine: subtotal=${paymentTarget.subtotal} shipping=${paymentTarget.shippingTotal} discount=${paymentTarget.discountTotal} total=${paymentTarget.total}`
     )
 
     let payment
     try {
       payment = await buildPaypalRedirect({
-        orderReference: order.orderReference,
-        total: order.total,
+        orderReference: paymentTarget.orderReference,
+        total: paymentTarget.total,
         clientUrl: env.clientUrl,
       })
     } catch (error) {
@@ -177,17 +245,17 @@ router.get(
     console.log(`[shop] paypal url generato: ${payment.redirectUrl}`)
 
     res.json({
-      orderReference: order.orderReference,
-      status: order.status,
-      total: order.total,
+      orderReference: paymentTarget.orderReference,
+      status: paymentTarget.status,
+      total: paymentTarget.total,
       url: payment.redirectUrl,
       payment: {
         ...payment,
-        orderReference: order.orderReference,
-        amount: order.total,
-        subtotal: order.subtotal,
-        discountTotal: order.discountTotal,
-        shippingTotal: order.shippingTotal,
+        orderReference: paymentTarget.orderReference,
+        amount: paymentTarget.total,
+        subtotal: paymentTarget.subtotal,
+        discountTotal: paymentTarget.discountTotal,
+        shippingTotal: paymentTarget.shippingTotal,
       },
     })
   })
@@ -206,34 +274,86 @@ router.post(
       include: { items: true, user: { select: { role: true } } },
     })
 
-    if (!order) {
+    if (order) {
+      if (order.user.role !== "customer") {
+        throw new HttpError(404, "Ordine cliente non trovato")
+      }
+
+      if (order.userId !== req.user.id) {
+        throw new HttpError(403, "Operazione non consentita")
+      }
+
+      const wasAlreadyCompleted = order.status === "paid" || order.status === "shipped"
+      const updated =
+        order.status === "paid" || order.status === "shipped"
+          ? order
+          : await prisma.$transaction(async (tx) => {
+              await applyOrderCompletionSideEffects(tx, order)
+              return tx.order.update({
+                where: { id: order.id },
+                data: { status: "paid" },
+                include: { items: true },
+              })
+            })
+
+      if (!wasAlreadyCompleted) {
+        await notifyAdminOrderCompleted({ order: updated, user: req.user })
+      }
+
+      res.json({
+        order: {
+          ...updated,
+          pricingBreakdown: JSON.parse(updated.pricingBreakdown),
+        },
+      })
+      return
+    }
+
+    const checkoutSession = await prisma.checkoutSession.findUnique({
+      where: { orderReference: req.params.orderReference },
+    })
+
+    if (!checkoutSession) {
       throw new HttpError(404, "Ordine non trovato")
     }
 
-    if (order.user.role !== "customer") {
-      throw new HttpError(404, "Ordine cliente non trovato")
-    }
-
-    if (order.userId !== req.user.id) {
+    if (checkoutSession.userId !== req.user.id) {
       throw new HttpError(403, "Operazione non consentita")
     }
 
-    const updated =
-      order.status === "paid" || order.status === "shipped"
-        ? order
-        : await prisma.$transaction(async (tx) => {
-            await applyOrderCompletionSideEffects(tx, order)
-            return tx.order.update({
-              where: { id: order.id },
-              data: { status: "paid" },
-              include: { items: true },
-            })
-          })
+    const createdOrder = await prisma.$transaction(async (tx) => {
+      const existingOrder = await tx.order.findUnique({
+        where: { orderReference: checkoutSession.orderReference },
+        include: { items: true },
+      })
+      if (existingOrder) {
+        return existingOrder
+      }
+
+      const orderRecord = await tx.order.create({
+        data: buildOrderRecordFromCheckoutSession(checkoutSession),
+        include: { items: true },
+      })
+
+      await applyOrderCompletionSideEffects(tx, orderRecord)
+
+      await tx.checkoutSession.update({
+        where: { id: checkoutSession.id },
+        data: {
+          status: "completed",
+          completedAt: new Date(),
+        },
+      })
+
+      return orderRecord
+    })
+
+    await notifyAdminOrderCompleted({ order: createdOrder, user: req.user })
 
     res.json({
       order: {
-        ...updated,
-        pricingBreakdown: JSON.parse(updated.pricingBreakdown),
+        ...createdOrder,
+        pricingBreakdown: JSON.parse(createdOrder.pricingBreakdown),
       },
     })
   })
@@ -255,9 +375,11 @@ router.post(
 
     const pricing = await calculatePricing(body.items, body.couponCode)
 
-    const order = await prisma.order.create({
+    const orderReference = createCheckoutReference()
+
+    const checkoutSession = await prisma.checkoutSession.create({
       data: {
-        orderReference: `draft-${Date.now()}`,
+        orderReference,
         userId: req.user.id,
         email: body.email,
         firstName: body.firstName,
@@ -274,30 +396,8 @@ router.post(
         total: pricing.total,
         couponCode: pricing.appliedCoupon,
         pricingBreakdown: JSON.stringify(pricing),
-        items: {
-          create: pricing.items.map((item) => ({
-            productId: item.productId,
-            variantId: item.variantId || null,
-            title: item.title,
-            imageUrl: item.imageUrl,
-            format: item.format || null,
-            variantLabel: item.variantLabel || null,
-            variantSku: item.variantSku || null,
-            unitPrice: item.unitPrice,
-            unitCost: item.unitCost || 0,
-            quantity: item.quantity,
-            lineTotal: item.lineTotal,
-            costTotal: item.costTotal || 0,
-          })),
-        },
+        itemsSnapshot: JSON.stringify(pricing.items),
       },
-      include: { items: true },
-    })
-
-    const finalized = await prisma.order.update({
-      where: { id: order.id },
-      data: { orderReference: createOrderReference(order.id) },
-      include: { items: true },
     })
 
     let payment = null
@@ -305,17 +405,17 @@ router.post(
 
     try {
       payment = await buildPaypalRedirect({
-        orderReference: finalized.orderReference,
-        total: finalized.total,
+        orderReference: checkoutSession.orderReference,
+        total: checkoutSession.total,
         clientUrl: env.clientUrl,
       })
       payment = {
         ...payment,
-        orderReference: finalized.orderReference,
-        amount: finalized.total,
-        subtotal: finalized.subtotal,
-        discountTotal: finalized.discountTotal,
-        shippingTotal: finalized.shippingTotal,
+        orderReference: checkoutSession.orderReference,
+        amount: checkoutSession.total,
+        subtotal: checkoutSession.subtotal,
+        discountTotal: checkoutSession.discountTotal,
+        shippingTotal: checkoutSession.shippingTotal,
       }
     } catch (error) {
       paymentError = error?.message || "Impossibile generare il link PayPal"
@@ -323,10 +423,7 @@ router.post(
     }
 
     res.status(201).json({
-      order: {
-        ...finalized,
-        pricingBreakdown: JSON.parse(finalized.pricingBreakdown),
-      },
+      order: serializeCheckoutSessionAsPendingOrder(checkoutSession),
       payment,
       paymentError,
     })

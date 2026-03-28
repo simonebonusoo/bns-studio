@@ -96,7 +96,7 @@ export function ShopReceiptPage() {
           ? "Vista gestionale dell'ordine: riepilogo completo cliente, prodotti acquistati e download diretto della ricevuta PDF."
           : isPaid
           ? "Pagamento completato. Ora puoi aprire e scaricare la ricevuta dell'ordine."
-          : "L'ordine è stato creato in attesa di pagamento. Procedi con PayPal per completare l'acquisto. La ricevuta sarà disponibile solo dopo il pagamento."
+          : "Il checkout è pronto ma l'ordine definitivo verrà creato solo dopo il pagamento PayPal completato. La ricevuta sarà disponibile subito dopo."
       }
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_0.85fr]">

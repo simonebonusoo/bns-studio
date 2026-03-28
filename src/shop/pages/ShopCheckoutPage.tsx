@@ -202,11 +202,11 @@ export function ShopCheckoutPage() {
       intro={
         step === "review"
           ? "Controlla prodotti, formati, coupon e totale finale prima di proseguire."
-          : step === "details"
-            ? "Inserisci i dati di spedizione e conferma il riepilogo prima di passare al pagamento."
+            : step === "details"
+              ? "Inserisci i dati di spedizione e conferma il riepilogo prima di passare al pagamento."
             : user?.role === "admin" && isGuestPreview
               ? "Preview finale cliente: l'ordine viene simulato e PayPal non viene avviato."
-              : "Questo è l'ultimo passaggio: l'ordine è pronto e PayPal compare solo qui."
+              : "Questo è l'ultimo passaggio: PayPal confermerà il pagamento e solo allora l'ordine verrà registrato definitivamente."
       }
     >
       <div className="mb-6 flex flex-wrap gap-3 text-xs uppercase tracking-[0.2em] text-white/45">

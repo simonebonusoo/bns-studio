@@ -233,7 +233,7 @@ const emptyProductForm = (): ProductFormState => ({
       key: "a4",
       sku: "",
       price: "",
-      costPrice: "",
+      costPrice: "8",
       stock: 0,
       lowStockThreshold: 5,
       isDefault: true,
@@ -325,6 +325,18 @@ function formatEuroInput(value: number) {
   return Number.isInteger(value / 100) ? String(value / 100) : (value / 100).toFixed(2)
 }
 
+function getSuggestedVariantCostCents(title: string) {
+  const normalized = String(title || "").trim().toUpperCase()
+  if (normalized === "A4") return 800
+  if (normalized === "A3") return 1000
+  return 0
+}
+
+function getVariantCostInputValue(title: string, costPrice?: number | null) {
+  const resolvedCost = typeof costPrice === "number" && costPrice > 0 ? costPrice : getSuggestedVariantCostCents(title)
+  return resolvedCost > 0 ? formatEuroInput(resolvedCost) : ""
+}
+
 function parseEuroToCents(value: string) {
   const normalized = Number(String(value).replace(",", "."))
   if (!Number.isFinite(normalized) || normalized < 0) return 0
@@ -347,7 +359,7 @@ function mapProductVariantToForm(variant: ShopProductVariant, index: number) {
     key: variant.key || slugifyVariantKey(variant.title) || `variant-${index + 1}`,
     sku: variant.sku || "",
     price: formatEuroInput(variant.price),
-    costPrice: variant.costPrice ? formatEuroInput(variant.costPrice) : "",
+    costPrice: getVariantCostInputValue(variant.title, variant.costPrice),
     stock: variant.stock,
     lowStockThreshold: variant.lowStockThreshold ?? 5,
     isDefault: Boolean(variant.isDefault),
@@ -646,7 +658,7 @@ export function ShopAdminPage() {
               key: product.hasA4 !== false ? "a4" : product.hasA3 ? "a3" : "standard",
               sku: product.sku || null,
               price: product.hasA4 !== false ? (product.priceA4 ?? product.price) : (product.priceA3 ?? product.price),
-              costPrice: product.costPrice ?? 0,
+              costPrice: getSuggestedVariantCostCents(product.hasA4 !== false ? "A4" : product.hasA3 ? "A3" : "Standard"),
               stock: product.stock,
               lowStockThreshold: product.lowStockThreshold || 5,
               position: 0,
@@ -661,7 +673,7 @@ export function ShopAdminPage() {
                     key: "a3",
                     sku: null,
                     price: product.priceA3 ?? product.price,
-                    costPrice: product.costPrice ?? 0,
+                    costPrice: getSuggestedVariantCostCents("A3"),
                     stock: product.stock,
                     lowStockThreshold: product.lowStockThreshold || 5,
                     position: 1,

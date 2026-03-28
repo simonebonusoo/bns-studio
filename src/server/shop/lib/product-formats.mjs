@@ -1,7 +1,7 @@
 export const PRODUCT_FORMATS = ["A4", "A3"]
 
 export const PRODUCT_FORMAT_COSTS = {
-  A4: 900,
+  A4: 800,
   A3: 1000,
 }
 

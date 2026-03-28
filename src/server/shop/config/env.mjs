@@ -40,4 +40,7 @@ export const env = {
   paypalBusinessEmail: process.env.PAYPAL_BUSINESS_EMAIL || "",
   paypalCurrencyCode: process.env.PAYPAL_CURRENCY_CODE || "EUR",
   paypalStoreName: process.env.PAYPAL_STORE_NAME || "BNS Studio Shop",
+  resendApiKey: process.env.RESEND_API_KEY || "",
+  notificationEmailFrom: process.env.NOTIFICATION_EMAIL_FROM || "",
+  adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL || "bnsstudio26@gmail.com",
 }
