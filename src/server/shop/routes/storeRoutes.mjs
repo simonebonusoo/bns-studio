@@ -11,6 +11,7 @@ import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductForma
 import { isProductPurchasable, isPublicProductStatus } from "../lib/product-status.mjs"
 import { getProductStockLabel, getProductStockStatus } from "../lib/product-stock.mjs"
 import { serializeProductVariants } from "../lib/product-variants.mjs"
+import { scoreRelatedProduct, sortCatalogSearchProducts } from "../lib/product-discovery.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
@@ -140,7 +141,11 @@ function buildPublicProductsWhere(filters) {
   return conditions.length ? { AND: conditions } : {}
 }
 
-function sortPublicProducts(products, sort) {
+function sortPublicProducts(products, sort, search = "") {
+  if (search) {
+    return sortCatalogSearchProducts(products, search)
+  }
+
   switch (sort) {
     case "manual":
       return products
@@ -230,6 +235,7 @@ router.get(
     const page = Math.max(1, Number(req.query.page || 1))
     const pageSize = Math.min(48, Math.max(1, Number(req.query.pageSize || 12)))
     const sort = String(req.query.sort || "manual")
+    const search = String(req.query.search || "").trim()
     const where = buildPublicProductsWhere(req.query)
 
     const products = await loadProductsWithStoredOrder({
@@ -237,7 +243,7 @@ router.get(
       orderBy: { createdAt: "desc" },
       include: productRelationInclude(),
     })
-    const sortedProducts = sortPublicProducts(products, sort)
+    const sortedProducts = sortPublicProducts(products, sort, search)
     const total = sortedProducts.length
     const totalPages = Math.max(1, Math.ceil(total / pageSize))
     const safePage = Math.min(page, totalPages)
@@ -316,18 +322,7 @@ router.get(
     })
 
     const related = relatedCandidates
-      .map((candidate) => {
-        const sharedTagCount = (candidate.productTags || []).filter((entry) => tagIds.includes(entry.tagId)).length
-        const sharedCollectionCount = (candidate.productCollections || []).filter((entry) => collectionIds.includes(entry.collectionId)).length
-        const sameCategory = candidate.category === product.category ? 1 : 0
-        const inStockBoost = getProductStockStatus(candidate) === "in_stock" ? 1 : 0
-        const featuredBoost = candidate.featured ? 1 : 0
-
-        return {
-          candidate,
-          score: sameCategory * 4 + sharedCollectionCount * 3 + sharedTagCount * 2 + inStockBoost + featuredBoost,
-        }
-      })
+      .map((candidate) => ({ candidate, score: scoreRelatedProduct(product, candidate) }))
       .sort((left, right) => {
         if (right.score !== left.score) return right.score - left.score
         return new Date(right.candidate.createdAt).getTime() - new Date(left.candidate.createdAt).getTime()

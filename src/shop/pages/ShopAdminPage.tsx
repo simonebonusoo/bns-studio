@@ -4,9 +4,11 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Button } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
-import { ProductFiltersBar } from "../components/admin/ProductFiltersBar"
-import { ProductFormCard } from "../components/admin/ProductFormCard"
-import { ProductListSection } from "../components/admin/ProductListSection"
+import { AdminDiscountsSection } from "../components/admin/AdminDiscountsSection"
+import { AdminHomepageSection } from "../components/admin/AdminHomepageSection"
+import { AdminOrdersSection } from "../components/admin/AdminOrdersSection"
+import { AdminProductsSection } from "../components/admin/AdminProductsSection"
+import { AdminReviewsSection } from "../components/admin/AdminReviewsSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { downloadInvoicePdf } from "../lib/invoice"
@@ -1264,391 +1266,106 @@ export function ShopAdminPage() {
       {error ? <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
 
       {tab === "prodotti" ? (
-        <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <ProductFormCard
-            editingProductId={editingProductId}
-            selectedCount={selectedProductIds.length}
-            isMultiEdit={isMultiEdit}
-            canSubmit={isMultiEdit ? hasTouchedFields : true}
-            productForm={productForm}
-            categories={categories}
-            collections={collections}
-            productImages={productImages}
-            onSubmit={saveProduct}
-            onCancel={resetProductForm}
-            onChange={handleProductFormChange}
-            onFileChange={handleProductFileChange}
-            onReorderImages={reorderProductImages}
-            onRemoveImage={removeProductImage}
-          />
-
-          <div className="shop-card flex h-full min-h-0 flex-col gap-4 p-6">
-            <ProductFiltersBar
-              search={productSearch}
-              category={productCategoryFilter}
-              status={productStatusFilter}
-              categories={categories}
-              total={products.length}
-              onSearchChange={setProductSearch}
-              onCategoryChange={setProductCategoryFilter}
-              onStatusChange={(value) => setProductStatusFilter(value as "all" | ProductStatus)}
-            />
-            <div onWheelCapture={containWheel} className="min-h-0 flex-1">
-              <ProductListSection
-                products={products}
-                selectedIds={selectedProductIds}
-                onToggleSelected={(productId, checked) =>
-                  setSelectedProductIds((current) =>
-                    checked ? Array.from(new Set([...current, productId])) : current.filter((id) => id !== productId),
-                  )
-                }
-                onEdit={(product) => {
-                  setSelectedProductIds([product.id])
-                  startEditProduct(product)
-                }}
-                onDuplicate={duplicateProduct}
-                onDelete={async (product) => {
-                  clearFeedback()
-                  try {
-                    await apiFetch(`/admin/products/${product.id}`, { method: "DELETE" })
-                    await refresh()
-                    setMessage("Prodotto eliminato correttamente.")
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : "Errore durante l'eliminazione del prodotto.")
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          <section className="shop-card space-y-4 p-6 xl:col-span-2">
-            <div className="max-w-3xl">
-              <h2 className="text-xl font-semibold text-white">Gestione categorie</h2>
-              <p className="mt-1 text-sm text-white/55">Organizza le categorie prodotto in un unico pannello largo e compatto.</p>
-            </div>
-            <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-              {categories.map((category) => (
-                <div key={category} className="rounded-2xl border border-white/10 px-4 py-3">
-                  {renamingCategory === category ? (
-                    <div className="flex flex-col gap-3 md:flex-row">
-                      <input className="shop-input" value={renamedCategoryValue} onChange={(event) => setRenamedCategoryValue(event.target.value)} />
-                      <Button type="button" text="Salva nome" onClick={() => renameCategory(category)}>
-                        Salva nome
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-white">{category}</span>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          text="Rinomina"
-                          onClick={() => {
-                            setRenamingCategory(category)
-                            setRenamedCategoryValue(category)
-                          }}
-                        >
-                          Rinomina
-                        </Button>
-                        <Button type="button" size="sm" text="Elimina" onClick={() => deleteCategory(category)}>
-                          Elimina
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end">
-              <form onSubmit={createCategory} className="flex w-full max-w-[420px] flex-col gap-3 md:flex-row md:items-center">
-                <input
-                  className="h-11 flex-1 rounded-lg border border-white/12 bg-white/[0.03] px-4 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/25"
-                  placeholder="Nuova categoria"
-                  value={newCategoryName}
-                  onChange={(event) => setNewCategoryName(event.target.value)}
-                />
-                <Button type="submit" className="h-11">
-                  Crea
-                </Button>
-              </form>
-            </div>
-          </section>
-
-          <section className="shop-card space-y-4 p-6 xl:col-span-2">
-            <div className="max-w-4xl space-y-2">
-              <h2 className="text-xl font-semibold text-white">Gestione collezioni</h2>
-              <p className="text-sm leading-6 text-white/60">
-                Le collezioni servono a raggruppare prodotti in temi o percorsi editoriali trasversali, diversi dalle categorie principali.
-                Esempio: categoria = Print, collezione = Cantanti famosi.
-              </p>
-            </div>
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                <form onSubmit={saveCollection} className="space-y-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">Nuova collezione</h3>
-                      <p className="mt-1 text-sm text-white/55">Crea o aggiorna una collezione da riutilizzare nel catalogo e nella homepage.</p>
-                    </div>
-                    {editingCollectionId ? (
-                      <button type="button" onClick={resetCollectionForm} className="text-sm text-white/60 transition hover:text-white">
-                        Annulla modifica
-                      </button>
-                    ) : null}
-                  </div>
-                  <input className="shop-input" placeholder="Titolo collezione" value={collectionForm.title} onChange={(event) => setCollectionForm({ ...collectionForm, title: event.target.value })} />
-                  <input className="shop-input" placeholder="Slug (opzionale)" value={collectionForm.slug} onChange={(event) => setCollectionForm({ ...collectionForm, slug: event.target.value })} />
-                  <textarea className="shop-textarea min-h-28 resize-none" placeholder="Descrizione collezione" value={collectionForm.description} onChange={(event) => setCollectionForm({ ...collectionForm, description: event.target.value })} />
-                  <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
-                    <input type="checkbox" checked={collectionForm.active} onChange={(event) => setCollectionForm({ ...collectionForm, active: event.target.checked })} />
-                    Collezione attiva nel catalogo pubblico
-                  </label>
-                  <Button type="submit" text={editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}>
-                    {editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}
-                  </Button>
-                </form>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-white">Collezioni esistenti</h3>
-                  <p className="mt-1 text-sm text-white/55">Lista delle collezioni già create e del numero di prodotti collegati.</p>
-                </div>
-                <div className="space-y-3">
-                  {collections.map((collection) => (
-                    <div key={collection.id} className="rounded-2xl border border-white/10 px-4 py-4">
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-medium text-white">{collection.title}</p>
-                            <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-white/55">
-                              {collection.active ? "Active" : "Hidden"}
-                            </span>
-                          </div>
-                          <p className="text-xs text-white/45">/{collection.slug} · {collection._count?.products || 0} prodotti</p>
-                          {collection.description ? <p className="text-sm text-white/60">{collection.description}</p> : null}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button type="button" variant="ghost" size="sm" text="Modifica" onClick={() => startEditCollection(collection)}>
-                            Modifica
-                          </Button>
-                          <Button type="button" size="sm" text="Elimina" onClick={() => deleteCollection(collection.id)}>
-                            Elimina
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {!collections.length ? <p className="text-sm text-white/50">Nessuna collezione creata.</p> : null}
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+        <AdminProductsSection
+          editingProductId={editingProductId}
+          selectedProductIds={selectedProductIds}
+          isMultiEdit={isMultiEdit}
+          hasTouchedFields={hasTouchedFields}
+          productForm={productForm}
+          categories={categories}
+          collections={collections}
+          productImages={productImages}
+          productSearch={productSearch}
+          productCategoryFilter={productCategoryFilter}
+          productStatusFilter={productStatusFilter}
+          products={products}
+          newCategoryName={newCategoryName}
+          renamingCategory={renamingCategory}
+          renamedCategoryValue={renamedCategoryValue}
+          collectionForm={collectionForm}
+          editingCollectionId={editingCollectionId}
+          onSubmitProduct={saveProduct}
+          onCancelProduct={resetProductForm}
+          onChangeProductForm={handleProductFormChange}
+          onProductFileChange={handleProductFileChange}
+          onReorderProductImages={reorderProductImages}
+          onRemoveProductImage={removeProductImage}
+          onProductSearchChange={setProductSearch}
+          onProductCategoryFilterChange={setProductCategoryFilter}
+          onProductStatusFilterChange={setProductStatusFilter}
+          onToggleSelected={(productId, checked) =>
+            setSelectedProductIds((current) =>
+              checked ? Array.from(new Set([...current, productId])) : current.filter((id) => id !== productId),
+            )
+          }
+          onEditProduct={(product) => {
+            setSelectedProductIds([product.id])
+            startEditProduct(product)
+          }}
+          onDuplicateProduct={duplicateProduct}
+          onDeleteProduct={async (product) => {
+            clearFeedback()
+            try {
+              await apiFetch(`/admin/products/${product.id}`, { method: "DELETE" })
+              await refresh()
+              setMessage("Prodotto eliminato correttamente.")
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione del prodotto.")
+            }
+          }}
+          containWheel={containWheel}
+          onStartRenameCategory={(category) => {
+            setRenamingCategory(category)
+            setRenamedCategoryValue(category)
+          }}
+          onRenamedCategoryValueChange={setRenamedCategoryValue}
+          onRenameCategory={renameCategory}
+          onDeleteCategory={deleteCategory}
+          onNewCategoryNameChange={setNewCategoryName}
+          onCreateCategory={createCategory}
+          onCollectionFormChange={setCollectionForm}
+          onSaveCollection={saveCollection}
+          onResetCollectionForm={resetCollectionForm}
+          onStartEditCollection={startEditCollection}
+          onDeleteCollection={deleteCollection}
+        />
       ) : null}
 
       {tab === "homepage" ? (
-        <div className="space-y-6">
-          <section className="shop-card space-y-5 p-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Selezioni in evidenza</h2>
-                <p className="mt-1 text-sm text-white/55">Modifica i blocchi editoriali mostrati nella homepage dello shop.</p>
-              </div>
-              <button type="button" onClick={saveHomepageContent} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                Salva contenuti homepage
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {homepageShowcases.map((item, index) => (
-                <div
-                  key={`${item.title}-${index}`}
-                  className={`rounded-[24px] border p-5 ${homepageFocus.section === "showcases" && homepageFocus.item === index ? "border-[#e3f503]/45 bg-white/[0.05]" : "border-white/10 bg-white/[0.03]"}`}
-                >
-                  <div className="mb-4 flex items-center justify-between gap-4">
-                    <p className="text-sm font-medium text-white">Blocco {index + 1}</p>
-                    <button
-                      type="button"
-                      onClick={() => setHomepageFocus({ section: "showcases", item: index })}
-                      className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                    >
-                      In modifica
-                    </button>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <input className="shop-input" placeholder="Eyebrow" value={item.eyebrow} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, eyebrow: event.target.value } : entry))} />
-                    <input className="shop-input" placeholder="Titolo" value={item.title} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
-                    <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
-                    <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
-                    <input className="shop-input" placeholder="Etichetta CTA" value={item.ctaLabel} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, ctaLabel: event.target.value } : entry))} />
-                    <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
-                  </div>
-                  <textarea className="shop-textarea mt-4 min-h-24 resize-none" placeholder="Descrizione" value={item.description} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="shop-card space-y-5 p-6">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Categorie popolari</h2>
-              <p className="mt-1 text-sm text-white/55">Modifica le card scrollabili usate nella homepage dello shop.</p>
-            </div>
-
-            <div className="space-y-4">
-              {homepagePopularCategories.map((item, index) => (
-                <div
-                  key={`${item.title}-${index}`}
-                  className={`rounded-[24px] border p-5 ${homepageFocus.section === "popular-categories" && homepageFocus.item === index ? "border-[#e3f503]/45 bg-white/[0.05]" : "border-white/10 bg-white/[0.03]"}`}
-                >
-                  <div className="mb-4 flex items-center justify-between gap-4">
-                    <p className="text-sm font-medium text-white">Categoria {index + 1}</p>
-                    <button
-                      type="button"
-                      onClick={() => setHomepageFocus({ section: "popular-categories", item: index })}
-                      className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                    >
-                      In modifica
-                    </button>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <input className="shop-input" placeholder="Titolo categoria" value={item.title} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
-                    <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
-                    <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
-                    <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
-                  </div>
-                  <textarea className="shop-textarea mt-4 min-h-24 resize-none" placeholder="Descrizione breve" value={item.description} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+        <AdminHomepageSection
+          homepageShowcases={homepageShowcases}
+          homepagePopularCategories={homepagePopularCategories}
+          homepageFocus={homepageFocus}
+          setHomepageFocus={setHomepageFocus}
+          setHomepageShowcases={setHomepageShowcases}
+          setHomepagePopularCategories={setHomepagePopularCategories}
+          saveHomepageContent={saveHomepageContent}
+        />
       ) : null}
 
-      {tab === "recensioni" ? (
-        <section className="shop-card space-y-5 p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Recensioni</h2>
-              <p className="mt-1 text-sm text-white/55">
-                Seleziona fino a 10 recensioni da mostrare nel loop della homepage.
-              </p>
-            </div>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/65">
-              {reviews.filter((review) => review.showOnHomepage).length} / 10 in homepage
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {reviews.map((review) => {
-              const selectedCount = reviews.filter((item) => item.showOnHomepage).length
-              const disableSelect = !review.showOnHomepage && selectedCount >= 10
-
-              return (
-                <article key={review.id} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <p className="text-base font-medium text-white">{review.authorName}</p>
-                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
-                          {review.rating}/5
-                        </span>
-                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
-                          {new Date(review.createdAt).toLocaleDateString("it-IT")}
-                        </span>
-                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
-                          {review.status}
-                        </span>
-                      </div>
-                      <h3 className="mt-3 text-lg font-semibold text-white">{review.title}</h3>
-                      <p className="mt-2 line-clamp-3 text-sm leading-7 text-white/68">{review.body}</p>
-                      <div className="mt-3">
-                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
-                          {review.tag}
-                        </span>
-                      </div>
-                    </div>
-
-                    <label className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${review.showOnHomepage ? "border-[#e3f503]/40 text-white" : "border-white/10 text-white/65"}`}>
-                      <input
-                        type="checkbox"
-                        checked={review.showOnHomepage}
-                        disabled={disableSelect}
-                        onChange={(event) => toggleHomepageReview(review.id, event.target.checked)}
-                      />
-                      Mostra in homepage
-                    </label>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        </section>
-      ) : null}
+      {tab === "recensioni" ? <AdminReviewsSection reviews={reviews} onToggleHomepageReview={toggleHomepageReview} /> : null}
 
       {tab === "ordini" ? (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <article key={order.id} className="shop-card flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-lg font-semibold text-white">{order.orderReference}</p>
-                <p className="mt-1 text-sm text-white/60">
-                  {order.firstName} {order.lastName} · {formatPrice(order.total)}
-                </p>
-              </div>
-              <div className="flex flex-col items-stretch gap-3 lg:min-w-[320px]">
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    to={`/shop/orders/${order.orderReference}`}
-                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white"
-                  >
-                    Visualizza ordine
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => openOrderProfit(order.id)}
-                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white"
-                  >
-                    {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
-                  </button>
-                  {order.status === "paid" || order.status === "shipped" ? (
-                    <button
-                      type="button"
-                      onClick={() => downloadInvoicePdf(order, shopSettings)}
-                      className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white"
-                    >
-                      Scarica ricevuta
-                    </button>
-                  ) : null}
-                </div>
-                <select
-                  className="shop-select max-w-48"
-                  value={order.status}
-                  onChange={async (event) => {
-                    clearFeedback()
-                    try {
-                      await apiFetch(`/admin/orders/${order.id}`, {
-                        method: "PATCH",
-                        body: JSON.stringify({ status: event.target.value }),
-                      })
-                      await refresh()
-                      setMessage("Stato ordine aggiornato.")
-                    } catch (err) {
-                      setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento dell'ordine.")
-                    }
-                  }}
-                >
-                  <option value="pending">In attesa</option>
-                  <option value="paid">Pagato</option>
-                  <option value="shipped">Spedito</option>
-                </select>
-              </div>
-            </article>
-          ))}
-        </div>
+        <AdminOrdersSection
+          orders={orders}
+          shopSettings={shopSettings}
+          loadingProfitOrderId={loadingProfitOrderId}
+          containWheel={containWheel}
+          onOpenOrderProfit={openOrderProfit}
+          onUpdateOrderStatus={async (orderId, status) => {
+            clearFeedback()
+            try {
+              await apiFetch(`/admin/orders/${orderId}`, {
+                method: "PATCH",
+                body: JSON.stringify({ status }),
+              })
+              await refresh()
+              setMessage("Stato ordine aggiornato.")
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento dell'ordine.")
+            }
+          }}
+        />
       ) : null}
 
       {tab === "utenti" ? (
@@ -1770,290 +1487,56 @@ export function ShopAdminPage() {
       ) : null}
 
       {tab === "sconti" ? (
-        <div className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-2">
-            <form onSubmit={saveCoupon} className="shop-card h-full space-y-4 p-6">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-xl font-semibold text-white">{editingCouponId ? "Modifica coupon" : "Crea coupon"}</h2>
-                {editingCouponId ? (
-                  <button type="button" onClick={() => { setEditingCouponId(null); setCouponForm(emptyCouponForm()) }} className="text-sm text-white/60">
-                    Annulla
-                  </button>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-white/65">Codice coupon</label>
-                <input className="shop-input" placeholder="Codice coupon" value={couponForm.code} onChange={(event) => setCouponForm({ ...couponForm, code: event.target.value.toUpperCase() })} />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Tipo coupon</label>
-                  <select className="shop-select" value={couponForm.type} onChange={(event) => setCouponForm({ ...couponForm, type: event.target.value as CouponFormState["type"] })}>
-                    <option value="percentage">Percentuale</option>
-                    <option value="fixed">Importo fisso</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">{getCouponAmountLabel(couponForm.type)}</label>
-                  <input className="shop-input" type="number" step={couponForm.type === "fixed" ? "0.01" : "1"} placeholder={getCouponAmountLabel(couponForm.type)} value={couponForm.amount} onChange={(event) => setCouponForm({ ...couponForm, amount: event.target.value })} />
-                </div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Data di scadenza</label>
-                  <input className="shop-input" type="date" value={couponForm.expiresAt} onChange={(event) => setCouponForm({ ...couponForm, expiresAt: event.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Limite utilizzi</label>
-                  <input className="shop-input" type="number" placeholder="Numero massimo utilizzi" value={couponForm.usageLimit} onChange={(event) => setCouponForm({ ...couponForm, usageLimit: event.target.value })} />
-                </div>
-              </div>
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
-                <input type="checkbox" checked={couponForm.active} onChange={(event) => setCouponForm({ ...couponForm, active: event.target.checked })} />
-                Coupon attivo
-              </label>
-              <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                {editingCouponId ? "Aggiorna coupon" : "Crea coupon"}
-              </button>
-            </form>
-
-            <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
-              <h2 className="text-xl font-semibold text-white">Coupon esistenti</h2>
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1" onWheelCapture={containWheel}>
-                {coupons.map((coupon) => (
-                  <div key={coupon.id} className="rounded-2xl border border-white/10 px-4 py-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-white">{coupon.code}</p>
-                        <p className="mt-1 text-sm text-white/60">
-                          {coupon.type === "percentage" ? `${coupon.amount}%` : formatPrice(coupon.amount)} · {coupon.active ? "Attivo" : "Disattivato"}
-                        </p>
-                        {coupon.expiresAt ? (
-                          <p className="mt-1 text-xs text-white/45">Valido fino al {new Date(coupon.expiresAt).toLocaleDateString("it-IT")}</p>
-                        ) : null}
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => startEditCoupon(coupon)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                          Modifica
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            clearFeedback()
-                            try {
-                              await apiFetch(`/admin/coupons/${coupon.id}`, { method: "DELETE" })
-                              await refresh()
-                              setMessage("Coupon eliminato correttamente.")
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione del coupon.")
-                            }
-                          }}
-                          className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                        >
-                          Elimina
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-2">
-            <form onSubmit={saveRule} className="shop-card h-full space-y-4 p-6">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-xl font-semibold text-white">{editingRuleId ? "Modifica regola sconto" : "Crea regola sconto"}</h2>
-                {editingRuleId ? (
-                  <button type="button" onClick={() => { setEditingRuleId(null); setRuleForm(emptyRuleForm()) }} className="text-sm text-white/60">
-                    Annulla
-                  </button>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-white/65">Titolo regola</label>
-                <input className="shop-input" placeholder="Titolo regola" value={ruleForm.name} onChange={(event) => setRuleForm({ ...ruleForm, name: event.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-white/65">Descrizione opzionale</label>
-                <textarea className="shop-textarea min-h-24 resize-none" placeholder="Descrizione opzionale" value={ruleForm.description} onChange={(event) => setRuleForm({ ...ruleForm, description: event.target.value })} />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Tipo regola</label>
-                  <select className="shop-select" value={ruleForm.ruleType} onChange={(event) => setRuleForm({ ...ruleForm, ruleType: event.target.value as RuleFormState["ruleType"] })}>
-                    <option value="quantity_percentage">Sconto percentuale per quantita minima</option>
-                    <option value="free_shipping_quantity">Spedizione gratuita per quantita minima</option>
-                    <option value="subtotal_fixed">Sconto fisso per subtotale minimo</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Modalità sconto</label>
-                  <select className="shop-select" value={ruleForm.discountType} onChange={(event) => setRuleForm({ ...ruleForm, discountType: event.target.value as RuleFormState["discountType"] })}>
-                    <option value="percentage">Percentuale</option>
-                    <option value="shipping">Spedizione</option>
-                    <option value="fixed">Importo fisso</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">{getRuleThresholdLabel(ruleForm.ruleType)}</label>
-                  <input className="shop-input" type="number" step={ruleForm.ruleType === "subtotal_fixed" ? "0.01" : "1"} placeholder={getRuleThresholdLabel(ruleForm.ruleType)} value={ruleForm.threshold} onChange={(event) => setRuleForm({ ...ruleForm, threshold: event.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">{getRuleAmountLabel(ruleForm.discountType)}</label>
-                  <input className="shop-input" type="number" step={ruleForm.discountType === "fixed" ? "0.01" : "1"} placeholder={getRuleAmountLabel(ruleForm.discountType)} value={ruleForm.discountType === "shipping" ? "0" : ruleForm.amount} disabled={ruleForm.discountType === "shipping"} onChange={(event) => setRuleForm({ ...ruleForm, amount: event.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Priorità</label>
-                  <input className="shop-input" type="number" placeholder="Priorità" value={ruleForm.priority} onChange={(event) => setRuleForm({ ...ruleForm, priority: Number(event.target.value) })} />
-                </div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Data inizio validità</label>
-                  <input className="shop-input" type="datetime-local" value={ruleForm.startsAt} onChange={(event) => setRuleForm({ ...ruleForm, startsAt: event.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Data fine validità</label>
-                  <input className="shop-input" type="datetime-local" value={ruleForm.endsAt} onChange={(event) => setRuleForm({ ...ruleForm, endsAt: event.target.value })} />
-                </div>
-              </div>
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
-                <input type="checkbox" checked={ruleForm.active} onChange={(event) => setRuleForm({ ...ruleForm, active: event.target.checked })} />
-                Regola attiva
-              </label>
-              <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-                {editingRuleId ? "Aggiorna regola" : "Crea regola"}
-              </button>
-            </form>
-
-            <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
-              <h2 className="text-xl font-semibold text-white">Regole sconto esistenti</h2>
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1" onWheelCapture={containWheel}>
-                {rules.map((rule) => (
-                  <div key={rule.id} className="rounded-2xl border border-white/10 px-4 py-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-white">{rule.name}</p>
-                        <p className="mt-1 text-sm text-white/60">
-                          {rule.active ? "Attiva" : "Disattivata"} ·{" "}
-                          {rule.ruleType === "subtotal_fixed"
-                            ? `soglia ${formatPrice(rule.threshold)}`
-                            : `soglia ${rule.threshold}`} ·{" "}
-                          {rule.discountType === "fixed"
-                            ? `valore ${formatPrice(rule.amount)}`
-                            : rule.discountType === "percentage"
-                              ? `valore ${rule.amount}%`
-                              : "spedizione gratuita"}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => startEditRule(rule)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                          Modifica
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            clearFeedback()
-                            try {
-                              await apiFetch(`/admin/discount-rules/${rule.id}`, { method: "DELETE" })
-                              await refresh()
-                              setMessage("Regola sconto eliminata correttamente.")
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della regola.")
-                            }
-                          }}
-                          className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                        >
-                          Elimina
-                        </button>
-                      </div>
-                    </div>
-                    {rule.description ? <p className="mt-2 text-sm text-white/55">{rule.description}</p> : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <form onSubmit={saveSettings} className="shop-card flex h-full flex-col space-y-4 p-6">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Impostazioni PayPal</h2>
-              <p className="mt-2 text-sm text-white/60">
-                Inserisci l&apos;email business PayPal oppure un link PayPal.Me reale. L&apos;email business ha priorita e replica il flusso del vecchio shop.
-              </p>
-            </div>
-            <div className="grid gap-4 xl:grid-cols-2">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Nome shop mostrato nel checkout</label>
-                  <input
-                    className="shop-input"
-                    placeholder="Nome shop"
-                    value={settingValue("storeName", "BNS Studio Shop")}
-                    onChange={(event) => updateSetting("storeName", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Email business PayPal</label>
-                  <input
-                    className="shop-input"
-                    placeholder="Email business PayPal"
-                    value={settingValue("paypalBusinessEmail")}
-                    onChange={(event) => updateSetting("paypalBusinessEmail", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Email contatto sito</label>
-                  <input
-                    className="shop-input"
-                    placeholder="Email contatto sito"
-                    value={settingValue("contactEmail", "bnsstudio@gmail.com")}
-                    onChange={(event) => updateSetting("contactEmail", event.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm text-white/65">Link PayPal.Me</label>
-                  <input
-                    className="shop-input"
-                    placeholder="Link PayPal.Me"
-                    value={settingValue("paypalMeLink")}
-                    onChange={(event) => updateSetting("paypalMeLink", event.target.value)}
-                  />
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm text-white/65">Valuta</label>
-                    <input
-                      className="shop-input"
-                      placeholder="Valuta"
-                      value={settingValue("currencyCode", "EUR")}
-                      onChange={(event) => updateSetting("currencyCode", event.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-white/65">Spedizione standard (€)</label>
-                    <input
-                      className="shop-input"
-                      type="number"
-                      step="0.01"
-                      placeholder="Spedizione standard"
-                      value={shippingCostInput}
-                      onChange={(event) => setShippingCostInput(event.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button type="submit" className="mt-auto rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
-              Salva impostazioni PayPal
-            </button>
-          </form>
-        </div>
+        <AdminDiscountsSection
+          editingCouponId={editingCouponId}
+          couponForm={couponForm}
+          coupons={coupons}
+          editingRuleId={editingRuleId}
+          ruleForm={ruleForm}
+          rules={rules}
+          shippingCostInput={shippingCostInput}
+          onSaveCoupon={saveCoupon}
+          onCancelCouponEdit={() => {
+            setEditingCouponId(null)
+            setCouponForm(emptyCouponForm())
+          }}
+          onCouponFormChange={setCouponForm}
+          onEditCoupon={startEditCoupon}
+          onDeleteCoupon={async (couponId) => {
+            clearFeedback()
+            try {
+              await apiFetch(`/admin/coupons/${couponId}`, { method: "DELETE" })
+              await refresh()
+              setMessage("Coupon eliminato correttamente.")
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione del coupon.")
+            }
+          }}
+          onSaveRule={saveRule}
+          onCancelRuleEdit={() => {
+            setEditingRuleId(null)
+            setRuleForm(emptyRuleForm())
+          }}
+          onRuleFormChange={setRuleForm}
+          onEditRule={startEditRule}
+          onDeleteRule={async (ruleId) => {
+            clearFeedback()
+            try {
+              await apiFetch(`/admin/discount-rules/${ruleId}`, { method: "DELETE" })
+              await refresh()
+              setMessage("Regola sconto eliminata correttamente.")
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della regola.")
+            }
+          }}
+          onSaveSettings={saveSettings}
+          settingValue={settingValue}
+          updateSetting={updateSetting}
+          onShippingCostInputChange={setShippingCostInput}
+          getCouponAmountLabel={getCouponAmountLabel}
+          getRuleThresholdLabel={getRuleThresholdLabel}
+          getRuleAmountLabel={getRuleAmountLabel}
+        />
       ) : null}
 
       {!orders.length && tab === "ordini" ? (

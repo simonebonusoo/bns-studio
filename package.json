@@ -14,11 +14,13 @@
     "db:seed": "node prisma/seed.mjs",
     "shop:backup": "node scripts/shop-backup.mjs",
     "shop:restore": "node scripts/shop-restore.mjs",
+    "shop:verify-persistence": "node scripts/verify-shop-persistence.mjs",
     "shop:assets:migrate-cloudinary": "node scripts/migrate-product-images-to-cloudinary.mjs",
     "render:build": "npm install && npx prisma generate",
     "render:start": "node scripts/bootstrap-shop-server.mjs",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:shop": "node --test tests/shop/*.test.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

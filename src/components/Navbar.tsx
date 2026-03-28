@@ -11,7 +11,7 @@ import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
 import { formatPrice } from "../shop/lib/format"
-import { getPriceForVariant, getProductPrimaryImage } from "../shop/lib/product"
+import { getPriceForVariant, getProductPrimaryImage, getProductStockStatus } from "../shop/lib/product"
 import { ShopProduct } from "../shop/types"
 
 type StoreProductsResponse = {
@@ -39,6 +39,31 @@ function highlightMatch(text: string, query: string) {
 
 function containWheel(event: WheelEvent<HTMLElement>) {
   event.stopPropagation()
+}
+
+function scoreSearchSuggestion(product: ShopProduct, query: string) {
+  const normalizedQuery = query.trim().toLowerCase()
+  const title = product.title.toLowerCase()
+  const description = product.description.toLowerCase()
+  const category = product.category.toLowerCase()
+  const tagNames = (product.tags || []).map((tag) => tag.name.toLowerCase())
+  const collectionNames = (product.collections || []).map((collection) => collection.title.toLowerCase())
+
+  if (!normalizedQuery) {
+    return (product.featured ? 4 : 0) + (getProductStockStatus(product) === "in_stock" ? 3 : getProductStockStatus(product) === "low_stock" ? 1 : 0)
+  }
+
+  const exactTitle = title === normalizedQuery ? 12 : 0
+  const titlePrefix = title.startsWith(normalizedQuery) ? 8 : 0
+  const titleMatch = title.includes(normalizedQuery) ? 6 : 0
+  const descriptionMatch = description.includes(normalizedQuery) ? 2 : 0
+  const categoryMatch = category.includes(normalizedQuery) ? 3 : 0
+  const tagMatch = tagNames.filter((tag) => tag.includes(normalizedQuery)).length * 3
+  const collectionMatch = collectionNames.filter((collection) => collection.includes(normalizedQuery)).length * 3
+  const availabilityBoost = getProductStockStatus(product) === "in_stock" ? 3 : getProductStockStatus(product) === "low_stock" ? 1 : 0
+  const featuredBoost = product.featured ? 2 : 0
+
+  return exactTitle + titlePrefix + titleMatch + descriptionMatch + categoryMatch + tagMatch + collectionMatch + availabilityBoost + featuredBoost
 }
 
 const overlayTransition = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const }
@@ -288,6 +313,7 @@ export function Navbar() {
         const haystack = [product.title, product.slug, product.category, product.description].join(" ").toLowerCase()
         return haystack.includes(query)
       })
+      .sort((left, right) => scoreSearchSuggestion(right, trimmedSearch) - scoreSearchSuggestion(left, trimmedSearch))
       .slice(0, 4)
   }, [products, trimmedSearch])
 
@@ -297,7 +323,10 @@ export function Navbar() {
     setSearchOpen(false)
   }
 
-  const suggestedProducts = useMemo(() => products.slice(0, 4), [products])
+  const suggestedProducts = useMemo(
+    () => [...products].sort((left, right) => scoreSearchSuggestion(right, "") - scoreSearchSuggestion(left, "")).slice(0, 4),
+    [products]
+  )
   const profileView = user ? "logged" : profileStep
   const displayUsername = user?.username || user?.email?.split("@")[0] || "cliente"
 

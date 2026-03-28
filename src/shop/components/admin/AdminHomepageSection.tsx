@@ -1,0 +1,118 @@
+import type { Dispatch, SetStateAction } from "react"
+
+type HomepagePopularCategory = {
+  title: string
+  description: string
+  href: string
+  query: string
+  imageUrl?: string
+}
+
+type HomepageShowcase = {
+  eyebrow: string
+  title: string
+  description: string
+  href: string
+  query: string
+  imageUrl?: string
+  ctaLabel: string
+}
+
+type AdminHomepageSectionProps = {
+  homepageShowcases: HomepageShowcase[]
+  homepagePopularCategories: HomepagePopularCategory[]
+  homepageFocus: { section: "showcases" | "popular-categories"; item: number | null }
+  setHomepageFocus: Dispatch<SetStateAction<{ section: "showcases" | "popular-categories"; item: number | null }>>
+  setHomepageShowcases: Dispatch<SetStateAction<HomepageShowcase[]>>
+  setHomepagePopularCategories: Dispatch<SetStateAction<HomepagePopularCategory[]>>
+  saveHomepageContent: () => void
+}
+
+export function AdminHomepageSection({
+  homepageShowcases,
+  homepagePopularCategories,
+  homepageFocus,
+  setHomepageFocus,
+  setHomepageShowcases,
+  setHomepagePopularCategories,
+  saveHomepageContent,
+}: AdminHomepageSectionProps) {
+  return (
+    <div className="space-y-6">
+      <section className="shop-card space-y-5 p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Selezioni in evidenza</h2>
+            <p className="mt-1 text-sm text-white/55">Modifica i blocchi editoriali mostrati nella homepage dello shop.</p>
+          </div>
+          <button type="button" onClick={saveHomepageContent} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+            Salva contenuti homepage
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {homepageShowcases.map((item, index) => (
+            <div
+              key={`${item.title}-${index}`}
+              className={`rounded-[24px] border p-5 ${homepageFocus.section === "showcases" && homepageFocus.item === index ? "border-[#e3f503]/45 bg-white/[0.05]" : "border-white/10 bg-white/[0.03]"}`}
+            >
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <p className="text-sm font-medium text-white">Blocco {index + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => setHomepageFocus({ section: "showcases", item: index })}
+                  className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
+                >
+                  In modifica
+                </button>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <input className="shop-input" placeholder="Eyebrow" value={item.eyebrow} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, eyebrow: event.target.value } : entry))} />
+                <input className="shop-input" placeholder="Titolo" value={item.title} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
+                <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
+                <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
+                <input className="shop-input" placeholder="Etichetta CTA" value={item.ctaLabel} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, ctaLabel: event.target.value } : entry))} />
+                <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
+              </div>
+              <textarea className="shop-textarea mt-4 min-h-24 resize-none" placeholder="Descrizione" value={item.description} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="shop-card space-y-5 p-6">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Categorie popolari</h2>
+          <p className="mt-1 text-sm text-white/55">Modifica le card scrollabili usate nella homepage dello shop.</p>
+        </div>
+
+        <div className="space-y-4">
+          {homepagePopularCategories.map((item, index) => (
+            <div
+              key={`${item.title}-${index}`}
+              className={`rounded-[24px] border p-5 ${homepageFocus.section === "popular-categories" && homepageFocus.item === index ? "border-[#e3f503]/45 bg-white/[0.05]" : "border-white/10 bg-white/[0.03]"}`}
+            >
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <p className="text-sm font-medium text-white">Categoria {index + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => setHomepageFocus({ section: "popular-categories", item: index })}
+                  className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
+                >
+                  In modifica
+                </button>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <input className="shop-input" placeholder="Titolo categoria" value={item.title} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
+                <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
+                <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
+                <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
+              </div>
+              <textarea className="shop-textarea mt-4 min-h-24 resize-none" placeholder="Descrizione breve" value={item.description} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}

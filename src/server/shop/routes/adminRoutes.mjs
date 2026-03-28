@@ -311,6 +311,15 @@ const productSchema = z.object({
         title: z.string().min(1),
         key: z.string().optional().nullable(),
         sku: z.string().optional().nullable(),
+        options: z
+          .array(
+            z.object({
+              name: z.string().min(1),
+              value: z.string().min(1),
+            }),
+          )
+          .optional()
+          .default([]),
         price: z.number().min(0),
         costPrice: z.number().min(0).default(0),
         stock: z.number().int().min(0).default(0),

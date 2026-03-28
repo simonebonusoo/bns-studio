@@ -6,6 +6,11 @@ export type ShopProductVariant = {
   title: string
   key: string
   sku?: string | null
+  options?: Array<{
+    name: string
+    value: string
+  }>
+  optionSummary?: string | null
   price: number
   costPrice?: number
   stock: number

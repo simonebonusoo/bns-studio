@@ -1,5 +1,12 @@
 import { HttpError } from "./http.mjs"
 
+function normalizeOptionEntry(option) {
+  const name = String(option?.name || option?.label || "").trim()
+  const value = String(option?.value || option?.title || "").trim()
+  if (!name || !value) return null
+  return { name, value }
+}
+
 function normalizeVariantKey(value, fallback = "") {
   return String(value || fallback || "")
     .trim()
@@ -12,6 +19,29 @@ function normalizeVariantKey(value, fallback = "") {
 function normalizeLegacyFormatTitle(value) {
   const normalized = String(value || "").trim().toUpperCase()
   return normalized === "A3" || normalized === "A4" ? normalized : null
+}
+
+function inferLegacyVariantOptions(variantTitle) {
+  const legacyFormat = normalizeLegacyFormatTitle(variantTitle)
+  return legacyFormat ? [{ name: "Format", value: legacyFormat }] : []
+}
+
+function parseVariantOptions(variant) {
+  if (Array.isArray(variant?.options)) {
+    const explicitOptions = variant.options.map(normalizeOptionEntry).filter(Boolean)
+    if (explicitOptions.length) return explicitOptions
+  }
+
+  if (typeof variant?.optionsJson === "string") {
+    try {
+      const parsedOptions = JSON.parse(variant.optionsJson || "[]").map(normalizeOptionEntry).filter(Boolean)
+      if (parsedOptions.length) return parsedOptions
+    } catch {
+      // Ignore invalid legacy payloads and fall back to inferred options.
+    }
+  }
+
+  return inferLegacyVariantOptions(variant?.title)
 }
 
 function buildVariantRecord(variant, index) {
@@ -36,6 +66,7 @@ function buildVariantRecord(variant, index) {
     title,
     key,
     sku: variant?.sku ? String(variant.sku).trim().toUpperCase() : null,
+    options: parseVariantOptions(variant),
     price,
     costPrice: Number.isInteger(costPrice) && costPrice >= 0 ? costPrice : 0,
     stock: Number.isInteger(stock) && stock >= 0 ? stock : 0,
@@ -64,6 +95,7 @@ export function deriveLegacyVariantsFromProduct(product) {
       isDefault: true,
       isActive: true,
       legacyFormat: "A4",
+      options: [{ name: "Format", value: "A4" }],
     })
   }
 
@@ -80,6 +112,7 @@ export function deriveLegacyVariantsFromProduct(product) {
       isDefault: !variants.length,
       isActive: true,
       legacyFormat: "A3",
+      options: [{ name: "Format", value: "A3" }],
     })
   }
 
@@ -96,6 +129,7 @@ export function deriveLegacyVariantsFromProduct(product) {
       isDefault: true,
       isActive: true,
       legacyFormat: null,
+      options: [],
     })
   }
 
@@ -157,6 +191,8 @@ export function serializeProductVariants(product) {
     title: variant.title,
     key: variant.key,
     sku: variant.sku || null,
+    options: variant.options || [],
+    optionSummary: (variant.options || []).map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
     price: variant.price,
     costPrice: variant.costPrice,
     stock: variant.stock,
@@ -198,6 +234,7 @@ export async function syncProductVariants(db, productId, rawVariants = []) {
       title: variant.title,
       key: variant.key,
       sku: variant.sku,
+      optionsJson: JSON.stringify(variant.options || []),
       price: variant.price,
       costPrice: variant.costPrice,
       stock: variant.stock,

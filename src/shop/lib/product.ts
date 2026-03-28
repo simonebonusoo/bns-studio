@@ -7,6 +7,20 @@ function normalizeLegacyFormat(value?: string | null) {
   return normalized === "A3" || normalized === "A4" ? normalized : null
 }
 
+function inferLegacyVariantOptions(title?: string | null) {
+  const legacyFormat = normalizeLegacyFormat(title)
+  return legacyFormat ? [{ name: "Format", value: legacyFormat }] : []
+}
+
+function withVariantMetadata(variant: ShopProductVariant) {
+  const options = variant.options?.length ? variant.options : inferLegacyVariantOptions(variant.title)
+  return {
+    ...variant,
+    options,
+    optionSummary: options.map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
+  }
+}
+
 export function getProductVariants(product: ShopProduct) {
   const variants = Array.isArray(product.variants) ? [...product.variants] : []
   const activeVariants = variants
@@ -17,7 +31,7 @@ export function getProductVariants(product: ShopProduct) {
     })
 
   if (activeVariants.length) {
-    return activeVariants
+    return activeVariants.map(withVariantMetadata)
   }
 
   const legacyVariants: ShopProductVariant[] = []
@@ -29,6 +43,7 @@ export function getProductVariants(product: ShopProduct) {
       title: "A4",
       key: "a4",
       sku: product.sku || null,
+      options: [{ name: "Format", value: "A4" }],
       price: product.priceA4 ?? product.price,
       costPrice: product.costPrice ?? 0,
       stock: product.stock,
@@ -47,6 +62,7 @@ export function getProductVariants(product: ShopProduct) {
       title: "A3",
       key: "a3",
       sku: null,
+      options: [{ name: "Format", value: "A3" }],
       price: product.priceA3 ?? product.priceA4 ?? product.price,
       costPrice: product.costPrice ?? 0,
       stock: product.stock,
@@ -65,6 +81,7 @@ export function getProductVariants(product: ShopProduct) {
       title: "Standard",
       key: "standard",
       sku: product.sku || null,
+      options: [],
       price: product.price,
       costPrice: product.costPrice ?? 0,
       stock: product.stock,
@@ -77,7 +94,7 @@ export function getProductVariants(product: ShopProduct) {
     })
   }
 
-  return legacyVariants
+  return legacyVariants.map(withVariantMetadata)
 }
 
 export function getDefaultVariant(product: ShopProduct) {
