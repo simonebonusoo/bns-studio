@@ -478,7 +478,7 @@ export function Navbar() {
                 className="relative z-20 grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-3 md:min-h-[88px] md:gap-6 md:py-4"
               >
                 <a href="#top" aria-label="Vai all'inizio" className="flex items-center no-underline">
-                  <Logo />
+                  <Logo className="h-7 md:h-8" />
                 </a>
 
                 <div

@@ -74,7 +74,7 @@ export function Footer() {
 
           {/* LOGO */}
           <div className="mt-2">
-            <Logo />
+            <Logo className="h-8 md:h-9" />
           </div>
 
           <motion.div
