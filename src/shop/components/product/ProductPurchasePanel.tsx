@@ -66,7 +66,7 @@ export function ProductPurchasePanel({
   const subtotalVisible = subtotal > selectedPrice
 
   return (
-    <div className="shop-card flex min-w-0 flex-col p-5 md:p-6 lg:min-h-[630px]">
+    <div className="shop-card flex h-full min-w-0 flex-col p-5 md:p-6 lg:min-h-[630px]">
       <div className="space-y-4">
         <div className="space-y-3 border-b border-white/10 pb-4">
           <div className="space-y-2">
@@ -82,18 +82,14 @@ export function ProductPurchasePanel({
                 </div>
               ) : null}
             </div>
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-4">
-              <div className="grid min-h-[56px] grid-cols-[92px_minmax(0,1fr)_92px] items-start gap-2">
-                <div aria-hidden className="opacity-0">
-                  <span className="block text-[10px] uppercase tracking-[0.16em]">Subtotale</span>
-                  <span className="mt-1 block text-sm">0,00 €</span>
+            <div className="rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-3">
+              <div className="flex h-[48px] items-center justify-between gap-4">
+                <div className="flex min-w-0 flex-1 items-center">
+                  <span className="block text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
                 </div>
-                <div className="flex justify-center pt-0.5">
-                  <span className="block text-center text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
-                </div>
-                <div className={`pt-1 text-right transition-opacity ${subtotalVisible ? "opacity-100" : "opacity-0"}`}>
+                <div className={`flex w-[92px] flex-col items-end justify-center text-right transition-opacity ${subtotalVisible ? "opacity-100" : "opacity-0"}`}>
                   <span className="block text-[9px] uppercase tracking-[0.14em] text-white/35">Subtotale</span>
-                  <span className="mt-1 block text-xs text-white/62 md:text-[13px]">{formatPrice(subtotal)}</span>
+                  <span className="mt-0.5 block text-xs text-white/62 md:text-[13px]">{formatPrice(subtotal)}</span>
                 </div>
               </div>
             </div>
