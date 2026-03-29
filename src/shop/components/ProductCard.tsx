@@ -10,6 +10,9 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   const navigate = useNavigate()
   const { user } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
+  const primaryImage = getProductPrimaryImage(product)
+  const secondaryImage = product.imageUrls?.[1] || ""
+  const hasHoverImage = Boolean(primaryImage && secondaryImage && secondaryImage !== primaryImage)
   const defaultVariant = getDefaultVariant(product)
   const availableFormats = getAvailableFormats(product)
   const purchasable = isProductPurchasable(product, defaultVariant?.id)
@@ -38,8 +41,29 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   return (
     <article className="shop-card flex h-full flex-col overflow-hidden">
       <Link to={`/shop/${product.slug}`} className="block">
-        <div className="relative h-[300px] overflow-hidden bg-white/5 sm:h-[320px]">
-          <img src={getProductPrimaryImage(product)} alt={product.title} className="h-[300px] w-full object-cover transition duration-500 hover:scale-[1.03] sm:h-[320px]" />
+        <div className="group relative h-[300px] overflow-hidden bg-white/5 sm:h-[320px]">
+          {primaryImage ? (
+            <>
+              <img
+                src={primaryImage}
+                alt={product.title}
+                className={`absolute inset-0 h-[300px] w-full object-cover transition duration-500 sm:h-[320px] ${
+                  hasHoverImage ? "opacity-100 group-hover:opacity-0" : ""
+                }`}
+              />
+              {hasHoverImage ? (
+                <img
+                  src={secondaryImage}
+                  alt={product.title}
+                  className="absolute inset-0 h-[300px] w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100 sm:h-[320px]"
+                />
+              ) : null}
+            </>
+          ) : (
+            <div className="flex h-[300px] items-center justify-center text-sm text-white/45 sm:h-[320px]">
+              Nessuna immagine disponibile
+            </div>
+          )}
           {badges.length ? (
             <div className="absolute left-3 top-3 flex flex-wrap gap-2">
               {badges.slice(0, 3).map((badge) => (
