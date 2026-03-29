@@ -63,6 +63,8 @@ export function ProductPurchasePanel({
   notifyMessage,
   getVariantStockLabel,
 }: ProductPurchasePanelProps) {
+  const subtotalVisible = subtotal > selectedPrice
+
   return (
     <div className="shop-card flex min-w-0 flex-col p-5 md:p-6 lg:min-h-[630px]">
       <div className="space-y-4">
@@ -81,14 +83,12 @@ export function ProductPurchasePanel({
               ) : null}
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-4">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex min-h-[56px] items-start justify-between gap-4">
                 <span className="block text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
-                {subtotal > selectedPrice ? (
-                  <div className="pt-1 text-right">
-                    <span className="block text-[10px] uppercase tracking-[0.16em] text-white/40">Subtotale</span>
-                    <span className="mt-1 block text-sm text-white/68">{formatPrice(subtotal)}</span>
-                  </div>
-                ) : null}
+                <div className={`min-w-[92px] pt-1 text-right ${subtotalVisible ? "opacity-100" : "opacity-0"}`}>
+                  <span className="block text-[10px] uppercase tracking-[0.16em] text-white/40">Subtotale</span>
+                  <span className="mt-1 block text-sm text-white/68">{formatPrice(subtotal)}</span>
+                </div>
               </div>
             </div>
           </div>
