@@ -7,7 +7,7 @@ import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
 import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
-import type { ShopProduct, ShopProductListResponse } from "../shop/types";
+import type { AdminCollection, ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
   title: string;
@@ -22,6 +22,7 @@ type ShowcaseCard = {
   description: string;
   href: string;
   query: string;
+  collectionSlug?: string;
   imageUrl?: string;
   ctaLabel?: string;
 };
@@ -220,27 +221,68 @@ function pickProductImageByCategory(products: ShopProduct[], category: string, f
   return products[fallbackIndex % products.length] ? getProductPrimaryImage(products[fallbackIndex % products.length]) : null
 }
 
-function parseHomepageEntries<T extends { title: string; href: string; query: string }>(
+function pickProductImageByCollection(products: ShopProduct[], collectionSlug: string, fallbackIndex: number) {
+  if (!products.length) return null
+
+  const normalizedSlug = collectionSlug.toLowerCase()
+  const directMatch = products.find((product) =>
+    (product.collections || []).some((collection) => collection.slug.toLowerCase() === normalizedSlug) && product.imageUrls.length > 0,
+  )
+
+  if (directMatch?.imageUrls[0]) {
+    return getProductPrimaryImage(directMatch)
+  }
+
+  return products[fallbackIndex % products.length] ? getProductPrimaryImage(products[fallbackIndex % products.length]) : null
+}
+
+function findCollectionByReference(collections: AdminCollection[], reference: string) {
+  const normalizedReference = String(reference || "").trim().toLowerCase()
+  if (!normalizedReference) return null
+  const slugifiedReference = normalizedReference.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+  return (
+    collections.find((collection) => collection.slug.toLowerCase() === normalizedReference) ||
+    collections.find((collection) => collection.slug.toLowerCase() === slugifiedReference) ||
+    collections.find((collection) => collection.title.trim().toLowerCase() === normalizedReference) ||
+    null
+  )
+}
+
+function parseHomepageShowcases(
   rawValue: string | undefined,
-  fallback: T[],
+  fallback: ShowcaseCard[],
+  collections: AdminCollection[],
 ) {
-  if (!rawValue) return fallback;
+  const source = rawValue || JSON.stringify(fallback)
 
   try {
-    const parsed = JSON.parse(rawValue);
+    const parsed = JSON.parse(source);
     if (!Array.isArray(parsed)) return fallback;
 
     const normalized = parsed
       .filter((entry) => entry && typeof entry === "object")
-      .map((entry) => ({
-        ...entry,
-        title: String(entry.title || "").trim(),
-        href: String(entry.href || "").trim(),
-        query: String(entry.query || "").trim(),
-      }))
-      .filter((entry) => entry.title && entry.href && entry.query);
+      .map((entry) => {
+        const href = String(entry.href || "").trim()
+        const hrefParams = new URLSearchParams(href.split("?")[1] || "")
+        const resolvedCollection =
+          findCollectionByReference(collections, String(entry.collectionSlug || "").trim()) ||
+          findCollectionByReference(collections, String(hrefParams.get("collectionSlug") || "").trim()) ||
+          findCollectionByReference(collections, String(entry.title || "").trim())
 
-    return normalized.length ? (normalized as T[]) : fallback;
+        return {
+          eyebrow: String(entry.eyebrow || "").trim(),
+          title: String(entry.title || resolvedCollection?.title || "").trim(),
+          description: String(entry.description || resolvedCollection?.description || "").trim(),
+          href,
+          query: String(entry.query || "").trim(),
+          collectionSlug: resolvedCollection?.slug || "",
+          imageUrl: typeof entry.imageUrl === "string" ? entry.imageUrl : "",
+          ctaLabel: String(entry.ctaLabel || "").trim(),
+        }
+      })
+      .filter((entry) => entry.title && (entry.collectionSlug || entry.href || entry.query));
+
+    return normalized.length ? normalized : fallback;
   } catch {
     return fallback;
   }
@@ -310,6 +352,7 @@ export function HomeShop() {
   const navigate = useNavigate();
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [collections, setCollections] = useState<AdminCollection[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -324,14 +367,16 @@ export function HomeShop() {
     async function loadProducts() {
       try {
         setStatus("loading");
-        const [productData, settingsData] = await Promise.all([
+        const [productData, settingsData, collectionsData] = await Promise.all([
           apiFetch<ShopProductListResponse>("/store/products?page=1&pageSize=100&sort=manual"),
           apiFetch<Record<string, string>>("/store/settings"),
+          apiFetch<AdminCollection[]>("/store/collections"),
         ]);
         if (!cancelled) {
           setProducts(productData.items);
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
+          setCollections(collectionsData);
           setStatus("idle");
         }
       } catch (error) {
@@ -357,8 +402,8 @@ export function HomeShop() {
   );
 
   const showcases = useMemo(
-    () => parseHomepageEntries<ShowcaseCard>(shopSettings.homepageShowcases, defaultShowcases),
-    [shopSettings]
+    () => parseHomepageShowcases(shopSettings.homepageShowcases, defaultShowcases, collections),
+    [collections, shopSettings]
   );
 
   const popularCategoryCards = useMemo(
@@ -370,16 +415,18 @@ export function HomeShop() {
     [products, popularCategories],
   );
 
-  const showcaseCards = useMemo(() => {
-    const singersImage = pickProductImage(products, showcases[0]?.query || defaultShowcases[0].query, 3);
-
-    return showcases.map((showcase, index) => ({
-      ...showcase,
-      imageUrl: showcase.imageUrl || (showcase.title === "Frasi d'amore"
-        ? singersImage
-        : pickProductImage(products, showcase.query, index + 3)),
-    }));
-  }, [products, showcases]);
+  const showcaseCards = useMemo(
+    () =>
+      showcases.map((showcase, index) => ({
+        ...showcase,
+        imageUrl:
+          showcase.imageUrl ||
+          (showcase.collectionSlug
+            ? pickProductImageByCollection(products, showcase.collectionSlug, index + 3)
+            : pickProductImage(products, showcase.query, index + 3)),
+      })),
+    [products, showcases],
+  );
 
   useEffect(() => {
     if (!catalogEditMode) {
@@ -525,8 +572,16 @@ export function HomeShop() {
                       </div>
                     </div>
                     <div>
-                      <Button asChild size="sm">
-                        <Link to={withCatalogContext(showcase.href, showcase.title, showcase.description)}>{showcase.ctaLabel || "Esplora la collezione"}</Link>
+                      <Button asChild variant="cart" size="sm">
+                        <Link
+                          to={
+                            showcase.collectionSlug
+                              ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
+                              : withCatalogContext(showcase.href, showcase.title, showcase.description)
+                          }
+                        >
+                          {showcase.ctaLabel || "Esplora la collezione"}
+                        </Link>
                       </Button>
                     </div>
                   </div>

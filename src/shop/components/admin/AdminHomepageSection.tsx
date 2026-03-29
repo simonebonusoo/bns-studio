@@ -15,6 +15,7 @@ type HomepageShowcase = {
   description: string
   href: string
   query: string
+  collectionSlug?: string
   imageUrl?: string
   ctaLabel: string
 }
@@ -23,6 +24,11 @@ type AdminHomepageSectionProps = {
   homepageShowcases: HomepageShowcase[]
   homepagePopularCategories: HomepagePopularCategory[]
   categories: string[]
+  collections: Array<{
+    title: string
+    slug: string
+    description?: string
+  }>
   homepageFocus: { section: "showcases" | "popular-categories"; item: number | null }
   setHomepageFocus: Dispatch<SetStateAction<{ section: "showcases" | "popular-categories"; item: number | null }>>
   setHomepageShowcases: Dispatch<SetStateAction<HomepageShowcase[]>>
@@ -39,6 +45,7 @@ export function AdminHomepageSection({
   homepageShowcases,
   homepagePopularCategories,
   categories,
+  collections,
   homepageFocus,
   setHomepageFocus,
   setHomepageShowcases,
@@ -143,15 +150,17 @@ export function AdminHomepageSection({
             type="button"
             variant="cart"
             onClick={() => {
+              const fallbackCollection = collections[0] || null
               setShowcasesSnapshot(cloneShowcases(homepageShowcases))
               setHomepageShowcases((current) => [
                 ...current,
                 {
                   eyebrow: "Selezione in evidenza",
-                  title: `Nuova selezione ${current.length + 1}`,
-                  description: "",
-                  href: "/shop",
+                  title: fallbackCollection?.title || `Nuova selezione ${current.length + 1}`,
+                  description: fallbackCollection?.description || "",
+                  href: fallbackCollection ? `/shop?collectionSlug=${fallbackCollection.slug}` : "/shop",
                   query: "",
+                  collectionSlug: fallbackCollection?.slug || "",
                   imageUrl: "",
                   ctaLabel: "Esplora la collezione",
                 },
@@ -213,8 +222,33 @@ export function AdminHomepageSection({
                 <div className="grid gap-4 md:grid-cols-2">
                   <input className="shop-input" placeholder="Eyebrow" value={item.eyebrow} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, eyebrow: event.target.value } : entry))} />
                   <input className="shop-input" placeholder="Titolo" value={item.title} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
-                  <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
-                  <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
+                  <select
+                    className="shop-select"
+                    value={item.collectionSlug || ""}
+                    onChange={(event) =>
+                      setHomepageShowcases((current) =>
+                        current.map((entry, itemIndex) => {
+                          if (itemIndex !== index) return entry
+                          const nextCollection = collections.find((collection) => collection.slug === event.target.value)
+                          return {
+                            ...entry,
+                            collectionSlug: event.target.value,
+                            href: nextCollection ? `/shop?collectionSlug=${nextCollection.slug}` : entry.href,
+                            title: nextCollection ? nextCollection.title : entry.title,
+                            description: nextCollection?.description || entry.description,
+                            query: "",
+                          }
+                        }),
+                      )
+                    }
+                  >
+                    <option value="">Collezione collegata</option>
+                    {collections.map((collection) => (
+                      <option key={collection.slug} value={collection.slug}>
+                        {collection.title}
+                      </option>
+                    ))}
+                  </select>
                   <input className="shop-input" placeholder="Etichetta CTA" value={item.ctaLabel} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, ctaLabel: event.target.value } : entry))} />
                 </div>
                 <textarea className="shop-textarea min-h-24 resize-none" placeholder="Descrizione" value={item.description} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />

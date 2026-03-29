@@ -59,6 +59,7 @@ type HomepageShowcase = {
   description: string
   href: string
   query: string
+  collectionSlug?: string
   imageUrl?: string
   ctaLabel: string
 }
@@ -447,6 +448,35 @@ function parseHomepagePopularCategoriesSetting(value: string | undefined, fallba
     .filter((entry) => entry.title && entry.category)
 }
 
+function parseHomepageShowcasesSetting(value: string | undefined, fallback: HomepageShowcase[], collections: AdminCollection[]) {
+  const parsed = parseHomepageSetting<Record<string, unknown>>(value, fallback)
+  return parsed
+    .map((entry) => {
+      const href = String(entry.href || "").trim()
+      const hrefParams = new URLSearchParams(href.split("?")[1] || "")
+      const rawCollectionSlug = String(entry.collectionSlug || hrefParams.get("collectionSlug") || "").trim()
+      const normalizedTitle = String(entry.title || "").trim().toLowerCase()
+      const slugifiedTitle = normalizedTitle.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+      const resolvedCollection =
+        collections.find((collection) => collection.slug === rawCollectionSlug) ||
+        collections.find((collection) => collection.title.trim().toLowerCase() === normalizedTitle) ||
+        collections.find((collection) => collection.slug === slugifiedTitle) ||
+        null
+
+      return {
+        eyebrow: String(entry.eyebrow || "").trim(),
+        title: String(entry.title || resolvedCollection?.title || "").trim(),
+        description: String(entry.description || resolvedCollection?.description || "").trim(),
+        href,
+        query: String(entry.query || "").trim(),
+        collectionSlug: resolvedCollection?.slug || rawCollectionSlug,
+        imageUrl: typeof entry.imageUrl === "string" ? entry.imageUrl : "",
+        ctaLabel: String(entry.ctaLabel || "Esplora la collezione").trim(),
+      }
+    })
+    .filter((entry) => entry.title && (entry.collectionSlug || entry.href || entry.query))
+}
+
 function getCouponAmountLabel(type: CouponFormState["type"]) {
   return type === "percentage" ? "Valore sconto (%)" : "Valore sconto (€)"
 }
@@ -589,8 +619,8 @@ export function ShopAdminPage() {
 
   useEffect(() => {
     setHomepagePopularCategories(parseHomepagePopularCategoriesSetting(settingValue("homepagePopularCategories"), defaultHomepagePopularCategories))
-    setHomepageShowcases(parseHomepageSetting(settingValue("homepageShowcases"), defaultHomepageShowcases))
-  }, [settings])
+    setHomepageShowcases(parseHomepageShowcasesSetting(settingValue("homepageShowcases"), defaultHomepageShowcases, collections))
+  }, [collections, settings])
 
   async function refreshProducts() {
     const params = new URLSearchParams()
@@ -1383,6 +1413,7 @@ export function ShopAdminPage() {
           homepageShowcases={homepageShowcases}
           homepagePopularCategories={homepagePopularCategories}
           categories={categories}
+          collections={collections}
           homepageFocus={homepageFocus}
           setHomepageFocus={setHomepageFocus}
           setHomepageShowcases={setHomepageShowcases}
