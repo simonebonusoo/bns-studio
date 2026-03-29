@@ -1,4 +1,3 @@
-import { Button } from "../../../components/Button"
 import { useState } from "react"
 
 type ProductMediaManagerProps = {
@@ -17,6 +16,7 @@ export function ProductMediaManager({
   onRemoveImage,
 }: ProductMediaManagerProps) {
   const [draggedImage, setDraggedImage] = useState<string | null>(null)
+  const inputId = "product-media-upload-input"
 
   function reorderImage(targetImage: string) {
     if (!draggedImage || draggedImage === targetImage) return
@@ -38,12 +38,24 @@ export function ProductMediaManager({
           <p className="text-sm font-medium text-white">Immagini prodotto</p>
           <p className="mt-1 text-xs text-white/55">La prima immagine della lista verrà usata automaticamente come cover.</p>
         </div>
-        <label className={disabled ? "pointer-events-none opacity-45" : ""}>
-          <Button type="button" variant="cart" size="sm" text="Carica immagini" className="pointer-events-none">
-            Carica immagini
-          </Button>
-          <input type="file" multiple accept="image/*" className="hidden" disabled={disabled} onChange={(event) => onFileChange(event.target.files)} />
+        <label
+          htmlFor={inputId}
+          className={`${getUploadTriggerClassName(disabled)}`}
+        >
+          Carica immagini
         </label>
+        <input
+          id={inputId}
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          disabled={disabled}
+          onChange={(event) => {
+            onFileChange(event.target.files)
+            event.currentTarget.value = ""
+          }}
+        />
       </div>
 
       {images.length ? (
@@ -102,4 +114,13 @@ export function ProductMediaManager({
       )}
     </div>
   )
+}
+
+function getUploadTriggerClassName(disabled: boolean) {
+  return [
+    "group relative inline-flex h-9 select-none items-center justify-center gap-2 overflow-hidden rounded-md px-3.5 text-xs font-medium transition-all",
+    disabled
+      ? "cursor-not-allowed opacity-45"
+      : "bg-white text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)] hover:bg-white/90 active:scale-[.98]",
+  ].join(" ")
 }
