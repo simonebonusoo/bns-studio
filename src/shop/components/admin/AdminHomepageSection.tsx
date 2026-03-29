@@ -258,12 +258,22 @@ export function AdminHomepageSection({
                       <p className="text-sm font-medium text-white">Immagine selezione</p>
                       <p className="mt-1 text-xs text-white/55">Usata come cover del blocco editoriale pubblico.</p>
                     </div>
-                    <label>
-                      <Button type="button" variant="cart" size="sm" className="pointer-events-none">
-                        Carica immagine
-                      </Button>
-                      <input type="file" accept="image/*" className="hidden" onChange={(event) => void onUploadShowcaseImage(index, event.target.files)} />
+                    <label
+                      htmlFor={`homepage-showcase-image-${index}`}
+                      className={getButtonClassName({ variant: "cart", size: "sm" })}
+                    >
+                      Carica immagine
                     </label>
+                    <input
+                      id={`homepage-showcase-image-${index}`}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => {
+                        void onUploadShowcaseImage(index, event.target.files)
+                        event.currentTarget.value = ""
+                      }}
+                    />
                   </div>
                   {item.imageUrl ? (
                     <div className="mt-4 overflow-hidden rounded-[18px] border border-white/10 bg-black/10">
@@ -388,12 +398,22 @@ export function AdminHomepageSection({
                       <p className="text-sm font-medium text-white">Immagine categoria</p>
                       <p className="mt-1 text-xs text-white/55">Usata come cover visiva della card pubblica in homepage.</p>
                     </div>
-                    <label>
-                      <Button type="button" variant="cart" size="sm" className="pointer-events-none">
-                        Carica immagine
-                      </Button>
-                      <input type="file" accept="image/*" className="hidden" onChange={(event) => void onUploadPopularCategoryImage(index, event.target.files)} />
+                    <label
+                      htmlFor={`homepage-popular-category-image-${index}`}
+                      className={getButtonClassName({ variant: "cart", size: "sm" })}
+                    >
+                      Carica immagine
                     </label>
+                    <input
+                      id={`homepage-popular-category-image-${index}`}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => {
+                        void onUploadPopularCategoryImage(index, event.target.files)
+                        event.currentTarget.value = ""
+                      }}
+                    />
                   </div>
                   {item.imageUrl ? (
                     <div className="mt-4 overflow-hidden rounded-[18px] border border-white/10 bg-black/10">
