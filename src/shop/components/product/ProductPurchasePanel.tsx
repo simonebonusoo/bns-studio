@@ -83,11 +83,17 @@ export function ProductPurchasePanel({
               ) : null}
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-4">
-              <div className="flex min-h-[56px] items-start justify-between gap-4">
-                <span className="block text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
-                <div className={`min-w-[92px] pt-1 text-right ${subtotalVisible ? "opacity-100" : "opacity-0"}`}>
-                  <span className="block text-[10px] uppercase tracking-[0.16em] text-white/40">Subtotale</span>
-                  <span className="mt-1 block text-sm text-white/68">{formatPrice(subtotal)}</span>
+              <div className="grid min-h-[56px] grid-cols-[92px_minmax(0,1fr)_92px] items-start gap-2">
+                <div aria-hidden className="opacity-0">
+                  <span className="block text-[10px] uppercase tracking-[0.16em]">Subtotale</span>
+                  <span className="mt-1 block text-sm">0,00 €</span>
+                </div>
+                <div className="flex justify-center pt-0.5">
+                  <span className="block text-center text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
+                </div>
+                <div className={`pt-1 text-right transition-opacity ${subtotalVisible ? "opacity-100" : "opacity-0"}`}>
+                  <span className="block text-[9px] uppercase tracking-[0.14em] text-white/35">Subtotale</span>
+                  <span className="mt-1 block text-xs text-white/62 md:text-[13px]">{formatPrice(subtotal)}</span>
                 </div>
               </div>
             </div>

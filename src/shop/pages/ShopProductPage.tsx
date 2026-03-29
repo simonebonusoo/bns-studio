@@ -253,7 +253,7 @@ export function ShopProductPage() {
   return (
     <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
       <div className="mx-auto w-full max-w-[1380px] space-y-8">
-        <div className="grid w-full items-stretch gap-7 lg:grid-cols-[minmax(0,0.98fr)_minmax(0,0.94fr)] xl:gap-8">
+        <div className="grid w-full items-start gap-7 lg:grid-cols-[minmax(0,0.98fr)_minmax(0,0.94fr)] xl:gap-8">
           <ProductGallery
             title={product.title}
             images={galleryImages}
