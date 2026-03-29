@@ -41,6 +41,14 @@ function containWheel(event: WheelEvent<HTMLElement>) {
   event.stopPropagation()
 }
 
+function getSuggestionHoverImages(product: ShopProduct) {
+  const primaryImage = getProductPrimaryImage(product)
+  const secondaryImage = product.imageUrls?.[1] || ""
+  const hasHoverImage = Boolean(primaryImage && secondaryImage && secondaryImage !== primaryImage)
+
+  return { primaryImage, secondaryImage, hasHoverImage }
+}
+
 function scoreSearchSuggestion(product: ShopProduct, query: string) {
   const normalizedQuery = query.trim().toLowerCase()
   const title = product.title.toLowerCase()
@@ -586,27 +594,48 @@ export function Navbar() {
                       </div>
                       <div className="grid gap-4 lg:grid-cols-4">
                         {suggestedProducts.length ? (
-                          suggestedProducts.map((product) => (
-                            <button
-                              key={product.id}
-                              type="button"
-                              onClick={() => navigate(`/shop/${product.slug}`)}
-                              className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] text-left transition hover:-translate-y-0.5 hover:border-white/20"
-                            >
-                              <div className="aspect-[4/3] overflow-hidden bg-white/[0.04]">
-                                <img
-                                  src={getProductPrimaryImage(product)}
-                                  alt={product.title}
-                                  className="h-full w-full object-cover transition duration-500 hover:scale-[1.03]"
-                                />
-                              </div>
+                          suggestedProducts.map((product) => {
+                            const { primaryImage, secondaryImage, hasHoverImage } = getSuggestionHoverImages(product)
+
+                            return (
+                              <button
+                                key={product.id}
+                                type="button"
+                                onClick={() => navigate(`/shop/${product.slug}`)}
+                                className="group overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] text-left transition hover:-translate-y-0.5 hover:border-white/20"
+                              >
+                                <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.04]">
+                                  {primaryImage ? (
+                                    <>
+                                      <img
+                                        src={primaryImage}
+                                        alt={product.title}
+                                        className={`absolute inset-0 h-full w-full object-cover transition duration-500 ${
+                                          hasHoverImage ? "opacity-100 group-hover:opacity-0" : ""
+                                        }`}
+                                      />
+                                      {hasHoverImage ? (
+                                        <img
+                                          src={secondaryImage}
+                                          alt={product.title}
+                                          className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100"
+                                        />
+                                      ) : null}
+                                    </>
+                                  ) : (
+                                    <div className="flex h-full items-center justify-center text-sm text-white/45">
+                                      Nessuna immagine disponibile
+                                    </div>
+                                  )}
+                                </div>
                               <div className="space-y-2 p-4">
                                 <p className="text-xs uppercase tracking-[0.2em] text-white/45">{product.category}</p>
                                 <h3 className="line-clamp-2 text-base font-medium text-white">{product.title}</h3>
                                 <p className="text-sm font-medium text-[#e3f503]">{formatPrice(product.price)}</p>
                               </div>
-                            </button>
-                          ))
+                              </button>
+                            )
+                          })
                         ) : (
                           <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
                             Nessun prodotto suggerito disponibile.
@@ -635,20 +664,40 @@ export function Navbar() {
 
                       <div className="grid gap-4 lg:grid-cols-4">
                         {liveResults.length ? (
-                          liveResults.map((product) => (
-                            <button
-                              key={product.id}
-                              type="button"
-                              onClick={() => navigate(`/shop/${product.slug}`)}
-                              className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] text-left transition hover:-translate-y-0.5 hover:border-white/20"
-                            >
-                              <div className="aspect-[4/3] overflow-hidden bg-white/[0.04]">
-                                <img
-                                  src={getProductPrimaryImage(product)}
-                                  alt={product.title}
-                                  className="h-full w-full object-cover transition duration-500 hover:scale-[1.03]"
-                                />
-                              </div>
+                          liveResults.map((product) => {
+                            const { primaryImage, secondaryImage, hasHoverImage } = getSuggestionHoverImages(product)
+
+                            return (
+                              <button
+                                key={product.id}
+                                type="button"
+                                onClick={() => navigate(`/shop/${product.slug}`)}
+                                className="group overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] text-left transition hover:-translate-y-0.5 hover:border-white/20"
+                              >
+                                <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.04]">
+                                  {primaryImage ? (
+                                    <>
+                                      <img
+                                        src={primaryImage}
+                                        alt={product.title}
+                                        className={`absolute inset-0 h-full w-full object-cover transition duration-500 ${
+                                          hasHoverImage ? "opacity-100 group-hover:opacity-0" : ""
+                                        }`}
+                                      />
+                                      {hasHoverImage ? (
+                                        <img
+                                          src={secondaryImage}
+                                          alt={product.title}
+                                          className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100"
+                                        />
+                                      ) : null}
+                                    </>
+                                  ) : (
+                                    <div className="flex h-full items-center justify-center text-sm text-white/45">
+                                      Nessuna immagine disponibile
+                                    </div>
+                                  )}
+                                </div>
                               <div className="space-y-2 p-4">
                                 <p className="text-xs uppercase tracking-[0.2em] text-white/45">{product.category}</p>
                                 <h3 className="line-clamp-2 text-base font-medium text-white">
@@ -656,8 +705,9 @@ export function Navbar() {
                                 </h3>
                                 <p className="text-sm font-medium text-[#e3f503]">{formatPrice(product.price)}</p>
                               </div>
-                            </button>
-                          ))
+                              </button>
+                            )
+                          })
                         ) : (
                           <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
                             Nessun risultato live. Premi invio per aprire il catalogo filtrato.
