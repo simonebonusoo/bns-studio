@@ -25,23 +25,19 @@ export function ProductGallery({
       <button
         type="button"
         onClick={onOpenLightbox}
-        className="shop-card flex min-w-0 flex-col overflow-hidden text-left transition hover:border-white/20 lg:h-full"
+        className="shop-card grid min-w-0 overflow-hidden p-0 text-left transition hover:border-white/20 lg:h-full"
       >
-        <div className="flex-1 bg-white/[0.02]" />
-        <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-3 md:min-h-[470px] md:p-3.5">
+        <div className="relative min-h-[360px] bg-white/[0.02] md:min-h-[470px] lg:h-full">
           {activeImage ? (
-            <div className="grid h-full w-full place-items-center">
-              <img
-                src={activeImage}
-                alt={title}
-                className="block max-h-[458px] max-w-[95%] object-contain object-center md:max-h-[584px] md:max-w-[96%]"
-              />
-            </div>
+            <img
+              src={activeImage}
+              alt={title}
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
           ) : (
-            <div className="text-sm text-white/45">Nessuna immagine disponibile</div>
+            <div className="grid h-full w-full place-items-center text-sm text-white/45">Nessuna immagine disponibile</div>
           )}
         </div>
-        <div className="flex-1 bg-white/[0.02]" />
       </button>
       <div className="grid h-full grid-cols-4 content-start gap-2.5 md:grid-cols-1">
         {images.map((image, index) => (
