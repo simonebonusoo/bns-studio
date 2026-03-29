@@ -1,3 +1,4 @@
+import { RefObject } from "react"
 import { ProductCollection, ProductVisibleBadge, ShopProductVariant } from "../../types"
 import { Button } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
@@ -11,6 +12,7 @@ type ProductPurchasePanelProps = {
   stockLabel: string
   productCategory: string
   productCollection?: ProductCollection | null
+  panelRef?: RefObject<HTMLDivElement | null>
   sku?: string | null
   variants: ShopProductVariant[]
   selectedVariantKey: string
@@ -41,6 +43,7 @@ export function ProductPurchasePanel({
   stockLabel,
   productCategory,
   productCollection,
+  panelRef,
   sku,
   variants,
   selectedVariantKey,
@@ -66,7 +69,7 @@ export function ProductPurchasePanel({
   const subtotalVisible = subtotal > selectedPrice
 
   return (
-    <div className="shop-card flex h-full min-w-0 flex-col p-5 md:p-6 lg:min-h-[630px]">
+    <div ref={panelRef} className="shop-card flex h-full min-w-0 flex-col p-5 md:p-6 lg:min-h-[630px]">
       <div className="space-y-4">
         <div className="space-y-3 border-b border-white/10 pb-4">
           <div className="space-y-2">

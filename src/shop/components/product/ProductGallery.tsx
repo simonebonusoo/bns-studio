@@ -2,6 +2,7 @@ type ProductGalleryProps = {
   title: string
   images: string[]
   selectedImage: string
+  lockedHeight?: number | null
   onSelectImage: (image: string) => void
   onOpenLightbox: () => void
 }
@@ -10,17 +11,21 @@ export function ProductGallery({
   title,
   images,
   selectedImage,
+  lockedHeight,
   onSelectImage,
   onOpenLightbox,
 }: ProductGalleryProps) {
   const activeImage = selectedImage || images[0] || ""
 
   return (
-    <div className="grid h-full min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_84px] md:items-stretch">
+    <div
+      className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_84px] md:items-stretch lg:h-[var(--gallery-height)]"
+      style={{ ["--gallery-height" as string]: lockedHeight ? `${lockedHeight}px` : "auto" }}
+    >
       <button
         type="button"
         onClick={onOpenLightbox}
-        className="shop-card flex h-full min-w-0 flex-col overflow-hidden text-left transition hover:border-white/20"
+        className="shop-card flex min-w-0 flex-col overflow-hidden text-left transition hover:border-white/20 lg:h-full"
       >
         <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-3 md:min-h-[470px] md:p-3.5">
           {activeImage ? (

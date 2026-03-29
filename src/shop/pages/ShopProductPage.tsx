@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ProductCard } from "../components/ProductCard"
 import { ProductGallery } from "../components/product/ProductGallery"
@@ -32,6 +32,8 @@ export function ShopProductPage() {
   const [notifyMessage, setNotifyMessage] = useState("")
   const [variantMenuOpen, setVariantMenuOpen] = useState(false)
   const [openInfoSection, setOpenInfoSection] = useState<"details" | "shipping" | "delivery" | null>(null)
+  const purchasePanelRef = useRef<HTMLDivElement | null>(null)
+  const [galleryLockedHeight, setGalleryLockedHeight] = useState<number | null>(null)
 
   useEffect(() => {
     setProduct(null)
@@ -237,6 +239,30 @@ export function ShopProductPage() {
     }
   }, [product, slug, user])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (window.innerWidth < 1024) {
+      setGalleryLockedHeight(null)
+      return
+    }
+
+    const panel = purchasePanelRef.current
+    if (!panel || variantMenuOpen) return
+
+    const updateHeight = () => {
+      setGalleryLockedHeight(panel.getBoundingClientRect().height)
+    }
+
+    updateHeight()
+
+    const observer = new ResizeObserver(() => {
+      updateHeight()
+    })
+
+    observer.observe(panel)
+    return () => observer.disconnect()
+  }, [product?.id, quantity, selectedVariantKey, stockStatus, subtotal, variantMenuOpen])
+
   if (productError) {
     return (
       <div className="px-6 py-20 text-center text-white/60">
@@ -258,6 +284,7 @@ export function ShopProductPage() {
             title={product.title}
             images={galleryImages}
             selectedImage={selectedImage}
+            lockedHeight={galleryLockedHeight}
             onSelectImage={setSelectedImage}
             onOpenLightbox={() => setIsLightboxOpen(true)}
           />
@@ -269,6 +296,7 @@ export function ShopProductPage() {
             stockLabel={stockLabel}
             productCategory={product.category}
             productCollection={primaryCollection}
+            panelRef={purchasePanelRef}
             sku={selectedVariant?.sku || product.sku}
             variants={variants}
             selectedVariantKey={selectedVariantKey}
