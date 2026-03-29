@@ -104,7 +104,8 @@ export function ProductFormCard({
   onReorderImages,
   onRemoveImage,
 }: ProductFormCardProps) {
-  const activeVariants = productForm.variants.filter((variant) => variant.isActive)
+  const safeVariants = Array.isArray(productForm.variants) ? productForm.variants : []
+  const activeVariants = safeVariants.filter((variant) => variant.isActive)
   const totalVariantStock = activeVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
   const lowStockVariantCount = activeVariants.filter((variant) => variant.stock > 0 && variant.stock <= variant.lowStockThreshold).length
   const inventoryTone =
@@ -272,19 +273,19 @@ export function ProductFormCard({
               text="Aggiungi variante"
               onClick={() =>
                 onChange({
-                  ...productForm,
-                  variants: [
-                    ...productForm.variants,
+                    ...productForm,
+                    variants: [
+                    ...safeVariants,
                     {
                       id: null,
-                      title: `Variante ${productForm.variants.length + 1}`,
-                      key: `variant-${productForm.variants.length + 1}`,
+                      title: `Variante ${safeVariants.length + 1}`,
+                      key: `variant-${safeVariants.length + 1}`,
                       sku: "",
                       price: "",
                       costPrice: "",
                       stock: 0,
                       lowStockThreshold: 5,
-                      isDefault: productForm.variants.length === 0,
+                      isDefault: safeVariants.length === 0,
                       isActive: true,
                     },
                   ],
@@ -296,7 +297,7 @@ export function ProductFormCard({
           </div>
 
           <div className="space-y-3">
-            {productForm.variants.map((variant, index) => (
+            {safeVariants.map((variant, index) => (
               <div key={`${variant.id ?? "new"}-${index}`} className="rounded-[24px] border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -330,7 +331,7 @@ export function ProductFormCard({
                       type="button"
                       variant="profile"
                       size="sm"
-                      disabled={index === productForm.variants.length - 1}
+                      disabled={index === safeVariants.length - 1}
                       onClick={() => {
                         const next = [...productForm.variants]
                         ;[next[index + 1], next[index]] = [next[index], next[index + 1]]

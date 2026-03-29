@@ -14,6 +14,7 @@ import { AdminReviewsSection } from "../components/admin/AdminReviewsSection"
 import { AdminUsersSection } from "../components/admin/AdminUsersSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
+import { normalizeProductFormStateForEdit } from "../lib/admin-product-edit.mjs"
 import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
@@ -542,7 +543,7 @@ export function ShopAdminPage() {
   const [error, setError] = useState("")
 
   const productImages = useMemo(
-    () => [...productForm.existingImageUrls, ...productPreviewUrls],
+    () => [...(Array.isArray(productForm.existingImageUrls) ? productForm.existingImageUrls : []), ...productPreviewUrls],
     [productForm.existingImageUrls, productPreviewUrls]
   )
   const shopSettings = useMemo<ShopSettings>(
@@ -679,60 +680,7 @@ export function ShopAdminPage() {
     resetProductForm()
     setEditingProductId(product.id)
     setProductTouchedFields({})
-    setProductForm({
-      title: product.title,
-      sku: product.sku || "",
-      description: product.description,
-      priceA4: formatEuroInput(product.priceA4 ?? product.price),
-      priceA3: product.priceA3 ? formatEuroInput(product.priceA3) : "",
-      costPrice: product.costPrice ? formatEuroInput(product.costPrice) : "",
-      hasA4: product.hasA4 !== false,
-      hasA3: Boolean(product.hasA3),
-      category: product.category,
-      tags: product.tags?.map((tag) => tag.name).join(", ") || "",
-      collectionIds: product.collections?.map((collection) => collection.id) || [],
-      manualBadges: product.manualBadges || [],
-      featured: product.featured,
-      stock: product.stock,
-      lowStockThreshold: product.lowStockThreshold || 5,
-      status: product.status,
-      existingImageUrls: product.imageUrls,
-      variants: (product.variants?.length
-        ? product.variants
-        : [
-            {
-              id: null,
-              title: product.hasA4 !== false ? "A4" : product.hasA3 ? "A3" : "Standard",
-              key: product.hasA4 !== false ? "a4" : product.hasA3 ? "a3" : "standard",
-              sku: product.sku || null,
-              price: product.hasA4 !== false ? (product.priceA4 ?? product.price) : (product.priceA3 ?? product.price),
-              costPrice: getSuggestedVariantCostCents(product.hasA4 !== false ? "A4" : product.hasA3 ? "A3" : "Standard"),
-              stock: product.stock,
-              lowStockThreshold: product.lowStockThreshold || 5,
-              position: 0,
-              isDefault: true,
-              isActive: true,
-            },
-            ...(product.hasA3
-              ? [
-                  {
-                    id: null,
-                    title: "A3",
-                    key: "a3",
-                    sku: null,
-                    price: product.priceA3 ?? product.price,
-                    costPrice: getSuggestedVariantCostCents("A3"),
-                    stock: product.stock,
-                    lowStockThreshold: product.lowStockThreshold || 5,
-                    position: 1,
-                    isDefault: product.hasA4 === false,
-                    isActive: true,
-                  },
-                ]
-              : []),
-          ]
-      ).map(mapProductVariantToForm),
-    })
+    setProductForm(normalizeProductFormStateForEdit(product))
   }
 
   function areFormValuesEqual(left: unknown, right: unknown) {

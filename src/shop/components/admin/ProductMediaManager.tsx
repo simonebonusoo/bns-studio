@@ -15,17 +15,18 @@ export function ProductMediaManager({
   onReorder,
   onRemoveImage,
 }: ProductMediaManagerProps) {
+  const safeImages = Array.isArray(images) ? images : []
   const [draggedImage, setDraggedImage] = useState<string | null>(null)
   const inputId = "product-media-upload-input"
 
   function reorderImage(targetImage: string) {
     if (!draggedImage || draggedImage === targetImage) return
 
-    const currentIndex = images.indexOf(draggedImage)
-    const targetIndex = images.indexOf(targetImage)
+    const currentIndex = safeImages.indexOf(draggedImage)
+    const targetIndex = safeImages.indexOf(targetImage)
     if (currentIndex === -1 || targetIndex === -1) return
 
-    const next = [...images]
+    const next = [...safeImages]
     const [moved] = next.splice(currentIndex, 1)
     next.splice(targetIndex, 0, moved)
     onReorder(next)
@@ -58,9 +59,9 @@ export function ProductMediaManager({
         />
       </div>
 
-      {images.length ? (
+      {safeImages.length ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {images.map((image, index) => (
+          {safeImages.map((image, index) => (
             <div
               key={image}
               draggable={!disabled}
