@@ -69,6 +69,7 @@ export function ShopProductPage() {
   const availableFormats = product ? getAvailableFormats(product) : []
   const variants = product ? getProductVariants(product) : []
   const galleryImages = product ? getProductGalleryImages(product) : []
+  const primaryCollection = product?.collections?.[0] || null
   const selectedVariant = product ? resolveSelectedVariant(product, { format: selectedVariantKey }) || getDefaultVariant(product) : null
   const selectedPrice = product ? getPriceForVariant(product, selectedVariant?.id) : 0
   const purchasable = product ? isProductPurchasable(product, selectedVariant?.id) : false
@@ -267,6 +268,7 @@ export function ShopProductPage() {
             subtotal={subtotal}
             stockLabel={stockLabel}
             productCategory={product.category}
+            productCollection={primaryCollection}
             sku={selectedVariant?.sku || product.sku}
             variants={variants}
             selectedVariantKey={selectedVariantKey}
@@ -277,6 +279,16 @@ export function ShopProductPage() {
             purchaseState={purchaseState}
             stockStatus={stockStatus}
             onCategoryClick={() => navigate(`/shop?category=${encodeURIComponent(product.category)}`)}
+            onCollectionClick={() => {
+              if (!primaryCollection) return
+              const params = new URLSearchParams()
+              params.set("collectionSlug", primaryCollection.slug)
+              params.set("title", primaryCollection.title)
+              if (primaryCollection.description) {
+                params.set("subtitle", primaryCollection.description)
+              }
+              navigate(`/shop?${params.toString()}`)
+            }}
             onToggleVariantMenu={() => setVariantMenuOpen((current) => !current)}
             onSelectVariant={(variant) => {
               setSelectedVariantKey(variant.key || variant.title)

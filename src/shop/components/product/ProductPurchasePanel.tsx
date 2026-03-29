@@ -1,6 +1,6 @@
+import { ProductCollection, ProductVisibleBadge, ShopProductVariant } from "../../types"
 import { Button } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
-import { ProductVisibleBadge, ShopProductVariant } from "../../types"
 import { ProductPurchaseState } from "./purchaseState"
 import { ProductVariantSelector } from "./ProductVariantSelector"
 
@@ -10,6 +10,7 @@ type ProductPurchasePanelProps = {
   subtotal: number
   stockLabel: string
   productCategory: string
+  productCollection?: ProductCollection | null
   sku?: string | null
   variants: ShopProductVariant[]
   selectedVariantKey: string
@@ -20,6 +21,7 @@ type ProductPurchasePanelProps = {
   purchaseState: ProductPurchaseState
   stockStatus: string
   onCategoryClick: () => void
+  onCollectionClick: () => void
   onToggleVariantMenu: () => void
   onSelectVariant: (variant: ShopProductVariant) => void
   onDecreaseQuantity: () => void
@@ -38,6 +40,7 @@ export function ProductPurchasePanel({
   subtotal,
   stockLabel,
   productCategory,
+  productCollection,
   sku,
   variants,
   selectedVariantKey,
@@ -48,6 +51,7 @@ export function ProductPurchasePanel({
   purchaseState,
   stockStatus,
   onCategoryClick,
+  onCollectionClick,
   onToggleVariantMenu,
   onSelectVariant,
   onDecreaseQuantity,
@@ -100,6 +104,14 @@ export function ProductPurchasePanel({
               {productCategory}
             </button>
           </div>
+          {productCollection ? (
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
+              <span>Collezione</span>
+              <button type="button" onClick={onCollectionClick} className="text-sm text-white/80 transition hover:text-[#e3f503]">
+                {productCollection.title}
+              </button>
+            </div>
+          ) : null}
           {sku ? (
             <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
               <span>SKU</span>

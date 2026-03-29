@@ -16,13 +16,13 @@ export function ProductGallery({
   const activeImage = selectedImage || images[0] || ""
 
   return (
-    <div className="min-w-0 grid gap-4 md:grid-cols-[minmax(0,1fr)_92px] md:items-start">
+    <div className="grid h-full min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_92px] md:items-stretch">
       <button
         type="button"
         onClick={onOpenLightbox}
-        className="shop-card block overflow-hidden text-left transition hover:border-white/20"
+        className="shop-card block h-full overflow-hidden text-left transition hover:border-white/20"
       >
-        <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[460px]">
+        <div className="flex h-full min-h-[360px] items-center justify-center bg-white/[0.02] p-4 md:min-h-[460px]">
           {activeImage ? (
             <img src={activeImage} alt={title} className="max-h-[420px] w-full object-contain md:max-h-[520px]" />
           ) : (
