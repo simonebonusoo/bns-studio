@@ -30,11 +30,13 @@ export function ProductGallery({
         <div className="flex-1 bg-white/[0.02]" />
         <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-3 md:min-h-[470px] md:p-3.5">
           {activeImage ? (
-            <img
-              src={activeImage}
-              alt={title}
-              className="mx-auto block max-h-[458px] max-w-[95%] object-contain object-center md:max-h-[584px] md:max-w-[96%]"
-            />
+            <div className="grid h-full w-full place-items-center">
+              <img
+                src={activeImage}
+                alt={title}
+                className="block max-h-[458px] max-w-[95%] object-contain object-center md:max-h-[584px] md:max-w-[96%]"
+              />
+            </div>
           ) : (
             <div className="text-sm text-white/45">Nessuna immagine disponibile</div>
           )}
