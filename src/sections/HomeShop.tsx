@@ -282,6 +282,22 @@ function buildPopularCategoryHref(category: string, title: string, subtitle?: st
   return `/shop?${params.toString()}`
 }
 
+function withCatalogContext(href: string, title: string, subtitle?: string) {
+  const [pathname, rawQuery = ""] = String(href || "/shop").split("?")
+  const params = new URLSearchParams(rawQuery)
+
+  if (!params.get("title") && title) {
+    params.set("title", title)
+  }
+
+  if (!params.get("subtitle") && subtitle) {
+    params.set("subtitle", subtitle)
+  }
+
+  const query = params.toString()
+  return query ? `${pathname}?${query}` : pathname
+}
+
 export function HomeShop() {
   const navigate = useNavigate();
   const { effectiveRole } = useShopAuth();
