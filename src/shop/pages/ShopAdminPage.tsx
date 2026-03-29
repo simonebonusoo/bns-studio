@@ -432,12 +432,18 @@ function parseHomepageSetting<T extends Record<string, unknown>>(value: string |
 function parseHomepagePopularCategoriesSetting(value: string | undefined, fallback: HomepagePopularCategory[]) {
   const parsed = parseHomepageSetting<Record<string, unknown>>(value, fallback)
   return parsed
-    .map((entry) => ({
-      title: String(entry.title || entry.category || "").trim(),
-      category: String(entry.category || entry.title || "").trim(),
-      description: String(entry.description || "").trim(),
-      imageUrl: typeof entry.imageUrl === "string" ? entry.imageUrl : "",
-    }))
+    .map((entry) => {
+      const href = typeof entry.href === "string" ? entry.href : ""
+      const hrefParams = new URLSearchParams(href.split("?")[1] || "")
+      const resolvedCategory = String(entry.category || hrefParams.get("category") || entry.title || "").trim()
+
+      return {
+        title: String(entry.title || resolvedCategory || "").trim(),
+        category: resolvedCategory,
+        description: String(entry.description || "").trim(),
+        imageUrl: typeof entry.imageUrl === "string" ? entry.imageUrl : "",
+      }
+    })
     .filter((entry) => entry.title && entry.category)
 }
 
@@ -1237,14 +1243,19 @@ export function ShopAdminPage() {
     }
   }
 
-  async function saveHomepageContent() {
+  async function saveHomepageContent(overrides?: {
+    showcases?: HomepageShowcase[]
+    popularCategories?: HomepagePopularCategory[]
+  }) {
     clearFeedback()
     try {
+      const nextPopularCategories = overrides?.popularCategories ?? homepagePopularCategories
+      const nextShowcases = overrides?.showcases ?? homepageShowcases
       const data = await apiFetch<SettingEntry[]>("/admin/settings", {
         method: "PUT",
         body: JSON.stringify([
-          { key: "homepagePopularCategories", value: JSON.stringify(homepagePopularCategories) },
-          { key: "homepageShowcases", value: JSON.stringify(homepageShowcases) },
+          { key: "homepagePopularCategories", value: JSON.stringify(nextPopularCategories) },
+          { key: "homepageShowcases", value: JSON.stringify(nextShowcases) },
         ]),
       })
       setSettings(data)
@@ -1377,6 +1388,21 @@ export function ShopAdminPage() {
           setHomepageShowcases={setHomepageShowcases}
           setHomepagePopularCategories={setHomepagePopularCategories}
           saveHomepageContent={saveHomepageContent}
+          onUploadShowcaseImage={async (index, files) => {
+            const file = files?.[0]
+            if (!file) return
+            clearFeedback()
+            try {
+              const imageUrl = await uploadHomepageImage(file)
+              if (!imageUrl) throw new Error("Upload immagine non riuscito.")
+              setHomepageShowcases((current) =>
+                current.map((entry, itemIndex) => (itemIndex === index ? { ...entry, imageUrl } : entry)),
+              )
+              setMessage("Immagine selezione caricata correttamente.")
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Errore durante l'upload dell'immagine selezione.")
+            }
+          }}
           onUploadPopularCategoryImage={async (index, files) => {
             const file = files?.[0]
             if (!file) return

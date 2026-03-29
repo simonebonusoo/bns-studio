@@ -27,7 +27,11 @@ type AdminHomepageSectionProps = {
   setHomepageFocus: Dispatch<SetStateAction<{ section: "showcases" | "popular-categories"; item: number | null }>>
   setHomepageShowcases: Dispatch<SetStateAction<HomepageShowcase[]>>
   setHomepagePopularCategories: Dispatch<SetStateAction<HomepagePopularCategory[]>>
-  saveHomepageContent: () => Promise<void> | void
+  saveHomepageContent: (overrides?: {
+    showcases?: HomepageShowcase[]
+    popularCategories?: HomepagePopularCategory[]
+  }) => Promise<void> | void
+  onUploadShowcaseImage: (index: number, files: FileList | null) => Promise<void> | void
   onUploadPopularCategoryImage: (index: number, files: FileList | null) => Promise<void> | void
 }
 
@@ -40,6 +44,7 @@ export function AdminHomepageSection({
   setHomepageShowcases,
   setHomepagePopularCategories,
   saveHomepageContent,
+  onUploadShowcaseImage,
   onUploadPopularCategoryImage,
 }: AdminHomepageSectionProps) {
   const [popularCategoriesSnapshot, setPopularCategoriesSnapshot] = useState<HomepagePopularCategory[] | null>(null)
@@ -49,23 +54,39 @@ export function AdminHomepageSection({
     return homepageFocus.section === section && homepageFocus.item === item
   }
 
+  function cloneShowcases(entries: HomepageShowcase[]) {
+    return entries.map((entry) => ({ ...entry }))
+  }
+
+  function clonePopularCategories(entries: HomepagePopularCategory[]) {
+    return entries.map((entry) => ({ ...entry }))
+  }
+
+  function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
+    if (toIndex < 0 || toIndex >= items.length || fromIndex === toIndex) return items
+    const next = [...items]
+    const [moved] = next.splice(fromIndex, 1)
+    next.splice(toIndex, 0, moved)
+    return next
+  }
+
   function startEditShowcase(index: number) {
-    setShowcasesSnapshot(homepageShowcases.map((entry) => ({ ...entry })))
+    setShowcasesSnapshot(cloneShowcases(homepageShowcases))
     setHomepageFocus({ section: "showcases", item: index })
   }
 
   function startEditPopularCategory(index: number) {
-    setPopularCategoriesSnapshot(homepagePopularCategories.map((entry) => ({ ...entry })))
+    setPopularCategoriesSnapshot(clonePopularCategories(homepagePopularCategories))
     setHomepageFocus({ section: "popular-categories", item: index })
   }
 
   async function saveShowcase() {
-    await saveHomepageContent()
+    await saveHomepageContent({ showcases: homepageShowcases })
     setShowcasesSnapshot(null)
   }
 
   async function savePopularCategory() {
-    await saveHomepageContent()
+    await saveHomepageContent({ popularCategories: homepagePopularCategories })
     setPopularCategoriesSnapshot(null)
   }
 
@@ -85,6 +106,31 @@ export function AdminHomepageSection({
     setHomepageFocus({ section: "popular-categories", item: null })
   }
 
+  async function deleteShowcase(index: number) {
+    const next = homepageShowcases.filter((_, itemIndex) => itemIndex !== index)
+    setHomepageShowcases(next)
+    setShowcasesSnapshot(null)
+    setHomepageFocus({ section: "showcases", item: null })
+    await saveHomepageContent({ showcases: next })
+  }
+
+  async function deletePopularCategory(index: number) {
+    const next = homepagePopularCategories.filter((_, itemIndex) => itemIndex !== index)
+    setHomepagePopularCategories(next)
+    setPopularCategoriesSnapshot(null)
+    setHomepageFocus({ section: "popular-categories", item: null })
+    await saveHomepageContent({ popularCategories: next })
+  }
+
+  async function movePopularCategory(index: number, direction: -1 | 1) {
+    const next = moveItem(homepagePopularCategories, index, index + direction)
+    if (next === homepagePopularCategories) return
+    setHomepagePopularCategories(next)
+    setPopularCategoriesSnapshot(null)
+    setHomepageFocus({ section: "popular-categories", item: null })
+    await saveHomepageContent({ popularCategories: next })
+  }
+
   return (
     <div className="space-y-6">
       <section className="shop-card space-y-5 p-6">
@@ -93,8 +139,27 @@ export function AdminHomepageSection({
             <h2 className="text-xl font-semibold text-white">Selezioni in evidenza</h2>
             <p className="mt-1 text-sm text-white/55">Modifica i blocchi editoriali mostrati nella homepage dello shop.</p>
           </div>
-          <Button type="button" variant="cart" onClick={saveHomepageContent}>
-            Salva contenuti homepage
+          <Button
+            type="button"
+            variant="cart"
+            onClick={() => {
+              setShowcasesSnapshot(cloneShowcases(homepageShowcases))
+              setHomepageShowcases((current) => [
+                ...current,
+                {
+                  eyebrow: "Selezione in evidenza",
+                  title: `Nuova selezione ${current.length + 1}`,
+                  description: "",
+                  href: "/shop",
+                  query: "",
+                  imageUrl: "",
+                  ctaLabel: "Esplora la collezione",
+                },
+              ])
+              setHomepageFocus({ section: "showcases", item: homepageShowcases.length })
+            }}
+          >
+            Aggiungi nuova selezione in evidenza
           </Button>
         </div>
 
@@ -116,9 +181,32 @@ export function AdminHomepageSection({
                     </button>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => startEditShowcase(index)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                    Modifica
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => startEditShowcase(index)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                      Modifica
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowcasesSnapshot(cloneShowcases(homepageShowcases))
+                        setHomepageShowcases((current) => {
+                          const duplicate = { ...current[index], title: `${current[index].title} copia` }
+                          return [...current.slice(0, index + 1), duplicate, ...current.slice(index + 1)]
+                        })
+                        setHomepageFocus({ section: "showcases", item: index + 1 })
+                      }}
+                      className={getButtonClassName({ variant: "profile", size: "sm" })}
+                    >
+                      Duplica
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deleteShowcase(index)}
+                      className={getButtonClassName({ variant: "cart", size: "sm" })}
+                    >
+                      Elimina
+                    </button>
+                  </div>
                 )}
               </div>
               <fieldset disabled={!isFocused("showcases", index)} className="space-y-4 disabled:pointer-events-none disabled:opacity-70">
@@ -128,9 +216,29 @@ export function AdminHomepageSection({
                   <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
                   <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
                   <input className="shop-input" placeholder="Etichetta CTA" value={item.ctaLabel} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, ctaLabel: event.target.value } : entry))} />
-                  <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
                 </div>
                 <textarea className="shop-textarea min-h-24 resize-none" placeholder="Descrizione" value={item.description} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
+                <div className="rounded-2xl border border-white/10 p-4">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-white">Immagine selezione</p>
+                      <p className="mt-1 text-xs text-white/55">Usata come cover del blocco editoriale pubblico.</p>
+                    </div>
+                    <label>
+                      <Button type="button" variant="cart" size="sm" className="pointer-events-none">
+                        Carica immagine
+                      </Button>
+                      <input type="file" accept="image/*" className="hidden" onChange={(event) => void onUploadShowcaseImage(index, event.target.files)} />
+                    </label>
+                  </div>
+                  {item.imageUrl ? (
+                    <div className="mt-4 overflow-hidden rounded-[18px] border border-white/10 bg-black/10">
+                      <img src={item.imageUrl} alt={item.title} className="h-48 w-full object-cover" />
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-white/45">Nessuna immagine caricata per questa selezione.</p>
+                  )}
+                </div>
               </fieldset>
             </div>
           ))}
@@ -148,7 +256,7 @@ export function AdminHomepageSection({
             variant="cart"
             onClick={() => {
               const fallbackCategory = categories[0] || ""
-              setPopularCategoriesSnapshot(homepagePopularCategories.map((entry) => ({ ...entry })))
+              setPopularCategoriesSnapshot(clonePopularCategories(homepagePopularCategories))
               setHomepagePopularCategories((current) => [
                 ...current,
                 {
@@ -189,21 +297,37 @@ export function AdminHomepageSection({
                     </button>
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        setPopularCategoriesSnapshot(clonePopularCategories(homepagePopularCategories))
                         setHomepagePopularCategories((current) => {
                           const duplicate = { ...current[index], title: `${current[index].title} copia` }
                           return [...current.slice(0, index + 1), duplicate, ...current.slice(index + 1)]
                         })
-                      }
+                        setHomepageFocus({ section: "popular-categories", item: index + 1 })
+                      }}
                       className={getButtonClassName({ variant: "profile", size: "sm" })}
                     >
                       Duplica
                     </button>
                     <button
                       type="button"
-                      onClick={() =>
-                        setHomepagePopularCategories((current) => current.filter((_, itemIndex) => itemIndex !== index))
-                      }
+                      onClick={() => void movePopularCategory(index, -1)}
+                      disabled={index === 0}
+                      className={getButtonClassName({ variant: "profile", size: "sm", disabled: index === 0 })}
+                    >
+                      Su
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void movePopularCategory(index, 1)}
+                      disabled={index === homepagePopularCategories.length - 1}
+                      className={getButtonClassName({ variant: "profile", size: "sm", disabled: index === homepagePopularCategories.length - 1 })}
+                    >
+                      Giu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deletePopularCategory(index)}
                       className={getButtonClassName({ variant: "cart", size: "sm" })}
                     >
                       Elimina

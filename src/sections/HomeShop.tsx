@@ -258,12 +258,18 @@ function parseHomepagePopularCategories(
 
     const normalized = parsed
       .filter((entry) => entry && typeof entry === "object")
-      .map((entry) => ({
-        title: String(entry.title || entry.category || "").trim(),
-        category: String(entry.category || entry.title || "").trim(),
-        description: String(entry.description || "").trim(),
-        imageUrl: typeof entry.imageUrl === "string" ? entry.imageUrl : "",
-      }))
+      .map((entry) => {
+        const href = typeof entry.href === "string" ? entry.href : ""
+        const hrefParams = new URLSearchParams(href.split("?")[1] || "")
+        const resolvedCategory = String(entry.category || hrefParams.get("category") || "").trim()
+
+        return {
+          title: String(entry.title || resolvedCategory || "").trim(),
+          category: resolvedCategory,
+          description: String(entry.description || "").trim(),
+          imageUrl: typeof entry.imageUrl === "string" ? entry.imageUrl : "",
+        }
+      })
       .filter((entry) => entry.title && entry.category)
 
     return normalized.length ? normalized : fallback
@@ -274,7 +280,9 @@ function parseHomepagePopularCategories(
 
 function buildPopularCategoryHref(category: string, title: string, subtitle?: string) {
   const params = new URLSearchParams()
-  params.set("category", category)
+  if (category) {
+    params.set("category", category)
+  }
   params.set("title", title)
   if (subtitle) {
     params.set("subtitle", subtitle)

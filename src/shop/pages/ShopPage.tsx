@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 
 import { getButtonClassName } from "../../components/Button"
@@ -22,8 +22,8 @@ export function ShopPage() {
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
   const [searchInput, setSearchInput] = useState("")
-  const [searchActivated, setSearchActivated] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const previousEditorialContext = useRef("")
 
   const filters = useMemo(
     () => ({
@@ -114,11 +114,20 @@ export function ShopPage() {
 
   const effectiveSort = filters.collection === "new" ? "newest" : filters.collection === "discount" ? "price_asc" : filters.sort
   const lockedEditorialContext = Boolean(filters.category || filters.collectionSlug || filters.title || filters.subtitle)
+  const editorialContextKey = [filters.category, filters.collectionSlug, filters.title, filters.subtitle].join("|")
 
   useEffect(() => {
-    setSearchInput(lockedEditorialContext ? "" : filters.search)
-    setSearchActivated(!lockedEditorialContext && Boolean(filters.search))
-  }, [filters.search, lockedEditorialContext])
+    if (lockedEditorialContext) {
+      if (previousEditorialContext.current !== editorialContextKey || !filters.search) {
+        setSearchInput("")
+      }
+      previousEditorialContext.current = editorialContextKey
+      return
+    }
+
+    previousEditorialContext.current = editorialContextKey
+    setSearchInput(filters.search)
+  }, [editorialContextKey, filters.search, lockedEditorialContext])
 
   const resetFiltersHref = useMemo(() => {
     const next = new URLSearchParams()
@@ -157,15 +166,8 @@ export function ShopPage() {
           <input
             className="shop-input"
             placeholder="Cerca per titolo, tag, SKU o descrizione"
-            value={searchActivated ? searchInput : ""}
-            onFocus={() => {
-              if (lockedEditorialContext && !searchActivated) {
-                setSearchActivated(true)
-                setSearchInput("")
-              }
-            }}
+            value={searchInput}
             onChange={(event) => {
-              setSearchActivated(true)
               setSearchInput(event.target.value)
               updateParam("search", event.target.value)
             }}
