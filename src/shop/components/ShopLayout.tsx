@@ -20,9 +20,9 @@ export function ShopLayout({
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div className="min-w-0 flex-1 max-w-6xl">
-                <span className="shop-pill">{eyebrow}</span>
+                {eyebrow ? <span className="shop-pill">{eyebrow}</span> : null}
                 <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">{title}</h1>
-                <p className="mt-4 max-w-none text-sm leading-7 text-white/70 md:text-base">{intro}</p>
+                {intro ? <p className="mt-4 max-w-none text-sm leading-7 text-white/70 md:text-base">{intro}</p> : null}
               </div>
 
               {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}

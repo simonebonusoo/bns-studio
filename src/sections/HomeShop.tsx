@@ -239,6 +239,16 @@ function parseHomepageEntries<T extends { title: string; href: string; query: st
   }
 }
 
+function withCatalogTitle(href: string, title: string) {
+  const [pathname, rawQuery = ""] = href.split("?");
+  const params = new URLSearchParams(rawQuery)
+  if (!params.get("title")) {
+    params.set("title", title)
+  }
+  const query = params.toString()
+  return query ? `${pathname}?${query}` : pathname
+}
+
 export function HomeShop() {
   const navigate = useNavigate();
   const { effectiveRole } = useShopAuth();
@@ -459,7 +469,7 @@ export function HomeShop() {
                     </div>
                     <div>
                       <Button asChild size="sm">
-                        <Link to={showcase.href}>{showcase.ctaLabel || "Esplora la collezione"}</Link>
+                        <Link to={withCatalogTitle(showcase.href, showcase.title)}>{showcase.ctaLabel || "Esplora la collezione"}</Link>
                       </Button>
                     </div>
                   </div>
@@ -510,7 +520,7 @@ export function HomeShop() {
               {popularCategoryCards.map((category) => (
                 <Link
                   key={category.title}
-                  to={category.href}
+                  to={withCatalogTitle(category.href, category.title)}
                   className="group relative flex min-h-[22rem] w-[18.5rem] flex-none snap-start overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06] sm:w-[20rem]"
                 >
                   <div className="absolute inset-0">

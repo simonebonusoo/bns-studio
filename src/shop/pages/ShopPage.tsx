@@ -19,7 +19,6 @@ const PAGE_SIZE = 12
 
 export function ShopPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
-  const [categories, setCategories] = useState<string[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
   const [searchParams, setSearchParams] = useSearchParams()
@@ -35,19 +34,14 @@ export function ShopPage() {
       maxPrice: searchParams.get("maxPrice") || "",
       sort: searchParams.get("sort") || "manual",
       page: Math.max(1, Number(searchParams.get("page") || 1)),
+      title: searchParams.get("title") || "",
       collection: (searchParams.get("collection") || "all") as "all" | "new" | "best" | "discount",
     }),
     [searchParams],
   )
 
   useEffect(() => {
-    Promise.all([
-      apiFetch<string[]>("/store/categories").catch(() => []),
-      apiFetch<AdminCollection[]>("/store/collections").catch(() => []),
-    ]).then(([categoriesData, collectionsData]) => {
-      setCategories(categoriesData)
-      setCollections(collectionsData)
-    })
+    apiFetch<AdminCollection[]>("/store/collections").then(setCollections).catch(() => setCollections([]))
   }, [])
 
   useEffect(() => {
@@ -89,51 +83,53 @@ export function ShopPage() {
     setSearchParams(next)
   }
 
+  function formatContextLabel(value: string) {
+    return value
+      .replace(/[-_]+/g, " ")
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+
+  const collectionTitle = collections.find((collection) => collection.slug === filters.collectionSlug)?.title || ""
+  const pageContextLabel =
+    filters.title.trim() ||
+    filters.category.trim() ||
+    collectionTitle ||
+    (filters.search ? formatContextLabel(filters.search) : "") ||
+    (filters.tag ? formatContextLabel(filters.tag) : "") ||
+    (filters.collection === "new"
+      ? "Novità"
+      : filters.collection === "best"
+        ? "In evidenza"
+        : filters.collection === "discount"
+          ? "Prezzo crescente"
+          : "Catalogo")
+
+  const effectiveSort = filters.collection === "new" ? "newest" : filters.collection === "discount" ? "price_asc" : filters.sort
+
   const activeFilters = [
     filters.search ? `Ricerca: ${filters.search}` : null,
-    filters.category ? `Categoria: ${filters.category}` : null,
     filters.format ? `Formato: ${filters.format}` : null,
-    filters.tag ? `Tag: ${filters.tag}` : null,
-    filters.collectionSlug ? `Collezione: ${collections.find((collection) => collection.slug === filters.collectionSlug)?.title || filters.collectionSlug}` : null,
-    filters.availability === "available"
-      ? "Disponibili"
-      : filters.availability === "out_of_stock"
-        ? "Esauriti"
-        : null,
     filters.maxPrice ? `Prezzo max: ${filters.maxPrice}` : null,
-    filters.collection !== "all"
-      ? filters.collection === "new"
-        ? "Novita"
-        : filters.collection === "best"
-          ? "In evidenza"
-          : "Prezzo crescente"
-      : null,
-    filters.sort !== "manual" && filters.collection === "all"
-      ? `Ordina: ${SORT_OPTIONS.find((option) => option.value === filters.sort)?.label || filters.sort}`
+    effectiveSort !== "manual"
+      ? `Ordina: ${SORT_OPTIONS.find((option) => option.value === effectiveSort)?.label || effectiveSort}`
       : null,
   ].filter(Boolean)
 
   return (
     <ShopLayout
-      eyebrow={`Shop · ${pagination.total} ${pagination.total === 1 ? "prodotto" : "prodotti"}`}
-      title="Asset pronti, integrati nel sito."
-      intro="Catalogo BNS Studio con ricerca centralizzata, filtri più robusti, ordinamento reale e paginazione server-side per mantenere il flusso shop leggibile anche quando il catalogo cresce."
+      eyebrow=""
+      title={pageContextLabel}
+      intro=""
     >
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-white/45">Catalogo</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Filtri e merchandising</h2>
-            <p className="mt-2 text-sm text-white/55">Ricerca, collezioni, disponibilità e ordinamenti reali per navigare il catalogo come uno shop vero.</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/45">{pageContextLabel}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <select className="shop-select min-w-[12rem]" value={filters.collection} onChange={(event) => updateParam("collection", event.target.value)}>
-              <option value="all">Vista catalogo</option>
-              <option value="new">Novità</option>
-              <option value="best">In evidenza</option>
-              <option value="discount">Prezzo crescente</option>
-            </select>
-            <select className="shop-select min-w-[12rem]" value={filters.sort} onChange={(event) => updateParam("sort", event.target.value)}>
+            <select className="shop-select min-w-[12rem]" value={effectiveSort} onChange={(event) => updateParam("sort", event.target.value)}>
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -143,49 +139,18 @@ export function ShopPage() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
           <input
-            className="shop-input xl:col-span-2"
-            placeholder="Cerca per titolo, slug, SKU o descrizione"
+            className="shop-input"
+            placeholder="Cerca per titolo, tag, SKU o descrizione"
             value={filters.search}
             onChange={(event) => updateParam("search", event.target.value)}
           />
-          <select className="shop-select" value={filters.category} onChange={(event) => updateParam("category", event.target.value)}>
-            <option value="">Tutte le categorie</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-          <select className="shop-select" value={filters.collectionSlug} onChange={(event) => updateParam("collectionSlug", event.target.value)}>
-            <option value="">Tutte le collezioni</option>
-            {collections.map((collection) => (
-              <option key={collection.id} value={collection.slug}>
-                {collection.title}
-              </option>
-            ))}
-          </select>
           <select className="shop-select" value={filters.format} onChange={(event) => updateParam("format", event.target.value)}>
             <option value="">Tutti i formati</option>
             <option value="A4">A4</option>
             <option value="A3">A3</option>
           </select>
-          <select
-            className="shop-select"
-            value={filters.availability}
-            onChange={(event) => updateParam("availability", event.target.value)}
-          >
-            <option value="">Tutta la disponibilità</option>
-            <option value="available">Acquistabili</option>
-            <option value="out_of_stock">Esauriti</option>
-          </select>
-          <input
-            className="shop-input"
-            placeholder="Tag"
-            value={filters.tag}
-            onChange={(event) => updateParam("tag", event.target.value)}
-          />
           <input
             className="shop-input"
             type="number"
@@ -211,18 +176,12 @@ export function ShopPage() {
               </Link>
             </>
           ) : (
-            <span className="text-sm text-white/55">Catalogo completo con filtri attivi lato server e paginazione pronta a crescere.</span>
+            <span className="text-sm text-white/55">{pagination.total} {pagination.total === 1 ? "prodotto" : "prodotti"}</span>
           )}
         </div>
         <p className="text-sm text-white/55">
           Ordinamento attuale:{" "}
-          {filters.collection !== "all"
-            ? filters.collection === "new"
-              ? "Novità"
-              : filters.collection === "best"
-                ? "In evidenza"
-                : "Prezzo crescente"
-            : SORT_OPTIONS.find((option) => option.value === filters.sort)?.label || "Ordine catalogo"}
+          {SORT_OPTIONS.find((option) => option.value === effectiveSort)?.label || "Ordine catalogo"}
         </p>
       </div>
 
