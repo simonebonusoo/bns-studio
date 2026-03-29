@@ -21,6 +21,8 @@ export function ShopPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
+  const [searchInput, setSearchInput] = useState("")
+  const [searchActivated, setSearchActivated] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
 
   const filters = useMemo(
@@ -35,6 +37,7 @@ export function ShopPage() {
       sort: searchParams.get("sort") || "manual",
       page: Math.max(1, Number(searchParams.get("page") || 1)),
       title: searchParams.get("title") || "",
+      subtitle: searchParams.get("subtitle") || "",
       collection: (searchParams.get("collection") || "all") as "all" | "new" | "best" | "discount",
     }),
     [searchParams],
@@ -105,8 +108,16 @@ export function ShopPage() {
         : filters.collection === "discount"
           ? "Prezzo crescente"
           : "Catalogo")
+  const editorialSubtitle =
+    filters.subtitle.trim() ||
+    (pageContextLabel !== "Catalogo" ? `Esplora la selezione dedicata a ${pageContextLabel.toLowerCase()}.` : "")
 
   const effectiveSort = filters.collection === "new" ? "newest" : filters.collection === "discount" ? "price_asc" : filters.sort
+
+  useEffect(() => {
+    setSearchInput("")
+    setSearchActivated(false)
+  }, [pageContextLabel, filters.subtitle])
 
   const activeFilters = [
     filters.search ? `Ricerca: ${filters.search}` : null,
@@ -124,18 +135,10 @@ export function ShopPage() {
       intro=""
     >
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-        <div className="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
+        <div className="border-b border-white/10 pb-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-white/45">{pageContextLabel}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <select className="shop-select min-w-[12rem]" value={effectiveSort} onChange={(event) => updateParam("sort", event.target.value)}>
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {editorialSubtitle ? <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">{editorialSubtitle}</p> : null}
           </div>
         </div>
 
@@ -143,8 +146,18 @@ export function ShopPage() {
           <input
             className="shop-input"
             placeholder="Cerca per titolo, tag, SKU o descrizione"
-            value={filters.search}
-            onChange={(event) => updateParam("search", event.target.value)}
+            value={searchActivated ? searchInput : ""}
+            onFocus={() => {
+              if (!searchActivated) {
+                setSearchActivated(true)
+                setSearchInput("")
+              }
+            }}
+            onChange={(event) => {
+              setSearchActivated(true)
+              setSearchInput(event.target.value)
+              updateParam("search", event.target.value)
+            }}
           />
           <select className="shop-select" value={filters.format} onChange={(event) => updateParam("format", event.target.value)}>
             <option value="">Tutti i formati</option>
@@ -159,6 +172,13 @@ export function ShopPage() {
             value={filters.maxPrice}
             onChange={(event) => updateParam("maxPrice", event.target.value)}
           />
+          <select className="shop-select" value={effectiveSort} onChange={(event) => updateParam("sort", event.target.value)}>
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -179,10 +199,6 @@ export function ShopPage() {
             <span className="text-sm text-white/55">{pagination.total} {pagination.total === 1 ? "prodotto" : "prodotti"}</span>
           )}
         </div>
-        <p className="text-sm text-white/55">
-          Ordinamento attuale:{" "}
-          {SORT_OPTIONS.find((option) => option.value === effectiveSort)?.label || "Ordine catalogo"}
-        </p>
       </div>
 
       {!products.length ? (

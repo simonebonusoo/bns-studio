@@ -1227,6 +1227,7 @@ export function ShopAdminPage() {
         ]),
       })
       setSettings(data)
+      setHomepageFocus((current) => ({ ...current, item: null }))
       setMessage("Contenuti homepage aggiornati correttamente.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante il salvataggio dei contenuti homepage.")

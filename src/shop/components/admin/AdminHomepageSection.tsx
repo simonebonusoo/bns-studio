@@ -27,7 +27,7 @@ type AdminHomepageSectionProps = {
   setHomepageFocus: Dispatch<SetStateAction<{ section: "showcases" | "popular-categories"; item: number | null }>>
   setHomepageShowcases: Dispatch<SetStateAction<HomepageShowcase[]>>
   setHomepagePopularCategories: Dispatch<SetStateAction<HomepagePopularCategory[]>>
-  saveHomepageContent: () => void
+  saveHomepageContent: () => Promise<void> | void
 }
 
 export function AdminHomepageSection({
@@ -79,15 +79,17 @@ export function AdminHomepageSection({
                   </button>
                 )}
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <input className="shop-input" placeholder="Eyebrow" value={item.eyebrow} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, eyebrow: event.target.value } : entry))} />
-                <input className="shop-input" placeholder="Titolo" value={item.title} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
-                <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
-                <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
-                <input className="shop-input" placeholder="Etichetta CTA" value={item.ctaLabel} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, ctaLabel: event.target.value } : entry))} />
-                <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
-              </div>
-              <textarea className="shop-textarea mt-4 min-h-24 resize-none" placeholder="Descrizione" value={item.description} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
+              <fieldset disabled={!isFocused("showcases", index)} className="space-y-4 disabled:pointer-events-none disabled:opacity-70">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input className="shop-input" placeholder="Eyebrow" value={item.eyebrow} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, eyebrow: event.target.value } : entry))} />
+                  <input className="shop-input" placeholder="Titolo" value={item.title} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
+                  <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
+                  <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
+                  <input className="shop-input" placeholder="Etichetta CTA" value={item.ctaLabel} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, ctaLabel: event.target.value } : entry))} />
+                  <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
+                </div>
+                <textarea className="shop-textarea min-h-24 resize-none" placeholder="Descrizione" value={item.description} onChange={(event) => setHomepageShowcases((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
+              </fieldset>
             </div>
           ))}
         </div>
@@ -122,13 +124,15 @@ export function AdminHomepageSection({
                   </button>
                 )}
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <input className="shop-input" placeholder="Titolo categoria" value={item.title} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
-                <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
-                <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
-                <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
-              </div>
-              <textarea className="shop-textarea mt-4 min-h-24 resize-none" placeholder="Descrizione breve" value={item.description} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
+              <fieldset disabled={!isFocused("popular-categories", index)} className="space-y-4 disabled:pointer-events-none disabled:opacity-70">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input className="shop-input" placeholder="Titolo categoria" value={item.title} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, title: event.target.value } : entry))} />
+                  <input className="shop-input" placeholder="Query collegata" value={item.query} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, query: event.target.value } : entry))} />
+                  <input className="shop-input" placeholder="Link destinazione" value={item.href} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, href: event.target.value } : entry))} />
+                  <input className="shop-input" placeholder="URL immagine (opzionale)" value={item.imageUrl || ""} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, imageUrl: event.target.value } : entry))} />
+                </div>
+                <textarea className="shop-textarea min-h-24 resize-none" placeholder="Descrizione breve" value={item.description} onChange={(event) => setHomepagePopularCategories((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, description: event.target.value } : entry))} />
+              </fieldset>
             </div>
           ))}
         </div>
