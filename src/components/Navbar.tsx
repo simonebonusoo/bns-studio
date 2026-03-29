@@ -948,23 +948,17 @@ export function Navbar() {
                             <button
                               type="button"
                               onClick={() => setProfileLoggedStep("edit")}
-                              className={getButtonClassName({ variant: "profile", className: "h-auto w-full justify-start rounded-[22px] bg-white/[0.03] px-5 py-4 text-left" })}
+                              className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                             >
-                              <div className="text-sm font-medium">Modifica profilo</div>
-                              <div className="mt-1 text-sm text-white/55">Username, email e password.</div>
+                              Modifica profilo
                             </button>
 
                             <button
                               type="button"
                               onClick={() => (effectiveRole === "admin" ? navigate("/shop/admin") : navigate("/shop/profile"))}
-                              className={getButtonClassName({ variant: "profile", className: "h-auto w-full justify-start rounded-[22px] bg-white/[0.03] px-5 py-4 text-left" })}
+                              className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                             >
-                              <div className="text-sm font-medium">{effectiveRole === "admin" ? "Gestisci negozio" : "I miei ordini"}</div>
-                              <div className="mt-1 text-sm text-white/55">
-                                {effectiveRole === "admin"
-                                  ? "Accedi rapidamente all'area admin dello shop."
-                                  : "Controlla lo storico e scarica le ricevute."}
-                              </div>
+                              {effectiveRole === "admin" ? "Gestisci negozio" : "I miei ordini"}
                             </button>
                             {user.role === "admin" ? (
                               <button
@@ -977,14 +971,9 @@ export function Navbar() {
                                   }
                                   setProfileOpen(false)
                                 }}
-                                className={getButtonClassName({ variant: "profile", className: "h-auto w-full justify-start rounded-[22px] bg-white/[0.03] px-5 py-4 text-left" })}
+                                className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                               >
-                                <div className="text-sm font-medium">{isGuestPreview ? "Torna admin" : "Vedi come ospite"}</div>
-                                <div className="mt-1 text-sm text-white/55">
-                                  {isGuestPreview
-                                    ? "Esci dalla preview cliente e ripristina i controlli admin."
-                                    : "Naviga lo shop come cliente senza perdere il login admin."}
-                                </div>
+                                {isGuestPreview ? "Torna admin" : "Vedi come ospite"}
                               </button>
                             ) : null}
                           </div>
@@ -1247,7 +1236,7 @@ export function Navbar() {
                       setSearchOpen(false)
                       navigate("/?profile=open")
                     }}
-                    className={getButtonClassName({ variant: "profile", className: "w-full" })}
+                    className={getButtonClassName({ variant: "cart", className: "w-full" })}
                   >
                     Logout
                   </button>

@@ -36,7 +36,7 @@ export function AdminOrdersSection({
               <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                 Visualizza ordine
               </Link>
-              <button type="button" onClick={() => onOpenOrderProfit(order.id)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+              <button type="button" onClick={() => onOpenOrderProfit(order.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
                 {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
               </button>
               {order.status === "paid" || order.status === "shipped" ? (

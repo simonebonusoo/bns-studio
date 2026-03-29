@@ -167,7 +167,7 @@ export function ProductPurchasePanel({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <Button variant="cart" onClick={onAddToCart} className="w-full">
+            <Button variant="profile" onClick={onAddToCart} className="w-full">
               Aggiungi al carrello
             </Button>
             <Button type="button" variant="cart" onClick={onBuyNow} className="w-full">

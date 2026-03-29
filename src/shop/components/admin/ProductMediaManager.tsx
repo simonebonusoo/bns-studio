@@ -39,7 +39,7 @@ export function ProductMediaManager({
           <p className="mt-1 text-xs text-white/55">La prima immagine della lista verrà usata automaticamente come cover.</p>
         </div>
         <label className={disabled ? "pointer-events-none opacity-45" : ""}>
-          <Button type="button" size="sm" text="Carica immagini" className="pointer-events-none">
+          <Button type="button" variant="cart" size="sm" text="Carica immagini" className="pointer-events-none">
             Carica immagini
           </Button>
           <input type="file" multiple accept="image/*" className="hidden" disabled={disabled} onChange={(event) => onFileChange(event.target.files)} />
@@ -69,18 +69,18 @@ export function ProductMediaManager({
               onDragEnd={() => setDraggedImage(null)}
               className={`rounded-2xl border border-white/10 p-3 transition ${draggedImage === image ? "opacity-50" : "opacity-100"}`}
             >
-              <div className="overflow-hidden rounded-[18px] border border-white/10 bg-black/10">
+              <div className="relative overflow-hidden rounded-[18px] border border-white/10 bg-black/10">
                 <img src={image} alt="" className="aspect-square w-full object-cover" />
+                {index === 0 ? (
+                  <span className="absolute left-3 top-3 rounded-full bg-[#e3f503] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-black">
+                    Cover
+                  </span>
+                ) : null}
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
                 <div className="text-xs text-white/45">
                   {index === 0 ? "Cover" : "Trascina per riordinare"}
                 </div>
-                {index === 0 ? (
-                  <span className="rounded-full bg-[#e3f503] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-black">
-                    Cover
-                  </span>
-                ) : null}
               </div>
               <div className="mt-3 flex justify-end">
                 <Button

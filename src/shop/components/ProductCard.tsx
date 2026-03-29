@@ -95,7 +95,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
           <div className="flex flex-col gap-3">
             <Button
               type="button"
-              variant="cart"
+              variant="profile"
               onClick={() =>
                 addItem(product, 1, {
                   variantId: defaultVariant?.id ?? null,
