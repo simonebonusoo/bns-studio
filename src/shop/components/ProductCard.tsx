@@ -95,7 +95,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
           <div className="flex flex-col gap-3">
             <Button
               type="button"
-              variant="ghost"
+              variant="cart"
               onClick={() =>
                 addItem(product, 1, {
                   variantId: defaultVariant?.id ?? null,
@@ -111,6 +111,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
             </Button>
             <Button
               type="button"
+              variant="cart"
               onClick={handleBuyNow}
               className="w-full"
               disabled={!purchasable}

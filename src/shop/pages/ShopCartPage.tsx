@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { useEffect, useState } from "react"
 
+import { getButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
@@ -76,7 +77,7 @@ export function ShopCartPage() {
           <p>Il carrello e vuoto.</p>
           <Link
             to="/#shop"
-            className="mt-4 inline-flex rounded-full border border-white/10 px-5 py-3 text-sm text-white transition hover:border-white/25 hover:text-white"
+            className={`mt-4 ${getButtonClassName({ variant: "profile" })}`}
           >
             Vai al catalogo
           </Link>
@@ -101,7 +102,11 @@ export function ShopCartPage() {
                   value={item.quantity}
                   onChange={(event) => updateItem(item.productId, Number(event.target.value), { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
                 />
-                <button type="button" onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })} className="text-sm text-white/55 transition hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                  className={getButtonClassName({ variant: "cart", size: "sm" })}
+                >
                   Rimuovi
                 </button>
               </div>
@@ -134,13 +139,13 @@ export function ShopCartPage() {
                   </div>
                   <Link
                     to="/shop/admin"
-                    className="block rounded-full border border-white/10 px-5 py-3 text-center text-sm text-white/75 transition hover:border-white/25 hover:text-white"
+                    className={`block text-center ${getButtonClassName({ variant: "profile" })}`}
                   >
                     Vai a Gestione shop
                   </Link>
                 </>
               ) : (
-                <Link to="/shop/checkout" className="block rounded-full bg-white px-5 py-3 text-center text-sm font-medium text-black transition hover:bg-white/90">
+                <Link to="/shop/checkout" className={`block text-center ${getButtonClassName({ variant: "cart" })}`}>
                   Vai al checkout
                 </Link>
               )}

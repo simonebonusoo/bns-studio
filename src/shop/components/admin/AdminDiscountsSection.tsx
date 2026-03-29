@@ -1,5 +1,6 @@
 import type { FormEvent } from "react"
 
+import { Button, getButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 
 type Coupon = {
@@ -108,7 +109,7 @@ export function AdminDiscountsSection({
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-semibold text-white">{editingCouponId ? "Modifica coupon" : "Crea coupon"}</h2>
             {editingCouponId ? (
-              <button type="button" onClick={onCancelCouponEdit} className="text-sm text-white/60">
+              <button type="button" onClick={onCancelCouponEdit} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                 Annulla
               </button>
             ) : null}
@@ -144,9 +145,9 @@ export function AdminDiscountsSection({
             <input type="checkbox" checked={couponForm.active} onChange={(event) => onCouponFormChange({ ...couponForm, active: event.target.checked })} />
             Coupon attivo
           </label>
-          <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+          <Button type="submit" variant="cart">
             {editingCouponId ? "Aggiorna coupon" : "Crea coupon"}
-          </button>
+          </Button>
         </form>
 
         <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
@@ -163,10 +164,10 @@ export function AdminDiscountsSection({
                     {coupon.expiresAt ? <p className="mt-1 text-xs text-white/45">Valido fino al {new Date(coupon.expiresAt).toLocaleDateString("it-IT")}</p> : null}
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => onEditCoupon(coupon)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                    <button type="button" onClick={() => onEditCoupon(coupon)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                       Modifica
                     </button>
-                    <button type="button" onClick={() => onDeleteCoupon(coupon.id)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                    <button type="button" onClick={() => onDeleteCoupon(coupon.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
                       Elimina
                     </button>
                   </div>
@@ -182,7 +183,7 @@ export function AdminDiscountsSection({
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-semibold text-white">{editingRuleId ? "Modifica regola sconto" : "Crea regola sconto"}</h2>
             {editingRuleId ? (
-              <button type="button" onClick={onCancelRuleEdit} className="text-sm text-white/60">
+              <button type="button" onClick={onCancelRuleEdit} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                 Annulla
               </button>
             ) : null}
@@ -241,9 +242,9 @@ export function AdminDiscountsSection({
             <input type="checkbox" checked={ruleForm.active} onChange={(event) => onRuleFormChange({ ...ruleForm, active: event.target.checked })} />
             Regola attiva
           </label>
-          <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+          <Button type="submit" variant="cart">
             {editingRuleId ? "Aggiorna regola" : "Crea regola"}
-          </button>
+          </Button>
         </form>
 
         <div className="shop-card flex h-full min-h-0 flex-col space-y-4 p-6">
@@ -261,10 +262,10 @@ export function AdminDiscountsSection({
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => onEditRule(rule)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                    <button type="button" onClick={() => onEditRule(rule)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                       Modifica
                     </button>
-                    <button type="button" onClick={() => onDeleteRule(rule.id)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                    <button type="button" onClick={() => onDeleteRule(rule.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
                       Elimina
                     </button>
                   </div>
@@ -315,9 +316,9 @@ export function AdminDiscountsSection({
             </div>
           </div>
         </div>
-        <button type="submit" className="mt-auto rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+        <Button type="submit" variant="cart" className="mt-auto">
           Salva impostazioni PayPal
-        </button>
+        </Button>
       </form>
     </div>
   )

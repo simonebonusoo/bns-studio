@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 
+import { getButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 import { downloadInvoicePdf } from "../../lib/invoice"
 import { ShopOrder, ShopSettings } from "../../types"
@@ -32,14 +33,14 @@ export function AdminOrdersSection({
           </div>
           <div className="flex flex-col items-stretch gap-3 lg:min-w-[320px]">
             <div className="flex flex-wrap gap-2">
-              <Link to={`/shop/orders/${order.orderReference}`} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+              <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                 Visualizza ordine
               </Link>
-              <button type="button" onClick={() => onOpenOrderProfit(order.id)} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+              <button type="button" onClick={() => onOpenOrderProfit(order.id)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                 {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
               </button>
               {order.status === "paid" || order.status === "shipped" ? (
-                <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+                <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                   Scarica ricevuta
                 </button>
               ) : null}

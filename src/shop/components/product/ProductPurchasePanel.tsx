@@ -151,7 +151,7 @@ export function ProductPurchasePanel({
         ) : null}
         {purchaseState.showNotifyAction ? (
           <div className="space-y-3">
-            <Button type="button" variant="ghost" onClick={onNotify} className="w-full">
+            <Button type="button" variant="cart" onClick={onNotify} className="w-full">
               Notificami quando disponibile
             </Button>
             {purchaseState.showNotifyFeedback && notifyMessage ? (
@@ -167,10 +167,10 @@ export function ProductPurchasePanel({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <Button onClick={onAddToCart} className="w-full">
+            <Button variant="cart" onClick={onAddToCart} className="w-full">
               Aggiungi al carrello
             </Button>
-            <Button type="button" variant="ghost" onClick={onBuyNow} className="w-full">
+            <Button type="button" variant="cart" onClick={onBuyNow} className="w-full">
               Acquista ora
             </Button>
             {purchaseState.showEditAction ? (

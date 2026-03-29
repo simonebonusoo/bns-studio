@@ -6,7 +6,7 @@ import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline"
 
 import { Container } from "./Container"
 import { Logo } from "./Logo"
-import { Button } from "./Button"
+import { Button, getButtonClassName } from "./Button"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
@@ -763,7 +763,7 @@ export function Navbar() {
                               setCartOpen(false)
                               navigate("/#shop")
                             }}
-                            className="mt-4 inline-flex rounded-full border border-white/10 px-5 py-3 text-sm text-white transition hover:border-white/25 hover:text-white"
+                            className={`mt-4 ${getButtonClassName({ variant: "profile" })}`}
                           >
                             Vai al catalogo
                           </button>
@@ -790,7 +790,7 @@ export function Navbar() {
                                 <button
                                   type="button"
                                   onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
-                                  className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70 transition hover:border-white/25 hover:text-white"
+                                  className={getButtonClassName({ variant: "cart", size: "sm" })}
                                 >
                                   Rimuovi
                                 </button>
@@ -838,7 +838,7 @@ export function Navbar() {
                                 setCartOpen(false)
                                 navigate("/shop/admin")
                               }}
-                              variant="ghost"
+                              variant="profile"
                               className="w-full"
                             >
                               Vai a Gestione shop
@@ -848,6 +848,7 @@ export function Navbar() {
                                 setCartOpen(false)
                                 navigate("/shop/cart")
                               }}
+                              variant="profile"
                               size="sm"
                               text="Apri il riepilogo completo"
                               className="w-full"
@@ -947,7 +948,7 @@ export function Navbar() {
                             <button
                               type="button"
                               onClick={() => setProfileLoggedStep("edit")}
-                              className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
+                              className={getButtonClassName({ variant: "profile", className: "h-auto w-full justify-start rounded-[22px] bg-white/[0.03] px-5 py-4 text-left" })}
                             >
                               <div className="text-sm font-medium">Modifica profilo</div>
                               <div className="mt-1 text-sm text-white/55">Username, email e password.</div>
@@ -956,7 +957,7 @@ export function Navbar() {
                             <button
                               type="button"
                               onClick={() => (effectiveRole === "admin" ? navigate("/shop/admin") : navigate("/shop/profile"))}
-                              className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
+                              className={getButtonClassName({ variant: "profile", className: "h-auto w-full justify-start rounded-[22px] bg-white/[0.03] px-5 py-4 text-left" })}
                             >
                               <div className="text-sm font-medium">{effectiveRole === "admin" ? "Gestisci negozio" : "I miei ordini"}</div>
                               <div className="mt-1 text-sm text-white/55">
@@ -976,7 +977,7 @@ export function Navbar() {
                                   }
                                   setProfileOpen(false)
                                 }}
-                                className="rounded-[22px] border border-white/10 bg-white/[0.03] px-5 py-4 text-left text-white/80 transition hover:border-white/20 hover:text-white"
+                                className={getButtonClassName({ variant: "profile", className: "h-auto w-full justify-start rounded-[22px] bg-white/[0.03] px-5 py-4 text-left" })}
                               >
                                 <div className="text-sm font-medium">{isGuestPreview ? "Torna admin" : "Vedi come ospite"}</div>
                                 <div className="mt-1 text-sm text-white/55">
@@ -1246,7 +1247,7 @@ export function Navbar() {
                       setSearchOpen(false)
                       navigate("/?profile=open")
                     }}
-                    className="w-full rounded-full border border-white/10 px-5 py-3 text-sm text-white/75 transition hover:border-white/20 hover:text-white"
+                    className={getButtonClassName({ variant: "profile", className: "w-full" })}
                   >
                     Logout
                   </button>

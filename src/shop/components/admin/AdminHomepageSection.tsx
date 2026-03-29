@@ -1,5 +1,7 @@
 import type { Dispatch, SetStateAction } from "react"
 
+import { Button, getButtonClassName } from "../../../components/Button"
+
 type HomepagePopularCategory = {
   title: string
   description: string
@@ -45,9 +47,9 @@ export function AdminHomepageSection({
             <h2 className="text-xl font-semibold text-white">Selezioni in evidenza</h2>
             <p className="mt-1 text-sm text-white/55">Modifica i blocchi editoriali mostrati nella homepage dello shop.</p>
           </div>
-          <button type="button" onClick={saveHomepageContent} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+          <Button type="button" variant="cart" onClick={saveHomepageContent}>
             Salva contenuti homepage
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-4">
@@ -58,11 +60,7 @@ export function AdminHomepageSection({
             >
               <div className="mb-4 flex items-center justify-between gap-4">
                 <p className="text-sm font-medium text-white">Blocco {index + 1}</p>
-                <button
-                  type="button"
-                  onClick={() => setHomepageFocus({ section: "showcases", item: index })}
-                  className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                >
+                <button type="button" onClick={() => setHomepageFocus({ section: "showcases", item: index })} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                   In modifica
                 </button>
               </div>
@@ -94,11 +92,7 @@ export function AdminHomepageSection({
             >
               <div className="mb-4 flex items-center justify-between gap-4">
                 <p className="text-sm font-medium text-white">Categoria {index + 1}</p>
-                <button
-                  type="button"
-                  onClick={() => setHomepageFocus({ section: "popular-categories", item: index })}
-                  className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"
-                >
+                <button type="button" onClick={() => setHomepageFocus({ section: "popular-categories", item: index })} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                   In modifica
                 </button>
               </div>

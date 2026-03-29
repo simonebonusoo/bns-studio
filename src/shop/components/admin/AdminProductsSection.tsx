@@ -187,7 +187,7 @@ export function AdminProductsSection({
               {renamingCategory === category ? (
                 <div className="flex flex-col gap-3 md:flex-row">
                   <input className="shop-input" value={renamedCategoryValue} onChange={(event) => onRenamedCategoryValueChange(event.target.value)} />
-                  <Button type="button" text="Salva nome" onClick={() => onRenameCategory(category)}>
+                  <Button type="button" variant="cart" text="Salva nome" onClick={() => onRenameCategory(category)}>
                     Salva nome
                   </Button>
                 </div>
@@ -195,10 +195,10 @@ export function AdminProductsSection({
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-sm text-white">{category}</span>
                   <div className="flex gap-2">
-                    <Button type="button" variant="ghost" size="sm" text="Rinomina" onClick={() => onStartRenameCategory(category)}>
+                    <Button type="button" variant="profile" size="sm" text="Rinomina" onClick={() => onStartRenameCategory(category)}>
                       Rinomina
                     </Button>
-                    <Button type="button" size="sm" text="Elimina" onClick={() => onDeleteCategory(category)}>
+                    <Button type="button" variant="cart" size="sm" text="Elimina" onClick={() => onDeleteCategory(category)}>
                       Elimina
                     </Button>
                   </div>
@@ -215,7 +215,7 @@ export function AdminProductsSection({
               value={newCategoryName}
               onChange={(event) => onNewCategoryNameChange(event.target.value)}
             />
-            <Button type="submit" className="h-11">
+            <Button type="submit" variant="cart" className="h-11">
               Crea
             </Button>
           </form>
@@ -251,7 +251,7 @@ export function AdminProductsSection({
                 <input type="checkbox" checked={collectionForm.active} onChange={(event) => onCollectionFormChange({ ...collectionForm, active: event.target.checked })} />
                 Collezione attiva nel catalogo pubblico
               </label>
-              <Button type="submit" text={editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}>
+              <Button type="submit" variant="cart" text={editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}>
                 {editingCollectionId ? "Aggiorna collezione" : "Crea collezione"}
               </Button>
             </form>
@@ -277,10 +277,10 @@ export function AdminProductsSection({
                       {collection.description ? <p className="text-sm text-white/60">{collection.description}</p> : null}
                     </div>
                     <div className="flex gap-2">
-                      <Button type="button" variant="ghost" size="sm" text="Modifica" onClick={() => onStartEditCollection(collection)}>
+                      <Button type="button" variant="profile" size="sm" text="Modifica" onClick={() => onStartEditCollection(collection)}>
                         Modifica
                       </Button>
-                      <Button type="button" size="sm" text="Elimina" onClick={() => onDeleteCollection(collection.id)}>
+                      <Button type="button" variant="cart" size="sm" text="Elimina" onClick={() => onDeleteCollection(collection.id)}>
                         Elimina
                       </Button>
                     </div>

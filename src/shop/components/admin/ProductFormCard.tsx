@@ -267,6 +267,7 @@ export function ProductFormCard({
             </div>
             <Button
               type="button"
+              variant="profile"
               size="sm"
               text="Aggiungi variante"
               onClick={() =>
@@ -314,7 +315,7 @@ export function ProductFormCard({
                   <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="profile"
                       size="sm"
                       disabled={index === 0}
                       onClick={() => {
@@ -327,7 +328,7 @@ export function ProductFormCard({
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="profile"
                       size="sm"
                       disabled={index === productForm.variants.length - 1}
                       onClick={() => {

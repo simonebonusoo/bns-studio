@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Button } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
+import { getButtonClassName } from "../../components/Button"
 import { AdminAnalyticsSection } from "../components/admin/AdminAnalyticsSection"
 import { AdminDiscountsSection } from "../components/admin/AdminDiscountsSection"
 import { AdminHomepageSection } from "../components/admin/AdminHomepageSection"
@@ -1268,7 +1269,7 @@ export function ShopAdminPage() {
             key={key}
             type="button"
             onClick={() => setTab(key as "prodotti" | "homepage" | "recensioni" | "ordini" | "utenti" | "data" | "sconti")}
-            className={`rounded-full px-4 py-2 text-sm ${tab === key ? "bg-white text-black" : "border border-white/10 text-white/70"}`}
+            className={getButtonClassName({ variant: tab === key ? "cart" : "profile", size: "sm" })}
           >
             {label}
           </button>
@@ -1456,7 +1457,7 @@ export function ShopAdminPage() {
               <button
                 type="button"
                 onClick={() => setOrderProfit(null)}
-                className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white"
+                className={getButtonClassName({ variant: "profile", size: "sm" })}
               >
                 Chiudi
               </button>

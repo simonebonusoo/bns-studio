@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 
+import { Button, getButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 
@@ -47,14 +48,22 @@ export function ShopAuthPage() {
             <p>Demo customer: <span className="text-white">customer@bnsstudio.com</span> / <span className="text-white">customer1234</span></p>
             <p>Demo admin: <span className="text-white">admin@bnsstudio.com</span> / <span className="text-white">admin1234</span></p>
           </div>
-        </div>
+          </div>
 
         <form onSubmit={handleSubmit} className="shop-card space-y-4 p-6 md:p-8">
           <div className="flex gap-3">
-            <button type="button" onClick={() => setMode("login")} className={`rounded-full px-4 py-2 text-sm ${mode === "login" ? "bg-white text-black" : "border border-white/10 text-white/70"}`}>
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={getButtonClassName({ variant: mode === "login" ? "cart" : "profile", size: "sm" })}
+            >
               Login
             </button>
-            <button type="button" onClick={() => setMode("register")} className={`rounded-full px-4 py-2 text-sm ${mode === "register" ? "bg-white text-black" : "border border-white/10 text-white/70"}`}>
+            <button
+              type="button"
+              onClick={() => setMode("register")}
+              className={getButtonClassName({ variant: mode === "register" ? "cart" : "profile", size: "sm" })}
+            >
               Register
             </button>
           </div>
@@ -80,9 +89,9 @@ export function ShopAuthPage() {
           ) : null}
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
-          <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+          <Button type="submit" variant="cart">
             {mode === "login" ? "Accedi" : "Crea account"}
-          </button>
+          </Button>
         </form>
       </div>
     </ShopLayout>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
+import { getButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
@@ -30,12 +31,12 @@ export function ShopProfilePage() {
             <button
               type="button"
               onClick={() => (isGuestPreview ? disableGuestPreview() : enableGuestPreview())}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white"
+              className={getButtonClassName({ variant: "profile", size: "sm" })}
             >
               {isGuestPreview ? "Torna admin" : "Vedi come ospite"}
             </button>
             {effectiveRole === "admin" ? (
-              <Link to="/shop/admin" className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/25 hover:text-white">
+              <Link to="/shop/admin" className={getButtonClassName({ variant: "profile", size: "sm" })}>
                 Admin
               </Link>
             ) : null}
@@ -71,11 +72,11 @@ export function ShopProfilePage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link to={`/shop/orders/${order.orderReference}`} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+              <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                 Visualizza ordine
               </Link>
               {order.status === "paid" || order.status === "shipped" ? (
-                <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+                <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                   Scarica ricevuta
                 </button>
               ) : null}

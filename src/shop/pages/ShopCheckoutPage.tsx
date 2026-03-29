@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 
+import { Button, getButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
@@ -274,13 +275,13 @@ export function ShopCheckoutPage() {
                 type="button"
                 onClick={() => setStep("details")}
                 disabled={!pricing}
-                className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className={getButtonClassName({ variant: "cart", disabled: !pricing })}
               >
                 Avanti
               </button>
               <Link
                 to="/shop/cart"
-                className="rounded-full border border-white/10 px-5 py-3 text-sm text-white/75 transition hover:border-white/25 hover:text-white"
+                className={getButtonClassName({ variant: "profile" })}
               >
                 Torna al carrello
               </Link>
@@ -309,17 +310,13 @@ export function ShopCheckoutPage() {
               <button
                 type="button"
                 onClick={() => setStep("review")}
-                className="rounded-full border border-white/10 px-5 py-3 text-sm text-white/75 transition hover:border-white/25 hover:text-white"
+                className={getButtonClassName({ variant: "profile" })}
               >
                 Indietro
               </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-wait disabled:opacity-70"
-              >
+              <Button type="submit" variant="cart" disabled={submitting}>
                 {submitting ? "Preparazione pagamento..." : "Vai al pagamento"}
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -399,22 +396,22 @@ export function ShopCheckoutPage() {
             ) : null}
             <div className="flex flex-wrap gap-3">
               {user?.role === "admin" && isGuestPreview ? (
-                <button
+                <Button
                   type="button"
+                  variant="profile"
                   onClick={() => downloadInvoicePdf(order, settings)}
-                  className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90"
                 >
                   Scarica ricevuta anteprima
-                </button>
+                </Button>
               ) : (
-                <button
+                <Button
                   type="button"
+                  variant="cart"
                   onClick={handlePayPalClick}
                   disabled={isRedirectingToPaypal}
-                  className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-wait disabled:opacity-70"
                 >
                   {isRedirectingToPaypal ? "Reindirizzamento a PayPal..." : "Paga con PayPal"}
-                </button>
+                </Button>
               )}
             </div>
           </aside>

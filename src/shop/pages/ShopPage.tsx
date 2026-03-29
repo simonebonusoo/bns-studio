@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 
+import { getButtonClassName } from "../../components/Button"
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
@@ -247,7 +248,7 @@ export function ShopPage() {
               type="button"
               disabled={pagination.page <= 1}
               onClick={() => setPage(Math.max(1, pagination.page - 1))}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className={getButtonClassName({ variant: "profile", size: "sm", disabled: pagination.page <= 1 })}
             >
               Precedente
             </button>
@@ -255,7 +256,7 @@ export function ShopPage() {
               type="button"
               disabled={pagination.page >= pagination.totalPages}
               onClick={() => setPage(Math.min(pagination.totalPages, pagination.page + 1))}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className={getButtonClassName({ variant: "profile", size: "sm", disabled: pagination.page >= pagination.totalPages })}
             >
               Successiva
             </button>

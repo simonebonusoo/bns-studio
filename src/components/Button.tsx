@@ -6,9 +6,10 @@ type Props = PropsWithChildren<{
   href?: string
   onClick?: (e: any) => void
   type?: "button" | "submit" | "reset"
-  variant?: "primary" | "ghost"
+  variant?: "primary" | "ghost" | "cart" | "profile"
   size?: "sm" | "md"
   className?: string
+  disabled?: boolean
   /** Se children NON è stringa, passa text per lo scramble */
   text?: string
   icon?: React.ReactNode
@@ -19,6 +20,43 @@ const CHARS = "!@#$%^&*():{};|,.<>/?"
 const CYCLES_PER_LETTER = 2
 const SHUFFLE_TIME = 40
 
+function resolveVariant(variant: Props["variant"]) {
+  if (variant === "ghost") return "profile"
+  if (variant === "primary") return "cart"
+  return variant || "cart"
+}
+
+export function getButtonClassName({
+  variant = "cart",
+  size = "md",
+  className,
+  disabled = false,
+}: {
+  variant?: "primary" | "ghost" | "cart" | "profile"
+  size?: "sm" | "md"
+  className?: string
+  disabled?: boolean
+}) {
+  const resolvedVariant = resolveVariant(variant)
+  const base =
+    "group relative overflow-hidden inline-flex items-center justify-center gap-2 font-medium " +
+    "transition-all active:scale-[.98] select-none"
+
+  const sizeCls =
+    size === "sm"
+      ? "h-9 px-3.5 text-xs rounded-md"
+      : "h-11 px-5 text-sm rounded-lg"
+
+  const variantCls =
+    resolvedVariant === "cart"
+      ? "bg-white text-black hover:bg-white/90 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+      : "bg-transparent text-white/80 border border-white/15 hover:border-white/30 hover:text-white"
+
+  const disabledCls = disabled ? "cursor-not-allowed opacity-60 hover:bg-inherit hover:border-inherit hover:text-inherit active:scale-100" : ""
+
+  return clsx(base, sizeCls, variantCls, disabledCls, className)
+}
+
 export function Button({
   children,
   href,
@@ -27,6 +65,7 @@ export function Button({
   variant = "primary",
   size = "md",
   className,
+  disabled = false,
   text,
   icon,
 }: Props) {
@@ -74,30 +113,17 @@ export function Button({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const base =
-    "group relative overflow-hidden inline-flex items-center justify-center gap-2 font-medium " +
-    "transition-all active:scale-[.98] select-none"
-
-  const sizeCls =
-    size === "sm"
-      ? "h-9 px-3.5 text-xs rounded-md"
-      : "h-11 px-5 text-sm rounded-lg"
-
-  const variantCls =
-    variant === "primary"
-      ? "bg-white text-black hover:bg-white/90 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
-      : "bg-transparent text-white/80 border border-white/15 hover:border-white/30 hover:text-white"
-
-  const cls = clsx(base, sizeCls, variantCls, className)
+  const resolvedVariant = resolveVariant(variant)
+  const cls = getButtonClassName({ variant: resolvedVariant, size, className, disabled })
 
   const iconCls =
-    variant === "primary"
+    resolvedVariant === "cart"
       ? "text-black/80"
       : "text-white/80 group-hover:text-[color:var(--brand)] transition-colors"
 
   const labelCls =
     "absolute left-0 top-0 whitespace-pre transition-colors " +
-    (variant === "primary"
+    (resolvedVariant === "cart"
       ? "text-black"
       : "text-white/80 group-hover:text-[color:var(--brand)]")
 
@@ -150,9 +176,9 @@ export function Button({
 
   const common = {
     className: cls,
-    onMouseEnter: scramble,
+    onMouseEnter: disabled ? undefined : scramble,
     onMouseLeave: stopScramble,
-    onFocus: scramble,
+    onFocus: disabled ? undefined : scramble,
     onBlur: stopScramble,
   }
 
@@ -165,7 +191,7 @@ export function Button({
   }
 
   return (
-    <button type={type} onClick={onClick} {...common}>
+    <button type={type} onClick={onClick} disabled={disabled} {...common}>
       {Inner}
     </button>
   )

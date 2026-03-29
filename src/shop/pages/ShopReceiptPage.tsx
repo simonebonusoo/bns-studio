@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useLocation, useParams } from "react-router-dom"
 
+import { Button, getButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
@@ -145,16 +146,16 @@ export function ShopReceiptPage() {
 
           <div className="flex flex-col gap-3">
             {!isAdminView && !isPaid ? (
-              <button
+              <Button
                 type="button"
+                variant="cart"
                 onClick={handlePayPalClick}
                 disabled={isRedirectingToPaypal}
-                aria-busy={isRedirectingToPaypal}
-                className="relative z-20 inline-flex w-full cursor-pointer items-center justify-center rounded-full bg-[#e3f503] px-5 py-3 text-center text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
+                className="relative z-20 w-full"
                 style={{ pointerEvents: isRedirectingToPaypal ? "none" : "auto" }}
               >
                 {isRedirectingToPaypal ? "Reindirizzamento a PayPal..." : "Paga con PayPal"}
-              </button>
+              </Button>
             ) : null}
             {!isAdminView && !isPaid && paymentError ? (
               <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
@@ -163,7 +164,11 @@ export function ShopReceiptPage() {
             ) : null}
             {isPaid ? (
               <>
-                <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90">
+                <button
+                  type="button"
+                  onClick={() => downloadInvoicePdf(order, settings)}
+                  className={getButtonClassName({ variant: "profile" })}
+                >
                   Scarica ricevuta PDF
                 </button>
               </>
