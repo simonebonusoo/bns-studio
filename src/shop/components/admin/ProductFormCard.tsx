@@ -105,6 +105,8 @@ export function ProductFormCard({
   onRemoveImage,
 }: ProductFormCardProps) {
   const safeVariants = Array.isArray(productForm.variants) ? productForm.variants : []
+  const safeManualBadges = Array.isArray(productForm.manualBadges) ? productForm.manualBadges : []
+  const safeCollectionIds = Array.isArray(productForm.collectionIds) ? productForm.collectionIds : []
   const activeVariants = safeVariants.filter((variant) => variant.isActive)
   const totalVariantStock = activeVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
   const lowStockVariantCount = activeVariants.filter((variant) => variant.stock > 0 && variant.stock <= variant.lowStockThreshold).length
@@ -226,7 +228,7 @@ export function ProductFormCard({
               <p className="text-sm font-medium text-white">Collezioni</p>
               <p className="mt-1 text-xs text-white/55">Servono a raggruppare il prodotto in percorsi trasversali e temi editoriali.</p>
             </div>
-            <span className="text-xs text-white/45">{productForm.collectionIds.length} selezionate</span>
+            <span className="text-xs text-white/45">{safeCollectionIds.length} selezionate</span>
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             {collections.length ? (
@@ -234,13 +236,13 @@ export function ProductFormCard({
                 <label key={collection.id} className="flex items-center gap-3 rounded-2xl border border-white/8 px-4 py-3 text-sm text-white/70">
                   <input
                     type="checkbox"
-                    checked={productForm.collectionIds.includes(collection.id)}
+                    checked={safeCollectionIds.includes(collection.id)}
                     onChange={(event) =>
                       onChange({
                         ...productForm,
                         collectionIds: event.target.checked
-                          ? [...productForm.collectionIds, collection.id]
-                          : productForm.collectionIds.filter((value) => value !== collection.id),
+                          ? [...safeCollectionIds, collection.id]
+                          : safeCollectionIds.filter((value) => value !== collection.id),
                       })
                     }
                   />
@@ -538,7 +540,7 @@ export function ProductFormCard({
                 onChange({
                   ...productForm,
                 manualBadges: [
-                  ...productForm.manualBadges,
+                  ...safeManualBadges,
                   { id: `manual-${Date.now()}`, label: "", enabled: true },
                 ],
               })
@@ -548,9 +550,9 @@ export function ProductFormCard({
           </Button>
         </div>
 
-        {productForm.manualBadges.length ? (
+        {safeManualBadges.length ? (
           <div className="space-y-3">
-            {productForm.manualBadges.map((badge, index) => (
+            {safeManualBadges.map((badge, index) => (
               <div key={badge.id} className="grid gap-3 rounded-2xl border border-white/8 p-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
                 <div className="space-y-2">
                   <input
@@ -561,7 +563,7 @@ export function ProductFormCard({
                     onChange={(event) =>
                       onChange({
                         ...productForm,
-                        manualBadges: productForm.manualBadges.map((entry) =>
+                        manualBadges: safeManualBadges.map((entry) =>
                           entry.id === badge.id ? { ...entry, label: event.target.value } : entry,
                         ),
                       })
@@ -574,7 +576,7 @@ export function ProductFormCard({
                       onChange={(event) =>
                         onChange({
                           ...productForm,
-                          manualBadges: productForm.manualBadges.map((entry) =>
+                          manualBadges: safeManualBadges.map((entry) =>
                             entry.id === badge.id ? { ...entry, enabled: event.target.checked } : entry,
                           ),
                         })
@@ -591,7 +593,7 @@ export function ProductFormCard({
                     size="sm"
                     disabled={index === 0}
                     onClick={() => {
-                      const next = [...productForm.manualBadges]
+                      const next = [...safeManualBadges]
                       ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
                       onChange({ ...productForm, manualBadges: next })
                     }}
@@ -602,9 +604,9 @@ export function ProductFormCard({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    disabled={index === productForm.manualBadges.length - 1}
+                    disabled={index === safeManualBadges.length - 1}
                     onClick={() => {
-                      const next = [...productForm.manualBadges]
+                      const next = [...safeManualBadges]
                       ;[next[index + 1], next[index]] = [next[index], next[index + 1]]
                       onChange({ ...productForm, manualBadges: next })
                     }}
@@ -620,7 +622,7 @@ export function ProductFormCard({
                   onClick={() =>
                     onChange({
                       ...productForm,
-                      manualBadges: productForm.manualBadges.filter((entry) => entry.id !== badge.id),
+                      manualBadges: safeManualBadges.filter((entry) => entry.id !== badge.id),
                     })
                   }
                 >

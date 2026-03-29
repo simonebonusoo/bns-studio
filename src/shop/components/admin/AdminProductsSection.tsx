@@ -2,6 +2,7 @@ import type { FormEvent } from "react"
 
 import { Button } from "../../../components/Button"
 import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
+import { AdminRenderGuard } from "./AdminRenderGuard"
 import { ProductFiltersBar } from "./ProductFiltersBar"
 import { ProductFormCard } from "./ProductFormCard"
 import { ProductListSection } from "./ProductListSection"
@@ -136,22 +137,24 @@ export function AdminProductsSection({
 }: AdminProductsSectionProps) {
   return (
     <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-      <ProductFormCard
-        editingProductId={editingProductId}
-        selectedCount={selectedProductIds.length}
-        isMultiEdit={isMultiEdit}
-        canSubmit={isMultiEdit ? hasTouchedFields : true}
-        productForm={productForm}
-        categories={categories}
-        collections={collections}
-        productImages={productImages}
-        onSubmit={onSubmitProduct}
-        onCancel={onCancelProduct}
-        onChange={onChangeProductForm}
-        onFileChange={onProductFileChange}
-        onReorderImages={onReorderProductImages}
-        onRemoveImage={onRemoveProductImage}
-      />
+      <AdminRenderGuard title="Form prodotto">
+        <ProductFormCard
+          editingProductId={editingProductId}
+          selectedCount={selectedProductIds.length}
+          isMultiEdit={isMultiEdit}
+          canSubmit={isMultiEdit ? hasTouchedFields : true}
+          productForm={productForm}
+          categories={categories}
+          collections={collections}
+          productImages={productImages}
+          onSubmit={onSubmitProduct}
+          onCancel={onCancelProduct}
+          onChange={onChangeProductForm}
+          onFileChange={onProductFileChange}
+          onReorderImages={onReorderProductImages}
+          onRemoveImage={onRemoveProductImage}
+        />
+      </AdminRenderGuard>
 
       <div className="shop-card flex h-full min-h-0 flex-col gap-4 p-6">
         <ProductFiltersBar
