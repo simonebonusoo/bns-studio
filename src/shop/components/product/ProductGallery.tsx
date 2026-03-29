@@ -27,6 +27,7 @@ export function ProductGallery({
         onClick={onOpenLightbox}
         className="shop-card flex min-w-0 flex-col overflow-hidden text-left transition hover:border-white/20 lg:h-full"
       >
+        <div className="flex-1 bg-white/[0.02]" />
         <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-3 md:min-h-[470px] md:p-3.5">
           {activeImage ? (
             <img
