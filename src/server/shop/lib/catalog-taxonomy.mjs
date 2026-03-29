@@ -69,13 +69,15 @@ export async function syncProductTags(productId, tagNames = []) {
     tagRecords.push(tag)
   }
 
-  await prisma.productTag.deleteMany({ where: { productId } })
-  if (tagRecords.length) {
-    await prisma.productTag.createMany({
-      data: tagRecords.map((tag) => ({ productId, tagId: tag.id })),
-      skipDuplicates: true,
-    })
-  }
+  await prisma.$transaction(async (tx) => {
+    await tx.productTag.deleteMany({ where: { productId } })
+
+    if (tagRecords.length) {
+      await tx.productTag.createMany({
+        data: tagRecords.map((tag) => ({ productId, tagId: tag.id })),
+      })
+    }
+  })
 }
 
 export async function syncProductCollections(productId, collectionIds = []) {
@@ -97,13 +99,15 @@ export async function syncProductCollections(productId, collectionIds = []) {
     }
   }
 
-  await prisma.productCollection.deleteMany({ where: { productId } })
-  if (normalizedIds.length) {
-    await prisma.productCollection.createMany({
-      data: normalizedIds.map((collectionId) => ({ productId, collectionId })),
-      skipDuplicates: true,
-    })
-  }
+  await prisma.$transaction(async (tx) => {
+    await tx.productCollection.deleteMany({ where: { productId } })
+
+    if (normalizedIds.length) {
+      await tx.productCollection.createMany({
+        data: normalizedIds.map((collectionId) => ({ productId, collectionId })),
+      })
+    }
+  })
 }
 
 export function productRelationInclude() {
