@@ -64,7 +64,7 @@ export function ProductPurchasePanel({
   getVariantStockLabel,
 }: ProductPurchasePanelProps) {
   return (
-    <div className="shop-card flex h-full min-w-0 flex-col p-5 md:p-6">
+    <div className="shop-card flex min-w-0 flex-col p-5 md:p-6 lg:min-h-[630px]">
       <div className="space-y-4">
         <div className="space-y-3 border-b border-white/10 pb-4">
           <div className="space-y-2">
