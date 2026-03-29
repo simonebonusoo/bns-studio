@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "../components/Button";
+import { Button, getButtonClassName } from "../components/Button";
 import { Container } from "../components/Container";
 import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
@@ -572,17 +572,16 @@ export function HomeShop() {
                       </div>
                     </div>
                     <div>
-                      <Button asChild variant="cart" size="sm">
-                        <Link
-                          to={
-                            showcase.collectionSlug
-                              ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
-                              : withCatalogContext(showcase.href, showcase.title, showcase.description)
-                          }
-                        >
-                          {showcase.ctaLabel || "Esplora la collezione"}
-                        </Link>
-                      </Button>
+                      <Link
+                        to={
+                          showcase.collectionSlug
+                            ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
+                            : withCatalogContext(showcase.href, showcase.title, showcase.description)
+                        }
+                        className={getButtonClassName({ variant: "cart", size: "sm" })}
+                      >
+                        {showcase.ctaLabel || "Esplora la collezione"}
+                      </Link>
                     </div>
                   </div>
                   <div
