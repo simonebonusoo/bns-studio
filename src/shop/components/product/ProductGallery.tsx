@@ -16,13 +16,13 @@ export function ProductGallery({
   const activeImage = selectedImage || images[0] || ""
 
   return (
-    <div className="grid h-full min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_84px] md:items-stretch">
+    <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_84px] md:items-start lg:sticky lg:top-24">
       <button
         type="button"
         onClick={onOpenLightbox}
-        className="shop-card block h-full overflow-hidden text-left transition hover:border-white/20"
+        className="shop-card block overflow-hidden text-left transition hover:border-white/20"
       >
-        <div className="flex h-full min-h-[360px] items-center justify-center bg-white/[0.02] p-3 md:min-h-[470px] md:p-3.5">
+        <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-3 md:min-h-[470px] md:p-3.5">
           {activeImage ? (
             <img src={activeImage} alt={title} className="max-h-[436px] w-full object-contain md:max-h-[548px]" />
           ) : (
@@ -30,7 +30,7 @@ export function ProductGallery({
           )}
         </div>
       </button>
-      <div className="grid grid-cols-4 content-start gap-2.5 md:grid-cols-1">
+      <div className="grid grid-cols-4 gap-2.5 md:grid-cols-1">
         {images.map((image, index) => (
           <button
             key={image}
