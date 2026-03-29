@@ -21,6 +21,7 @@ import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage"
 import { ShopAuthProvider } from "./shop/context/ShopAuthProvider"
 import { ShopCartProvider } from "./shop/context/ShopCartProvider"
 import { ShopPage } from "./shop/pages/ShopPage"
+import { ShopOffersPage } from "./shop/pages/ShopOffersPage"
 import { ShopProductPage } from "./shop/pages/ShopProductPage"
 import { ShopCartPage } from "./shop/pages/ShopCartPage"
 import { ShopAuthPage } from "./shop/pages/ShopAuthPage"
@@ -178,6 +179,7 @@ export default function App() {
             <Route path="/chi-sono" element={<AboutMePage />} />
             <Route path="/case/:slug" element={<CaseStudyPage />} />
             <Route path="/shop" element={<ShopPage />} />
+            <Route path="/shop/offerte" element={<ShopOffersPage />} />
             <Route path="/shop/:slug" element={<ShopProductPage />} />
             <Route path="/shop/cart" element={<ShopCartPage />} />
             <Route path="/shop/auth" element={<ShopAuthPage />} />

@@ -7,6 +7,7 @@ import { ProductVariantSelector } from "./ProductVariantSelector"
 
 type ProductPurchasePanelProps = {
   badges: ProductVisibleBadge[]
+  originalPrice: number
   selectedPrice: number
   subtotal: number
   stockLabel: string
@@ -38,6 +39,7 @@ type ProductPurchasePanelProps = {
 
 export function ProductPurchasePanel({
   badges,
+  originalPrice,
   selectedPrice,
   subtotal,
   stockLabel,
@@ -67,6 +69,7 @@ export function ProductPurchasePanel({
   getVariantStockLabel,
 }: ProductPurchasePanelProps) {
   const subtotalVisible = subtotal > selectedPrice
+  const hasDiscount = selectedPrice < originalPrice
 
   return (
     <div ref={panelRef} className="shop-card flex h-full min-w-0 flex-col p-5 md:p-6 lg:min-h-[630px]">
@@ -87,7 +90,8 @@ export function ProductPurchasePanel({
             </div>
             <div className="rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-3">
               <div className="flex h-[48px] items-center justify-between gap-4">
-                <div className="flex min-w-0 flex-1 items-center">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  {hasDiscount ? <span className="text-sm text-white/35 line-through">{formatPrice(originalPrice)}</span> : null}
                   <span className="block text-3xl font-semibold leading-none text-white md:text-[2.1rem]">{formatPrice(selectedPrice)}</span>
                 </div>
                 <div className={`flex w-[92px] flex-col items-end justify-center text-right transition-opacity ${subtotalVisible ? "opacity-100" : "opacity-0"}`}>

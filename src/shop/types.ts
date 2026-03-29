@@ -12,6 +12,7 @@ export type ShopProductVariant = {
   }>
   optionSummary?: string | null
   price: number
+  discountPrice?: number | null
   costPrice?: number
   stock: number
   lowStockThreshold: number
@@ -65,8 +66,11 @@ export type ShopProduct = {
   description: string
   status: ProductStatus
   price: number
+  discountPrice?: number | null
   priceA3?: number | null
+  discountPriceA3?: number | null
   priceA4?: number | null
+  discountPriceA4?: number | null
   costPrice?: number
   hasA3?: boolean
   hasA4?: boolean

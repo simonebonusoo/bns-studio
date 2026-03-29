@@ -3,7 +3,7 @@ import { Button } from "../../components/Button"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { formatPrice } from "../lib/format"
-import { getAvailableFormats, getDefaultVariant, getPriceForVariant, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, isProductPurchasable } from "../lib/product"
+import { getAvailableFormats, getDefaultVariant, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getVariantPricing, isProductPurchasable } from "../lib/product"
 import { ShopProduct } from "../types"
 
 export function ProductCard({ product }: { product: ShopProduct }) {
@@ -19,6 +19,10 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   const badges = getProductBadges(product)
   const stockStatus = getProductStockStatus(product)
   const stockLabel = getProductStockLabel(product)
+  const pricing = getVariantPricing(product, defaultVariant?.id)
+  const hasDiscount = pricing.hasDiscount
+  const currentPriceLabel = availableFormats.length > 1 ? `da ${formatPrice(pricing.currentPrice)}` : formatPrice(pricing.currentPrice)
+  const originalPriceLabel = availableFormats.length > 1 ? `da ${formatPrice(pricing.originalPrice)}` : formatPrice(pricing.originalPrice)
 
   function handleBuyNow() {
     if (!purchasable) return
@@ -107,8 +111,15 @@ export function ProductCard({ product }: { product: ShopProduct }) {
                 {stockLabel}
               </span>
             </div>
-            <div className="text-right text-sm font-medium text-[#e3f503]">
-              {availableFormats.length > 1 ? `da ${formatPrice(getPriceForVariant(product, defaultVariant?.id))}` : formatPrice(getPriceForVariant(product, defaultVariant?.id))}
+            <div className="text-right">
+              {hasDiscount ? (
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs text-white/40 line-through">{originalPriceLabel}</span>
+                  <span className="text-sm font-medium text-[#e3f503]">{currentPriceLabel}</span>
+                </div>
+              ) : (
+                <div className="text-sm font-medium text-[#e3f503]">{currentPriceLabel}</div>
+              )}
             </div>
           </div>
           {!purchasable ? (

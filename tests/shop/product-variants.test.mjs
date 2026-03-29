@@ -32,6 +32,7 @@ test("buildLegacyProductFieldsFromVariants accepts generic option payloads and k
       key: "frame-black",
       options: [{ name: "Frame", value: "Black" }],
       price: 2400,
+      discountPrice: 1800,
       costPrice: 900,
       stock: 3,
       lowStockThreshold: 1,
@@ -43,6 +44,7 @@ test("buildLegacyProductFieldsFromVariants accepts generic option payloads and k
   assert.equal(payload.variants[0].key, "frame-black")
   assert.deepEqual(payload.variants[0].options, [{ name: "Frame", value: "Black" }])
   assert.equal(payload.summary.price, 2400)
+  assert.equal(payload.summary.discountPrice, 1800)
   assert.equal(payload.summary.stock, 3)
   assert.equal(payload.summary.hasA4, false)
   assert.equal(payload.summary.hasA3, false)
@@ -58,6 +60,7 @@ test("serializeProductVariants exposes options and option summary", () => {
         optionsJson: JSON.stringify([{ name: "Format", value: "A4" }]),
         sku: "PRINT-001-A4",
         price: 1500,
+        discountPrice: 1200,
         costPrice: 500,
         stock: 5,
         lowStockThreshold: 2,
@@ -71,4 +74,5 @@ test("serializeProductVariants exposes options and option summary", () => {
   const serialized = serializeProductVariants(product)
   assert.equal(serialized[0].optionSummary, "Format: A4")
   assert.deepEqual(serialized[0].options, [{ name: "Format", value: "A4" }])
+  assert.equal(serialized[0].discountPrice, 1200)
 })

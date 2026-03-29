@@ -58,6 +58,20 @@ function buildVariantRecord(variant, index) {
     throw new HttpError(400, `Prezzo non valido per la variante ${title}`)
   }
 
+  const rawDiscountPrice = variant?.discountPrice
+  const discountPrice =
+    rawDiscountPrice === null || rawDiscountPrice === undefined || rawDiscountPrice === ""
+      ? null
+      : Number(rawDiscountPrice)
+
+  if (discountPrice !== null && (!Number.isInteger(discountPrice) || discountPrice < 0)) {
+    throw new HttpError(400, `Prezzo scontato non valido per la variante ${title}`)
+  }
+
+  if (discountPrice !== null && discountPrice > price) {
+    throw new HttpError(400, `Il prezzo scontato non puo superare il prezzo pieno per la variante ${title}`)
+  }
+
   const stock = Number(variant?.stock ?? 0)
   const lowStockThreshold = Number(variant?.lowStockThreshold ?? 5)
   const costPrice = Number(variant?.costPrice ?? 0)
@@ -69,6 +83,7 @@ function buildVariantRecord(variant, index) {
     sku: variant?.sku ? String(variant.sku).trim().toUpperCase() : null,
     options: parseVariantOptions(variant),
     price,
+    discountPrice: discountPrice !== null && discountPrice < price ? discountPrice : null,
     costPrice: Number.isInteger(costPrice) && costPrice >= 0 ? costPrice : 0,
     stock: Number.isInteger(stock) && stock >= 0 ? stock : 0,
     lowStockThreshold: Number.isInteger(lowStockThreshold) && lowStockThreshold >= 0 ? lowStockThreshold : 5,
@@ -89,6 +104,7 @@ export function deriveLegacyVariantsFromProduct(product) {
       key: "a4",
       sku: product.sku || null,
       price: product.priceA4 ?? product.price,
+      discountPrice: product.discountPriceA4 ?? product.discountPrice ?? null,
       costPrice: product.costPrice ?? 0,
       stock: product.stock ?? 0,
       lowStockThreshold: product.lowStockThreshold ?? 5,
@@ -106,6 +122,7 @@ export function deriveLegacyVariantsFromProduct(product) {
       key: "a3",
       sku: null,
       price: product.priceA3 ?? product.priceA4 ?? product.price,
+      discountPrice: product.discountPriceA3 ?? product.discountPrice ?? null,
       costPrice: product.costPrice ?? 0,
       stock: product.stock ?? 0,
       lowStockThreshold: product.lowStockThreshold ?? 5,
@@ -123,6 +140,7 @@ export function deriveLegacyVariantsFromProduct(product) {
       key: "standard",
       sku: product.sku || null,
       price: product.price,
+      discountPrice: product.discountPrice ?? null,
       costPrice: product.costPrice ?? 0,
       stock: product.stock ?? 0,
       lowStockThreshold: product.lowStockThreshold ?? 5,
@@ -161,6 +179,9 @@ export function buildLegacyProductFieldsFromVariants(rawVariants = []) {
   const visibleVariants = activeVariants.length ? activeVariants : variants
   const defaultVariant = visibleVariants.find((variant) => variant.isDefault) || visibleVariants[0]
   const prices = visibleVariants.map((variant) => variant.price)
+  const discountPrices = visibleVariants
+    .map((variant) => (typeof variant.discountPrice === "number" && variant.discountPrice < variant.price ? variant.discountPrice : null))
+    .filter((value) => typeof value === "number")
   const totalStock = visibleVariants.reduce((sum, variant) => sum + variant.stock, 0)
   const lowStockThreshold = defaultVariant?.lowStockThreshold ?? visibleVariants[0]?.lowStockThreshold ?? 5
   const a4Variant = visibleVariants.find((variant) => variant.legacyFormat === "A4")
@@ -174,11 +195,16 @@ export function buildLegacyProductFieldsFromVariants(rawVariants = []) {
     })),
     summary: {
       price: Math.min(...prices),
+      discountPrice: discountPrices.length ? Math.min(...discountPrices) : null,
       costPrice: defaultVariant?.costPrice ?? 0,
       hasA4: Boolean(a4Variant),
       hasA3: Boolean(a3Variant),
       priceA4: a4Variant?.price ?? null,
+      discountPriceA4:
+        typeof a4Variant?.discountPrice === "number" && a4Variant.discountPrice < a4Variant.price ? a4Variant.discountPrice : null,
       priceA3: a3Variant?.price ?? null,
+      discountPriceA3:
+        typeof a3Variant?.discountPrice === "number" && a3Variant.discountPrice < a3Variant.price ? a3Variant.discountPrice : null,
       stock: totalStock,
       lowStockThreshold,
       sku: defaultVariant?.sku ?? null,
@@ -195,6 +221,7 @@ export function serializeProductVariants(product) {
     options: variant.options || [],
     optionSummary: (variant.options || []).map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
     price: variant.price,
+    discountPrice: typeof variant.discountPrice === "number" && variant.discountPrice < variant.price ? variant.discountPrice : null,
     costPrice: variant.costPrice,
     stock: variant.stock,
     lowStockThreshold: variant.lowStockThreshold,
@@ -243,6 +270,7 @@ export async function syncProductVariants(db, productId, rawVariants = []) {
       sku: variant.sku,
       optionsJson: JSON.stringify(variant.options || []),
       price: variant.price,
+      discountPrice: typeof variant.discountPrice === "number" && variant.discountPrice < variant.price ? variant.discountPrice : null,
       costPrice: variant.costPrice,
       stock: variant.stock,
       lowStockThreshold: variant.lowStockThreshold,

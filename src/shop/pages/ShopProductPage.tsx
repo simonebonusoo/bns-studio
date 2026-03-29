@@ -9,7 +9,7 @@ import { getProductPurchaseState } from "../components/product/purchaseState"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
-import { getAvailableFormats, getDefaultVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
+import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct, ShopSettings } from "../types"
 
@@ -73,6 +73,7 @@ export function ShopProductPage() {
   const galleryImages = product ? getProductGalleryImages(product) : []
   const primaryCollection = product?.collections?.[0] || null
   const selectedVariant = product ? resolveSelectedVariant(product, { format: selectedVariantKey }) || getDefaultVariant(product) : null
+  const originalPrice = product ? getOriginalPriceForVariant(product, selectedVariant?.id) : 0
   const selectedPrice = product ? getPriceForVariant(product, selectedVariant?.id) : 0
   const purchasable = product ? isProductPurchasable(product, selectedVariant?.id) : false
   const badges = product ? getProductBadges(product) : []
@@ -291,6 +292,7 @@ export function ShopProductPage() {
 
           <ProductPurchasePanel
             badges={badges}
+            originalPrice={originalPrice}
             selectedPrice={selectedPrice}
             subtotal={subtotal}
             stockLabel={stockLabel}

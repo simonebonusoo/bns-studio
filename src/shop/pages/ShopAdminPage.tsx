@@ -71,6 +71,8 @@ type ProductFormState = {
   description: string
   priceA4: string
   priceA3: string
+  discountPriceA4: string
+  discountPriceA3: string
   costPrice: string
   hasA4: boolean
   hasA3: boolean
@@ -89,6 +91,7 @@ type ProductFormState = {
     key: string
     sku: string
     price: string
+    discountPrice: string
     costPrice: string
     stock: number
     lowStockThreshold: number
@@ -216,6 +219,8 @@ const emptyProductForm = (): ProductFormState => ({
   description: "",
   priceA4: "",
   priceA3: "",
+  discountPriceA4: "",
+  discountPriceA3: "",
   costPrice: "",
   hasA4: true,
   hasA3: false,
@@ -235,6 +240,7 @@ const emptyProductForm = (): ProductFormState => ({
       key: "a4",
       sku: "",
       price: "",
+      discountPrice: "",
       costPrice: "8",
       stock: 0,
       lowStockThreshold: 5,
@@ -361,6 +367,7 @@ function mapProductVariantToForm(variant: ShopProductVariant, index: number) {
     key: variant.key || slugifyVariantKey(variant.title) || `variant-${index + 1}`,
     sku: variant.sku || "",
     price: formatEuroInput(variant.price),
+    discountPrice: variant.discountPrice ? formatEuroInput(variant.discountPrice) : "",
     costPrice: getVariantCostInputValue(variant.title, variant.costPrice),
     stock: variant.stock,
     lowStockThreshold: variant.lowStockThreshold ?? 5,
@@ -377,6 +384,7 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
       title: variant.title.trim() || `Variante ${index + 1}`,
       key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
       priceCents: parseEuroToCents(variant.price),
+      discountPriceCents: variant.discountPrice.trim() ? parseEuroToCents(variant.discountPrice) : null,
       costPriceCents: parseEuroToCents(variant.costPrice),
     }))
 
@@ -387,12 +395,19 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
         title: variant.title.trim() || `Variante ${index + 1}`,
         key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
         priceCents: parseEuroToCents(variant.price),
+        discountPriceCents: variant.discountPrice.trim() ? parseEuroToCents(variant.discountPrice) : null,
         costPriceCents: parseEuroToCents(variant.costPrice),
       }))
 
   const defaultVariant = fallbackVariants.find((variant) => variant.isDefault) || fallbackVariants[0]
   const a4Variant = fallbackVariants.find((variant) => variant.title.trim().toUpperCase() === "A4")
   const a3Variant = fallbackVariants.find((variant) => variant.title.trim().toUpperCase() === "A3")
+
+  fallbackVariants.forEach((variant) => {
+    if (variant.discountPriceCents !== null && variant.discountPriceCents > variant.priceCents) {
+      throw new Error(`Il prezzo scontato non puo superare il prezzo pieno per la variante ${variant.title}`)
+    }
+  })
 
   return {
     variants: variants.map((variant, index) => ({
@@ -401,6 +416,7 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
       key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
       sku: variant.sku.trim() || null,
       price: parseEuroToCents(variant.price),
+      discountPrice: variant.discountPrice.trim() ? parseEuroToCents(variant.discountPrice) : null,
       costPrice: parseEuroToCents(variant.costPrice),
       stock: Number(variant.stock || 0),
       lowStockThreshold: Number(variant.lowStockThreshold || 0),
@@ -410,11 +426,21 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
     })),
     summary: {
       price: Math.min(...fallbackVariants.map((variant) => variant.priceCents)),
+      discountPrice: (() => {
+        const discountPrices = fallbackVariants
+          .map((variant) => (typeof variant.discountPriceCents === "number" && variant.discountPriceCents < variant.priceCents ? variant.discountPriceCents : null))
+          .filter((value): value is number => typeof value === "number")
+        return discountPrices.length ? Math.min(...discountPrices) : null
+      })(),
       costPrice: defaultVariant?.costPriceCents ?? 0,
       hasA4: Boolean(a4Variant),
       hasA3: Boolean(a3Variant),
       priceA4: a4Variant?.priceCents ?? null,
+      discountPriceA4:
+        typeof a4Variant?.discountPriceCents === "number" && a4Variant.discountPriceCents < a4Variant.priceCents ? a4Variant.discountPriceCents : null,
       priceA3: a3Variant?.priceCents ?? null,
+      discountPriceA3:
+        typeof a3Variant?.discountPriceCents === "number" && a3Variant.discountPriceCents < a3Variant.priceCents ? a3Variant.discountPriceCents : null,
       stock: fallbackVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0),
       lowStockThreshold: Number(defaultVariant?.lowStockThreshold || 5),
     },
@@ -864,11 +890,14 @@ export function ShopAdminPage() {
         sku: productForm.sku || null,
         description: productForm.description,
         price: variantSummary.summary.price,
+        discountPrice: variantSummary.summary.discountPrice,
         costPrice: variantSummary.summary.costPrice,
         hasA4: variantSummary.summary.hasA4,
         hasA3: variantSummary.summary.hasA3,
         priceA4: variantSummary.summary.priceA4,
+        discountPriceA4: variantSummary.summary.discountPriceA4,
         priceA3: variantSummary.summary.priceA3,
+        discountPriceA3: variantSummary.summary.discountPriceA3,
         category: productForm.category,
         tags: productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
         collectionIds: productForm.collectionIds,

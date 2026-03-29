@@ -23,11 +23,17 @@ function serializePublicProduct(product) {
   const parsedImages = JSON.parse(imageUrls)
   const variants = serializeProductVariants(product)
   const defaultVariant = variants.find((variant) => variant.isDefault) || variants[0] || null
+  const basePrice = getBaseProductPrice(product)
+  const validDiscountPrice =
+    typeof product.discountPrice === "number" && product.discountPrice >= 0 && product.discountPrice < basePrice ? product.discountPrice : null
   return {
     ...rest,
-    price: getBaseProductPrice(product),
+    price: basePrice,
+    discountPrice: validDiscountPrice,
     priceA3: product.priceA3,
+    discountPriceA3: product.discountPriceA3,
     priceA4: product.priceA4 ?? product.price,
+    discountPriceA4: product.discountPriceA4,
     defaultFormat: getDefaultProductFormat(product),
     availableFormats: getAvailableProductFormats(product),
     imageUrls: parsedImages,
@@ -51,6 +57,7 @@ function buildPublicProductsWhere(filters) {
   const format = String(filters.format || "").trim().toUpperCase()
   const availability = String(filters.availability || "").trim().toLowerCase()
   const featured = String(filters.featured || "").trim().toLowerCase() === "true"
+  const discounted = String(filters.discounted || "").trim().toLowerCase() === "true"
   const tag = String(filters.tag || "").trim()
   const collection = String(filters.collection || filters.collectionSlug || "").trim()
   const conditions = []
@@ -86,6 +93,23 @@ function buildPublicProductsWhere(filters) {
 
   if (featured) {
     conditions.push({ featured: true })
+  }
+
+  if (discounted) {
+    conditions.push({
+      OR: [
+        { discountPrice: { not: null } },
+        { discountPriceA4: { not: null } },
+        { discountPriceA3: { not: null } },
+        {
+          variants: {
+            some: {
+              discountPrice: { not: null },
+            },
+          },
+        },
+      ],
+    })
   }
 
   if (tag) {

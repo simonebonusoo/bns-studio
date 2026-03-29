@@ -13,6 +13,8 @@ type ProductFormState = {
   description: string
   priceA4: string
   priceA3: string
+  discountPriceA4: string
+  discountPriceA3: string
   costPrice: string
   hasA4: boolean
   hasA3: boolean
@@ -31,6 +33,7 @@ type ProductFormState = {
     key: string
     sku: string
     price: string
+    discountPrice: string
     costPrice: string
     stock: number
     lowStockThreshold: number

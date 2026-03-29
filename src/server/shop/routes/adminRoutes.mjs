@@ -75,6 +75,7 @@ function serializeAdminProduct(product) {
   return {
     ...product,
     price: getBaseProductPrice(product),
+    discountPrice: typeof product.discountPrice === "number" && product.discountPrice < getBaseProductPrice(product) ? product.discountPrice : null,
     availableFormats: getAvailableProductFormats(product),
     imageUrls: parsedImages,
     coverImageUrl: parsedImages[0] || "",
@@ -229,7 +230,7 @@ async function getCategories() {
   return parseCategories(setting.value)
 }
 
-function resolveProductPayload(body, fallbackPrice = 0) {
+function resolveProductPayload(body, fallbackPrice = 0, fallbackDiscounts = {}) {
   if (Array.isArray(body.variants) && body.variants.length) {
     const { summary } = buildLegacyProductFieldsFromVariants(body.variants)
 
@@ -245,13 +246,19 @@ function resolveProductPayload(body, fallbackPrice = 0) {
       hasA3: summary.hasA3,
       hasA4: summary.hasA4,
       priceA3: summary.priceA3,
+      discountPriceA3: summary.discountPriceA3,
       priceA4: summary.priceA4,
+      discountPriceA4: summary.discountPriceA4,
+      discountPrice: summary.discountPrice,
       price: summary.price ?? fallbackPrice ?? 0,
     }
   }
 
   const hasA3 = Boolean(body.hasA3)
   const hasA4 = body.hasA4 ?? true
+  const fallbackDiscountPriceA4 = typeof fallbackDiscounts.discountPriceA4 === "number" ? fallbackDiscounts.discountPriceA4 : null
+  const fallbackDiscountPriceA3 = typeof fallbackDiscounts.discountPriceA3 === "number" ? fallbackDiscounts.discountPriceA3 : null
+  const fallbackDiscountPrice = typeof fallbackDiscounts.discountPrice === "number" ? fallbackDiscounts.discountPrice : null
 
   if (!hasA3 && !hasA4) {
     throw new HttpError(400, "Seleziona almeno un formato disponibile")
@@ -263,6 +270,14 @@ function resolveProductPayload(body, fallbackPrice = 0) {
 
   if (hasA4 && (body.priceA4 === null || body.priceA4 === undefined)) {
     throw new HttpError(400, "Inserisci il prezzo A4")
+  }
+
+  if (body.discountPriceA4 !== null && body.discountPriceA4 !== undefined && body.priceA4 !== null && body.priceA4 !== undefined && body.discountPriceA4 > body.priceA4) {
+    throw new HttpError(400, "Il prezzo scontato A4 non puo superare il prezzo pieno")
+  }
+
+  if (body.discountPriceA3 !== null && body.discountPriceA3 !== undefined && body.priceA3 !== null && body.priceA3 !== undefined && body.discountPriceA3 > body.priceA3) {
+    throw new HttpError(400, "Il prezzo scontato A3 non puo superare il prezzo pieno")
   }
 
   const prices = [
@@ -284,6 +299,14 @@ function resolveProductPayload(body, fallbackPrice = 0) {
     lowStockThreshold: Number(body.lowStockThreshold ?? 5),
     hasA3,
     hasA4,
+    discountPrice:
+      hasA4
+        ? (body.discountPriceA4 ?? fallbackDiscountPriceA4 ?? fallbackDiscountPrice ?? null)
+        : hasA3
+          ? (body.discountPriceA3 ?? fallbackDiscountPriceA3 ?? fallbackDiscountPrice ?? null)
+          : (body.discountPrice ?? fallbackDiscountPrice ?? null),
+    discountPriceA3: hasA3 ? (body.discountPriceA3 ?? fallbackDiscountPriceA3 ?? null) : null,
+    discountPriceA4: hasA4 ? (body.discountPriceA4 ?? fallbackDiscountPriceA4 ?? fallbackDiscountPrice ?? null) : null,
     priceA3: hasA3 ? body.priceA3 : null,
     priceA4: hasA4 ? body.priceA4 : null,
     price,
@@ -297,11 +320,14 @@ const productSchema = z.object({
   status: z.enum(PRODUCT_STATUSES).default("active"),
   sku: z.string().optional().nullable(),
   price: z.number().min(0).optional(),
+  discountPrice: z.number().min(0).optional().nullable(),
   costPrice: z.number().min(0).default(0),
   hasA3: z.boolean().default(false),
   hasA4: z.boolean().default(true),
   priceA3: z.number().min(0).optional().nullable(),
+  discountPriceA3: z.number().min(0).optional().nullable(),
   priceA4: z.number().min(0).optional().nullable(),
+  discountPriceA4: z.number().min(0).optional().nullable(),
   category: z.string().min(1),
   imageUrls: z.array(z.string().min(1)).min(1),
   variants: z
@@ -321,6 +347,7 @@ const productSchema = z.object({
           .optional()
           .default([]),
         price: z.number().min(0),
+        discountPrice: z.number().min(0).optional().nullable(),
         costPrice: z.number().min(0).default(0),
         stock: z.number().int().min(0).default(0),
         lowStockThreshold: z.number().int().min(0).default(5),
@@ -692,7 +719,11 @@ router.put(
     if (!categories.includes(body.category)) {
       throw new HttpError(400, "Categoria non valida")
     }
-    const payload = resolveProductPayload(body, existingProduct.price)
+    const payload = resolveProductPayload(body, existingProduct.price, {
+      discountPrice: existingProduct.discountPrice,
+      discountPriceA3: existingProduct.discountPriceA3,
+      discountPriceA4: existingProduct.discountPriceA4,
+    })
     const sku = await ensureUniqueSku(body.sku, productId)
     const slug = body.slug
       ? await ensureUniqueProductSlug(body.slug, productId)
@@ -742,8 +773,11 @@ router.post(
         description: product.description,
         status: "draft",
         price: product.price,
+        discountPrice: product.discountPrice,
         priceA3: product.priceA3,
+        discountPriceA3: product.discountPriceA3,
         priceA4: product.priceA4,
+        discountPriceA4: product.discountPriceA4,
         costPrice: product.costPrice,
         hasA3: product.hasA3,
         hasA4: product.hasA4,
@@ -762,6 +796,7 @@ router.post(
       key: variant.key,
       sku: null,
       price: variant.price,
+      discountPrice: variant.discountPrice,
       costPrice: variant.costPrice || 0,
       stock: variant.stock,
       lowStockThreshold: variant.lowStockThreshold,

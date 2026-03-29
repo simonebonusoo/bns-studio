@@ -21,6 +21,12 @@ function withVariantMetadata(variant: ShopProductVariant) {
   }
 }
 
+function getValidDiscountPrice(price?: number | null, discountPrice?: number | null) {
+  if (typeof price !== "number" || !Number.isFinite(price) || price < 0) return null
+  if (typeof discountPrice !== "number" || !Number.isFinite(discountPrice) || discountPrice < 0) return null
+  return discountPrice < price ? discountPrice : null
+}
+
 export function getProductVariants(product: ShopProduct) {
   const variants = Array.isArray(product.variants) ? [...product.variants] : []
   const activeVariants = variants
@@ -45,6 +51,7 @@ export function getProductVariants(product: ShopProduct) {
       sku: product.sku || null,
       options: [{ name: "Format", value: "A4" }],
       price: product.priceA4 ?? product.price,
+      discountPrice: getValidDiscountPrice(product.priceA4 ?? product.price, product.discountPriceA4 ?? product.discountPrice ?? null),
       costPrice: product.costPrice ?? 0,
       stock: product.stock,
       lowStockThreshold: product.lowStockThreshold ?? 5,
@@ -64,6 +71,7 @@ export function getProductVariants(product: ShopProduct) {
       sku: null,
       options: [{ name: "Format", value: "A3" }],
       price: product.priceA3 ?? product.priceA4 ?? product.price,
+      discountPrice: getValidDiscountPrice(product.priceA3 ?? product.priceA4 ?? product.price, product.discountPriceA3 ?? product.discountPrice ?? null),
       costPrice: product.costPrice ?? 0,
       stock: product.stock,
       lowStockThreshold: product.lowStockThreshold ?? 5,
@@ -83,6 +91,7 @@ export function getProductVariants(product: ShopProduct) {
       sku: product.sku || null,
       options: [],
       price: product.price,
+      discountPrice: getValidDiscountPrice(product.price, product.discountPrice ?? null),
       costPrice: product.costPrice ?? 0,
       stock: product.stock,
       lowStockThreshold: product.lowStockThreshold ?? 5,
@@ -138,11 +147,47 @@ export function getDefaultFormat(product: ShopProduct) {
 }
 
 export function getPriceForFormat(product: ShopProduct, format?: string | null) {
-  return resolveSelectedVariant(product, { format })?.price ?? product.price
+  const variant = resolveSelectedVariant(product, { format })
+  if (variant) {
+    return getValidDiscountPrice(variant.price, variant.discountPrice) ?? variant.price
+  }
+  return getValidDiscountPrice(product.price, product.discountPrice) ?? product.price
 }
 
 export function getPriceForVariant(product: ShopProduct, variantId?: number | null) {
+  const variant = resolveSelectedVariant(product, { variantId }) ?? getDefaultVariant(product)
+  if (variant) {
+    return getValidDiscountPrice(variant.price, variant.discountPrice) ?? variant.price
+  }
+  return getValidDiscountPrice(product.price, product.discountPrice) ?? product.price
+}
+
+export function getOriginalPriceForVariant(product: ShopProduct, variantId?: number | null) {
   return resolveSelectedVariant(product, { variantId })?.price ?? getDefaultVariant(product)?.price ?? product.price
+}
+
+export function getDiscountPriceForVariant(product: ShopProduct, variantId?: number | null) {
+  const variant = resolveSelectedVariant(product, { variantId }) ?? getDefaultVariant(product)
+  if (variant) {
+    return getValidDiscountPrice(variant.price, variant.discountPrice)
+  }
+  return getValidDiscountPrice(product.price, product.discountPrice ?? null)
+}
+
+export function getVariantPricing(product: ShopProduct, variantId?: number | null) {
+  const originalPrice = getOriginalPriceForVariant(product, variantId)
+  const discountPrice = getDiscountPriceForVariant(product, variantId)
+
+  return {
+    originalPrice,
+    discountPrice,
+    currentPrice: discountPrice ?? originalPrice,
+    hasDiscount: typeof discountPrice === "number" && discountPrice < originalPrice,
+  }
+}
+
+export function hasProductDiscount(product: ShopProduct) {
+  return getProductVariants(product).some((variant) => typeof getValidDiscountPrice(variant.price, variant.discountPrice) === "number")
 }
 
 export function isProductPurchasable(product: ShopProduct, variantId?: number | null) {

@@ -10,6 +10,7 @@ type ProductVariantFormState = {
   key: string
   sku: string
   price: string
+  discountPrice: string
   costPrice: string
   stock: number
   lowStockThreshold: number
@@ -284,6 +285,7 @@ export function ProductFormCard({
                       key: `variant-${safeVariants.length + 1}`,
                       sku: "",
                       price: "",
+                      discountPrice: "",
                       costPrice: "",
                       stock: 0,
                       lowStockThreshold: 5,
@@ -425,6 +427,26 @@ export function ProductFormCard({
                         })
                       }
                     />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Prezzo scontato (€)</span>
+                    <input
+                      className="shop-input"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="15"
+                      value={variant.discountPrice}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, discountPrice: event.target.value } : entry,
+                          ),
+                        })
+                      }
+                    />
+                    <p className="text-xs leading-5 text-white/45">Lascialo vuoto se il prodotto non e in offerta.</p>
                   </label>
                   <label className="space-y-2">
                     <span className="text-xs uppercase tracking-[0.18em] text-white/55">Costo produzione (€)</span>

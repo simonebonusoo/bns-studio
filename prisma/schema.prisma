@@ -31,8 +31,11 @@ model Product {
   description String
   status      String      @default("active")
   price       Int
+  discountPrice Int?
   priceA4     Int?
+  discountPriceA4 Int?
   priceA3     Int?
+  discountPriceA3 Int?
   costPrice   Int         @default(0)
   hasA4       Boolean     @default(true)
   hasA3       Boolean     @default(false)
@@ -59,6 +62,7 @@ model ProductVariant {
   sku               String?    @unique
   optionsJson       String     @default("[]")
   price             Int
+  discountPrice     Int?
   costPrice         Int        @default(0)
   stock             Int        @default(0)
   lowStockThreshold Int        @default(5)

@@ -11,6 +11,7 @@ test("normalizeProductFormStateForEdit apre in sicurezza un prodotto con immagin
     description: "Descrizione",
     price: 1500,
     priceA4: 1500,
+    discountPrice: 1200,
     category: "Print",
     imageUrls: ["/uploads/1.png", "/uploads/2.png"],
     featured: true,
@@ -27,6 +28,7 @@ test("normalizeProductFormStateForEdit apre in sicurezza un prodotto con immagin
         key: "a4",
         sku: "A4-01",
         price: 1500,
+        discountPrice: 1200,
         costPrice: 800,
         stock: 8,
         lowStockThreshold: 3,
@@ -42,6 +44,8 @@ test("normalizeProductFormStateForEdit apre in sicurezza un prodotto con immagin
   assert.equal(form.tags, "pop, music")
   assert.equal(form.variants.length, 1)
   assert.equal(form.variants[0].title, "A4")
+  assert.equal(form.variants[0].discountPrice, "12")
+  assert.equal(form.discountPriceA4, "12")
 })
 
 test("normalizeProductFormStateForEdit non crasha senza immagini", () => {
