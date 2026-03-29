@@ -12,6 +12,7 @@ function read(relativePath) {
 test("ProductMediaManager collega Carica immagini a un input file reale e resetta il valore", () => {
   const source = read("src/shop/components/admin/ProductMediaManager.tsx")
 
+  assert.match(source, /import \{ Button \} from "\.\.\/\.\.\/\.\.\/components\/Button"/)
   assert.match(source, /const inputId = "product-media-upload-input"/)
   assert.match(source, /<label[\s\S]*htmlFor=\{inputId\}/)
   assert.match(source, /<input[\s\S]*id=\{inputId\}[\s\S]*type="file"/)

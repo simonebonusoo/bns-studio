@@ -1,3 +1,4 @@
+import { Button } from "../../../components/Button"
 import { useState } from "react"
 
 type ProductMediaManagerProps = {
