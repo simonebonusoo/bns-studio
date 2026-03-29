@@ -32,7 +32,7 @@ export function ProductGallery({
             <img
               src={activeImage}
               alt={title}
-              className="mx-auto h-full max-h-[448px] w-auto max-w-full object-contain object-center md:max-h-[566px]"
+              className="mx-auto block max-h-[458px] max-w-[95%] object-contain object-center md:max-h-[584px] md:max-w-[96%]"
             />
           ) : (
             <div className="text-sm text-white/45">Nessuna immagine disponibile</div>
