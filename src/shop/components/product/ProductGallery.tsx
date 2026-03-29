@@ -17,22 +17,20 @@ export function ProductGallery({
 
   return (
     <div className="grid h-full min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_84px] md:items-stretch">
-      <div className="flex h-full min-w-0 flex-col">
-        <button
-          type="button"
-          onClick={onOpenLightbox}
-          className="shop-card block overflow-hidden text-left transition hover:border-white/20"
-        >
-          <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-3 md:min-h-[470px] md:p-3.5">
-            {activeImage ? (
-              <img src={activeImage} alt={title} className="max-h-[436px] w-full object-contain md:max-h-[548px]" />
-            ) : (
-              <div className="text-sm text-white/45">Nessuna immagine disponibile</div>
-            )}
-          </div>
-        </button>
-        <div className="flex-1" />
-      </div>
+      <button
+        type="button"
+        onClick={onOpenLightbox}
+        className="shop-card flex h-full min-w-0 flex-col overflow-hidden text-left transition hover:border-white/20"
+      >
+        <div className="flex min-h-[360px] items-center justify-center bg-white/[0.02] p-3 md:min-h-[470px] md:p-3.5">
+          {activeImage ? (
+            <img src={activeImage} alt={title} className="max-h-[436px] w-full object-contain md:max-h-[548px]" />
+          ) : (
+            <div className="text-sm text-white/45">Nessuna immagine disponibile</div>
+          )}
+        </div>
+        <div className="flex-1 bg-white/[0.02]" />
+      </button>
       <div className="grid h-full grid-cols-4 content-start gap-2.5 md:grid-cols-1">
         {images.map((image, index) => (
           <button
