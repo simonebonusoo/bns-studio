@@ -12,8 +12,7 @@ import type { ShopProduct, ShopProductListResponse } from "../shop/types";
 type DiscoveryCard = {
   title: string;
   description: string;
-  href: string;
-  query: string;
+  category: string;
   imageUrl?: string;
 };
 
@@ -31,50 +30,42 @@ const defaultPopularCategories: DiscoveryCard[] = [
   {
     title: "Cantanti famosi",
     description: "Poster dedicati alle icone pop, rap e rock piu amate.",
-    href: "/shop?search=cantanti",
-    query: "cantanti",
+    category: "Cantanti famosi",
   },
   {
     title: "Frasi d'amore",
     description: "Parole da regalare, appendere e trasformare in atmosfera.",
-    href: "/shop?search=amore",
-    query: "amore",
+    category: "Frasi d'amore",
   },
   {
     title: "Calciatori famosi",
     description: "Stampe per chi vuole portare il tifo dentro casa.",
-    href: "/shop?search=calciatori",
-    query: "calciatori",
+    category: "Calciatori famosi",
   },
   {
     title: "Film e serie TV",
     description: "Scene, citazioni e mondi diventati immagini da collezione.",
-    href: "/shop?search=film",
-    query: "film",
+    category: "Film e serie TV",
   },
   {
     title: "Arte iconica",
     description: "Visioni forti, linee pulite e riferimenti visivi senza tempo.",
-    href: "/shop?search=arte",
-    query: "arte",
+    category: "Arte iconica",
   },
   {
     title: "Poster personalizzati",
     description: "Idee su misura da regalare o costruire intorno ai tuoi ricordi.",
-    href: "/shop?search=personalizzati",
-    query: "personalizzati",
+    category: "Poster personalizzati",
   },
   {
     title: "Citazioni motivazionali",
     description: "Messaggi diretti per studio, lavoro e spazi creativi.",
-    href: "/shop?search=motivazionali",
-    query: "motivazionali",
+    category: "Citazioni motivazionali",
   },
   {
     title: "Fotografie artistiche",
     description: "Scatti editoriali e immagini da lasciare respirare sulla parete.",
-    href: "/shop?search=fotografie",
-    query: "fotografie",
+    category: "Fotografie artistiche",
   },
 ];
 
@@ -213,6 +204,22 @@ function pickProductImage(products: ShopProduct[], query: string, fallbackIndex:
   return products[fallbackIndex % products.length] ? getProductPrimaryImage(products[fallbackIndex % products.length]) : null;
 }
 
+function pickProductImageByCategory(products: ShopProduct[], category: string, fallbackIndex: number) {
+  if (!products.length) return null
+
+  const normalizedCategory = category.toLowerCase()
+  const directMatch = products.find((product) => {
+    const haystack = [product.category || "", product.title, product.description].join(" ").toLowerCase()
+    return haystack.includes(normalizedCategory) && product.imageUrls.length > 0
+  })
+
+  if (directMatch?.imageUrls[0]) {
+    return getProductPrimaryImage(directMatch)
+  }
+
+  return products[fallbackIndex % products.length] ? getProductPrimaryImage(products[fallbackIndex % products.length]) : null
+}
+
 function parseHomepageEntries<T extends { title: string; href: string; query: string }>(
   rawValue: string | undefined,
   fallback: T[],
@@ -239,17 +246,40 @@ function parseHomepageEntries<T extends { title: string; href: string; query: st
   }
 }
 
-function withCatalogContext(href: string, title: string, subtitle?: string) {
-  const [pathname, rawQuery = ""] = href.split("?");
-  const params = new URLSearchParams(rawQuery)
-  if (!params.get("title")) {
-    params.set("title", title)
+function parseHomepagePopularCategories(
+  rawValue: string | undefined,
+  fallback: DiscoveryCard[],
+) {
+  if (!rawValue) return fallback
+
+  try {
+    const parsed = JSON.parse(rawValue)
+    if (!Array.isArray(parsed)) return fallback
+
+    const normalized = parsed
+      .filter((entry) => entry && typeof entry === "object")
+      .map((entry) => ({
+        title: String(entry.title || entry.category || "").trim(),
+        category: String(entry.category || entry.title || "").trim(),
+        description: String(entry.description || "").trim(),
+        imageUrl: typeof entry.imageUrl === "string" ? entry.imageUrl : "",
+      }))
+      .filter((entry) => entry.title && entry.category)
+
+    return normalized.length ? normalized : fallback
+  } catch {
+    return fallback
   }
-  if (subtitle && !params.get("subtitle")) {
+}
+
+function buildPopularCategoryHref(category: string, title: string, subtitle?: string) {
+  const params = new URLSearchParams()
+  params.set("category", category)
+  params.set("title", title)
+  if (subtitle) {
     params.set("subtitle", subtitle)
   }
-  const query = params.toString()
-  return query ? `${pathname}?${query}` : pathname
+  return `/shop?${params.toString()}`
 }
 
 export function HomeShop() {
@@ -298,7 +328,7 @@ export function HomeShop() {
   const productCountLabel = `Totale: ${productTotal} ${productTotal === 1 ? "prodotto" : "prodotti"}`;
 
   const popularCategories = useMemo(
-    () => parseHomepageEntries<DiscoveryCard>(shopSettings.homepagePopularCategories, defaultPopularCategories),
+    () => parseHomepagePopularCategories(shopSettings.homepagePopularCategories, defaultPopularCategories),
     [shopSettings]
   );
 
@@ -311,9 +341,9 @@ export function HomeShop() {
     () =>
       popularCategories.map((category, index) => ({
         ...category,
-        imageUrl: pickProductImage(products, category.query, index),
+        imageUrl: category.imageUrl || pickProductImageByCategory(products, category.category, index),
       })),
-    [products],
+    [products, popularCategories],
   );
 
   const showcaseCards = useMemo(() => {
@@ -523,7 +553,7 @@ export function HomeShop() {
               {popularCategoryCards.map((category) => (
                 <Link
                   key={category.title}
-                  to={withCatalogContext(category.href, category.title, category.description)}
+                  to={buildPopularCategoryHref(category.category, category.title, category.description)}
                   className="group relative flex min-h-[22rem] w-[18.5rem] flex-none snap-start overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06] sm:w-[20rem]"
                 >
                   <div className="absolute inset-0">

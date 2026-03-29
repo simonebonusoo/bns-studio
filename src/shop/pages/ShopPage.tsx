@@ -113,11 +113,22 @@ export function ShopPage() {
     (pageContextLabel !== "Catalogo" ? `Esplora la selezione dedicata a ${pageContextLabel.toLowerCase()}.` : "")
 
   const effectiveSort = filters.collection === "new" ? "newest" : filters.collection === "discount" ? "price_asc" : filters.sort
+  const lockedEditorialContext = Boolean(filters.category || filters.collectionSlug || filters.title || filters.subtitle)
 
   useEffect(() => {
-    setSearchInput("")
-    setSearchActivated(false)
-  }, [pageContextLabel, filters.subtitle])
+    setSearchInput(lockedEditorialContext ? "" : filters.search)
+    setSearchActivated(!lockedEditorialContext && Boolean(filters.search))
+  }, [filters.search, lockedEditorialContext])
+
+  const resetFiltersHref = useMemo(() => {
+    const next = new URLSearchParams()
+    if (filters.category) next.set("category", filters.category)
+    if (filters.collectionSlug) next.set("collectionSlug", filters.collectionSlug)
+    if (filters.title) next.set("title", filters.title)
+    if (filters.subtitle) next.set("subtitle", filters.subtitle)
+    const query = next.toString()
+    return query ? `/shop?${query}` : "/shop"
+  }, [filters.category, filters.collectionSlug, filters.title, filters.subtitle])
 
   const activeFilters = [
     filters.search ? `Ricerca: ${filters.search}` : null,
@@ -148,7 +159,7 @@ export function ShopPage() {
             placeholder="Cerca per titolo, tag, SKU o descrizione"
             value={searchActivated ? searchInput : ""}
             onFocus={() => {
-              if (!searchActivated) {
+              if (lockedEditorialContext && !searchActivated) {
                 setSearchActivated(true)
                 setSearchInput("")
               }
@@ -191,8 +202,8 @@ export function ShopPage() {
                   {filter}
                 </span>
               ))}
-              <Link to="/shop" className="text-sm text-white/60 underline underline-offset-4 transition hover:text-white">
-                Reset ricerca
+              <Link to={resetFiltersHref} className="text-sm text-white/60 underline underline-offset-4 transition hover:text-white">
+                Reset filtri
               </Link>
             </>
           ) : (

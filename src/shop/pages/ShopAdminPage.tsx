@@ -49,8 +49,7 @@ type SettingEntry = {
 type HomepagePopularCategory = {
   title: string
   description: string
-  href: string
-  query: string
+  category: string
   imageUrl?: string
 }
 
@@ -273,14 +272,14 @@ const emptyRuleForm = (): RuleFormState => ({
 })
 
 const defaultHomepagePopularCategories: HomepagePopularCategory[] = [
-  { title: "Cantanti famosi", description: "Poster dedicati alle icone pop, rap e rock piu amate.", href: "/shop?search=cantanti", query: "cantanti" },
-  { title: "Frasi d'amore", description: "Parole da regalare, appendere e trasformare in atmosfera.", href: "/shop?search=amore", query: "amore" },
-  { title: "Calciatori famosi", description: "Stampe per chi vuole portare il tifo dentro casa.", href: "/shop?search=calciatori", query: "calciatori" },
-  { title: "Film e serie TV", description: "Scene, citazioni e mondi diventati immagini da collezione.", href: "/shop?search=film", query: "film" },
-  { title: "Arte iconica", description: "Visioni forti, linee pulite e riferimenti visivi senza tempo.", href: "/shop?search=arte", query: "arte" },
-  { title: "Poster personalizzati", description: "Idee su misura da regalare o costruire intorno ai tuoi ricordi.", href: "/shop?search=personalizzati", query: "personalizzati" },
-  { title: "Citazioni motivazionali", description: "Messaggi diretti per studio, lavoro e spazi creativi.", href: "/shop?search=motivazionali", query: "motivazionali" },
-  { title: "Fotografie artistiche", description: "Scatti editoriali e immagini da lasciare respirare sulla parete.", href: "/shop?search=fotografie", query: "fotografie" },
+  { title: "Cantanti famosi", category: "Cantanti famosi", description: "Poster dedicati alle icone pop, rap e rock piu amate." },
+  { title: "Frasi d'amore", category: "Frasi d'amore", description: "Parole da regalare, appendere e trasformare in atmosfera." },
+  { title: "Calciatori famosi", category: "Calciatori famosi", description: "Stampe per chi vuole portare il tifo dentro casa." },
+  { title: "Film e serie TV", category: "Film e serie TV", description: "Scene, citazioni e mondi diventati immagini da collezione." },
+  { title: "Arte iconica", category: "Arte iconica", description: "Visioni forti, linee pulite e riferimenti visivi senza tempo." },
+  { title: "Poster personalizzati", category: "Poster personalizzati", description: "Idee su misura da regalare o costruire intorno ai tuoi ricordi." },
+  { title: "Citazioni motivazionali", category: "Citazioni motivazionali", description: "Messaggi diretti per studio, lavoro e spazi creativi." },
+  { title: "Fotografie artistiche", category: "Fotografie artistiche", description: "Scatti editoriali e immagini da lasciare respirare sulla parete." },
 ]
 
 const defaultHomepageShowcases: HomepageShowcase[] = [
@@ -430,6 +429,18 @@ function parseHomepageSetting<T extends Record<string, unknown>>(value: string |
   }
 }
 
+function parseHomepagePopularCategoriesSetting(value: string | undefined, fallback: HomepagePopularCategory[]) {
+  const parsed = parseHomepageSetting<Record<string, unknown>>(value, fallback)
+  return parsed
+    .map((entry) => ({
+      title: String(entry.title || entry.category || "").trim(),
+      category: String(entry.category || entry.title || "").trim(),
+      description: String(entry.description || "").trim(),
+      imageUrl: typeof entry.imageUrl === "string" ? entry.imageUrl : "",
+    }))
+    .filter((entry) => entry.title && entry.category)
+}
+
 function getCouponAmountLabel(type: CouponFormState["type"]) {
   return type === "percentage" ? "Valore sconto (%)" : "Valore sconto (€)"
 }
@@ -571,7 +582,7 @@ export function ShopAdminPage() {
   }, [settings])
 
   useEffect(() => {
-    setHomepagePopularCategories(parseHomepageSetting(settingValue("homepagePopularCategories"), defaultHomepagePopularCategories))
+    setHomepagePopularCategories(parseHomepagePopularCategoriesSetting(settingValue("homepagePopularCategories"), defaultHomepagePopularCategories))
     setHomepageShowcases(parseHomepageSetting(settingValue("homepageShowcases"), defaultHomepageShowcases))
   }, [settings])
 
@@ -784,6 +795,16 @@ export function ShopAdminPage() {
     })
 
     return data.files.map((file) => file.url)
+  }
+
+  async function uploadHomepageImage(file: File) {
+    const formData = new FormData()
+    formData.append("images", file)
+    const data = await apiFetch<{ files: { url: string }[] }>("/admin/uploads", {
+      method: "POST",
+      body: formData,
+    })
+    return data.files[0]?.url || ""
   }
 
   async function saveProduct(event: FormEvent) {
@@ -1350,11 +1371,27 @@ export function ShopAdminPage() {
         <AdminHomepageSection
           homepageShowcases={homepageShowcases}
           homepagePopularCategories={homepagePopularCategories}
+          categories={categories}
           homepageFocus={homepageFocus}
           setHomepageFocus={setHomepageFocus}
           setHomepageShowcases={setHomepageShowcases}
           setHomepagePopularCategories={setHomepagePopularCategories}
           saveHomepageContent={saveHomepageContent}
+          onUploadPopularCategoryImage={async (index, files) => {
+            const file = files?.[0]
+            if (!file) return
+            clearFeedback()
+            try {
+              const imageUrl = await uploadHomepageImage(file)
+              if (!imageUrl) throw new Error("Upload immagine non riuscito.")
+              setHomepagePopularCategories((current) =>
+                current.map((entry, itemIndex) => (itemIndex === index ? { ...entry, imageUrl } : entry)),
+              )
+              setMessage("Immagine categoria caricata correttamente.")
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Errore durante l'upload dell'immagine categoria.")
+            }
+          }}
         />
       ) : null}
 
