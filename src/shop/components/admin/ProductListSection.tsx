@@ -19,6 +19,7 @@ function statusLabel(status: ShopProduct["status"]) {
 type ProductListSectionProps = {
   products: ShopProduct[]
   selectedIds: number[]
+  updatingHomeProductId: number | null
   onToggleSelected: (productId: number, checked: boolean) => void
   onToggleHomeVisibility: (product: ShopProduct, checked: boolean) => Promise<void> | void
   onEdit: (product: ShopProduct) => void
@@ -26,7 +27,16 @@ type ProductListSectionProps = {
   onDelete: (product: ShopProduct) => Promise<void> | void
 }
 
-export function ProductListSection({ products, selectedIds, onToggleSelected, onToggleHomeVisibility, onEdit, onDuplicate, onDelete }: ProductListSectionProps) {
+export function ProductListSection({
+  products,
+  selectedIds,
+  updatingHomeProductId,
+  onToggleSelected,
+  onToggleHomeVisibility,
+  onEdit,
+  onDuplicate,
+  onDelete,
+}: ProductListSectionProps) {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
@@ -40,10 +50,11 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
         const prices = variants.map((variant) => variant.price)
         const minPrice = prices.length ? Math.min(...prices) : product.price
         const maxPrice = prices.length ? Math.max(...prices) : product.price
+        const isUpdatingHomeVisibility = updatingHomeProductId === product.id
 
         return (
           <article key={product.id} className="shop-card overflow-hidden">
-            <div className="grid gap-4 p-5 md:grid-cols-[auto_120px_minmax(0,1fr)_220px] md:items-start">
+            <div className="grid gap-4 p-5 md:grid-cols-[auto_112px_minmax(0,1.45fr)_196px] md:items-start">
               <label className="flex items-center justify-center">
                 <input
                   type="checkbox"
@@ -52,9 +63,10 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                 />
               </label>
               <img src={getProductPrimaryImage(product)} alt={product.title} className="h-24 w-full rounded-2xl object-cover" />
-              <div className="min-w-0 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="min-w-0 text-lg font-semibold text-white">{product.title}</p>
+              <div className="min-w-0 space-y-2 pr-2">
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold leading-tight text-white">{product.title}</p>
+                  <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
                     {statusLabel(product.status)}
                   </span>
@@ -78,6 +90,7 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                       Home attiva
                     </span>
                   ) : null}
+                  </div>
                 </div>
                 <p className="text-sm text-white/60">
                   {product.category} · {getAvailableFormats(product).join(" / ")} · prezzo{" "}
@@ -92,11 +105,11 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                   {getProductBadges(product).length ? ` · Badge: ${getProductBadges(product).map((badge) => badge.label).join(", ")}` : ""}
                 </p>
               </div>
-              <div className="flex h-full min-w-0 flex-col justify-between gap-4">
-                <Button type="button" variant="ghost" size="sm" className="w-full" text="Modifica" onClick={() => onEdit(product)}>
-                  Modifica
-                </Button>
-                <div className="space-y-3">
+              <div className="flex h-full min-w-0 flex-col justify-end">
+                <div className="space-y-2.5">
+                  <Button type="button" variant="ghost" size="sm" className="w-full" text="Modifica" onClick={() => onEdit(product)}>
+                    Modifica
+                  </Button>
                   <div className="grid grid-cols-2 gap-2">
                     <Button type="button" variant="ghost" size="sm" className="w-full" text="Duplica" onClick={() => void onDuplicate(product)}>
                       Duplica
@@ -105,14 +118,31 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                       Elimina
                     </Button>
                   </div>
-                  <label className="ml-auto flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/62">
-                    <span>Mostra nella home</span>
-                    <input
-                      type="checkbox"
-                      checked={product.featured}
-                      onChange={(event) => void onToggleHomeVisibility(product, event.target.checked)}
-                    />
-                  </label>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-white/48">Homepage</p>
+                        <p className="text-sm text-white/78">Mostra nella home</p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-pressed={product.featured}
+                        disabled={isUpdatingHomeVisibility}
+                        onClick={() => void onToggleHomeVisibility(product, !product.featured)}
+                        className={`relative inline-flex h-7 w-12 flex-none items-center rounded-full border transition ${
+                          product.featured
+                            ? "border-[#e3f503]/55 bg-[#e3f503]/20"
+                            : "border-white/14 bg-white/[0.06]"
+                        } ${isUpdatingHomeVisibility ? "cursor-wait opacity-70" : "cursor-pointer"}`}
+                      >
+                        <span
+                          className={`absolute h-5 w-5 rounded-full transition ${
+                            product.featured ? "translate-x-[1.4rem] bg-[#eef879]" : "translate-x-1 bg-white/85"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

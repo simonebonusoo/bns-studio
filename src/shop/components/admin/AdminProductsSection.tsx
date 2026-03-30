@@ -51,6 +51,7 @@ type CollectionFormState = {
 
 type AdminProductsSectionProps = {
   editingProductId: number | null
+  updatingHomeProductId: number | null
   selectedProductIds: number[]
   isMultiEdit: boolean
   hasTouchedFields: boolean
@@ -97,6 +98,7 @@ type AdminProductsSectionProps = {
 
 export function AdminProductsSection({
   editingProductId,
+  updatingHomeProductId,
   selectedProductIds,
   isMultiEdit,
   hasTouchedFields,
@@ -214,6 +216,7 @@ export function AdminProductsSection({
           <ProductListSection
             products={products}
             selectedIds={selectedProductIds}
+            updatingHomeProductId={updatingHomeProductId}
             onToggleSelected={onToggleSelected}
             onToggleHomeVisibility={onToggleHomeVisibility}
             onEdit={onEditProduct}

@@ -769,6 +769,35 @@ router.put(
   })
 )
 
+router.patch(
+  "/products/:id/home-visibility",
+  asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        featured: z.boolean(),
+      })
+      .parse(req.body)
+
+    const productId = Number(req.params.id)
+    const existingProduct = await prisma.product.findUnique({ where: { id: productId } })
+    if (!existingProduct) {
+      throw new HttpError(404, "Prodotto non trovato")
+    }
+
+    await ensureFeaturedProductSlotAvailable(Boolean(body.featured), productId, Boolean(existingProduct.featured))
+
+    const product = await prisma.product.update({
+      where: { id: productId },
+      data: {
+        featured: body.featured,
+      },
+      include: productRelationInclude(),
+    })
+
+    res.json(serializeAdminProduct(product))
+  }),
+)
+
 router.post(
   "/products/:id/duplicate",
   asyncHandler(async (req, res) => {

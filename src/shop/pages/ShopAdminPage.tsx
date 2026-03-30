@@ -580,6 +580,7 @@ export function ShopAdminPage() {
   const [productStatusFilter, setProductStatusFilter] = useState<"all" | ProductStatus>("all")
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([])
   const [productTouchedFields, setProductTouchedFields] = useState<ProductTouchedState>({})
+  const [updatingHomeProductId, setUpdatingHomeProductId] = useState<number | null>(null)
   const [newCategoryName, setNewCategoryName] = useState("")
   const [renamingCategory, setRenamingCategory] = useState<string | null>(null)
   const [renamedCategoryValue, setRenamedCategoryValue] = useState("")
@@ -759,15 +760,10 @@ export function ShopAdminPage() {
     clearFeedback()
 
     try {
-      const normalizedProductForm = normalizeProductFormStateForEdit(product)
-      const payload = buildProductPayloadFromFormState({
-        ...normalizedProductForm,
-        featured: nextFeatured,
-      })
-
-      const savedProduct = await apiFetch<ShopProduct>(`/admin/products/${product.id}`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
+      setUpdatingHomeProductId(product.id)
+      const savedProduct = await apiFetch<ShopProduct>(`/admin/products/${product.id}/home-visibility`, {
+        method: "PATCH",
+        body: JSON.stringify({ featured: nextFeatured }),
       })
 
       setProducts((current) => current.map((entry) => (entry.id === savedProduct.id ? savedProduct : entry)))
@@ -779,6 +775,8 @@ export function ShopAdminPage() {
       setMessage(nextFeatured ? "Prodotto aggiunto a Tutti i poster in homepage." : "Prodotto rimosso da Tutti i poster in homepage.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento della visibilita in homepage.")
+    } finally {
+      setUpdatingHomeProductId(null)
     }
   }
 
@@ -1356,6 +1354,7 @@ export function ShopAdminPage() {
       {tab === "prodotti" ? (
         <AdminProductsSection
           editingProductId={editingProductId}
+          updatingHomeProductId={updatingHomeProductId}
           selectedProductIds={selectedProductIds}
           isMultiEdit={isMultiEdit}
           hasTouchedFields={hasTouchedFields}
