@@ -12,7 +12,7 @@ import { notifyAdminOrderCompleted } from "../services/order-notifications.mjs"
 import { syncProductVariants } from "../lib/product-variants.mjs"
 import { normalizeShippingDetails } from "../../../shop/lib/shipping-details.mjs"
 import { serializeShopOrder } from "../lib/order-serialization.mjs"
-import { normalizeShippingMethod } from "../../../shop/lib/shipping-methods.mjs"
+import { normalizeShippingMethodSelection } from "../services/shipping-rates.mjs"
 
 const router = Router()
 const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
@@ -375,7 +375,11 @@ router.post(
 
     const body = checkoutSchema.parse(req.body)
     const shipping = normalizeShippingDetails(body)
-    const shippingMethod = normalizeShippingMethod(body.shippingMethod)
+    const shippingMethod = normalizeShippingMethodSelection(body.shippingMethod)
+
+    if (!shippingMethod) {
+      throw new HttpError(400, "Seleziona un metodo di spedizione prima di proseguire.")
+    }
 
     if (shipping.email !== req.user.email) {
       throw new HttpError(400, "L'email del checkout deve corrispondere all'utente autenticato")

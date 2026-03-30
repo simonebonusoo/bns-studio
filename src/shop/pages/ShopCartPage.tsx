@@ -130,7 +130,7 @@ export function ShopCartPage() {
             <div className="space-y-3 text-sm text-white/70">
               <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
               <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
-              <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
+              <div className="flex items-center justify-between"><span>Spedizione</span><span>Calcolata al checkout</span></div>
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
               {effectiveRole === "admin" ? (
                 <>

@@ -3,7 +3,7 @@ import { HttpError } from "../lib/http.mjs"
 import { getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { isProductPurchasable } from "../lib/product-status.mjs"
 import { resolveSelectedVariant } from "../lib/product-variants.mjs"
-import { calculateShippingCharge, normalizeShippingMethod } from "../../../shop/lib/shipping-methods.mjs"
+import { resolveSelectedShippingRate } from "./shipping-rates.mjs"
 
 export async function calculatePricing(cartItems, couponCode, options = {}) {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
@@ -30,7 +30,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     where: { active: true },
     orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
   })
-  const shippingMethod = normalizeShippingMethod(options.shippingMethod)
+  const requestedShippingMethod = options.shippingMethod || null
 
   const items = cartItems.map((item) => {
     const product = products.find((entry) => entry.id === item.productId)
@@ -83,8 +83,8 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
 
   let automaticDiscount = 0
-  const shippingPricing = calculateShippingCharge({ shippingMethod, rules, itemCount })
-  let shippingTotal = shippingPricing.shippingTotal
+  const shippingPricing = await resolveSelectedShippingRate({ items, shippingMethod: requestedShippingMethod })
+  let shippingTotal = shippingPricing.selectedRate ? shippingPricing.selectedRate.cost : null
   const appliedRules = []
   const now = new Date()
 
@@ -108,7 +108,16 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
 
   }
 
-  appliedRules.push(...shippingPricing.appliedRules)
+  const freeShippingRule = rules.find((rule) => {
+    const withinStart = !rule.startsAt || rule.startsAt <= now
+    const withinEnd = !rule.endsAt || rule.endsAt >= now
+    return withinStart && withinEnd && rule.ruleType === "free_shipping_quantity" && itemCount >= rule.threshold
+  })
+
+  if (freeShippingRule && shippingPricing.selectedRate) {
+    shippingTotal = 0
+    appliedRules.push({ type: "shipping", label: freeShippingRule.name, amount: shippingPricing.selectedRate.cost })
+  }
 
   let couponDiscount = 0
   let appliedCoupon = null
@@ -140,16 +149,16 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
   }
 
   const discountTotal = Math.min(subtotal, automaticDiscount + couponDiscount)
-  const total = Math.max(0, subtotal - discountTotal + shippingTotal)
+  const total = Math.max(0, subtotal - discountTotal + (shippingTotal ?? 0))
 
   return {
     items,
-    shippingMethod: shippingPricing.shippingMethod,
-    shippingCarrier: shippingPricing.shippingCarrier,
-    shippingLabel: shippingPricing.shippingLabel,
-    shippingCost: shippingPricing.shippingCost,
+    shippingMethod: shippingPricing.selectedRate?.key || null,
+    shippingCarrier: shippingPricing.selectedRate?.carrier || null,
+    shippingLabel: shippingPricing.selectedRate?.label || null,
+    shippingCost: typeof shippingPricing.selectedRate?.cost === "number" ? shippingPricing.selectedRate.cost : null,
     subtotal,
-    shippingBase: shippingPricing.shippingBase,
+    shippingBase: typeof shippingPricing.selectedRate?.cost === "number" ? shippingPricing.selectedRate.cost : null,
     shippingTotal,
     automaticDiscount,
     couponDiscount,
@@ -157,5 +166,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     total,
     appliedCoupon,
     appliedRules,
+    isShippingPending: !shippingPricing.selectedRate,
+    availableShippingRates: shippingPricing.rates,
   }
 }

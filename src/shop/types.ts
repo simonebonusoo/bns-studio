@@ -143,15 +143,26 @@ export type ShopPricing = {
   shippingCarrier?: string | null
   shippingLabel?: string | null
   shippingCost?: number | null
+  availableShippingRates?: Array<{
+    key: string
+    carrier: string
+    carrierLabel: string
+    label: string
+    description: string
+    cost: number
+    source?: string | null
+    meta?: Record<string, unknown> | null
+  }>
   subtotal: number
-  shippingBase: number
-  shippingTotal: number
+  shippingBase: number | null
+  shippingTotal: number | null
   automaticDiscount: number
   couponDiscount: number
   discountTotal: number
   total: number
   appliedCoupon: string | null
   appliedRules: { type: string; label: string; amount: number }[]
+  isShippingPending?: boolean
 }
 
 export type ShopOrderItem = {

@@ -9,7 +9,7 @@ import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
-import { DEFAULT_SHIPPING_METHOD, formatShippingMethodSummary, getShippingMethodOptions } from "../lib/shipping-methods.mjs"
+import { DEFAULT_SHIPPING_METHOD, formatShippingMethodSummary } from "../lib/shipping-methods.mjs"
 import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
 import { ShopOrder, ShopPayment, ShopPricing, ShopSettings } from "../types"
 
@@ -58,7 +58,6 @@ export function ShopCheckoutPage() {
   })
 
   const stepIndex = useMemo(() => ["review", "details", "payment"].indexOf(step) + 1, [step])
-  const shippingMethods = useMemo(() => getShippingMethodOptions(), [])
 
   useEffect(() => {
     if (!items.length) {
@@ -125,7 +124,7 @@ export function ShopCheckoutPage() {
           floor: form.floor || null,
           intercom: form.intercom || null,
           deliveryNotes: form.deliveryNotes || null,
-          shippingMethod: pricing.shippingMethod || form.shippingMethod,
+          shippingMethod: pricing.shippingMethod || form.shippingMethod || null,
           shippingCarrier: pricing.shippingCarrier || null,
           shippingLabel: pricing.shippingLabel || formatShippingMethodSummary(form.shippingMethod),
           shippingStatus: "pending",
@@ -226,6 +225,7 @@ export function ShopCheckoutPage() {
 
   const shippingPreview = formatShippingAddressLines(form)
   const orderShipping = order ? formatShippingAddressLines(order) : null
+  const shippingRates = pricing?.availableShippingRates || []
 
   return (
     <ShopLayout
@@ -300,8 +300,8 @@ export function ShopCheckoutPage() {
               <div className="space-y-3 text-sm text-white/70">
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
-                <div className="flex items-center justify-between"><span>{pricing.shippingLabel || "Spedizione"}</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
-                <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
+                <div className="flex items-center justify-between"><span>Spedizione</span><span>Calcolata al checkout</span></div>
+                <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale provvisorio</span><span>{formatPrice(pricing.total)}</span></div>
               </div>
             ) : (
               <p className="text-sm text-white/55">Calcolo del riepilogo in corso...</p>
@@ -365,7 +365,7 @@ export function ShopCheckoutPage() {
                 <h3 className="mt-2 text-lg font-semibold text-white">Scegli la spedizione</h3>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                {shippingMethods.map((method) => {
+                {shippingRates.map((method) => {
                   const active = form.shippingMethod === method.key
                   return (
                     <button
@@ -431,7 +431,10 @@ export function ShopCheckoutPage() {
                 </div>
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
-                <div className="flex items-center justify-between"><span>{pricing.shippingLabel || "Spedizione"}</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
+                <div className="flex items-center justify-between">
+                  <span>{pricing.shippingLabel || "Spedizione"}</span>
+                  <span>{typeof pricing.shippingTotal === "number" ? formatPrice(pricing.shippingTotal) : "Seleziona un metodo"}</span>
+                </div>
                 {pricing.shippingMethod ? <div className="text-xs text-white/45">{formatShippingMethodSummary(pricing.shippingMethod)}</div> : null}
                 <div className="flex items-center justify-between text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
               </div>
