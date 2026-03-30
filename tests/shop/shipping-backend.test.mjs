@@ -154,6 +154,7 @@ test("tracking refresh uses the provider layer and updates the shipment status s
   const order = createOrder({
     shippingMethod: "economy",
     shippingCarrier: "inpost",
+    shippingStatus: "created",
     trackingNumber: "INPOST-TRK-123",
     shipmentReference: "INPOST-SHIP-123",
   })
@@ -166,8 +167,38 @@ test("tracking refresh uses the provider layer and updates the shipment status s
   })
 
   assert.equal(result.ok, true)
-  assert.equal(result.order.shippingStatus, "in_transit")
+  assert.equal(result.order.shippingStatus, "accepted")
   assert.match(result.order.trackingUrl, /\/shop\/tracking\/mock\//)
+})
+
+test("tracking refresh advances the mock shipment through a realistic progression", async () => {
+  const order = createOrder({
+    shippingMethod: "economy",
+    shippingCarrier: "inpost",
+    shippingStatus: "in_transit",
+    trackingNumber: "INPOST-TRK-456",
+    shipmentReference: "INPOST-SHIP-456",
+  })
+  const db = createDb(order)
+
+  const first = await refreshCarrierTrackingForOrder({
+    db,
+    order,
+    currentEnv: createMockEnv(),
+  })
+
+  assert.equal(first.ok, true)
+  assert.equal(first.order.shippingStatus, "out_for_delivery")
+
+  const second = await refreshCarrierTrackingForOrder({
+    db,
+    order: db.getCurrent(),
+    currentEnv: createMockEnv(),
+  })
+
+  assert.equal(second.ok, true)
+  assert.equal(second.order.shippingStatus, "delivered")
+  assert.match(second.order.trackingUrl, /\/shop\/tracking\/mock\//)
 })
 
 test("economy orders auto-create a mock InPost shipment when payment completes", async () => {

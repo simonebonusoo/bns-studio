@@ -13,7 +13,7 @@ const METHOD_TO_CARRIER = {
   premium: "dhl",
 }
 
-const SUPPORTED_STATUSES = ["pending", "accepted", "created", "in_transit", "shipped", "delivered", "failed", "not_created"]
+const SUPPORTED_STATUSES = ["pending", "accepted", "created", "in_transit", "out_for_delivery", "shipped", "delivered", "failed", "not_created"]
 const SUPPORTED_HANDOFF_MODES = ["dropoff", "pickup"]
 
 function normalizeOptionalString(value) {

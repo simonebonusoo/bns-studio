@@ -215,6 +215,8 @@ export async function refreshCarrierTrackingForOrder({ db, orderId = null, order
   const shipment = await provider.getTracking({
     trackingNumber: dbOrder.trackingNumber,
     shipmentReference: dbOrder.shipmentReference || dbOrder.dhlShipmentReference,
+    currentStatus: dbOrder.shippingStatus,
+    orderContext: buildOrderContext(dbOrder),
     fetchImpl,
   })
 

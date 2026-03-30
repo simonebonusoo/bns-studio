@@ -217,6 +217,7 @@ export function AdminOrdersSection({
                 <option value="accepted">Spedizione accettata</option>
                 <option value="created">Spedizione creata</option>
                 <option value="in_transit">Spedizione in transito</option>
+                <option value="out_for_delivery">In consegna</option>
                 <option value="shipped">Spedizione spedita</option>
                 <option value="delivered">Spedizione consegnata</option>
                 <option value="failed">Spedizione da completare</option>

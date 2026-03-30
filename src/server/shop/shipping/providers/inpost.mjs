@@ -80,9 +80,9 @@ export function createInpostProvider(providerConfig) {
         })
       }
     },
-    async getTracking({ trackingNumber, fetchImpl = fetch }) {
+    async getTracking({ trackingNumber, shipmentReference, currentStatus, orderContext, fetchImpl = fetch }) {
       if (providerConfig.useMock) {
-        return inpostMock.getTracking({ trackingNumber, providerConfig })
+        return inpostMock.getTracking({ trackingNumber, shipmentReference, currentStatus, orderContext, providerConfig })
       }
 
       if (!isInpostConfigured(providerConfig)) {

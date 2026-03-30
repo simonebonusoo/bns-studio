@@ -1198,7 +1198,7 @@ router.patch(
       .object({
         status: z.enum(["pending", "paid", "shipped"]).optional(),
         fulfillmentStatus: z.enum(["processing", "accepted", "in_progress", "shipped", "completed"]).optional(),
-        shippingStatus: z.enum(["pending", "accepted", "created", "in_transit", "shipped", "delivered", "failed", "not_created"]).optional(),
+        shippingStatus: z.enum(["pending", "accepted", "created", "in_transit", "out_for_delivery", "shipped", "delivered", "failed", "not_created"]).optional(),
         shippingHandoffMode: z.enum(["dropoff", "pickup"]).nullable().optional(),
         trackingNumber: z.string().trim().nullable().optional(),
         trackingUrl: z.string().trim().nullable().optional(),

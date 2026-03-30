@@ -5,6 +5,14 @@ function createId(prefix = "INPOST") {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
 }
 
+function getNextMockTrackingStatus(currentStatus) {
+  const normalized = String(currentStatus || "").trim().toLowerCase()
+  const sequence = ["created", "accepted", "in_transit", "out_for_delivery", "delivered"]
+  const currentIndex = sequence.indexOf(normalized)
+  if (currentIndex === -1) return "accepted"
+  return sequence[Math.min(currentIndex + 1, sequence.length - 1)]
+}
+
 export async function getRates({ orderContext }) {
   const hasA3 =
     Array.isArray(orderContext?.items) &&
@@ -49,16 +57,19 @@ export async function createShipment({ orderContext }) {
   })
 }
 
-export async function getTracking({ trackingNumber }) {
+export async function getTracking({ trackingNumber, currentStatus, shipmentReference }) {
+  const nextStatus = getNextMockTrackingStatus(currentStatus)
+
   return createNormalizedShipment({
     carrier: "inpost",
     method: "economy",
     methodLabel: "Spedizione economica",
     trackingNumber,
     trackingUrl: buildMockTrackingPath(trackingNumber || "missing"),
+    shipmentReference: shipmentReference || null,
     handoffMode: "dropoff",
-    status: "in_transit",
-    rawProviderPayload: { provider: "inpost", mode: "mock", trackingNumber },
+    status: nextStatus,
+    rawProviderPayload: { provider: "inpost", mode: "mock", trackingNumber, currentStatus, nextStatus },
   })
 }
 

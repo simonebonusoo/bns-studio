@@ -340,6 +340,23 @@ function getSuggestedVariantCostCents(title: string) {
   return 0
 }
 
+function getShippingAdminActionError(code: string, fallback = "Operazione spedizione non completata.") {
+  switch (String(code || "").trim()) {
+    case "shipment_not_required":
+      return "La spedizione esiste gia oppure l'ordine non e idoneo alla creazione."
+    case "tracking_not_available":
+      return "Il tracking non e ancora disponibile per questo ordine."
+    case "provider_not_supported":
+      return "Il provider spedizione non e supportato per questo ordine."
+    case "shipment_failed":
+      return "La spedizione non e stata creata correttamente."
+    case "tracking_refresh_failed":
+      return "Non siamo riusciti ad aggiornare il tracking."
+    default:
+      return fallback
+  }
+}
+
 function getVariantCostInputValue(title: string, costPrice?: number | null) {
   const resolvedCost = typeof costPrice === "number" && costPrice > 0 ? costPrice : getSuggestedVariantCostCents(title)
   return resolvedCost > 0 ? formatEuroInput(resolvedCost) : ""
@@ -1485,6 +1502,9 @@ export function ShopAdminPage() {
               if (response.order) {
                 mergeUpdatedOrder(response.order)
               }
+              if (!response.ok) {
+                throw new Error(getShippingAdminActionError(response.code, "Errore durante la creazione della spedizione."))
+              }
               setMessage("Spedizione creata.")
               return response.order || null
             } catch (err) {
@@ -1500,6 +1520,9 @@ export function ShopAdminPage() {
               })
               if (response.order) {
                 mergeUpdatedOrder(response.order)
+              }
+              if (!response.ok) {
+                throw new Error(getShippingAdminActionError(response.code, "Errore durante l'aggiornamento del tracking."))
               }
               setMessage("Tracking aggiornato.")
               return response.order || null

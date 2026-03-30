@@ -94,6 +94,13 @@ export function buildMockTrackingTimeline(order) {
       at: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
     },
     {
+      key: "out_for_delivery",
+      title: "In consegna",
+      description: "Il corriere sta completando l'ultima tratta di consegna.",
+      location: `Filiale locale mock ${city}`,
+      at: new Date(createdAt.getTime() + 36 * 60 * 60 * 1000).toISOString(),
+    },
+    {
       key: "delivered",
       title: "Consegnato",
       description: `Il pacco e stato consegnato a ${city}.`,
@@ -104,18 +111,21 @@ export function buildMockTrackingTimeline(order) {
 
   const activeKeys =
     status === "delivered"
-      ? ["created", "accepted", "in_transit", "delivered"]
-      : status === "in_transit" || status === "shipped"
-        ? ["created", "accepted", "in_transit"]
-        : status === "accepted"
-          ? ["created", "accepted"]
-          : ["created"]
+      ? ["created", "accepted", "in_transit", "out_for_delivery", "delivered"]
+      : status === "out_for_delivery"
+        ? ["created", "accepted", "in_transit", "out_for_delivery"]
+        : status === "in_transit" || status === "shipped"
+          ? ["created", "accepted", "in_transit"]
+          : status === "accepted"
+            ? ["created", "accepted"]
+            : ["created"]
 
   return steps.map((step) => ({
     ...step,
     active: activeKeys.includes(step.key),
     current:
       (status === "shipped" && step.key === "in_transit") ||
+      (status === "out_for_delivery" && step.key === "out_for_delivery") ||
       (status === "created" && step.key === "created") ||
       step.key === status,
   }))
