@@ -10,10 +10,13 @@ import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
+import { getRelatedProductsPageState, getRecentlyViewedProducts, upsertRecentlyViewedProduct } from "../lib/product-page-discovery.mjs"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct, ShopSettings } from "../types"
 
 const PENDING_NOTIFY_KEY = "bns_pending_back_in_stock"
+const RECENTLY_VIEWED_KEY = "bns_recently_viewed_products"
+const RELATED_PAGE_SIZE = 8
 
 export function ShopProductPage() {
   const navigate = useNavigate()
@@ -23,6 +26,8 @@ export function ShopProductPage() {
   const [product, setProduct] = useState<ShopProduct | null>(null)
   const [productError, setProductError] = useState("")
   const [relatedProducts, setRelatedProducts] = useState<ShopProduct[]>([])
+  const [visibleRelatedCount, setVisibleRelatedCount] = useState(RELATED_PAGE_SIZE)
+  const [recentlyViewedProducts, setRecentlyViewedProducts] = useState<ShopProduct[]>([])
   const [selectedImage, setSelectedImage] = useState("")
   const [selectedVariantKey, setSelectedVariantKey] = useState("")
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -59,6 +64,7 @@ export function ShopProductPage() {
 
   useEffect(() => {
     if (!slug) return
+    setVisibleRelatedCount(RELATED_PAGE_SIZE)
     apiFetch<ShopProduct[]>(`/store/products/${slug}/related`)
       .then(setRelatedProducts)
       .catch(() => setRelatedProducts([]))
@@ -67,6 +73,20 @@ export function ShopProductPage() {
   useEffect(() => {
     apiFetch<ShopSettings>("/store/settings").then(setSettings).catch(() => setSettings({}))
   }, [])
+
+  useEffect(() => {
+    if (!product || typeof window === "undefined") return
+
+    try {
+      const rawHistory = window.localStorage.getItem(RECENTLY_VIEWED_KEY)
+      const parsedHistory = rawHistory ? JSON.parse(rawHistory) : []
+      const nextHistory = upsertRecentlyViewedProduct(parsedHistory, product)
+      window.localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(nextHistory))
+      setRecentlyViewedProducts(getRecentlyViewedProducts(nextHistory, product.slug, 8))
+    } catch {
+      setRecentlyViewedProducts([])
+    }
+  }, [product])
 
   const availableFormats = product ? getAvailableFormats(product) : []
   const variants = product ? getProductVariants(product) : []
@@ -127,6 +147,10 @@ export function ShopProductPage() {
       },
     ],
     [availableFormats, product?.tags, shippingCostLabel, shippingCostValue]
+  )
+  const relatedPageState = useMemo(
+    () => getRelatedProductsPageState(relatedProducts, visibleRelatedCount, RELATED_PAGE_SIZE),
+    [relatedProducts, visibleRelatedCount],
   )
 
   function updateQuantity(nextValue: number) {
@@ -365,9 +389,39 @@ export function ShopProductPage() {
             <h3 className="text-2xl font-semibold text-white">Prodotti collegati per categoria, tag o collezione</h3>
           </div>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-            {relatedProducts.map((related) => (
+            {relatedPageState.visibleItems.map((related) => (
               <ProductCard key={related.id} product={related} />
             ))}
+          </div>
+          {relatedPageState.canLoadMore ? (
+            <div className="flex justify-center pt-2">
+              <button
+                type="button"
+                onClick={() => setVisibleRelatedCount(relatedPageState.nextVisibleCount)}
+                className="rounded-full border border-white/12 px-5 py-2 text-sm uppercase tracking-[0.18em] text-white/72 transition hover:border-white/24 hover:text-white"
+              >
+                Altro
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {recentlyViewedProducts.length ? (
+        <div className="mt-14 space-y-6">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.32em] text-white/45">Stavi guardando</p>
+            <h3 className="text-2xl font-semibold text-white">Stavi guardando</h3>
+            <p className="text-sm leading-6 text-white/62">Altri poster che hai visitato di recente.</p>
+          </div>
+          <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-1 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-full gap-6">
+              {recentlyViewedProducts.map((recentProduct) => (
+                <div key={recentProduct.slug} className="w-[18.5rem] flex-none sm:w-[20rem]">
+                  <ProductCard product={recentProduct} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       ) : null}
