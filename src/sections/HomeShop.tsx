@@ -27,6 +27,15 @@ type ShowcaseCard = {
   ctaLabel?: string;
 };
 
+type HomeShopCache = {
+  products: ShopProduct[];
+  productTotal: number;
+  settings: Record<string, string>;
+  collections: AdminCollection[];
+};
+
+const HOME_SHOP_CACHE_KEY = "bns-shop-home-cache-v1";
+
 const defaultPopularCategories: DiscoveryCard[] = [
   {
     title: "Cantanti famosi",
@@ -355,12 +364,51 @@ export function HomeShop() {
   const [collections, setCollections] = useState<AdminCollection[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading">("idle");
+
+  function readHomeShopCache(): HomeShopCache | null {
+    if (typeof window === "undefined") return null;
+
+    try {
+      const raw = window.localStorage.getItem(HOME_SHOP_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+
+      return {
+        products: Array.isArray(parsed.products) ? parsed.products : [],
+        productTotal: Number(parsed.productTotal || 0),
+        settings: parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {},
+        collections: Array.isArray(parsed.collections) ? parsed.collections : [],
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function writeHomeShopCache(nextCache: HomeShopCache) {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(HOME_SHOP_CACHE_KEY, JSON.stringify(nextCache));
+    } catch {
+      // Ignore quota/storage errors: homepage should continue to render.
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadProducts() {
+      const cachedContent = readHomeShopCache();
+
+      if (cachedContent && !cancelled) {
+        setProducts(cachedContent.products);
+        setProductTotal(cachedContent.productTotal);
+        setShopSettings(cachedContent.settings);
+        setCollections(cachedContent.collections);
+      }
+
       try {
         setStatus("loading");
         const [productData, settingsData, collectionsData] = await Promise.all([
@@ -373,12 +421,23 @@ export function HomeShop() {
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
           setCollections(collectionsData);
+          writeHomeShopCache({
+            products: productData.items,
+            productTotal: productData.pagination.total,
+            settings: settingsData,
+            collections: collectionsData,
+          });
           setStatus("idle");
         }
-      } catch (error) {
-        console.error("Unable to load home shop products", error);
+      } catch {
         if (!cancelled) {
-          setStatus("error");
+          if (!cachedContent) {
+            setProducts([]);
+            setProductTotal(0);
+            setShopSettings({});
+            setCollections([]);
+          }
+          setStatus("idle");
         }
       }
     }
@@ -393,12 +452,12 @@ export function HomeShop() {
   const productCountLabel = `Totale: ${productTotal} ${productTotal === 1 ? "prodotto" : "prodotti"}`;
 
   const popularCategories = useMemo(
-    () => parseHomepagePopularCategories(shopSettings.homepagePopularCategories, defaultPopularCategories),
+    () => parseHomepagePopularCategories(shopSettings.homepagePopularCategories, []),
     [shopSettings]
   );
 
   const showcases = useMemo(
-    () => parseHomepageShowcases(shopSettings.homepageShowcases, defaultShowcases, collections),
+    () => parseHomepageShowcases(shopSettings.homepageShowcases, [], collections),
     [collections, shopSettings]
   )
 
@@ -435,18 +494,6 @@ export function HomeShop() {
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
       <Container className="space-y-20">
-        {status === "error" ? (
-          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
-            Il catalogo non e disponibile in questo momento. Riprova tra poco.
-          </div>
-        ) : null}
-
-        {status === "idle" && products.length === 0 ? (
-          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
-            Nessun prodotto disponibile al momento.
-          </div>
-        ) : null}
-
         <div className="space-y-8">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.32em] text-white/45">Poster di tendenza</p>
@@ -458,17 +505,27 @@ export function HomeShop() {
             </p>
           </div>
 
-          <div
-            className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden"
-          >
-            <div className="flex min-w-full gap-6">
-              {trendingProducts.map((product) => (
-                <div key={product.id} className="w-[18.5rem] flex-none sm:w-[20rem]">
-                  <ProductCard product={product} />
-                </div>
+          {trendingProducts.length ? (
+            <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
+              <div className="flex min-w-full gap-6">
+                {trendingProducts.map((product) => (
+                  <div key={product.id} className="w-[18.5rem] flex-none sm:w-[20rem]">
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : status === "loading" ? (
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-[28rem] rounded-[2rem] border border-white/10 bg-white/[0.03]" />
               ))}
             </div>
-          </div>
+          ) : (
+            <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center text-sm text-white/55">
+              Nessun prodotto disponibile al momento.
+            </div>
+          )}
         </div>
 
         <div className="space-y-8 pt-8 sm:pt-12">
@@ -494,38 +551,44 @@ export function HomeShop() {
             ) : null}
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {popularCategoryCards.map((category) => (
-              <Link
-                key={category.title}
-                to={buildPopularCategoryHref(category.category, category.title, category.description)}
-                className="group relative flex min-h-[22rem] overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
-              >
-                <div className="absolute inset-0">
-                  {category.imageUrl ? (
-                    <img
-                      src={category.imageUrl}
-                      alt={category.title}
-                      className="h-full w-full object-cover opacity-72 transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : null}
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.14)_0%,rgba(0,0,0,0.78)_72%,rgba(0,0,0,0.94)_100%)]" />
-                </div>
-                <div className="relative z-10 mt-auto flex w-full items-end justify-between gap-4">
-                  <div className="space-y-2 pr-3">
-                    <h4 className="text-xl font-semibold tracking-tight text-white">{category.title}</h4>
-                    <p className="max-w-[14rem] text-sm leading-6 text-white/72">{category.description}</p>
+          {popularCategoryCards.length ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {popularCategoryCards.map((category) => (
+                <Link
+                  key={category.title}
+                  to={buildPopularCategoryHref(category.category, category.title, category.description)}
+                  className="group relative flex min-h-[22rem] overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
+                >
+                  <div className="absolute inset-0">
+                    {category.imageUrl ? (
+                      <img
+                        src={category.imageUrl}
+                        alt={category.title}
+                        className="h-full w-full object-cover opacity-72 transition duration-500 group-hover:scale-[1.03]"
+                      />
+                    ) : null}
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.14)_0%,rgba(0,0,0,0.78)_72%,rgba(0,0,0,0.94)_100%)]" />
                   </div>
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/16 bg-white/10 text-white transition duration-300 group-hover:bg-white group-hover:text-black">
-                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
-                      <path d="M5.25 12h13.5" />
-                      <path d="m12.75 6.75 5.25 5.25-5.25 5.25" />
-                    </svg>
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+                  <div className="relative z-10 mt-auto flex w-full items-end justify-between gap-4">
+                    <div className="space-y-2 pr-3">
+                      <h4 className="text-xl font-semibold tracking-tight text-white">{category.title}</h4>
+                      <p className="max-w-[14rem] text-sm leading-6 text-white/72">{category.description}</p>
+                    </div>
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/16 bg-white/10 text-white transition duration-300 group-hover:bg-white group-hover:text-black">
+                      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M5.25 12h13.5" />
+                        <path d="m12.75 6.75 5.25 5.25-5.25 5.25" />
+                      </svg>
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center text-sm text-white/55">
+              Nessuna categoria disponibile al momento.
+            </div>
+          )}
         </div>
 
         <div className="space-y-8 pt-10 sm:pt-16">
@@ -551,64 +614,70 @@ export function HomeShop() {
             ) : null}
           </div>
 
-          <div className="space-y-6">
-            {showcaseCards.map((showcase, index) => (
-              <article
-                key={showcase.title}
-                className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03]"
-              >
-                <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
-                  <div
-                    className={`flex min-h-[20rem] flex-col justify-between gap-8 p-7 sm:min-h-[22rem] sm:p-9 ${
-                      index % 2 === 1 ? "lg:order-2" : ""
-                    }`}
-                  >
-                    <div className="space-y-4">
-                      <p className="text-xs uppercase tracking-[0.32em] text-white/45">{showcase.eyebrow}</p>
-                      <div className="space-y-3">
-                        <h3 className="max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                          {showcase.title}
-                        </h3>
-                        <p className="max-w-xl text-base leading-7 text-white/68">{showcase.description}</p>
+          {showcaseCards.length ? (
+            <div className="space-y-6">
+              {showcaseCards.map((showcase, index) => (
+                <article
+                  key={showcase.title}
+                  className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03]"
+                >
+                  <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
+                    <div
+                      className={`flex min-h-[20rem] flex-col justify-between gap-8 p-7 sm:min-h-[22rem] sm:p-9 ${
+                        index % 2 === 1 ? "lg:order-2" : ""
+                      }`}
+                    >
+                      <div className="space-y-4">
+                        <p className="text-xs uppercase tracking-[0.32em] text-white/45">{showcase.eyebrow}</p>
+                        <div className="space-y-3">
+                          <h3 className="max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                            {showcase.title}
+                          </h3>
+                          <p className="max-w-xl text-base leading-7 text-white/68">{showcase.description}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <Button
+                          variant="cart"
+                          size="sm"
+                          text={showcase.ctaLabel || "Esplora la collezione"}
+                          onClick={() =>
+                            navigate(
+                              showcase.collectionSlug
+                                ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
+                                : withCatalogContext(showcase.href, showcase.title, showcase.description),
+                            )
+                          }
+                        >
+                          {showcase.ctaLabel || "Esplora la collezione"}
+                        </Button>
                       </div>
                     </div>
-                    <div>
-                      <Button
-                        variant="cart"
-                        size="sm"
-                        text={showcase.ctaLabel || "Esplora la collezione"}
-                        onClick={() =>
-                          navigate(
-                            showcase.collectionSlug
-                              ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
-                              : withCatalogContext(showcase.href, showcase.title, showcase.description),
-                          )
-                        }
-                      >
-                        {showcase.ctaLabel || "Esplora la collezione"}
-                      </Button>
+                    <div
+                      className={`relative min-h-[18rem] border-t border-white/10 lg:min-h-[22rem] lg:border-l lg:border-t-0 ${
+                        index % 2 === 1 ? "lg:order-1 lg:border-l-0 lg:border-r" : ""
+                      }`}
+                    >
+                      {showcase.imageUrl ? (
+                        <img
+                          src={showcase.imageUrl}
+                          alt={showcase.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_52%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
+                      )}
+                      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.12),rgba(0,0,0,0.48))]" />
                     </div>
                   </div>
-                  <div
-                    className={`relative min-h-[18rem] border-t border-white/10 lg:min-h-[22rem] lg:border-l lg:border-t-0 ${
-                      index % 2 === 1 ? "lg:order-1 lg:border-l-0 lg:border-r" : ""
-                    }`}
-                  >
-                    {showcase.imageUrl ? (
-                      <img
-                        src={showcase.imageUrl}
-                        alt={showcase.title}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_52%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
-                    )}
-                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.12),rgba(0,0,0,0.48))]" />
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center text-sm text-white/55">
+              Nessuna collezione disponibile al momento.
+            </div>
+          )}
         </div>
 
         <div className="space-y-8 pt-10 sm:pt-16">
@@ -645,7 +714,7 @@ export function HomeShop() {
             </div>
           ) : (
             <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center text-sm text-white/55">
-              Nessun poster e ancora attivo per la preview homepage. Attiva "Mostra nella home" dalla lista prodotti admin per riempire questa sezione.
+              Nessun prodotto disponibile al momento.
             </div>
           )}
 

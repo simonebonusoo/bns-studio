@@ -89,26 +89,29 @@ function buildApiError(response: Response, data: any, rawText: string) {
         : ""
 
   if (serverMessage) {
+    if (/(backend|api|server|servizio shop|fetch|html|risposta)/i.test(serverMessage)) {
+      return new Error("Alcuni contenuti non sono disponibili al momento.")
+    }
     return new Error(serverMessage)
   }
 
   if (response.status === 404) {
-    return new Error("Servizio shop non trovato. Verifica che l'API sia attiva.")
+    return new Error("Alcuni contenuti non sono disponibili al momento.")
   }
 
   if (response.status >= 500) {
-    return new Error("Errore interno del servizio shop. Riprova tra poco.")
+    return new Error("Stiamo aggiornando i contenuti. Riprova tra qualche istante.")
   }
 
   if (rawText.trim().startsWith("<!DOCTYPE") || rawText.trim().startsWith("<html")) {
-    return new Error("Il servizio shop ha restituito una pagina HTML invece di una risposta API valida.")
+    return new Error("Alcuni contenuti non sono disponibili al momento.")
   }
 
   if (!rawText) {
-    return new Error("Il servizio shop ha restituito una risposta vuota.")
+    return new Error("Alcuni contenuti non sono disponibili al momento.")
   }
 
-  return new Error("Risposta non valida dal servizio shop.")
+  return new Error("Alcuni contenuti non sono disponibili al momento.")
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -127,7 +130,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
       },
     })
   } catch {
-    throw new Error("Impossibile contattare il servizio shop. Controlla che il backend sia avviato.")
+    throw new Error("Stiamo aggiornando i contenuti. Riprova tra qualche istante.")
   }
 
   if (response.status === 204) {

@@ -63,7 +63,7 @@ export function Testimonials() {
       setReviews(data.reviews)
       setSummary(data.summary)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore nel caricamento delle recensioni.")
+      setError(err instanceof Error ? err.message : "Alcuni contenuti non sono disponibili al momento.")
     }
   }
 
@@ -107,7 +107,7 @@ export function Testimonials() {
       })
       await loadReviews()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante l'invio della recensione.")
+      setError(err instanceof Error ? err.message : "Non siamo riusciti a pubblicare la recensione. Riprova tra poco.")
     } finally {
       setSubmitting(false)
     }

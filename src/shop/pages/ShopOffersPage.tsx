@@ -23,7 +23,7 @@ export function ShopOffersPage() {
       })
       .catch((err) => {
         setProducts([])
-        setError(err instanceof Error ? err.message : "Impossibile caricare le offerte.")
+        setError(err instanceof Error ? err.message : "Alcuni contenuti non sono disponibili al momento.")
         setLoading(false)
       })
   }, [])
