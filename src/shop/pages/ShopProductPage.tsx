@@ -77,6 +77,7 @@ export function ShopProductPage() {
   const selectedPrice = product ? getPriceForVariant(product, selectedVariant?.id) : 0
   const purchasable = product ? isProductPurchasable(product, selectedVariant?.id) : false
   const badges = product ? getProductBadges(product) : []
+  const heroBadge = badges[0] || null
   const stockStatus = product ? getProductStockStatus(product, selectedVariant?.id) : "out_of_stock"
   const stockLabel = product ? getProductStockLabel(product, selectedVariant?.id) : "Esaurito"
   const maxQuantity = Math.max(selectedVariant?.stock ?? product?.stock ?? 1, 1)
@@ -278,7 +279,18 @@ export function ShopProductPage() {
   }
 
   return (
-    <ShopLayout eyebrow="Product" title={product.title} intro={product.description}>
+    <ShopLayout
+      compact
+      eyebrow={
+        heroBadge ? (
+          <span className="inline-flex rounded-full border border-[#e3f503]/30 bg-[#e3f503]/12 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
+            {heroBadge.label}
+          </span>
+        ) : undefined
+      }
+      title={product.title}
+      intro={product.description}
+    >
       <div className="mx-auto w-full max-w-[1380px] space-y-8">
         <div className="grid w-full items-stretch gap-7 lg:grid-cols-[minmax(0,0.98fr)_minmax(0,0.94fr)] xl:gap-8">
           <ProductGallery
@@ -291,7 +303,7 @@ export function ShopProductPage() {
           />
 
           <ProductPurchasePanel
-            badges={badges}
+            badges={[]}
             originalPrice={originalPrice}
             selectedPrice={selectedPrice}
             subtotal={subtotal}
