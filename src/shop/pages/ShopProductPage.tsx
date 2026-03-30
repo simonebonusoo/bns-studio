@@ -281,6 +281,7 @@ export function ShopProductPage() {
   return (
     <ShopLayout
       compact
+      eyebrowMode="raw"
       eyebrow={
         heroBadge ? (
           <span className="inline-flex rounded-full border border-[#e3f503]/30 bg-[#e3f503]/12 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">

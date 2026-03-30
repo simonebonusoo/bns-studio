@@ -13,7 +13,7 @@ import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductForma
 import { isProductPurchasable, isPublicProductStatus } from "../lib/product-status.mjs"
 import { getProductStockLabel, getProductStockStatus } from "../lib/product-stock.mjs"
 import { resolveSelectedVariant, serializeProductVariants } from "../lib/product-variants.mjs"
-import { scoreRelatedProduct, sortCatalogSearchProducts } from "../lib/product-discovery.mjs"
+import { rankRelatedProducts, sortCatalogSearchProducts } from "../lib/product-discovery.mjs"
 import { requireAuth } from "../middleware/auth.mjs"
 
 const router = Router()
@@ -348,14 +348,7 @@ router.get(
       orderBy: { createdAt: "desc" },
     })
 
-    const related = relatedCandidates
-      .map((candidate) => ({ candidate, score: scoreRelatedProduct(product, candidate) }))
-      .sort((left, right) => {
-        if (right.score !== left.score) return right.score - left.score
-        return new Date(right.candidate.createdAt).getTime() - new Date(left.candidate.createdAt).getTime()
-      })
-      .slice(0, 4)
-      .map((entry) => entry.candidate)
+    const related = rankRelatedProducts(product, relatedCandidates, 4)
 
     res.json(related.map(serializePublicProduct))
   })

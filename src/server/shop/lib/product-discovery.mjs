@@ -65,3 +65,29 @@ export function scoreRelatedProduct(baseProduct, candidate) {
 
   return sameCategory * 5 + sharedCollectionCount * 4 + sharedTagCount * 3 + featuredBoost + availabilityBoost
 }
+
+export function rankRelatedProducts(baseProduct, candidates, limit = 4) {
+  return [...(candidates || [])]
+    .filter((candidate) => candidate && candidate.id !== baseProduct?.id)
+    .map((candidate) => {
+      const baseTagIds = (baseProduct.productTags || []).map((entry) => entry.tagId)
+      const baseCollectionIds = (baseProduct.productCollections || []).map((entry) => entry.collectionId)
+      const sharedTagCount = (candidate.productTags || []).filter((entry) => baseTagIds.includes(entry.tagId)).length
+      const sharedCollectionCount = (candidate.productCollections || []).filter((entry) => baseCollectionIds.includes(entry.collectionId)).length
+      const sameCategory = candidate.category === baseProduct.category ? 1 : 0
+      const relationScore = sameCategory * 5 + sharedCollectionCount * 4 + sharedTagCount * 3
+
+      return {
+        candidate,
+        relationScore,
+        score: scoreRelatedProduct(baseProduct, candidate),
+      }
+    })
+    .filter((entry) => entry.relationScore > 0)
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score
+      return new Date(right.candidate.createdAt).getTime() - new Date(left.candidate.createdAt).getTime()
+    })
+    .slice(0, limit)
+    .map((entry) => entry.candidate)
+}

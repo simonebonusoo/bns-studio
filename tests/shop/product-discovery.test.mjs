@@ -1,7 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { scoreCatalogSearchProduct, scoreRelatedProduct, sortCatalogSearchProducts } from "../../src/server/shop/lib/product-discovery.mjs"
+import { rankRelatedProducts, scoreCatalogSearchProduct, scoreRelatedProduct, sortCatalogSearchProducts } from "../../src/server/shop/lib/product-discovery.mjs"
 
 function buildProduct(overrides = {}) {
   return {
@@ -60,4 +60,92 @@ test("related product scoring favors shared category and collections", () => {
   })
 
   assert.ok(scoreRelatedProduct(baseProduct, strongMatch) > scoreRelatedProduct(baseProduct, weakMatch))
+})
+
+test("rankRelatedProducts prioritizes shared category, tag and collection signals", () => {
+  const baseProduct = buildProduct({
+    id: 20,
+    category: "Music",
+    productTags: [{ tagId: 7 }],
+    productCollections: [{ collectionId: 3 }],
+  })
+
+  const categoryAndCollectionMatch = buildProduct({
+    id: 21,
+    category: "Music",
+    productCollections: [{ collectionId: 3 }],
+    createdAt: "2026-03-19T10:00:00.000Z",
+  })
+
+  const onlyTagMatch = buildProduct({
+    id: 22,
+    category: "Cinema",
+    productTags: [{ tagId: 7 }],
+    createdAt: "2026-03-21T10:00:00.000Z",
+  })
+
+  const ranked = rankRelatedProducts(baseProduct, [onlyTagMatch, categoryAndCollectionMatch], 4)
+  assert.equal(ranked[0].id, 21)
+  assert.equal(ranked[1].id, 22)
+})
+
+test("rankRelatedProducts excludes the current product and unrelated candidates", () => {
+  const baseProduct = buildProduct({
+    id: 30,
+    category: "Typography",
+    productTags: [{ tagId: 1 }],
+    productCollections: [{ collectionId: 4 }],
+  })
+
+  const sameProduct = buildProduct({
+    id: 30,
+    category: "Typography",
+    productTags: [{ tagId: 1 }],
+    productCollections: [{ collectionId: 4 }],
+  })
+
+  const unrelated = buildProduct({
+    id: 31,
+    category: "Sport",
+    productTags: [{ tagId: 9 }],
+    productCollections: [{ collectionId: 8 }],
+  })
+
+  const sameCategory = buildProduct({
+    id: 32,
+    category: "Typography",
+    productTags: [],
+    productCollections: [],
+  })
+
+  const ranked = rankRelatedProducts(baseProduct, [sameProduct, unrelated, sameCategory], 4)
+  assert.deepEqual(ranked.map((product) => product.id), [32])
+})
+
+test("rankRelatedProducts uses recency as tiebreaker for equally relevant products", () => {
+  const baseProduct = buildProduct({
+    id: 40,
+    category: "Art",
+    productTags: [{ tagId: 2 }],
+    productCollections: [{ collectionId: 5 }],
+  })
+
+  const older = buildProduct({
+    id: 41,
+    category: "Art",
+    productTags: [],
+    productCollections: [],
+    createdAt: "2026-03-18T10:00:00.000Z",
+  })
+
+  const newer = buildProduct({
+    id: 42,
+    category: "Art",
+    productTags: [],
+    productCollections: [],
+    createdAt: "2026-03-22T10:00:00.000Z",
+  })
+
+  const ranked = rankRelatedProducts(baseProduct, [older, newer], 4)
+  assert.deepEqual(ranked.map((product) => product.id), [42, 41])
 })
