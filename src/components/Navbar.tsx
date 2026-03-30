@@ -12,11 +12,7 @@ import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
 import { formatPrice } from "../shop/lib/format"
 import { getPriceForVariant, getProductPrimaryImage, getProductStockStatus } from "../shop/lib/product"
-import { ShopProduct } from "../shop/types"
-
-type StoreProductsResponse = {
-  items: ShopProduct[]
-}
+import { ShopProduct, ShopProductListResponse } from "../shop/types"
 
 function highlightMatch(text: string, query: string) {
   const normalized = query.trim()
@@ -39,6 +35,13 @@ function highlightMatch(text: string, query: string) {
 
 function containWheel(event: WheelEvent<HTMLElement>) {
   event.stopPropagation()
+}
+
+function forwardWheelToHorizontalScroll(event: WheelEvent<HTMLElement>) {
+  const target = event.currentTarget
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+  target.scrollLeft += event.deltaY
+  event.preventDefault()
 }
 
 function getSuggestionHoverImages(product: ShopProduct) {
@@ -77,6 +80,67 @@ function scoreSearchSuggestion(product: ShopProduct, query: string) {
 const overlayTransition = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const }
 const drawerTransition = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }
 
+function shuffleProducts(products: ShopProduct[]) {
+  const next = [...products]
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1))
+    ;[next[index], next[randomIndex]] = [next[randomIndex], next[index]]
+  }
+  return next
+}
+
+function SuggestionProductCard({
+  product,
+  onClick,
+  query = "",
+}: {
+  product: ShopProduct
+  onClick: () => void
+  query?: string
+}) {
+  const { primaryImage, secondaryImage, hasHoverImage } = getSuggestionHoverImages(product)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-[17rem] flex-none overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] text-left transition hover:-translate-y-0.5 hover:border-white/20"
+    >
+      <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.04]">
+        {primaryImage ? (
+          <>
+            <img
+              src={primaryImage}
+              alt={product.title}
+              className={`absolute inset-0 h-full w-full object-cover transition duration-500 ${
+                hasHoverImage ? "opacity-100 group-hover:opacity-0" : ""
+              }`}
+            />
+            {hasHoverImage ? (
+              <img
+                src={secondaryImage}
+                alt={product.title}
+                className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100"
+              />
+            ) : null}
+          </>
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-white/45">
+            Nessuna immagine disponibile
+          </div>
+        )}
+      </div>
+      <div className="space-y-2 p-4">
+        <p className="text-xs uppercase tracking-[0.2em] text-white/45">{product.category}</p>
+        <h3 className="line-clamp-2 text-base font-medium text-white">
+          {query ? highlightMatch(product.title, query) : product.title}
+        </h3>
+        <p className="text-sm font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(product))}</p>
+      </div>
+    </button>
+  )
+}
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -87,6 +151,7 @@ export function Navbar() {
   const [profileEditField, setProfileEditField] = useState<null | "username" | "email" | "password">(null)
   const [search, setSearch] = useState("")
   const [products, setProducts] = useState<ShopProduct[]>([])
+  const [shuffledSuggestedProducts, setShuffledSuggestedProducts] = useState<ShopProduct[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [cartPricing, setCartPricing] = useState<{
     subtotal: number
@@ -159,11 +224,31 @@ export function Navbar() {
     if (!searchOpen || products.length) return
 
     setLoadingProducts(true)
-    apiFetch<StoreProductsResponse>("/store/products?pageSize=24&sort=manual")
-      .then((data) => setProducts(Array.isArray(data.items) ? data.items : []))
+    apiFetch<ShopProductListResponse>("/store/products?page=1&pageSize=48&sort=manual")
+      .then(async (data) => {
+        const firstItems = Array.isArray(data.items) ? data.items : []
+
+        if (!data.pagination || data.pagination.totalPages <= 1) {
+          setProducts(firstItems)
+          return
+        }
+
+        const nextPages = await Promise.all(
+          Array.from({ length: data.pagination.totalPages - 1 }, (_, index) =>
+            apiFetch<ShopProductListResponse>(`/store/products?page=${index + 2}&pageSize=48&sort=manual`),
+          ),
+        )
+
+        setProducts([firstItems, ...nextPages.map((page) => page.items || [])].flat())
+      })
       .catch(() => setProducts([]))
       .finally(() => setLoadingProducts(false))
   }, [products.length, searchOpen])
+
+  useEffect(() => {
+    if (!searchOpen) return
+    setShuffledSuggestedProducts(shuffleProducts(products))
+  }, [products, searchOpen])
 
   useEffect(() => {
     if (!searchOpen && !profileOpen && !cartOpen) return
@@ -327,7 +412,6 @@ export function Navbar() {
         return haystack.includes(query)
       })
       .sort((left, right) => scoreSearchSuggestion(right, trimmedSearch) - scoreSearchSuggestion(left, trimmedSearch))
-      .slice(0, 4)
   }, [products, trimmedSearch])
 
   function submitSearch(nextSearch = trimmedSearch) {
@@ -336,10 +420,7 @@ export function Navbar() {
     setSearchOpen(false)
   }
 
-  const suggestedProducts = useMemo(
-    () => [...products].sort((left, right) => scoreSearchSuggestion(right, "") - scoreSearchSuggestion(left, "")).slice(0, 4),
-    [products]
-  )
+  const suggestedProducts = shuffledSuggestedProducts
   const profileView = user ? "logged" : profileStep
   const displayUsername = user?.username || user?.email?.split("@")[0] || "cliente"
 
@@ -592,48 +673,18 @@ export function Navbar() {
                           <p className="mt-2 text-sm text-white/65">Apri prodotti reali direttamente dalla ricerca.</p>
                         </div>
                       </div>
-                      <div className="grid gap-4 lg:grid-cols-4">
+                      <div
+                        className="flex gap-4 overflow-x-auto pb-2 overscroll-x-contain"
+                        onWheel={forwardWheelToHorizontalScroll}
+                      >
                         {suggestedProducts.length ? (
                           suggestedProducts.map((product) => {
-                            const { primaryImage, secondaryImage, hasHoverImage } = getSuggestionHoverImages(product)
-
                             return (
-                              <button
+                              <SuggestionProductCard
                                 key={product.id}
-                                type="button"
                                 onClick={() => navigate(`/shop/${product.slug}`)}
-                                className="group overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] text-left transition hover:-translate-y-0.5 hover:border-white/20"
-                              >
-                                <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.04]">
-                                  {primaryImage ? (
-                                    <>
-                                      <img
-                                        src={primaryImage}
-                                        alt={product.title}
-                                        className={`absolute inset-0 h-full w-full object-cover transition duration-500 ${
-                                          hasHoverImage ? "opacity-100 group-hover:opacity-0" : ""
-                                        }`}
-                                      />
-                                      {hasHoverImage ? (
-                                        <img
-                                          src={secondaryImage}
-                                          alt={product.title}
-                                          className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100"
-                                        />
-                                      ) : null}
-                                    </>
-                                  ) : (
-                                    <div className="flex h-full items-center justify-center text-sm text-white/45">
-                                      Nessuna immagine disponibile
-                                    </div>
-                                  )}
-                                </div>
-                              <div className="space-y-2 p-4">
-                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">{product.category}</p>
-                                <h3 className="line-clamp-2 text-base font-medium text-white">{product.title}</h3>
-                                <p className="text-sm font-medium text-[#e3f503]">{formatPrice(product.price)}</p>
-                              </div>
-                              </button>
+                                product={product}
+                              />
                             )
                           })
                         ) : (
@@ -662,50 +713,19 @@ export function Navbar() {
                         </button>
                       </div>
 
-                      <div className="grid gap-4 lg:grid-cols-4">
+                      <div
+                        className="flex gap-4 overflow-x-auto pb-2 overscroll-x-contain"
+                        onWheel={forwardWheelToHorizontalScroll}
+                      >
                         {liveResults.length ? (
                           liveResults.map((product) => {
-                            const { primaryImage, secondaryImage, hasHoverImage } = getSuggestionHoverImages(product)
-
                             return (
-                              <button
+                              <SuggestionProductCard
                                 key={product.id}
-                                type="button"
                                 onClick={() => navigate(`/shop/${product.slug}`)}
-                                className="group overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] text-left transition hover:-translate-y-0.5 hover:border-white/20"
-                              >
-                                <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.04]">
-                                  {primaryImage ? (
-                                    <>
-                                      <img
-                                        src={primaryImage}
-                                        alt={product.title}
-                                        className={`absolute inset-0 h-full w-full object-cover transition duration-500 ${
-                                          hasHoverImage ? "opacity-100 group-hover:opacity-0" : ""
-                                        }`}
-                                      />
-                                      {hasHoverImage ? (
-                                        <img
-                                          src={secondaryImage}
-                                          alt={product.title}
-                                          className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100"
-                                        />
-                                      ) : null}
-                                    </>
-                                  ) : (
-                                    <div className="flex h-full items-center justify-center text-sm text-white/45">
-                                      Nessuna immagine disponibile
-                                    </div>
-                                  )}
-                                </div>
-                              <div className="space-y-2 p-4">
-                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">{product.category}</p>
-                                <h3 className="line-clamp-2 text-base font-medium text-white">
-                                  {highlightMatch(product.title, trimmedSearch)}
-                                </h3>
-                                <p className="text-sm font-medium text-[#e3f503]">{formatPrice(product.price)}</p>
-                              </div>
-                              </button>
+                                product={product}
+                                query={trimmedSearch}
+                              />
                             )
                           })
                         ) : (
