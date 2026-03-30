@@ -348,18 +348,20 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
   return query ? `${pathname}?${query}` : pathname
 }
 
+function forwardHorizontalScroll(event: React.WheelEvent<HTMLElement>) {
+  const target = event.currentTarget
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+  target.scrollLeft += event.deltaY
+  event.preventDefault()
+}
+
 export function HomeShop() {
   const navigate = useNavigate();
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
-  const [collections, setCollections] = useState<AdminCollection[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [catalogEditMode, setCatalogEditMode] = useState(false);
-  const [catalogDraft, setCatalogDraft] = useState<ShopProduct[]>([]);
-  const [draggedProductId, setDraggedProductId] = useState<number | null>(null);
-  const [savingCatalogOrder, setSavingCatalogOrder] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -367,16 +369,14 @@ export function HomeShop() {
     async function loadProducts() {
       try {
         setStatus("loading");
-        const [productData, settingsData, collectionsData] = await Promise.all([
+        const [productData, settingsData] = await Promise.all([
           apiFetch<ShopProductListResponse>("/store/products?page=1&pageSize=100&sort=manual"),
           apiFetch<Record<string, string>>("/store/settings"),
-          apiFetch<AdminCollection[]>("/store/collections"),
         ]);
         if (!cancelled) {
           setProducts(productData.items);
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
-          setCollections(collectionsData);
           setStatus("idle");
         }
       } catch (error) {
@@ -401,11 +401,6 @@ export function HomeShop() {
     [shopSettings]
   );
 
-  const showcases = useMemo(
-    () => parseHomepageShowcases(shopSettings.homepageShowcases, defaultShowcases, collections),
-    [collections, shopSettings]
-  );
-
   const popularCategoryCards = useMemo(
     () =>
       popularCategories.map((category, index) => ({
@@ -415,204 +410,64 @@ export function HomeShop() {
     [products, popularCategories],
   );
 
-  const showcaseCards = useMemo(
-    () =>
-      showcases.map((showcase, index) => ({
-        ...showcase,
-        imageUrl:
-          showcase.imageUrl ||
-          (showcase.collectionSlug
-            ? pickProductImageByCollection(products, showcase.collectionSlug, index + 3)
-            : pickProductImage(products, showcase.query, index + 3)),
-      })),
-    [products, showcases],
-  );
+  const trendingProducts = useMemo(() => {
+    const featured = products.filter((product) => product.featured)
+    const others = products.filter((product) => !product.featured)
+    return [...featured, ...others].slice(0, 20)
+  }, [products])
 
-  useEffect(() => {
-    if (!catalogEditMode) {
-      setCatalogDraft(products)
-    }
-  }, [catalogEditMode, products])
-
-  async function saveCatalogOrder() {
-    try {
-      setSavingCatalogOrder(true)
-      await apiFetch("/admin/products/order", {
-        method: "PUT",
-        body: JSON.stringify({ productIds: catalogDraft.map((product) => product.id) }),
-      })
-      setProducts(catalogDraft)
-      setCatalogEditMode(false)
-    } finally {
-      setSavingCatalogOrder(false)
-    }
-  }
-
-  function moveDraftProduct(targetId: number) {
-    if (draggedProductId === null || draggedProductId === targetId) return
-    setCatalogDraft((current) => {
-      const fromIndex = current.findIndex((item) => item.id === draggedProductId)
-      const toIndex = current.findIndex((item) => item.id === targetId)
-      if (fromIndex === -1 || toIndex === -1) return current
-      const next = [...current]
-      const [moved] = next.splice(fromIndex, 1)
-      next.splice(toIndex, 0, moved)
-      return next
-    })
-  }
+  const catalogPreviewProducts = useMemo(() => products.slice(0, 20), [products])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
       <Container className="space-y-20">
-        <div className="flex flex-col gap-6 pb-8 sm:flex-row sm:items-end sm:justify-between sm:pb-10">
-          <div className="space-y-7">
-            <div className="shop-pill inline-flex items-center gap-3">
-              <span>{productCountLabel}</span>
-            </div>
-            <h2 className="max-w-5xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Poster, stampe e pezzi creativi da collezionare.
-            </h2>
+        {status === "error" ? (
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
+            Il catalogo non e disponibile in questo momento. Riprova tra poco.
           </div>
-          {effectiveRole === "admin" ? (
-            <div className="flex flex-wrap gap-3 self-start sm:self-auto">
-              {catalogEditMode ? (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => { setCatalogEditMode(false); setCatalogDraft(products) }}>
-                    Annulla
-                  </Button>
-                  <Button size="sm" onClick={saveCatalogOrder}>
-                    {savingCatalogOrder ? "Salvataggio..." : "Salva ordine"}
-                  </Button>
-                </>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={() => setCatalogEditMode(true)}>
-                  Modifica
-                </Button>
-              )}
-            </div>
-          ) : null}
-        </div>
+        ) : null}
 
-        <div className="space-y-12 sm:space-y-14">
-          {status === "error" ? (
-            <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
-              Il catalogo non e disponibile in questo momento. Riprova tra poco.
-            </div>
-          ) : null}
+        {status === "idle" && products.length === 0 ? (
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
+            Nessun prodotto disponibile al momento.
+          </div>
+        ) : null}
 
-          {status === "idle" && products.length === 0 ? (
-            <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
-              Nessun prodotto disponibile al momento.
-            </div>
-          ) : null}
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.32em] text-white/45">Poster di tendenza</p>
+            <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Poster di tendenza
+            </h2>
+            <p className="max-w-3xl text-sm leading-6 text-white/62 sm:text-base">
+              Scorri per scoprire le nostre tendenze e i pezzi che stanno guidando il catalogo in questo momento.
+            </p>
+          </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {(catalogEditMode ? catalogDraft : products).map((product) => (
-              <div
-                key={product.id}
-                draggable={catalogEditMode}
-                onDragStart={() => setDraggedProductId(product.id)}
-                onDragOver={(event) => {
-                  if (!catalogEditMode) return
-                  event.preventDefault()
-                }}
-                onDrop={() => {
-                  if (!catalogEditMode) return
-                  moveDraftProduct(product.id)
-                  setDraggedProductId(null)
-                }}
-                onDragEnd={() => setDraggedProductId(null)}
-                className={catalogEditMode ? "cursor-grab" : ""}
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
+          <div
+            className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+            onWheel={forwardHorizontalScroll}
+          >
+            <div className="flex min-w-full gap-6">
+              {trendingProducts.map((product) => (
+                <div key={product.id} className="w-[18.5rem] flex-none sm:w-[20rem]">
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         <div className="space-y-8 pt-8 sm:pt-12">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.32em] text-white/45">Selezioni in evidenza</p>
+              <p className="text-xs uppercase tracking-[0.32em] text-white/45">Acquista per categoria</p>
               <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                Collezioni curate per iniziare da una direzione forte.
+                Acquista per categoria
               </h3>
-            </div>
-            {effectiveRole === "admin" ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="self-start md:self-auto"
-                onClick={() => navigate("/shop/admin?tab=homepage&section=showcases")}
-              >
-                Modifica
-              </Button>
-            ) : null}
-          </div>
-
-          <div className="space-y-6">
-            {showcaseCards.map((showcase, index) => (
-              <article
-                key={showcase.title}
-                className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03]"
-              >
-                <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
-                  <div
-                    className={`flex min-h-[20rem] flex-col justify-between gap-8 p-7 sm:min-h-[22rem] sm:p-9 ${
-                      index % 2 === 1 ? "lg:order-2" : ""
-                    }`}
-                  >
-                    <div className="space-y-4">
-                      <p className="text-xs uppercase tracking-[0.32em] text-white/45">{showcase.eyebrow}</p>
-                      <div className="space-y-3">
-                        <h3 className="max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                          {showcase.title}
-                        </h3>
-                        <p className="max-w-xl text-base leading-7 text-white/68">{showcase.description}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <Link
-                        to={
-                          showcase.collectionSlug
-                            ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
-                            : withCatalogContext(showcase.href, showcase.title, showcase.description)
-                        }
-                        className={getButtonClassName({ variant: "cart", size: "sm" })}
-                      >
-                        {showcase.ctaLabel || "Esplora la collezione"}
-                      </Link>
-                    </div>
-                  </div>
-                  <div
-                    className={`relative min-h-[18rem] border-t border-white/10 lg:min-h-[22rem] lg:border-l lg:border-t-0 ${
-                      index % 2 === 1 ? "lg:order-1 lg:border-l-0 lg:border-r" : ""
-                    }`}
-                  >
-                    {showcase.imageUrl ? (
-                      <img
-                        src={showcase.imageUrl}
-                        alt={showcase.title}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_52%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
-                    )}
-                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.12),rgba(0,0,0,0.48))]" />
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-10 pt-10 sm:pt-16">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.32em] text-white/45">Categorie popolari</p>
-              <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                Le direzioni piu cercate, subito a portata di scroll.
-              </h3>
+              <p className="max-w-3xl text-sm leading-6 text-white/62 sm:text-base">
+                Esplora le categorie piu cercate e entra subito nel catalogo dal percorso che ti somiglia di piu.
+              </p>
             </div>
             {effectiveRole === "admin" ? (
               <Button
@@ -626,39 +481,73 @@ export function HomeShop() {
             ) : null}
           </div>
 
-          <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-            <div className="flex min-w-full snap-x gap-5 sm:gap-6">
-              {popularCategoryCards.map((category) => (
-                <Link
-                  key={category.title}
-                  to={buildPopularCategoryHref(category.category, category.title, category.description)}
-                  className="group relative flex min-h-[22rem] w-[18.5rem] flex-none snap-start overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06] sm:w-[20rem]"
-                >
-                  <div className="absolute inset-0">
-                    {category.imageUrl ? (
-                      <img
-                        src={category.imageUrl}
-                        alt={category.title}
-                        className="h-full w-full object-cover opacity-72 transition duration-500 group-hover:scale-[1.03]"
-                      />
-                    ) : null}
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.14)_0%,rgba(0,0,0,0.78)_72%,rgba(0,0,0,0.94)_100%)]" />
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {popularCategoryCards.map((category) => (
+              <Link
+                key={category.title}
+                to={buildPopularCategoryHref(category.category, category.title, category.description)}
+                className="group relative flex min-h-[22rem] overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
+              >
+                <div className="absolute inset-0">
+                  {category.imageUrl ? (
+                    <img
+                      src={category.imageUrl}
+                      alt={category.title}
+                      className="h-full w-full object-cover opacity-72 transition duration-500 group-hover:scale-[1.03]"
+                    />
+                  ) : null}
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.14)_0%,rgba(0,0,0,0.78)_72%,rgba(0,0,0,0.94)_100%)]" />
+                </div>
+                <div className="relative z-10 mt-auto flex w-full items-end justify-between gap-4">
+                  <div className="space-y-2 pr-3">
+                    <h4 className="text-xl font-semibold tracking-tight text-white">{category.title}</h4>
+                    <p className="max-w-[14rem] text-sm leading-6 text-white/72">{category.description}</p>
                   </div>
-                  <div className="relative z-10 mt-auto flex w-full items-end justify-between gap-4">
-                    <div className="space-y-2 pr-3">
-                      <h4 className="text-xl font-semibold tracking-tight text-white">{category.title}</h4>
-                      <p className="max-w-[14rem] text-sm leading-6 text-white/72">{category.description}</p>
-                    </div>
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/16 bg-white/10 text-white transition duration-300 group-hover:bg-white group-hover:text-black">
-                      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M5.25 12h13.5" />
-                        <path d="m12.75 6.75 5.25 5.25-5.25 5.25" />
-                      </svg>
-                    </span>
-                  </div>
-                </Link>
-              ))}
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/16 bg-white/10 text-white transition duration-300 group-hover:bg-white group-hover:text-black">
+                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M5.25 12h13.5" />
+                      <path d="m12.75 6.75 5.25 5.25-5.25 5.25" />
+                    </svg>
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-8 pt-10 sm:pt-16">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <div className="shop-pill inline-flex items-center gap-3">
+                <span>{productCountLabel}</span>
+              </div>
+              <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                Tutti i poster
+              </h3>
+              <p className="max-w-3xl text-sm leading-6 text-white/62 sm:text-base">
+                Scopri il nostro catalogo completo attraverso una preview ordinata dei pezzi disponibili adesso.
+              </p>
             </div>
+            <div className="flex flex-wrap gap-3 self-start md:self-auto">
+              {effectiveRole === "admin" ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/shop/admin?tab=prodotti")}
+                >
+                  Modifica
+                </Button>
+              ) : null}
+              <Link to="/shop" className={getButtonClassName({ variant: "cart", size: "sm" })}>
+                Vedi catalogo completo
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {catalogPreviewProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
         </div>
 
