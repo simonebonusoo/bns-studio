@@ -208,7 +208,7 @@ export function AdminProductsSection({
           onCategoryChange={onProductCategoryFilterChange}
           onStatusChange={onProductStatusFilterChange}
         />
-        <div onWheelCapture={containWheel} className="min-h-0 flex-1">
+        <div onWheelCapture={containWheel} className="min-h-0 flex-1 overflow-hidden">
           <ProductListSection
             products={products}
             selectedIds={selectedProductIds}

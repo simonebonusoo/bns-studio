@@ -27,7 +27,8 @@ type ProductListSectionProps = {
 
 export function ProductListSection({ products, selectedIds, onToggleSelected, onEdit, onDuplicate, onDelete }: ProductListSectionProps) {
   return (
-    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
       {!products.length ? (
         <div className="rounded-2xl border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/55">
           Nessun prodotto trovato con i filtri attuali.
@@ -105,6 +106,7 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
           </article>
         )
       })}
+      </div>
     </div>
   )
 }
