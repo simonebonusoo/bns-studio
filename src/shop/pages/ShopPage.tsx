@@ -24,11 +24,16 @@ export function ShopPage() {
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
   const [searchInput, setSearchInput] = useState("")
+  const [catalogError, setCatalogError] = useState("")
   const [searchParams, setSearchParams] = useSearchParams()
   const previousEditorialContext = useRef("")
 
   const filters = useMemo(
-    () => ({
+    () => {
+      const rawPage = Number(searchParams.get("page") || 1)
+      const safePage = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1
+
+      return {
       search: searchParams.get("search") || "",
       category: searchParams.get("category") || "",
       format: (searchParams.get("format") || "").toUpperCase(),
@@ -37,11 +42,12 @@ export function ShopPage() {
       availability: searchParams.get("availability") || "",
       maxPrice: searchParams.get("maxPrice") || "",
       sort: searchParams.get("sort") || "manual",
-      page: Math.max(1, Number(searchParams.get("page") || 1)),
+      page: safePage,
       title: searchParams.get("title") || "",
       subtitle: searchParams.get("subtitle") || "",
       collection: (searchParams.get("collection") || "all") as "all" | "new" | "best" | "discount",
-    }),
+      }
+    },
     [searchParams],
   )
 
@@ -56,12 +62,13 @@ export function ShopPage() {
     }
 
     if (previousPageRef.current !== filters.page) {
-      scrollCatalogSectionToTop(catalogTopRef.current)
+      scrollCatalogSectionToTop(null)
       previousPageRef.current = filters.page
     }
   }, [filters.page])
 
   useEffect(() => {
+    let cancelled = false
     const params = new URLSearchParams()
     if (filters.search) params.set("search", filters.search)
     if (filters.category) params.set("category", filters.category)
@@ -77,10 +84,29 @@ export function ShopPage() {
       params.set("featured", "true")
     }
 
-    apiFetch<ShopProductListResponse>(`/store/products?${params.toString()}`).then((data) => {
-      setProducts(data.items)
-      setPagination(data.pagination)
-    })
+    setCatalogError("")
+
+    apiFetch<ShopProductListResponse>(`/store/products?${params.toString()}`)
+      .then((data) => {
+        if (cancelled) return
+        setProducts(Array.isArray(data?.items) ? data.items : [])
+        setPagination({
+          page: Number.isFinite(data?.pagination?.page) ? data.pagination.page : 1,
+          pageSize: Number.isFinite(data?.pagination?.pageSize) ? data.pagination.pageSize : PAGE_SIZE,
+          total: Number.isFinite(data?.pagination?.total) ? data.pagination.total : 0,
+          totalPages: Number.isFinite(data?.pagination?.totalPages) ? Math.max(1, data.pagination.totalPages) : 1,
+        })
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setProducts([])
+        setPagination({ page: filters.page, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
+        setCatalogError(err instanceof Error ? err.message : "Alcuni contenuti non sono disponibili al momento.")
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [filters.availability, filters.category, filters.collection, filters.collectionSlug, filters.format, filters.maxPrice, filters.page, filters.search, filters.sort, filters.tag])
 
   function updateParam(key: string, value: string) {
@@ -228,7 +254,13 @@ export function ShopPage() {
         </div>
       </div>
 
-      {!products.length ? (
+      {catalogError ? (
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-6 py-14 text-center text-white/60">
+          {catalogError}
+        </div>
+      ) : null}
+
+      {!catalogError && !products.length ? (
         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">
           Nessun prodotto trovato con i criteri attuali.
         </div>
