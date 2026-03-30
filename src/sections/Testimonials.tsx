@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { Link } from "react-router-dom"
 
 import { Container } from "../components/Container"
 import { Reveal } from "../components/Reveal"
@@ -206,11 +205,6 @@ export function Testimonials() {
                     )}
                   </p>
                   <div className="flex flex-col gap-3 sm:flex-row">
-                    <Link to="/chi-sono">
-                      <Button variant="ghost" className="w-full sm:min-w-[180px]">
-                        Chi sono
-                      </Button>
-                    </Link>
                     <Button type="submit" className="w-full sm:min-w-[220px]">
                       {submitting ? "Invio recensione..." : "Pubblica recensione"}
                     </Button>

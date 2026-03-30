@@ -20,12 +20,13 @@ type ProductListSectionProps = {
   products: ShopProduct[]
   selectedIds: number[]
   onToggleSelected: (productId: number, checked: boolean) => void
+  onToggleHomeVisibility: (product: ShopProduct, checked: boolean) => Promise<void> | void
   onEdit: (product: ShopProduct) => void
   onDuplicate: (product: ShopProduct) => Promise<void> | void
   onDelete: (product: ShopProduct) => Promise<void> | void
 }
 
-export function ProductListSection({ products, selectedIds, onToggleSelected, onEdit, onDuplicate, onDelete }: ProductListSectionProps) {
+export function ProductListSection({ products, selectedIds, onToggleSelected, onToggleHomeVisibility, onEdit, onDuplicate, onDelete }: ProductListSectionProps) {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
@@ -42,7 +43,7 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
 
         return (
           <article key={product.id} className="shop-card overflow-hidden">
-            <div className="grid gap-4 p-5 md:grid-cols-[auto_120px_1fr_auto] md:items-center">
+            <div className="grid gap-4 p-5 md:grid-cols-[auto_120px_minmax(0,1fr)_220px] md:items-start">
               <label className="flex items-center justify-center">
                 <input
                   type="checkbox"
@@ -51,9 +52,9 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                 />
               </label>
               <img src={getProductPrimaryImage(product)} alt={product.title} className="h-24 w-full rounded-2xl object-cover" />
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-lg font-semibold text-white">{product.title}</p>
+                  <p className="min-w-0 text-lg font-semibold text-white">{product.title}</p>
                   <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
                     {statusLabel(product.status)}
                   </span>
@@ -74,7 +75,7 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                   </span>
                   {product.featured ? (
                     <span className="rounded-full border border-[#e3f503]/30 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
-                      Merchandising home
+                      Home attiva
                     </span>
                   ) : null}
                 </div>
@@ -91,16 +92,28 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                   {getProductBadges(product).length ? ` · Badge: ${getProductBadges(product).map((badge) => badge.label).join(", ")}` : ""}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="ghost" size="sm" text="Modifica" onClick={() => onEdit(product)}>
+              <div className="flex h-full min-w-0 flex-col justify-between gap-4">
+                <Button type="button" variant="ghost" size="sm" className="w-full" text="Modifica" onClick={() => onEdit(product)}>
                   Modifica
                 </Button>
-                <Button type="button" variant="ghost" size="sm" text="Duplica" onClick={() => void onDuplicate(product)}>
-                  Duplica
-                </Button>
-                <Button type="button" size="sm" text="Elimina" onClick={() => void onDelete(product)}>
-                  Elimina
-                </Button>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button type="button" variant="ghost" size="sm" className="w-full" text="Duplica" onClick={() => void onDuplicate(product)}>
+                      Duplica
+                    </Button>
+                    <Button type="button" size="sm" className="w-full" text="Elimina" onClick={() => void onDelete(product)}>
+                      Elimina
+                    </Button>
+                  </div>
+                  <label className="ml-auto flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/62">
+                    <span>Mostra nella home</span>
+                    <input
+                      type="checkbox"
+                      checked={product.featured}
+                      onChange={(event) => void onToggleHomeVisibility(product, event.target.checked)}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           </article>

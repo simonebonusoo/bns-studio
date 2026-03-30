@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button, getButtonClassName } from "../components/Button";
+import { Button } from "../components/Button";
 import { Container } from "../components/Container";
 import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
@@ -430,7 +430,7 @@ export function HomeShop() {
     return [...featured, ...others].slice(0, 20)
   }, [products])
 
-  const catalogPreviewProducts = useMemo(() => products.slice(0, 16), [products])
+  const catalogPreviewProducts = useMemo(() => products.filter((product) => product.featured).slice(0, 16), [products])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
@@ -573,16 +573,20 @@ export function HomeShop() {
                       </div>
                     </div>
                     <div>
-                      <Link
-                        to={
-                          showcase.collectionSlug
-                            ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
-                            : withCatalogContext(showcase.href, showcase.title, showcase.description)
+                      <Button
+                        variant="cart"
+                        size="sm"
+                        text={showcase.ctaLabel || "Esplora la collezione"}
+                        onClick={() =>
+                          navigate(
+                            showcase.collectionSlug
+                              ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
+                              : withCatalogContext(showcase.href, showcase.title, showcase.description),
+                          )
                         }
-                        className={getButtonClassName({ variant: "cart", size: "sm" })}
                       >
                         {showcase.ctaLabel || "Esplora la collezione"}
-                      </Link>
+                      </Button>
                     </div>
                   </div>
                   <div
@@ -633,16 +637,22 @@ export function HomeShop() {
             </div>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {catalogPreviewProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {catalogPreviewProducts.length ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {catalogPreviewProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center text-sm text-white/55">
+              Nessun poster e ancora attivo per la preview homepage. Attiva "Mostra nella home" dalla lista prodotti admin per riempire questa sezione.
+            </div>
+          )}
 
           <div className="flex justify-center pt-2">
-            <Link to="/shop" className={getButtonClassName({ variant: "cart", size: "sm" })}>
+            <Button variant="cart" size="sm" text="Vedi catalogo completo" onClick={() => navigate("/shop")}>
               Vedi catalogo completo
-            </Link>
+            </Button>
           </div>
         </div>
 

@@ -189,9 +189,9 @@ export function ProductFormCard({
 
             <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/70">
               <input type="checkbox" checked={productForm.featured} onChange={(event) => onChange({ ...productForm, featured: event.target.checked })} />
-              Metti in evidenza nel merchandising
+              Mostra nella home
             </label>
-            <p className="text-xs leading-5 text-white/45">I prodotti mostrati nella homepage sono al massimo 8. Se il limite e gia raggiunto, il salvataggio viene bloccato.</p>
+            <p className="text-xs leading-5 text-white/45">I prodotti mostrati nella sezione "Tutti i poster" della home sono al massimo 16. Se il limite e gia raggiunto, il salvataggio viene bloccato.</p>
           </div>
         </div>
       </Section>

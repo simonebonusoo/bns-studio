@@ -77,6 +77,7 @@ type AdminProductsSectionProps = {
   onProductCategoryFilterChange: (value: string) => void
   onProductStatusFilterChange: (value: "all" | ProductStatus) => void
   onToggleSelected: (productId: number, checked: boolean) => void
+  onToggleHomeVisibility: (product: ShopProduct, checked: boolean) => Promise<void> | void
   onEditProduct: (product: ShopProduct) => void
   onDuplicateProduct: (product: ShopProduct) => void
   onDeleteProduct: (product: ShopProduct) => void
@@ -122,6 +123,7 @@ export function AdminProductsSection({
   onProductCategoryFilterChange,
   onProductStatusFilterChange,
   onToggleSelected,
+  onToggleHomeVisibility,
   onEditProduct,
   onDuplicateProduct,
   onDeleteProduct,
@@ -213,6 +215,7 @@ export function AdminProductsSection({
             products={products}
             selectedIds={selectedProductIds}
             onToggleSelected={onToggleSelected}
+            onToggleHomeVisibility={onToggleHomeVisibility}
             onEdit={onEditProduct}
             onDuplicate={onDuplicateProduct}
             onDelete={onDeleteProduct}

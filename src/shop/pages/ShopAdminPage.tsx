@@ -447,6 +447,35 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
   }
 }
 
+function buildProductPayloadFromFormState(productForm: ProductFormState) {
+  const variantSummary = buildLegacyVariantSummary(productForm.variants)
+
+  return {
+    title: productForm.title,
+    sku: productForm.sku || null,
+    description: productForm.description,
+    price: variantSummary.summary.price,
+    discountPrice: variantSummary.summary.discountPrice,
+    costPrice: variantSummary.summary.costPrice,
+    hasA4: variantSummary.summary.hasA4,
+    hasA3: variantSummary.summary.hasA3,
+    priceA4: variantSummary.summary.priceA4,
+    discountPriceA4: variantSummary.summary.discountPriceA4,
+    priceA3: variantSummary.summary.priceA3,
+    discountPriceA3: variantSummary.summary.discountPriceA3,
+    category: productForm.category,
+    tags: productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+    collectionIds: productForm.collectionIds,
+    manualBadges: productForm.manualBadges,
+    featured: productForm.featured,
+    stock: variantSummary.summary.stock,
+    lowStockThreshold: variantSummary.summary.lowStockThreshold,
+    status: productForm.status,
+    imageUrls: productForm.existingImageUrls,
+    variants: variantSummary.variants,
+  }
+}
+
 function parseHomepageSetting<T extends Record<string, unknown>>(value: string | undefined, fallback: T[]) {
   if (!value) return fallback
   try {
@@ -726,6 +755,33 @@ export function ShopAdminPage() {
     setProductForm(next)
   }
 
+  async function toggleProductHomeVisibility(product: ShopProduct, nextFeatured: boolean) {
+    clearFeedback()
+
+    try {
+      const normalizedProductForm = normalizeProductFormStateForEdit(product)
+      const payload = buildProductPayloadFromFormState({
+        ...normalizedProductForm,
+        featured: nextFeatured,
+      })
+
+      const savedProduct = await apiFetch<ShopProduct>(`/admin/products/${product.id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      })
+
+      setProducts((current) => current.map((entry) => (entry.id === savedProduct.id ? savedProduct : entry)))
+
+      if (editingProductId === savedProduct.id) {
+        setProductForm(normalizeProductFormStateForEdit(savedProduct))
+      }
+
+      setMessage(nextFeatured ? "Prodotto aggiunto a Tutti i poster in homepage." : "Prodotto rimosso da Tutti i poster in homepage.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento della visibilita in homepage.")
+    }
+  }
+
   const selectedProducts = useMemo(
     () => products.filter((product) => selectedProductIds.includes(product.id)),
     [products, selectedProductIds],
@@ -883,31 +939,9 @@ export function ShopAdminPage() {
         throw new Error("Carica almeno un'immagine per il prodotto.")
       }
 
-      const variantSummary = buildLegacyVariantSummary(productForm.variants)
-
       const payload = {
-        title: productForm.title,
-        sku: productForm.sku || null,
-        description: productForm.description,
-        price: variantSummary.summary.price,
-        discountPrice: variantSummary.summary.discountPrice,
-        costPrice: variantSummary.summary.costPrice,
-        hasA4: variantSummary.summary.hasA4,
-        hasA3: variantSummary.summary.hasA3,
-        priceA4: variantSummary.summary.priceA4,
-        discountPriceA4: variantSummary.summary.discountPriceA4,
-        priceA3: variantSummary.summary.priceA3,
-        discountPriceA3: variantSummary.summary.discountPriceA3,
-        category: productForm.category,
-        tags: productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
-        collectionIds: productForm.collectionIds,
-        manualBadges: productForm.manualBadges,
-        featured: productForm.featured,
-        stock: variantSummary.summary.stock,
-        lowStockThreshold: variantSummary.summary.lowStockThreshold,
-        status: productForm.status,
+        ...buildProductPayloadFromFormState(productForm),
         imageUrls,
-        variants: variantSummary.variants,
       }
 
       let savedProduct: ShopProduct
@@ -1352,6 +1386,7 @@ export function ShopAdminPage() {
               checked ? Array.from(new Set([...current, productId])) : current.filter((id) => id !== productId),
             )
           }
+          onToggleHomeVisibility={toggleProductHomeVisibility}
           onEditProduct={(product) => {
             setSelectedProductIds([product.id])
             startEditProduct(product)
