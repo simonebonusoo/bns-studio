@@ -16,6 +16,17 @@ function parsePricingBreakdown(value) {
   }
 }
 
+function parseJsonObject(value) {
+  if (!value) return null
+
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 function normalizeOptionalString(value) {
   const normalized = String(value || "").trim()
   return normalized || null
@@ -37,6 +48,7 @@ export function serializeShopOrder(order) {
     shippingCreatedAt: order.shippingCreatedAt ? new Date(order.shippingCreatedAt).toISOString() : null,
     dhlShipmentReference: normalizeOptionalString(order.dhlShipmentReference),
     labelUrl: normalizeTrackingUrl(order.labelUrl),
+    shippingProviderPayload: parseJsonObject(order.shippingProviderPayload),
     shippingError: normalizeOptionalString(order.shippingError),
     pricingBreakdown: parsePricingBreakdown(order.pricingBreakdown),
   }

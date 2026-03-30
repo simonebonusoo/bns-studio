@@ -13,6 +13,7 @@ import { syncProductVariants } from "../lib/product-variants.mjs"
 import { normalizeShippingDetails } from "../../../shop/lib/shipping-details.mjs"
 import { serializeShopOrder } from "../lib/order-serialization.mjs"
 import { normalizeShippingMethodSelection } from "../services/shipping-rates.mjs"
+import { maybeCreateShipmentForPaidOrder } from "../shipping/index.mjs"
 
 const router = Router()
 const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
@@ -86,6 +87,7 @@ function buildOrderRecordFromCheckoutSession(session) {
     shipmentReference: session.shipmentReference || null,
     trackingNumber: session.trackingNumber || null,
     trackingUrl: null,
+    shippingProviderPayload: session.shippingProviderPayload || null,
     pricingBreakdown: session.pricingBreakdown,
     items: {
       create: items.map((item) => ({
@@ -314,8 +316,11 @@ router.post(
         await notifyAdminOrderCompleted({ order: updated, user: req.user })
       }
 
+      const shipmentResult = await maybeCreateShipmentForPaidOrder({ db: prisma, order: updated })
+      const hydratedOrder = shipmentResult.order || updated
+
       res.json({
-        order: serializeShopOrder(updated),
+        order: serializeShopOrder(hydratedOrder),
       })
       return
     }
@@ -361,8 +366,11 @@ router.post(
 
     await notifyAdminOrderCompleted({ order: createdOrder, user: req.user })
 
+    const shipmentResult = await maybeCreateShipmentForPaidOrder({ db: prisma, order: createdOrder })
+    const hydratedOrder = shipmentResult.order || createdOrder
+
     res.json({
-      order: serializeShopOrder(createdOrder),
+      order: serializeShopOrder(hydratedOrder),
     })
   })
 )
@@ -409,6 +417,7 @@ router.post(
         couponCode: pricing.appliedCoupon,
         shipmentReference: null,
         trackingNumber: null,
+        shippingProviderPayload: null,
         pricingBreakdown: JSON.stringify(pricing),
         itemsSnapshot: JSON.stringify(pricing.items),
       },

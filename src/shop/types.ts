@@ -219,6 +219,7 @@ export type ShopOrder = {
   shippingCreatedAt?: string | null
   dhlShipmentReference?: string | null
   labelUrl?: string | null
+  shippingProviderPayload?: Record<string, unknown> | null
   shippingError?: string | null
   createdAt: string
   pricingBreakdown: ShopPricing

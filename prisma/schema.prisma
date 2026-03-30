@@ -175,6 +175,7 @@ model Order {
   shippingCreatedAt DateTime?
   dhlShipmentReference String?
   labelUrl         String?
+  shippingProviderPayload String?
   shippingError    String?
   pricingBreakdown String
   createdAt        DateTime    @default(now())
@@ -216,6 +217,7 @@ model CheckoutSession {
   shippingCarrier  String?
   shipmentReference String?
   trackingNumber   String?
+  shippingProviderPayload String?
   pricingBreakdown String
   itemsSnapshot    String
   createdAt        DateTime @default(now())

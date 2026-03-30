@@ -63,6 +63,7 @@ test("serializeCheckoutSessionAsPendingOrder returns a pending pseudo-order for 
   assert.equal(order.shippingLabel, "Spedizione premium")
   assert.equal(order.shippingCost, 990)
   assert.equal(order.trackingUrl, null)
+  assert.equal(order.shippingProviderPayload, null)
   assert.equal(order.phone, "3331234567")
   assert.equal(order.streetNumber, "1")
   assert.equal(order.region, "Lombardia")

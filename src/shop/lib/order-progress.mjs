@@ -1,5 +1,5 @@
 export const FULFILLMENT_STATUS_OPTIONS = ["processing", "accepted", "in_progress", "shipped", "completed"]
-export const SHIPPING_STATUS_OPTIONS = ["pending", "accepted", "shipped", "failed"]
+export const SHIPPING_STATUS_OPTIONS = ["pending", "accepted", "created", "in_transit", "shipped", "delivered", "failed", "not_created"]
 
 export function normalizeFulfillmentStatus(status) {
   const normalized = String(status || "").trim().toLowerCase()
@@ -76,10 +76,18 @@ export function getShippingStatusLabel(status, fulfillmentStatus) {
   switch (normalizeShippingStatus(status, fulfillmentStatus)) {
     case "accepted":
       return "Spedizione accettata"
+    case "created":
+      return "Spedizione creata"
+    case "in_transit":
+      return "Spedizione in transito"
     case "shipped":
       return "Spedizione spedita"
+    case "delivered":
+      return "Spedizione consegnata"
     case "failed":
       return "Spedizione da completare"
+    case "not_created":
+      return "In attesa di creazione"
     case "pending":
     default:
       return "Spedizione in preparazione"

@@ -17,9 +17,17 @@ function parseList(value) {
     .filter(Boolean)
 }
 
+function parseBoolean(value, fallback = false) {
+  if (value == null || value === "") return fallback
+  const normalized = String(value).trim().toLowerCase()
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on"
+}
+
 const clientUrl = requireEnv("CLIENT_URL", "http://localhost:5173")
 const clientOrigins = Array.from(new Set([clientUrl, ...parseList(process.env.CLIENT_ORIGINS)]))
 const isRenderRuntime = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
+const hasDhlCredentials = Boolean(process.env.DHL_API_KEY && process.env.DHL_API_SECRET && process.env.DHL_ACCOUNT_NUMBER)
+const hasInpostCredentials = Boolean(process.env.INPOST_API_KEY)
 
 export const env = {
   port: Number(process.env.PORT || 4000),
@@ -44,6 +52,12 @@ export const env = {
   notificationEmailFrom: process.env.NOTIFICATION_EMAIL_FROM || "",
   adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL || "bnsstudio26@gmail.com",
   dhlEnv: process.env.DHL_ENV || "sandbox",
+  dhlUseMock: parseBoolean(process.env.DHL_USE_MOCK, !hasDhlCredentials),
+  dhlApiBaseUrl:
+    process.env.DHL_API_BASE_URL ||
+    ((process.env.DHL_ENV || "sandbox") === "production"
+      ? "https://express.api.dhl.com/mydhlapi"
+      : "https://express.api.dhl.com/mydhlapi/test"),
   dhlApiKey: process.env.DHL_API_KEY || "",
   dhlApiSecret: process.env.DHL_API_SECRET || "",
   dhlAccountNumber: process.env.DHL_ACCOUNT_NUMBER || "",
@@ -65,4 +79,11 @@ export const env = {
   dhlPackageLengthCm: Number(process.env.DHL_PACKAGE_LENGTH_CM || 40),
   dhlPackageWidthCm: Number(process.env.DHL_PACKAGE_WIDTH_CM || 30),
   dhlPackageHeightCm: Number(process.env.DHL_PACKAGE_HEIGHT_CM || 5),
+  inpostEnv: process.env.INPOST_ENV || "sandbox",
+  inpostUseMock: parseBoolean(process.env.INPOST_USE_MOCK, !hasInpostCredentials),
+  inpostApiBaseUrl: process.env.INPOST_API_BASE_URL || "https://api-shipx-pl.easypack24.net/v1",
+  inpostApiKey: process.env.INPOST_API_KEY || "",
+  inpostOrganizationId: process.env.INPOST_ORGANIZATION_ID || "",
+  inpostTrackingBaseUrl: process.env.INPOST_TRACKING_BASE_URL || "",
+  shippingAutoCreateOnPayment: parseBoolean(process.env.SHOP_SHIPPING_AUTO_CREATE_ON_PAYMENT, false),
 }

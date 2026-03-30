@@ -19,6 +19,7 @@ import { assertFeaturedProductLimit } from "../lib/product-featured.mjs"
 import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
 import { buildLegacyProductFieldsFromVariants, deriveLegacyVariantsFromProduct, serializeProductVariants, syncProductVariants } from "../lib/product-variants.mjs"
 import { serializeShopOrder } from "../lib/order-serialization.mjs"
+import { createCarrierShipmentForOrder, refreshCarrierTrackingForOrder } from "../shipping/index.mjs"
 
 const router = Router()
 const uploadsDir = resolveProductUploadsDir()
@@ -1197,7 +1198,7 @@ router.patch(
       .object({
         status: z.enum(["pending", "paid", "shipped"]).optional(),
         fulfillmentStatus: z.enum(["processing", "accepted", "in_progress", "shipped", "completed"]).optional(),
-        shippingStatus: z.enum(["pending", "accepted", "shipped", "failed"]).optional(),
+        shippingStatus: z.enum(["pending", "accepted", "created", "in_transit", "shipped", "delivered", "failed", "not_created"]).optional(),
         shippingHandoffMode: z.enum(["dropoff", "pickup"]).nullable().optional(),
         trackingNumber: z.string().trim().nullable().optional(),
         trackingUrl: z.string().trim().nullable().optional(),
@@ -1231,6 +1232,58 @@ router.patch(
         },
       })
     )
+  })
+)
+
+router.post(
+  "/orders/:id/shipping/create",
+  asyncHandler(async (req, res) => {
+    const order = await prisma.order.findUnique({
+      where: { id: Number(req.params.id) },
+      include: { items: true, user: { select: { role: true } } },
+    })
+
+    if (!order) {
+      throw new HttpError(404, "Ordine non trovato")
+    }
+
+    if (order.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
+    }
+
+    const result = await createCarrierShipmentForOrder({ db: prisma, order })
+
+    res.json({
+      ok: result.ok,
+      code: result.code,
+      order: serializeShopOrder(result.order || order),
+    })
+  })
+)
+
+router.post(
+  "/orders/:id/shipping/refresh",
+  asyncHandler(async (req, res) => {
+    const order = await prisma.order.findUnique({
+      where: { id: Number(req.params.id) },
+      include: { items: true, user: { select: { role: true } } },
+    })
+
+    if (!order) {
+      throw new HttpError(404, "Ordine non trovato")
+    }
+
+    if (order.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
+    }
+
+    const result = await refreshCarrierTrackingForOrder({ db: prisma, order })
+
+    res.json({
+      ok: result.ok,
+      code: result.code,
+      order: serializeShopOrder(result.order || order),
+    })
   })
 )
 

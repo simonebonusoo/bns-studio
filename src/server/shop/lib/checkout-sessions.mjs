@@ -83,6 +83,7 @@ export function serializeCheckoutSessionAsPendingOrder(session) {
     shippingCreatedAt: null,
     dhlShipmentReference: null,
     labelUrl: null,
+    shippingProviderPayload: null,
     shippingError: null,
     createdAt: session.createdAt,
     pricingBreakdown,
