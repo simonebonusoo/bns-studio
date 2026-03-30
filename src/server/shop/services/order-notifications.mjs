@@ -1,6 +1,7 @@
 import { env } from "../config/env.mjs"
 import { logInfo, logWarning, reportError } from "../lib/monitoring.mjs"
 import { sendEmail } from "./email.mjs"
+import { formatShippingAddressLines } from "../../../shop/lib/shipping-details.mjs"
 
 function formatCurrency(cents) {
   return new Intl.NumberFormat("it-IT", {
@@ -30,6 +31,7 @@ export function buildAdminOrderCompletedEmail({ order, user }) {
     .join("\n")
 
   const subject = `Nuovo ordine effettuato da ${customerLabel}`
+  const shipping = formatShippingAddressLines(order)
   const text = [
     "Pagamento completato.",
     "",
@@ -44,11 +46,9 @@ export function buildAdminOrderCompletedEmail({ order, user }) {
     itemsText,
     "",
     "Spedizione:",
-    `${order.firstName} ${order.lastName}`,
-    order.addressLine1,
-    order.addressLine2,
-    `${order.postalCode} ${order.city}`,
-    order.country,
+    shipping.personLine,
+    ...shipping.contactLines,
+    ...shipping.addressLines,
     "",
     "Pagamento completato: si",
   ]
@@ -75,11 +75,9 @@ export function buildAdminOrderCompletedEmail({ order, user }) {
       </ul>
       <h3>Spedizione</h3>
       <p>
-        ${order.firstName} ${order.lastName}<br />
-        ${order.addressLine1}<br />
-        ${order.addressLine2 ? `${order.addressLine2}<br />` : ""}
-        ${order.postalCode} ${order.city}<br />
-        ${order.country}
+        ${[shipping.personLine, ...shipping.contactLines, ...shipping.addressLines]
+          .filter(Boolean)
+          .join("<br />")}
       </p>
       <p><strong>Pagamento completato:</strong> si</p>
     </div>

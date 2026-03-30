@@ -9,9 +9,17 @@ test("serializeCheckoutSessionAsPendingOrder returns a pending pseudo-order for 
     email: "cliente@example.com",
     firstName: "Mario",
     lastName: "Rossi",
+    phone: "3331234567",
     addressLine1: "Via Roma 1",
     addressLine2: "",
+    streetNumber: "1",
+    staircase: "A",
+    apartment: "4",
+    floor: "2",
+    intercom: "Rossi",
+    deliveryNotes: "Lasciare al portiere",
     city: "Milano",
+    region: "Lombardia",
     postalCode: "20100",
     country: "Italia",
     status: "pending",
@@ -47,6 +55,9 @@ test("serializeCheckoutSessionAsPendingOrder returns a pending pseudo-order for 
   assert.equal(order.status, "pending")
   assert.equal(order.fulfillmentStatus, "processing")
   assert.equal(order.trackingUrl, null)
+  assert.equal(order.phone, "3331234567")
+  assert.equal(order.streetNumber, "1")
+  assert.equal(order.region, "Lombardia")
   assert.equal(order.items.length, 1)
   assert.equal(order.items[0].variantId, 10)
   assert.equal(order.items[0].unitCost, 800)

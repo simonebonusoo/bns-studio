@@ -172,9 +172,17 @@ export type ShopOrder = {
   email: string
   firstName: string
   lastName: string
+  phone?: string | null
   addressLine1: string
   addressLine2?: string | null
+  streetNumber?: string | null
+  staircase?: string | null
+  apartment?: string | null
+  floor?: string | null
+  intercom?: string | null
+  deliveryNotes?: string | null
   city: string
+  region?: string | null
   postalCode: string
   country: string
   status: string

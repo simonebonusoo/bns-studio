@@ -9,6 +9,7 @@ import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
+import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
 import { ShopOrder, ShopPayment, ShopPricing, ShopSettings } from "../types"
 
 type CheckoutStep = "review" | "details" | "payment"
@@ -39,11 +40,19 @@ export function ShopCheckoutPage() {
     email: user?.email || "",
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
-    addressLine1: "",
-    addressLine2: "",
+    phone: "",
+    region: "",
     city: "",
     postalCode: "",
     country: "Italia",
+    addressLine1: "",
+    streetNumber: "",
+    addressLine2: "",
+    staircase: "",
+    apartment: "",
+    floor: "",
+    intercom: "",
+    deliveryNotes: "",
   })
 
   const stepIndex = useMemo(() => ["review", "details", "payment"].indexOf(step) + 1, [step])
@@ -99,12 +108,21 @@ export function ShopCheckoutPage() {
           email: form.email,
           firstName: form.firstName,
           lastName: form.lastName,
-          addressLine1: form.addressLine1,
-          addressLine2: form.addressLine2 || null,
+          phone: form.phone,
+          region: form.region,
           city: form.city,
           postalCode: form.postalCode,
           country: form.country,
+          addressLine1: form.addressLine1,
+          streetNumber: form.streetNumber,
+          addressLine2: form.addressLine2 || null,
+          staircase: form.staircase || null,
+          apartment: form.apartment || null,
+          floor: form.floor || null,
+          intercom: form.intercom || null,
+          deliveryNotes: form.deliveryNotes || null,
           status: "preview",
+          fulfillmentStatus: "processing",
           subtotal: pricing.subtotal,
           discountTotal: pricing.discountTotal,
           shippingTotal: pricing.shippingTotal,
@@ -189,6 +207,9 @@ export function ShopCheckoutPage() {
   if (!items.length && !order) {
     return <div className="px-6 py-20 text-center text-white/60">Il carrello è vuoto.</div>
   }
+
+  const shippingPreview = formatShippingAddressLines(form)
+  const orderShipping = order ? formatShippingAddressLines(order) : null
 
   return (
     <ShopLayout
@@ -294,17 +315,35 @@ export function ShopCheckoutPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_0.85fr]">
           <form onSubmit={handleCreateOrder} className="shop-card space-y-4 p-6 md:p-8">
             <div className="grid gap-4 md:grid-cols-2">
-              <input className="shop-input" type="email" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-              <input className="shop-input" placeholder="Nome" value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} />
-              <input className="shop-input" placeholder="Cognome" value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} />
-              <input className="shop-input" placeholder="Paese" value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} />
+              <input className="shop-input" placeholder="Nome" required value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} />
+              <input className="shop-input" placeholder="Cognome" required value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} />
             </div>
-            <input className="shop-input" placeholder="Indirizzo" value={form.addressLine1} onChange={(event) => setForm({ ...form, addressLine1: event.target.value })} />
-            <input className="shop-input" placeholder="Dettagli aggiuntivi" value={form.addressLine2} onChange={(event) => setForm({ ...form, addressLine2: event.target.value })} />
             <div className="grid gap-4 md:grid-cols-2">
-              <input className="shop-input" placeholder="Città" value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} />
-              <input className="shop-input" placeholder="CAP" value={form.postalCode} onChange={(event) => setForm({ ...form, postalCode: event.target.value })} />
+              <input className="shop-input" type="email" placeholder="Email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+              <input className="shop-input" placeholder="Telefono" required value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
             </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <input className="shop-input" placeholder="Paese" required value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} />
+              <input className="shop-input" placeholder="Regione / Provincia / Stato" required value={form.region} onChange={(event) => setForm({ ...form, region: event.target.value })} />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <input className="shop-input" placeholder="Città" required value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} />
+              <input className="shop-input" placeholder="CAP / ZIP" required value={form.postalCode} onChange={(event) => setForm({ ...form, postalCode: event.target.value })} />
+            </div>
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
+              <input className="shop-input" placeholder="Indirizzo" required value={form.addressLine1} onChange={(event) => setForm({ ...form, addressLine1: event.target.value })} />
+              <input className="shop-input" placeholder="Numero civico" required value={form.streetNumber} onChange={(event) => setForm({ ...form, streetNumber: event.target.value })} />
+            </div>
+            <input className="shop-input" placeholder="Dettagli indirizzo aggiuntivi" value={form.addressLine2} onChange={(event) => setForm({ ...form, addressLine2: event.target.value })} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <input className="shop-input" placeholder="Scala" value={form.staircase} onChange={(event) => setForm({ ...form, staircase: event.target.value })} />
+              <input className="shop-input" placeholder="Interno" value={form.apartment} onChange={(event) => setForm({ ...form, apartment: event.target.value })} />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <input className="shop-input" placeholder="Piano" value={form.floor} onChange={(event) => setForm({ ...form, floor: event.target.value })} />
+              <input className="shop-input" placeholder="Citofono" value={form.intercom} onChange={(event) => setForm({ ...form, intercom: event.target.value })} />
+            </div>
+            <textarea className="shop-input min-h-[116px] resize-y py-3" placeholder="Note consegna (opzionale)" value={form.deliveryNotes} onChange={(event) => setForm({ ...form, deliveryNotes: event.target.value })} />
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             <div className="flex flex-wrap gap-3">
               <button
@@ -331,6 +370,16 @@ export function ShopCheckoutPage() {
             ))}
             {pricing ? (
               <div className="space-y-3 border-t border-white/10 pt-4 text-sm text-white/70">
+                <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/45">Spedizione</p>
+                  {shippingPreview.personLine ? <p className="text-white">{shippingPreview.personLine}</p> : null}
+                  {shippingPreview.contactLines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                  {shippingPreview.addressLines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
                 <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
@@ -347,15 +396,16 @@ export function ShopCheckoutPage() {
             <div className="grid gap-4 text-sm text-white/70 md:grid-cols-2">
               <div>
                 <p className="text-white">Cliente</p>
-                <p className="mt-2">{order.firstName} {order.lastName}</p>
-                <p>{order.email}</p>
+                {orderShipping?.personLine ? <p className="mt-2">{orderShipping.personLine}</p> : null}
+                {orderShipping?.contactLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
               </div>
               <div>
                 <p className="text-white">Spedizione</p>
-                <p className="mt-2">{order.addressLine1}</p>
-                {order.addressLine2 ? <p>{order.addressLine2}</p> : null}
-                <p>{order.postalCode} {order.city}</p>
-                <p>{order.country}</p>
+                {orderShipping?.addressLines.map((line, index) => (
+                  <p key={`${line}-${index}`} className={index === 0 ? "mt-2" : ""}>{line}</p>
+                ))}
               </div>
             </div>
 

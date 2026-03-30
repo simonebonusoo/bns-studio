@@ -143,9 +143,17 @@ model Order {
   email            String
   firstName        String
   lastName         String
+  phone            String?
   addressLine1     String
   addressLine2     String?
+  streetNumber     String?
+  staircase        String?
+  apartment        String?
+  floor            String?
+  intercom         String?
+  deliveryNotes    String?
   city             String
+  region           String?
   postalCode       String
   country          String
   status           String      @default("pending")
@@ -170,9 +178,17 @@ model CheckoutSession {
   email            String
   firstName        String
   lastName         String
+  phone            String?
   addressLine1     String
   addressLine2     String?
+  streetNumber     String?
+  staircase        String?
+  apartment        String?
+  floor            String?
+  intercom         String?
+  deliveryNotes    String?
   city             String
+  region           String?
   postalCode       String
   country          String
   status           String   @default("pending")

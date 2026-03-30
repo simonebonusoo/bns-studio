@@ -1,5 +1,6 @@
 import { ShopOrder, ShopSettings } from "../types"
 import { formatPrice } from "./format"
+import { formatShippingAddressLines } from "./shipping-details.mjs"
 
 export async function downloadInvoicePdf(order: ShopOrder, settings: ShopSettings = {}) {
   const { jsPDF } = await import("jspdf")
@@ -32,13 +33,11 @@ export async function downloadInvoicePdf(order: ShopOrder, settings: ShopSetting
 
   y += 18
   doc.setTextColor(255, 255, 255)
+  const shipping = formatShippingAddressLines(order)
   ;[
-    `${order.firstName} ${order.lastName}`,
-    order.email,
-    order.addressLine1,
-    order.addressLine2,
-    `${order.postalCode} ${order.city}`,
-    order.country,
+    shipping.personLine,
+    ...shipping.contactLines,
+    ...shipping.addressLines,
   ]
     .filter(Boolean)
     .forEach((line, index) => {

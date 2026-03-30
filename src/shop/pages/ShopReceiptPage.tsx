@@ -8,6 +8,7 @@ import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
+import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
 import { ShopOrder, ShopPayment, ShopSettings } from "../types"
 
 const PAYPAL_UI_ERROR = "Pagamento PayPal momentaneamente non disponibile. Riprova tra poco."
@@ -54,6 +55,7 @@ export function ShopReceiptPage() {
 
   const isPaid = order.status === "paid" || order.status === "shipped"
   const isAdminView = effectiveRole === "admin"
+  const shipping = formatShippingAddressLines(order)
 
   async function handlePayPalClick() {
     if (isRedirectingToPaypal) {
@@ -105,15 +107,16 @@ export function ShopReceiptPage() {
           <div className="grid gap-4 md:grid-cols-2 text-sm text-white/70">
             <div>
               <p className="text-white">Cliente</p>
-              <p className="mt-2">{order.firstName} {order.lastName}</p>
-              <p>{order.email}</p>
+              {shipping.personLine ? <p className="mt-2">{shipping.personLine}</p> : null}
+              {shipping.contactLines.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
             </div>
             <div>
               <p className="text-white">Spedizione</p>
-              <p className="mt-2">{order.addressLine1}</p>
-              {order.addressLine2 ? <p>{order.addressLine2}</p> : null}
-              <p>{order.postalCode} {order.city}</p>
-              <p>{order.country}</p>
+              {shipping.addressLines.map((line, index) => (
+                <p key={`${line}-${index}`} className={index === 0 ? "mt-2" : ""}>{line}</p>
+              ))}
             </div>
           </div>
 

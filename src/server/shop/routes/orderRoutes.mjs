@@ -11,6 +11,7 @@ import { buildPaypalRedirect } from "../services/paypal.mjs"
 import { notifyAdminOrderCompleted } from "../services/order-notifications.mjs"
 import { syncProductVariants } from "../lib/product-variants.mjs"
 import { normalizeFulfillmentStatus, normalizeTrackingUrl } from "../../../shop/lib/order-progress.mjs"
+import { normalizeShippingDetails } from "../../../shop/lib/shipping-details.mjs"
 
 const router = Router()
 const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
@@ -65,16 +66,9 @@ function buildOrderRecordFromCheckoutSession(session) {
   const items = parseCheckoutSessionItems(session)
 
   return {
+    ...normalizeShippingDetails(session),
     orderReference: session.orderReference,
     userId: session.userId,
-    email: session.email,
-    firstName: session.firstName,
-    lastName: session.lastName,
-    addressLine1: session.addressLine1,
-    addressLine2: session.addressLine2,
-    city: session.city,
-    postalCode: session.postalCode,
-    country: session.country,
     status: "paid",
     fulfillmentStatus: "processing",
     subtotal: session.subtotal,
@@ -107,8 +101,16 @@ const checkoutSchema = z.object({
   email: z.string().email(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
+  phone: z.string().trim().min(5),
+  region: z.string().trim().min(1),
   addressLine1: z.string().min(1),
+  streetNumber: z.string().trim().min(1),
   addressLine2: z.string().optional().nullable(),
+  staircase: z.string().trim().optional().nullable(),
+  apartment: z.string().trim().optional().nullable(),
+  floor: z.string().trim().optional().nullable(),
+  intercom: z.string().trim().optional().nullable(),
+  deliveryNotes: z.string().trim().optional().nullable(),
   city: z.string().min(1),
   postalCode: z.string().min(1),
   country: z.string().min(1),
@@ -384,8 +386,9 @@ router.post(
     }
 
     const body = checkoutSchema.parse(req.body)
+    const shipping = normalizeShippingDetails(body)
 
-    if (body.email !== req.user.email) {
+    if (shipping.email !== req.user.email) {
       throw new HttpError(400, "L'email del checkout deve corrispondere all'utente autenticato")
     }
 
@@ -397,14 +400,7 @@ router.post(
       data: {
         orderReference,
         userId: req.user.id,
-        email: body.email,
-        firstName: body.firstName,
-        lastName: body.lastName,
-        addressLine1: body.addressLine1,
-        addressLine2: body.addressLine2,
-        city: body.city,
-        postalCode: body.postalCode,
-        country: body.country,
+        ...shipping,
         status: "pending",
         subtotal: pricing.subtotal,
         discountTotal: pricing.discountTotal,
