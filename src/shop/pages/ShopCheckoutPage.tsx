@@ -70,7 +70,7 @@ export function ShopCheckoutPage() {
       body: JSON.stringify({
         items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null })),
         couponCode: couponCode || null,
-        shippingMethod: form.shippingMethod,
+        shippingMethod: form.shippingMethod || null,
       }),
     })
       .then((data) => {
