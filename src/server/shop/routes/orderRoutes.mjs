@@ -10,6 +10,7 @@ import { calculatePricing } from "../services/pricing.mjs"
 import { buildPaypalRedirect } from "../services/paypal.mjs"
 import { notifyAdminOrderCompleted } from "../services/order-notifications.mjs"
 import { syncProductVariants } from "../lib/product-variants.mjs"
+import { normalizeFulfillmentStatus, normalizeTrackingUrl } from "../../../shop/lib/order-progress.mjs"
 
 const router = Router()
 const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
@@ -75,11 +76,13 @@ function buildOrderRecordFromCheckoutSession(session) {
     postalCode: session.postalCode,
     country: session.country,
     status: "paid",
+    fulfillmentStatus: "processing",
     subtotal: session.subtotal,
     discountTotal: session.discountTotal,
     shippingTotal: session.shippingTotal,
     total: session.total,
     couponCode: session.couponCode,
+    trackingUrl: null,
     pricingBreakdown: session.pricingBreakdown,
     items: {
       create: items.map((item) => ({
@@ -135,7 +138,14 @@ router.get(
       orderBy: { createdAt: "desc" },
     })
 
-    res.json(orders.map((order) => ({ ...order, pricingBreakdown: JSON.parse(order.pricingBreakdown) })))
+    res.json(
+      orders.map((order) => ({
+        ...order,
+        fulfillmentStatus: normalizeFulfillmentStatus(order.fulfillmentStatus),
+        trackingUrl: normalizeTrackingUrl(order.trackingUrl),
+        pricingBreakdown: JSON.parse(order.pricingBreakdown),
+      })),
+    )
   })
 )
 
@@ -159,6 +169,8 @@ router.get(
 
       res.json({
         ...order,
+        fulfillmentStatus: normalizeFulfillmentStatus(order.fulfillmentStatus),
+        trackingUrl: normalizeTrackingUrl(order.trackingUrl),
         pricingBreakdown: JSON.parse(order.pricingBreakdown),
       })
       return
@@ -301,10 +313,12 @@ router.post(
       }
 
       res.json({
-        order: {
-          ...updated,
-          pricingBreakdown: JSON.parse(updated.pricingBreakdown),
-        },
+      order: {
+        ...updated,
+        fulfillmentStatus: normalizeFulfillmentStatus(updated.fulfillmentStatus),
+        trackingUrl: normalizeTrackingUrl(updated.trackingUrl),
+        pricingBreakdown: JSON.parse(updated.pricingBreakdown),
+      },
       })
       return
     }
@@ -353,6 +367,8 @@ router.post(
     res.json({
       order: {
         ...createdOrder,
+        fulfillmentStatus: normalizeFulfillmentStatus(createdOrder.fulfillmentStatus),
+        trackingUrl: normalizeTrackingUrl(createdOrder.trackingUrl),
         pricingBreakdown: JSON.parse(createdOrder.pricingBreakdown),
       },
     })

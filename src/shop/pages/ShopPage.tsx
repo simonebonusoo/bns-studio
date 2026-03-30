@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
-import { getButtonClassName } from "../../components/Button"
+import { Button, getButtonClassName } from "../../components/Button"
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
 import { scrollCatalogSectionToTop } from "../lib/catalog-navigation.mjs"
+import { persistHomeReturnState, resolveHomeReturnState } from "../lib/home-return.mjs"
 import { AdminCollection, ShopProduct, ShopProductListResponse } from "../types"
 
 const SORT_OPTIONS = [
@@ -20,6 +21,8 @@ const PAGE_SIZE = 12
 
 export function ShopPage() {
   const previousPageRef = useRef<number | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
@@ -27,6 +30,7 @@ export function ShopPage() {
   const [catalogError, setCatalogError] = useState("")
   const [searchParams, setSearchParams] = useSearchParams()
   const previousEditorialContext = useRef("")
+  const [homeReturnState, setHomeReturnState] = useState(() => resolveHomeReturnState(null))
 
   const filters = useMemo(
     () => {
@@ -54,6 +58,10 @@ export function ShopPage() {
   useEffect(() => {
     apiFetch<AdminCollection[]>("/store/collections").then(setCollections).catch(() => setCollections([]))
   }, [])
+
+  useEffect(() => {
+    setHomeReturnState(resolveHomeReturnState(location.state))
+  }, [location.state])
 
   useEffect(() => {
     if (previousPageRef.current === null) {
@@ -193,6 +201,31 @@ export function ShopPage() {
       eyebrow=""
       title={pageContextLabel}
       intro=""
+      actions={
+        homeReturnState ? (
+          <Button
+            variant="profile"
+            size="sm"
+            onClick={() => {
+              persistHomeReturnState(homeReturnState)
+              navigate(homeReturnState.homePathname || "/", {
+                state: {
+                  restoreHomeFromShop: true,
+                  restoreHomeScrollY: homeReturnState.homeScrollY,
+                },
+              })
+            }}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+                <path d="M18 12H6" />
+                <path d="m11 17-5-5 5-5" />
+              </svg>
+            }
+          >
+            Torna indietro
+          </Button>
+        ) : undefined
+      }
     >
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
         <div className="border-b border-white/10 pb-4">

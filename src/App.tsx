@@ -32,6 +32,7 @@ import { ShopAdminPage } from "./shop/pages/ShopAdminPage"
 import { ShopPaypalReturnPage } from "./shop/pages/ShopPaypalReturnPage"
 import { ShopAdminRoute, ShopCustomerRoute, ShopProtectedRoute } from "./shop/components/ShopProtectedRoute"
 import { apiFetch } from "./shop/lib/api"
+import { clearHomeReturnState, readHomeReturnState } from "./shop/lib/home-return.mjs"
 
 declare global {
   interface Window {
@@ -40,6 +41,26 @@ declare global {
 }
 
 function Home() {
+  const location = useLocation()
+
+  useEffect(() => {
+    const state = location.state as { restoreHomeFromShop?: boolean; restoreHomeScrollY?: number } | null
+    const stored = readHomeReturnState()
+    const nextY = Number.isFinite(state?.restoreHomeScrollY) ? Number(state?.restoreHomeScrollY) : stored?.homeScrollY
+    const storedIsFresh = Boolean(stored?.savedAt && Date.now() - stored.savedAt < 15000)
+    const shouldRestore = Boolean(state?.restoreHomeFromShop) || (storedIsFresh && Number.isFinite(nextY))
+
+    if (!shouldRestore || !Number.isFinite(nextY)) {
+      return
+    }
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, nextY)
+      window.__lenis?.scrollTo(nextY, { immediate: true } as any)
+      clearHomeReturnState()
+    })
+  }, [location.key, location.state])
+
   return (
     <main id="top">
       <Hero />

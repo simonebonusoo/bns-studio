@@ -1472,12 +1472,12 @@ export function ShopAdminPage() {
           loadingProfitOrderId={loadingProfitOrderId}
           containWheel={containWheel}
           onOpenOrderProfit={openOrderProfit}
-          onUpdateOrderStatus={async (orderId, status) => {
+          onUpdateOrderStatus={async (orderId, payload) => {
             clearFeedback()
             try {
               await apiFetch(`/admin/orders/${orderId}`, {
                 method: "PATCH",
-                body: JSON.stringify({ status }),
+                body: JSON.stringify(payload),
               })
               await refresh()
               setMessage("Stato ordine aggiornato.")

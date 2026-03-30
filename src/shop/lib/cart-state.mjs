@@ -107,7 +107,18 @@ export function updateCartItem(currentItems, productId, quantity, selection) {
 }
 
 export function removeCartItem(currentItems, productId, selection) {
-  return currentItems.filter((item) => !(item.productId === productId && selectionMatches(item, selection || item)))
+  return currentItems
+    .map((item) => {
+      if (!(item.productId === productId && selectionMatches(item, selection || item))) {
+        return item
+      }
+
+      return {
+        ...item,
+        quantity: item.quantity - 1,
+      }
+    })
+    .filter((item) => item.quantity > 0)
 }
 
 export function beginCheckoutCart(product, quantity = 1, selection = {}) {

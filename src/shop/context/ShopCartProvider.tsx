@@ -17,6 +17,7 @@ type CartContextValue = {
   beginCheckout: (product: ShopProduct, quantity?: number, selection?: VariantSelection) => void
   updateItem: (productId: number, quantity: number, selection?: VariantSelection) => void
   removeItem: (productId: number, selection?: VariantSelection) => void
+  decrementItem: (productId: number, selection?: VariantSelection) => void
   clearCart: () => void
 }
 
@@ -54,6 +55,10 @@ export function ShopCartProvider({ children }: { children: React.ReactNode }) {
     setItems((current) => removeCartItem(current, productId, selection))
   }
 
+  function decrementItem(productId: number, selection?: VariantSelection) {
+    setItems((current) => removeCartItem(current, productId, selection))
+  }
+
   function beginCheckout(product: ShopProduct, quantity = 1, selection?: VariantSelection) {
     setItems(beginCheckoutCart(product, quantity, selection))
     setCouponCode("")
@@ -65,7 +70,7 @@ export function ShopCartProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <CartContext.Provider value={{ items, couponCode, setCouponCode, addItem, beginCheckout, updateItem, removeItem, clearCart }}>
+    <CartContext.Provider value={{ items, couponCode, setCouponCode, addItem, beginCheckout, updateItem, removeItem, decrementItem, clearCart }}>
       {children}
     </CartContext.Provider>
   )

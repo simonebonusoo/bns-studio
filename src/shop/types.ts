@@ -178,11 +178,13 @@ export type ShopOrder = {
   postalCode: string
   country: string
   status: string
+  fulfillmentStatus?: string | null
   subtotal: number
   discountTotal: number
   shippingTotal: number
   total: number
   couponCode?: string | null
+  trackingUrl?: string | null
   createdAt: string
   pricingBreakdown: ShopPricing
   items: ShopOrderItem[]

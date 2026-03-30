@@ -18,6 +18,7 @@ import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredP
 import { assertFeaturedProductLimit } from "../lib/product-featured.mjs"
 import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
 import { buildLegacyProductFieldsFromVariants, deriveLegacyVariantsFromProduct, serializeProductVariants, syncProductVariants } from "../lib/product-variants.mjs"
+import { normalizeFulfillmentStatus, normalizeTrackingUrl } from "../../../shop/lib/order-progress.mjs"
 
 const router = Router()
 const uploadsDir = resolveProductUploadsDir()
@@ -1126,7 +1127,14 @@ router.get(
       orderBy: { createdAt: "desc" },
     })
 
-    res.json(orders.map((order) => ({ ...order, pricingBreakdown: JSON.parse(order.pricingBreakdown) })))
+    res.json(
+      orders.map((order) => ({
+        ...order,
+        fulfillmentStatus: normalizeFulfillmentStatus(order.fulfillmentStatus),
+        trackingUrl: normalizeTrackingUrl(order.trackingUrl),
+        pricingBreakdown: JSON.parse(order.pricingBreakdown),
+      })),
+    )
   })
 )
 
@@ -1190,7 +1198,13 @@ router.put(
 router.patch(
   "/orders/:id",
   asyncHandler(async (req, res) => {
-    const body = z.object({ status: z.enum(["pending", "paid", "shipped"]) }).parse(req.body)
+    const body = z
+      .object({
+        status: z.enum(["pending", "paid", "shipped"]).optional(),
+        fulfillmentStatus: z.enum(["processing", "accepted", "in_progress", "shipped", "completed"]).optional(),
+        trackingUrl: z.string().trim().nullable().optional(),
+      })
+      .parse(req.body)
     const existingOrder = await prisma.order.findUnique({
       where: { id: Number(req.params.id) },
       include: { user: { select: { role: true } } },
@@ -1207,7 +1221,11 @@ router.patch(
     res.json(
       await prisma.order.update({
         where: { id: Number(req.params.id) },
-        data: { status: body.status },
+        data: {
+          ...(body.status ? { status: body.status } : {}),
+          ...(body.fulfillmentStatus ? { fulfillmentStatus: body.fulfillmentStatus } : {}),
+          trackingUrl: body.trackingUrl ? body.trackingUrl : null,
+        },
       })
     )
   })

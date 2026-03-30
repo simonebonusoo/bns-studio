@@ -12,7 +12,7 @@ import { ShopPricing } from "../types"
 
 export function ShopCartPage() {
   const { user, loading, effectiveRole } = useShopAuth()
-  const { items, updateItem, removeItem, couponCode, setCouponCode } = useShopCart()
+  const { items, updateItem, decrementItem, couponCode, setCouponCode } = useShopCart()
   const [pricing, setPricing] = useState<ShopPricing | null>(null)
   const [error, setError] = useState("")
 
@@ -104,7 +104,7 @@ export function ShopCartPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                  onClick={() => decrementItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
                   className={getButtonClassName({ variant: "cart", size: "sm" })}
                 >
                   Rimuovi

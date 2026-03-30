@@ -45,6 +45,8 @@ test("serializeCheckoutSessionAsPendingOrder returns a pending pseudo-order for 
   assert.equal(order.id, 0)
   assert.equal(order.orderReference, "BNS-TEST-123")
   assert.equal(order.status, "pending")
+  assert.equal(order.fulfillmentStatus, "processing")
+  assert.equal(order.trackingUrl, null)
   assert.equal(order.items.length, 1)
   assert.equal(order.items[0].variantId, 10)
   assert.equal(order.items[0].unitCost, 800)

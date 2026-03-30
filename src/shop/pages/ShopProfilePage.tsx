@@ -7,7 +7,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
-import { getOrderStatusLabel } from "../lib/order"
+import { getOrderFulfillmentStatusLabel, getOrderFulfillmentSteps, getOrderStatusLabel } from "../lib/order"
 import { ShopOrder, ShopSettings } from "../types"
 
 export function ShopProfilePage() {
@@ -56,9 +56,10 @@ export function ShopProfilePage() {
           <article key={order.id} className="shop-card space-y-4 p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <span className="shop-pill">{getOrderStatusLabel(order.status)}</span>
+                <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
                 <h2 className="mt-3 text-xl font-semibold text-white">{order.orderReference}</h2>
                 <p className="mt-1 text-sm text-white/55">{new Date(order.createdAt).toLocaleString("it-IT")}</p>
+                <p className="mt-2 text-sm text-white/62">Pagamento: {getOrderStatusLabel(order.status)}</p>
               </div>
               <div className="text-right text-sm text-white/70">
                 <p>Totale</p>
@@ -70,6 +71,29 @@ export function ShopProfilePage() {
               <div className="flex items-center justify-between"><span>Sconti</span><span>{formatPrice(order.discountTotal)}</span></div>
               <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(order.shippingTotal)}</span></div>
             </div>
+
+            <div className="grid gap-2 sm:grid-cols-5">
+              {getOrderFulfillmentSteps(order.fulfillmentStatus).map((step) => (
+                <div
+                  key={step.key}
+                  className={`rounded-2xl border px-3 py-3 text-center text-[11px] uppercase tracking-[0.18em] ${
+                    step.current
+                      ? "border-[#e3f503]/30 bg-[#e3f503]/12 text-[#eef879]"
+                      : step.active
+                        ? "border-white/18 bg-white/[0.06] text-white/78"
+                        : "border-white/10 text-white/35"
+                  }`}
+                >
+                  {step.label}
+                </div>
+              ))}
+            </div>
+
+            {order.trackingUrl ? (
+              <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="inline-flex text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">
+                Traccia spedizione
+              </a>
+            ) : null}
 
             <div className="flex flex-wrap gap-3">
               <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>

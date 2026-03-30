@@ -70,7 +70,19 @@ test("updateCartItem removes the row when quantity reaches zero", () => {
   assert.equal(updated.length, 0)
 })
 
-test("removeCartItem removes only the targeted variant row", () => {
+test("removeCartItem decrements one quantity and removes the row only when it reaches zero", () => {
+  const items = addCartItem(addCartItem([], product, 2, { variantId: 101 }), product, 1, { variantId: 102 })
+  const updated = removeCartItem(items, product.id, { variantId: 101 })
+
+  assert.equal(updated.length, 2)
+  assert.equal(updated.find((item) => item.variantId === 101)?.quantity, 1)
+
+  const removed = removeCartItem(updated, product.id, { variantId: 101 })
+  assert.equal(removed.length, 1)
+  assert.equal(removed[0].variantId, 102)
+})
+
+test("removeCartItem does not affect other variants when decrementing", () => {
   const items = addCartItem(addCartItem([], product, 1, { variantId: 101 }), product, 1, { variantId: 102 })
   const updated = removeCartItem(items, product.id, { variantId: 101 })
 

@@ -7,7 +7,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
-import { getOrderStatusLabel } from "../lib/order"
+import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
 import { ShopOrder, ShopPayment, ShopSettings } from "../types"
 
 const PAYPAL_UI_ERROR = "Pagamento PayPal momentaneamente non disponibile. Riprova tra poco."
@@ -128,7 +128,13 @@ export function ShopReceiptPage() {
         </section>
 
         <aside className="shop-card space-y-4 p-6">
-          <span className="shop-pill">{getOrderStatusLabel(order.status)}</span>
+          <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
+          <p className="text-sm text-white/55">Pagamento: {getOrderStatusLabel(order.status)}</p>
+          {order.trackingUrl ? (
+            <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">
+              Traccia spedizione
+            </a>
+          ) : null}
           {!isAdminView && paymentCancelled ? <p className="text-sm text-amber-200">Pagamento annullato. Puoi riprovare con PayPal quando vuoi.</p> : null}
           <div className="space-y-3 text-sm text-white/70">
             <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.subtotal)}</span></div>
