@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom"
 import { useShopAuth } from "../context/ShopAuthProvider"
+import { canAccessCustomerCheckout } from "../lib/route-access.mjs"
 
 export function ShopProtectedRoute({ children }: { children: JSX.Element }) {
   const { user, loading } = useShopAuth()
@@ -35,7 +36,7 @@ export function ShopAdminRoute({ children }: { children: JSX.Element }) {
 }
 
 export function ShopCustomerRoute({ children }: { children: JSX.Element }) {
-  const { user, loading } = useShopAuth()
+  const { user, loading, effectiveRole } = useShopAuth()
   const location = useLocation()
 
   if (loading) {
@@ -46,7 +47,9 @@ export function ShopCustomerRoute({ children }: { children: JSX.Element }) {
     return <Navigate to={{ pathname: "/", search: "?profile=open" }} replace state={{ redirectTo: location.pathname }} />
   }
 
-  if (user.role !== "customer") {
+  const access = canAccessCustomerCheckout({ user, effectiveRole })
+
+  if (!access.allowed && access.reason === "not_customer") {
     return <Navigate to="/shop/cart" replace />
   }
 
