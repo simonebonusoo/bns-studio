@@ -19,7 +19,6 @@ const SORT_OPTIONS = [
 const PAGE_SIZE = 12
 
 export function ShopPage() {
-  const catalogTopRef = useRef<HTMLDivElement | null>(null)
   const previousPageRef = useRef<number | null>(null)
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
@@ -169,7 +168,6 @@ export function ShopPage() {
       title={pageContextLabel}
       intro=""
     >
-      <div ref={catalogTopRef} />
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
         <div className="border-b border-white/10 pb-4">
           <div>
