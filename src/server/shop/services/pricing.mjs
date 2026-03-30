@@ -3,12 +3,9 @@ import { HttpError } from "../lib/http.mjs"
 import { getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { isProductPurchasable } from "../lib/product-status.mjs"
 import { resolveSelectedVariant } from "../lib/product-variants.mjs"
+import { calculateShippingCharge, normalizeShippingMethod } from "../../../shop/lib/shipping-methods.mjs"
 
-function getSetting(settings, key, fallback) {
-  return settings.find((entry) => entry.key === key)?.value ?? fallback
-}
-
-export async function calculatePricing(cartItems, couponCode) {
+export async function calculatePricing(cartItems, couponCode, options = {}) {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
     throw new HttpError(400, "Il carrello è vuoto")
   }
@@ -29,13 +26,11 @@ export async function calculatePricing(cartItems, couponCode) {
     throw new HttpError(400, "Uno o più prodotti non sono validi")
   }
 
-  const settings = await prisma.setting.findMany()
   const rules = await prisma.discountRule.findMany({
     where: { active: true },
     orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
   })
-
-  const shippingBase = Number(getSetting(settings, "shippingCost", "900"))
+  const shippingMethod = normalizeShippingMethod(options.shippingMethod)
 
   const items = cartItems.map((item) => {
     const product = products.find((entry) => entry.id === item.productId)
@@ -88,7 +83,8 @@ export async function calculatePricing(cartItems, couponCode) {
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
 
   let automaticDiscount = 0
-  let shippingTotal = shippingBase
+  const shippingPricing = calculateShippingCharge({ shippingMethod, rules, itemCount })
+  let shippingTotal = shippingPricing.shippingTotal
   const appliedRules = []
   const now = new Date()
 
@@ -110,11 +106,9 @@ export async function calculatePricing(cartItems, couponCode) {
       appliedRules.push({ type: "automatic", label: rule.name, amount })
     }
 
-    if (rule.ruleType === "free_shipping_quantity" && itemCount >= rule.threshold) {
-      shippingTotal = 0
-      appliedRules.push({ type: "shipping", label: rule.name, amount: shippingBase })
-    }
   }
+
+  appliedRules.push(...shippingPricing.appliedRules)
 
   let couponDiscount = 0
   let appliedCoupon = null
@@ -150,8 +144,12 @@ export async function calculatePricing(cartItems, couponCode) {
 
   return {
     items,
+    shippingMethod: shippingPricing.shippingMethod,
+    shippingCarrier: shippingPricing.shippingCarrier,
+    shippingLabel: shippingPricing.shippingLabel,
+    shippingCost: shippingPricing.shippingCost,
     subtotal,
-    shippingBase,
+    shippingBase: shippingPricing.shippingBase,
     shippingTotal,
     automaticDiscount,
     couponDiscount,

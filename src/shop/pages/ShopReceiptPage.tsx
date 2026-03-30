@@ -7,7 +7,8 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
-import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
+import { getOrderFulfillmentStatusLabel, getOrderShippingStatusLabel, getOrderStatusLabel } from "../lib/order"
+import { formatShippingMethodSummary } from "../lib/shipping-methods.mjs"
 import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
 import { ShopOrder, ShopPayment, ShopSettings } from "../types"
 
@@ -133,6 +134,10 @@ export function ShopReceiptPage() {
         <aside className="shop-card space-y-4 p-6">
           <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
           <p className="text-sm text-white/55">Pagamento: {getOrderStatusLabel(order.status)}</p>
+          {order.shippingMethod ? <p className="text-sm text-white/60">{formatShippingMethodSummary(order.shippingMethod)}</p> : null}
+          {order.shippingCarrier ? <p className="text-sm text-white/60">Corriere: {String(order.shippingCarrier).toUpperCase()}</p> : null}
+          <p className="text-sm text-white/60">Stato spedizione: {getOrderShippingStatusLabel(order.shippingStatus, order.fulfillmentStatus)}</p>
+          {order.trackingNumber ? <p className="text-sm text-white/60">Tracking: {order.trackingNumber}</p> : null}
           {order.trackingUrl ? (
             <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">
               Traccia spedizione
@@ -142,7 +147,7 @@ export function ShopReceiptPage() {
           <div className="space-y-3 text-sm text-white/70">
             <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.subtotal)}</span></div>
             <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(order.discountTotal)}</span></div>
-            <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(order.shippingTotal)}</span></div>
+            <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
             <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(order.total)}</span></div>
           </div>
           {!isAdminView && !isPaid && payment ? (

@@ -7,7 +7,8 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
-import { getOrderFulfillmentStatusLabel, getOrderFulfillmentSteps, getOrderStatusLabel } from "../lib/order"
+import { getOrderFulfillmentStatusLabel, getOrderFulfillmentSteps, getOrderShippingStatusLabel, getOrderStatusLabel } from "../lib/order"
+import { formatShippingMethodSummary } from "../lib/shipping-methods.mjs"
 import { ShopOrder, ShopSettings } from "../types"
 
 export function ShopProfilePage() {
@@ -69,7 +70,14 @@ export function ShopProfilePage() {
 
             <div className="space-y-2 text-sm text-white/65">
               <div className="flex items-center justify-between"><span>Sconti</span><span>{formatPrice(order.discountTotal)}</span></div>
-              <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(order.shippingTotal)}</span></div>
+              <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
+            </div>
+
+            <div className="space-y-1 text-sm text-white/60">
+              {order.shippingMethod ? <p>{formatShippingMethodSummary(order.shippingMethod)}</p> : null}
+              {order.shippingCarrier ? <p>Corriere: {String(order.shippingCarrier).toUpperCase()}</p> : null}
+              <p>Stato spedizione: {getOrderShippingStatusLabel(order.shippingStatus, order.fulfillmentStatus)}</p>
+              {order.trackingNumber ? <p>Tracking: {order.trackingNumber}</p> : null}
             </div>
 
             <div className="grid gap-2 sm:grid-cols-5">

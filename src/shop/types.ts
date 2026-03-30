@@ -139,6 +139,10 @@ export type PricingItem = {
 
 export type ShopPricing = {
   items: PricingItem[]
+  shippingMethod?: string | null
+  shippingCarrier?: string | null
+  shippingLabel?: string | null
+  shippingCost?: number | null
   subtotal: number
   shippingBase: number
   shippingTotal: number
@@ -187,12 +191,22 @@ export type ShopOrder = {
   country: string
   status: string
   fulfillmentStatus?: string | null
+  shippingMethod?: string | null
+  shippingCarrier?: string | null
+  shippingLabel?: string | null
+  shippingStatus?: string | null
+  shippingCost?: number | null
+  trackingNumber?: string | null
   subtotal: number
   discountTotal: number
   shippingTotal: number
   total: number
   couponCode?: string | null
   trackingUrl?: string | null
+  shippingCreatedAt?: string | null
+  dhlShipmentReference?: string | null
+  labelUrl?: string | null
+  shippingError?: string | null
   createdAt: string
   pricingBreakdown: ShopPricing
   items: ShopOrderItem[]

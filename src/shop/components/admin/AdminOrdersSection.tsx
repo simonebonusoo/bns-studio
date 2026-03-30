@@ -4,7 +4,8 @@ import { Link } from "react-router-dom"
 import { getButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 import { downloadInvoicePdf } from "../../lib/invoice"
-import { getOrderFulfillmentStatusLabel } from "../../lib/order"
+import { getOrderFulfillmentStatusLabel, getOrderShippingStatusLabel } from "../../lib/order"
+import { formatShippingMethodSummary } from "../../lib/shipping-methods.mjs"
 import { ShopOrder, ShopSettings } from "../../types"
 
 type AdminOrdersSectionProps = {
@@ -13,7 +14,7 @@ type AdminOrdersSectionProps = {
   loadingProfitOrderId: number | null
   containWheel: (event: React.WheelEvent<HTMLElement>) => void
   onOpenOrderProfit: (orderId: number) => void
-  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; trackingUrl: string }) => void
+  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; trackingUrl: string }) => void
 }
 
 export function AdminOrdersSection({
@@ -23,7 +24,7 @@ export function AdminOrdersSection({
   onOpenOrderProfit,
   onUpdateOrderStatus,
 }: AdminOrdersSectionProps) {
-  const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; trackingUrl: string }>>({})
+  const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; trackingUrl: string }>>({})
 
   useEffect(() => {
     setDrafts(
@@ -32,6 +33,8 @@ export function AdminOrdersSection({
           order.id,
           {
             fulfillmentStatus: order.fulfillmentStatus || "processing",
+            shippingStatus: order.shippingStatus || "pending",
+            trackingNumber: order.trackingNumber || "",
             trackingUrl: order.trackingUrl || "",
           },
         ]),
@@ -51,6 +54,12 @@ export function AdminOrdersSection({
             <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">
               Cliente: {getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}
             </p>
+            <div className="mt-3 space-y-1 text-sm text-white/55">
+              {order.shippingMethod ? <p>{formatShippingMethodSummary(order.shippingMethod)}</p> : null}
+              {order.shippingCarrier ? <p>Corriere: {String(order.shippingCarrier).toUpperCase()}</p> : null}
+              <p>Stato spedizione: {getOrderShippingStatusLabel(order.shippingStatus, order.fulfillmentStatus)}</p>
+              {order.trackingNumber ? <p>Tracking: {order.trackingNumber}</p> : null}
+            </div>
           </div>
           <div className="flex flex-col items-stretch gap-3 lg:min-w-[320px]">
             <div className="flex flex-wrap gap-2">
@@ -66,14 +75,17 @@ export function AdminOrdersSection({
                 </button>
               ) : null}
             </div>
-            <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_auto]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)]">
               <select
                 className="shop-select"
                 value={drafts[order.id]?.fulfillmentStatus || "processing"}
                 onChange={(event) =>
                   setDrafts((current) => ({
                     ...current,
-                    [order.id]: { ...(current[order.id] || { trackingUrl: "" }), fulfillmentStatus: event.target.value },
+                    [order.id]: {
+                      ...(current[order.id] || { shippingStatus: "pending", trackingNumber: "", trackingUrl: "" }),
+                      fulfillmentStatus: event.target.value,
+                    },
                   }))
                 }
               >
@@ -85,18 +97,57 @@ export function AdminOrdersSection({
               </select>
               <input
                 className="shop-input"
+                placeholder="Tracking number"
+                value={drafts[order.id]?.trackingNumber || ""}
+                onChange={(event) =>
+                  setDrafts((current) => ({
+                    ...current,
+                    [order.id]: {
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingUrl: "" }),
+                      trackingNumber: event.target.value,
+                    },
+                  }))
+                }
+              />
+              <select
+                className="shop-select"
+                value={drafts[order.id]?.shippingStatus || "pending"}
+                onChange={(event) =>
+                  setDrafts((current) => ({
+                    ...current,
+                    [order.id]: {
+                      ...(current[order.id] || { fulfillmentStatus: "processing", trackingNumber: "", trackingUrl: "" }),
+                      shippingStatus: event.target.value,
+                    },
+                  }))
+                }
+              >
+                <option value="pending">Spedizione in preparazione</option>
+                <option value="accepted">Spedizione accettata</option>
+                <option value="shipped">Spedizione spedita</option>
+                <option value="failed">Spedizione da completare</option>
+              </select>
+              <input
+                className="shop-input"
                 placeholder="Link tracking opzionale"
                 value={drafts[order.id]?.trackingUrl || ""}
                 onChange={(event) =>
                   setDrafts((current) => ({
                     ...current,
-                    [order.id]: { ...(current[order.id] || { fulfillmentStatus: "processing" }), trackingUrl: event.target.value },
+                    [order.id]: {
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "" }),
+                      trackingUrl: event.target.value,
+                    },
                   }))
                 }
               />
+            </div>
+            <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => onUpdateOrderStatus(order.id, drafts[order.id] || { fulfillmentStatus: "processing", trackingUrl: "" })}
+                onClick={() =>
+                  onUpdateOrderStatus(order.id, drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", trackingUrl: "" })
+                }
                 className={getButtonClassName({ variant: "cart", size: "sm" })}
               >
                 Salva

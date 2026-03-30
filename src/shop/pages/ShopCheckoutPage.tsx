@@ -9,6 +9,7 @@ import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
+import { DEFAULT_SHIPPING_METHOD, formatShippingMethodSummary, getShippingMethodOptions } from "../lib/shipping-methods.mjs"
 import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
 import { ShopOrder, ShopPayment, ShopPricing, ShopSettings } from "../types"
 
@@ -53,9 +54,11 @@ export function ShopCheckoutPage() {
     floor: "",
     intercom: "",
     deliveryNotes: "",
+    shippingMethod: DEFAULT_SHIPPING_METHOD,
   })
 
   const stepIndex = useMemo(() => ["review", "details", "payment"].indexOf(step) + 1, [step])
+  const shippingMethods = useMemo(() => getShippingMethodOptions(), [])
 
   useEffect(() => {
     if (!items.length) {
@@ -68,6 +71,7 @@ export function ShopCheckoutPage() {
       body: JSON.stringify({
         items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null })),
         couponCode: couponCode || null,
+        shippingMethod: form.shippingMethod,
       }),
     })
       .then((data) => {
@@ -78,7 +82,7 @@ export function ShopCheckoutPage() {
         setPricing(null)
         setError(err instanceof Error ? err.message : "Errore durante il calcolo del riepilogo.")
       })
-  }, [couponCode, items])
+  }, [couponCode, form.shippingMethod, items])
 
   useEffect(() => {
     if (!user) return
@@ -121,6 +125,11 @@ export function ShopCheckoutPage() {
           floor: form.floor || null,
           intercom: form.intercom || null,
           deliveryNotes: form.deliveryNotes || null,
+          shippingMethod: pricing.shippingMethod || form.shippingMethod,
+          shippingCarrier: pricing.shippingCarrier || null,
+          shippingLabel: pricing.shippingLabel || formatShippingMethodSummary(form.shippingMethod),
+          shippingStatus: "pending",
+          shippingCost: pricing.shippingCost ?? pricing.shippingBase,
           status: "preview",
           fulfillmentStatus: "processing",
           subtotal: pricing.subtotal,
@@ -128,6 +137,12 @@ export function ShopCheckoutPage() {
           shippingTotal: pricing.shippingTotal,
           total: pricing.total,
           couponCode: couponCode || null,
+          trackingNumber: null,
+          trackingUrl: null,
+          shippingCreatedAt: null,
+          dhlShipmentReference: null,
+          labelUrl: null,
+          shippingError: null,
           createdAt: new Date().toISOString(),
           pricingBreakdown: pricing,
           items: pricing.items.map((item, index) => ({
@@ -157,6 +172,7 @@ export function ShopCheckoutPage() {
         body: JSON.stringify({
           ...form,
           couponCode: couponCode || null,
+          shippingMethod: form.shippingMethod,
           items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null })),
         }),
       })
@@ -284,7 +300,7 @@ export function ShopCheckoutPage() {
               <div className="space-y-3 text-sm text-white/70">
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
-                <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
+                <div className="flex items-center justify-between"><span>{pricing.shippingLabel || "Spedizione"}</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
                 <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
               </div>
             ) : (
@@ -343,6 +359,39 @@ export function ShopCheckoutPage() {
               <input className="shop-input" placeholder="Piano" value={form.floor} onChange={(event) => setForm({ ...form, floor: event.target.value })} />
               <input className="shop-input" placeholder="Citofono" value={form.intercom} onChange={(event) => setForm({ ...form, intercom: event.target.value })} />
             </div>
+            <div className="space-y-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-white/45">Metodo di spedizione</p>
+                <h3 className="mt-2 text-lg font-semibold text-white">Scegli la spedizione</h3>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {shippingMethods.map((method) => {
+                  const active = form.shippingMethod === method.key
+                  return (
+                    <button
+                      key={method.key}
+                      type="button"
+                      onClick={() => setForm({ ...form, shippingMethod: method.key })}
+                      className={`rounded-[22px] border p-4 text-left transition ${
+                        active
+                          ? "border-[#e3f503]/40 bg-[#e3f503]/10"
+                          : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">{method.label}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/45">{method.carrierLabel}</p>
+                        </div>
+                        <span className={`mt-0.5 h-4 w-4 rounded-full border ${active ? "border-[#e3f503] bg-[#e3f503]" : "border-white/25"}`} />
+                      </div>
+                      <p className="mt-3 text-sm text-white/62">{method.description}</p>
+                      <p className="mt-4 text-sm font-medium text-[#eef879]">{formatPrice(method.cost)}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
             <textarea className="shop-input min-h-[116px] resize-y py-3" placeholder="Note consegna (opzionale)" value={form.deliveryNotes} onChange={(event) => setForm({ ...form, deliveryNotes: event.target.value })} />
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             <div className="flex flex-wrap gap-3">
@@ -382,7 +431,8 @@ export function ShopCheckoutPage() {
                 </div>
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
-                <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
+                <div className="flex items-center justify-between"><span>{pricing.shippingLabel || "Spedizione"}</span><span>{formatPrice(pricing.shippingTotal)}</span></div>
+                {pricing.shippingMethod ? <div className="text-xs text-white/45">{formatShippingMethodSummary(pricing.shippingMethod)}</div> : null}
                 <div className="flex items-center justify-between text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
               </div>
             ) : null}
@@ -425,7 +475,8 @@ export function ShopCheckoutPage() {
             <div className="space-y-3 text-sm text-white/70">
               <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.subtotal)}</span></div>
               <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(order.discountTotal)}</span></div>
-              <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(order.shippingTotal)}</span></div>
+              <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
+              {order.shippingMethod ? <div className="text-xs text-white/45">{formatShippingMethodSummary(order.shippingMethod)}</div> : null}
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(order.total)}</span></div>
             </div>
             {user?.role === "admin" && isGuestPreview ? (

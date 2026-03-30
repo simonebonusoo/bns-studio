@@ -18,7 +18,7 @@ import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredP
 import { assertFeaturedProductLimit } from "../lib/product-featured.mjs"
 import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
 import { buildLegacyProductFieldsFromVariants, deriveLegacyVariantsFromProduct, serializeProductVariants, syncProductVariants } from "../lib/product-variants.mjs"
-import { normalizeFulfillmentStatus, normalizeTrackingUrl } from "../../../shop/lib/order-progress.mjs"
+import { serializeShopOrder } from "../lib/order-serialization.mjs"
 
 const router = Router()
 const uploadsDir = resolveProductUploadsDir()
@@ -1128,12 +1128,7 @@ router.get(
     })
 
     res.json(
-      orders.map((order) => ({
-        ...order,
-        fulfillmentStatus: normalizeFulfillmentStatus(order.fulfillmentStatus),
-        trackingUrl: normalizeTrackingUrl(order.trackingUrl),
-        pricingBreakdown: JSON.parse(order.pricingBreakdown),
-      })),
+      orders.map((order) => serializeShopOrder(order)),
     )
   })
 )
@@ -1202,6 +1197,8 @@ router.patch(
       .object({
         status: z.enum(["pending", "paid", "shipped"]).optional(),
         fulfillmentStatus: z.enum(["processing", "accepted", "in_progress", "shipped", "completed"]).optional(),
+        shippingStatus: z.enum(["pending", "accepted", "shipped", "failed"]).optional(),
+        trackingNumber: z.string().trim().nullable().optional(),
         trackingUrl: z.string().trim().nullable().optional(),
       })
       .parse(req.body)
@@ -1224,6 +1221,8 @@ router.patch(
         data: {
           ...(body.status ? { status: body.status } : {}),
           ...(body.fulfillmentStatus ? { fulfillmentStatus: body.fulfillmentStatus } : {}),
+          ...(body.shippingStatus ? { shippingStatus: body.shippingStatus } : {}),
+          trackingNumber: body.trackingNumber ? body.trackingNumber : null,
           trackingUrl: body.trackingUrl ? body.trackingUrl : null,
         },
       })

@@ -1480,7 +1480,7 @@ export function ShopAdminPage() {
                 body: JSON.stringify(payload),
               })
               await refresh()
-              setMessage("Stato ordine aggiornato.")
+              setMessage("Ordine aggiornato.")
             } catch (err) {
               setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento dell'ordine.")
             }

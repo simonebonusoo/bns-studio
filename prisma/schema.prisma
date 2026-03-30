@@ -158,12 +158,22 @@ model Order {
   country          String
   status           String      @default("pending")
   fulfillmentStatus String     @default("processing")
+  shippingMethod   String?
+  shippingCarrier  String?
+  shippingLabel    String?
+  shippingStatus   String?
   subtotal         Int
   discountTotal    Int
+  shippingCost     Int?
   shippingTotal    Int
   total            Int
   couponCode       String?
+  trackingNumber   String?
   trackingUrl      String?
+  shippingCreatedAt DateTime?
+  dhlShipmentReference String?
+  labelUrl         String?
+  shippingError    String?
   pricingBreakdown String
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
@@ -192,11 +202,16 @@ model CheckoutSession {
   postalCode       String
   country          String
   status           String   @default("pending")
+  shippingMethod   String?
   subtotal         Int
   discountTotal    Int
+  shippingLabel    String?
+  shippingCost     Int?
   shippingTotal    Int
   total            Int
   couponCode       String?
+  shippingCarrier  String?
+  trackingNumber   String?
   pricingBreakdown String
   itemsSnapshot    String
   createdAt        DateTime @default(now())

@@ -10,8 +10,9 @@ import { calculatePricing } from "../services/pricing.mjs"
 import { buildPaypalRedirect } from "../services/paypal.mjs"
 import { notifyAdminOrderCompleted } from "../services/order-notifications.mjs"
 import { syncProductVariants } from "../lib/product-variants.mjs"
-import { normalizeFulfillmentStatus, normalizeTrackingUrl } from "../../../shop/lib/order-progress.mjs"
 import { normalizeShippingDetails } from "../../../shop/lib/shipping-details.mjs"
+import { serializeShopOrder } from "../lib/order-serialization.mjs"
+import { normalizeShippingMethod } from "../../../shop/lib/shipping-methods.mjs"
 
 const router = Router()
 const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
@@ -71,11 +72,17 @@ function buildOrderRecordFromCheckoutSession(session) {
     userId: session.userId,
     status: "paid",
     fulfillmentStatus: "processing",
+    shippingMethod: session.shippingMethod || null,
+    shippingCarrier: session.shippingCarrier || null,
+    shippingLabel: session.shippingLabel || null,
+    shippingStatus: "pending",
     subtotal: session.subtotal,
     discountTotal: session.discountTotal,
+    shippingCost: typeof session.shippingCost === "number" ? session.shippingCost : null,
     shippingTotal: session.shippingTotal,
     total: session.total,
     couponCode: session.couponCode,
+    trackingNumber: session.trackingNumber || null,
     trackingUrl: null,
     pricingBreakdown: session.pricingBreakdown,
     items: {
@@ -115,6 +122,7 @@ const checkoutSchema = z.object({
   postalCode: z.string().min(1),
   country: z.string().min(1),
   couponCode: z.string().optional().nullable(),
+  shippingMethod: z.enum(["economy", "premium"]).optional().nullable(),
   items: z.array(
     z.object({
       productId: z.number(),
@@ -141,12 +149,7 @@ router.get(
     })
 
     res.json(
-      orders.map((order) => ({
-        ...order,
-        fulfillmentStatus: normalizeFulfillmentStatus(order.fulfillmentStatus),
-        trackingUrl: normalizeTrackingUrl(order.trackingUrl),
-        pricingBreakdown: JSON.parse(order.pricingBreakdown),
-      })),
+      orders.map((order) => serializeShopOrder(order)),
     )
   })
 )
@@ -169,12 +172,7 @@ router.get(
         throw new HttpError(403, "Operazione non consentita")
       }
 
-      res.json({
-        ...order,
-        fulfillmentStatus: normalizeFulfillmentStatus(order.fulfillmentStatus),
-        trackingUrl: normalizeTrackingUrl(order.trackingUrl),
-        pricingBreakdown: JSON.parse(order.pricingBreakdown),
-      })
+      res.json(serializeShopOrder(order))
       return
     }
 
@@ -315,12 +313,7 @@ router.post(
       }
 
       res.json({
-      order: {
-        ...updated,
-        fulfillmentStatus: normalizeFulfillmentStatus(updated.fulfillmentStatus),
-        trackingUrl: normalizeTrackingUrl(updated.trackingUrl),
-        pricingBreakdown: JSON.parse(updated.pricingBreakdown),
-      },
+        order: serializeShopOrder(updated),
       })
       return
     }
@@ -367,12 +360,7 @@ router.post(
     await notifyAdminOrderCompleted({ order: createdOrder, user: req.user })
 
     res.json({
-      order: {
-        ...createdOrder,
-        fulfillmentStatus: normalizeFulfillmentStatus(createdOrder.fulfillmentStatus),
-        trackingUrl: normalizeTrackingUrl(createdOrder.trackingUrl),
-        pricingBreakdown: JSON.parse(createdOrder.pricingBreakdown),
-      },
+      order: serializeShopOrder(createdOrder),
     })
   })
 )
@@ -387,12 +375,13 @@ router.post(
 
     const body = checkoutSchema.parse(req.body)
     const shipping = normalizeShippingDetails(body)
+    const shippingMethod = normalizeShippingMethod(body.shippingMethod)
 
     if (shipping.email !== req.user.email) {
       throw new HttpError(400, "L'email del checkout deve corrispondere all'utente autenticato")
     }
 
-    const pricing = await calculatePricing(body.items, body.couponCode)
+    const pricing = await calculatePricing(body.items, body.couponCode, { shippingMethod })
 
     const orderReference = createCheckoutReference()
 
@@ -401,12 +390,17 @@ router.post(
         orderReference,
         userId: req.user.id,
         ...shipping,
+        shippingMethod: pricing.shippingMethod,
+        shippingCarrier: pricing.shippingCarrier,
+        shippingLabel: pricing.shippingLabel,
         status: "pending",
         subtotal: pricing.subtotal,
         discountTotal: pricing.discountTotal,
+        shippingCost: pricing.shippingCost,
         shippingTotal: pricing.shippingTotal,
         total: pricing.total,
         couponCode: pricing.appliedCoupon,
+        trackingNumber: null,
         pricingBreakdown: JSON.stringify(pricing),
         itemsSnapshot: JSON.stringify(pricing.items),
       },

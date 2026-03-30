@@ -1,4 +1,4 @@
-import { getFulfillmentStatusLabel, getFulfillmentStatusSteps } from "./order-progress.mjs"
+import { getFulfillmentStatusLabel, getFulfillmentStatusSteps, getShippingStatusLabel } from "./order-progress.mjs"
 
 export function getOrderStatusLabel(status: string) {
   if (status === "pending") return "In attesa"
@@ -13,4 +13,8 @@ export function getOrderFulfillmentStatusLabel(status?: string | null) {
 
 export function getOrderFulfillmentSteps(status?: string | null) {
   return getFulfillmentStatusSteps(status)
+}
+
+export function getOrderShippingStatusLabel(status?: string | null, fulfillmentStatus?: string | null) {
+  return getShippingStatusLabel(status, fulfillmentStatus)
 }

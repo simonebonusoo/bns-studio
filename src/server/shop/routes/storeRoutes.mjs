@@ -430,10 +430,11 @@ router.post(
           })
         ),
         couponCode: z.string().optional().nullable(),
+        shippingMethod: z.enum(["economy", "premium"]).optional().nullable(),
       })
       .parse(req.body)
 
-    res.json(await calculatePricing(body.items, body.couponCode))
+    res.json(await calculatePricing(body.items, body.couponCode, { shippingMethod: body.shippingMethod }))
   })
 )
 

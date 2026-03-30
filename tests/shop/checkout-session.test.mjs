@@ -23,6 +23,10 @@ test("serializeCheckoutSessionAsPendingOrder returns a pending pseudo-order for 
     postalCode: "20100",
     country: "Italia",
     status: "pending",
+    shippingMethod: "premium",
+    shippingCarrier: "dhl",
+    shippingLabel: "Spedizione premium",
+    shippingCost: 990,
     subtotal: 1500,
     discountTotal: 0,
     shippingTotal: 900,
@@ -54,6 +58,10 @@ test("serializeCheckoutSessionAsPendingOrder returns a pending pseudo-order for 
   assert.equal(order.orderReference, "BNS-TEST-123")
   assert.equal(order.status, "pending")
   assert.equal(order.fulfillmentStatus, "processing")
+  assert.equal(order.shippingMethod, "premium")
+  assert.equal(order.shippingCarrier, "dhl")
+  assert.equal(order.shippingLabel, "Spedizione premium")
+  assert.equal(order.shippingCost, 990)
   assert.equal(order.trackingUrl, null)
   assert.equal(order.phone, "3331234567")
   assert.equal(order.streetNumber, "1")
