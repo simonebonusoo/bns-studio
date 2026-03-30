@@ -56,6 +56,19 @@ test("buildAdminOrderShippingSummary preserves tracking, label and handoff mode 
   assert.equal(summary.labelUrl, "https://labels.example/label.pdf")
 })
 
+test("buildAdminOrderShippingSummary prefers the real carrier label when the shipment is created by an external aggregator", () => {
+  const summary = buildAdminOrderShippingSummary({
+    fulfillmentStatus: "accepted",
+    shippingStatus: "created",
+    shippingCarrier: "BRT",
+    shippingMethod: "economy",
+    shippingLabel: "Spedizione economica",
+  })
+
+  assert.equal(summary.carrier, "BRT")
+  assert.equal(summary.method, "Spedizione economica (BRT)")
+})
+
 test("handoff mode labels remain user-friendly", () => {
   assert.equal(getOrderShippingHandoffModeLabel("dropoff"), "Drop-off")
   assert.equal(getOrderShippingHandoffModeLabel("pickup"), "Pickup")

@@ -28,6 +28,7 @@ const clientOrigins = Array.from(new Set([clientUrl, ...parseList(process.env.CL
 const isRenderRuntime = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
 const hasDhlCredentials = Boolean(process.env.DHL_API_KEY && process.env.DHL_API_SECRET && process.env.DHL_ACCOUNT_NUMBER)
 const hasInpostCredentials = Boolean(process.env.INPOST_API_KEY)
+const hasPacklinkCredentials = Boolean(process.env.PACKLINK_API_KEY)
 
 export const env = {
   port: Number(process.env.PORT || 4000),
@@ -85,5 +86,21 @@ export const env = {
   inpostApiKey: process.env.INPOST_API_KEY || "",
   inpostOrganizationId: process.env.INPOST_ORGANIZATION_ID || "",
   inpostTrackingBaseUrl: process.env.INPOST_TRACKING_BASE_URL || "",
+  packlinkUseMock: parseBoolean(process.env.PACKLINK_USE_MOCK, !hasPacklinkCredentials),
+  packlinkApiBaseUrl: process.env.PACKLINK_API_BASE_URL || "https://api.packlink.com/v1",
+  packlinkApiKey: process.env.PACKLINK_API_KEY || "",
+  packlinkServiceId: process.env.PACKLINK_SERVICE_ID || "",
+  packlinkSenderName: process.env.PACKLINK_SENDER_NAME || process.env.DHL_SHIPPER_NAME || "",
+  packlinkSenderCompany: process.env.PACKLINK_SENDER_COMPANY || process.env.DHL_SHIPPER_COMPANY || "",
+  packlinkSenderEmail: process.env.PACKLINK_SENDER_EMAIL || process.env.DHL_SHIPPER_EMAIL || "",
+  packlinkSenderPhone: process.env.PACKLINK_SENDER_PHONE || process.env.DHL_SHIPPER_PHONE || "",
+  packlinkSenderStreet1: process.env.PACKLINK_SENDER_STREET1 || process.env.DHL_SHIPPER_ADDRESS_LINE1 || "",
+  packlinkSenderCity: process.env.PACKLINK_SENDER_CITY || process.env.DHL_SHIPPER_CITY || "",
+  packlinkSenderZip: process.env.PACKLINK_SENDER_ZIP || process.env.DHL_SHIPPER_POSTAL_CODE || "",
+  packlinkSenderCountry: process.env.PACKLINK_SENDER_COUNTRY || process.env.DHL_SHIPPER_COUNTRY_CODE || "IT",
+  packlinkParcelWeightKg: Number(process.env.PACKLINK_PARCEL_WEIGHT_KG || 1),
+  packlinkParcelLengthCm: Number(process.env.PACKLINK_PARCEL_LENGTH_CM || 30),
+  packlinkParcelWidthCm: Number(process.env.PACKLINK_PARCEL_WIDTH_CM || 20),
+  packlinkParcelHeightCm: Number(process.env.PACKLINK_PARCEL_HEIGHT_CM || 5),
   shippingAutoCreateOnPayment: parseBoolean(process.env.SHOP_SHIPPING_AUTO_CREATE_ON_PAYMENT, true),
 }

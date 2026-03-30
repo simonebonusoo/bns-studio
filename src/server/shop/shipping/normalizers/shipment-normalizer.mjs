@@ -1,6 +1,8 @@
 const CARRIER_LABELS = {
   dhl: "DHL",
   inpost: "InPost",
+  brt: "BRT",
+  packlink: "Packlink",
 }
 
 const METHOD_LABELS = {
@@ -36,7 +38,7 @@ function normalizePayload(value) {
 
 export function normalizeCarrier(value) {
   const normalized = String(value || "").trim().toLowerCase()
-  return normalized === "dhl" || normalized === "inpost" ? normalized : null
+  return normalized === "dhl" || normalized === "inpost" || normalized === "brt" || normalized === "packlink" ? normalized : null
 }
 
 export function normalizeMethod(value) {

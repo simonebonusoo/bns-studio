@@ -27,6 +27,11 @@ export function getOrderTrackingUrlDisplay(order) {
 }
 
 export function getOrderShippingMethodDisplay(order) {
+  const label = normalizeOptionalString(order?.shippingLabel)
+  const carrier = normalizeOptionalString(order?.shippingCarrier)
+  if (label) {
+    return carrier ? `${label} (${carrier.toUpperCase()})` : label
+  }
   return order?.shippingMethod ? formatShippingMethodSummary(order.shippingMethod) : "Non disponibile"
 }
 

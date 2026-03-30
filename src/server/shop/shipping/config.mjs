@@ -46,5 +46,27 @@ export function buildShippingConfig(currentEnv = env) {
       economyRateA4: Number(process.env.INPOST_ECONOMY_A4_RATE_CENTS || 590),
       economyRateA3: Number(process.env.INPOST_ECONOMY_A3_RATE_CENTS || 690),
     },
+    packlink: {
+      useMock: Boolean(currentEnv.packlinkUseMock),
+      apiBaseUrl: normalizeOptionalString(currentEnv.packlinkApiBaseUrl) || "https://api.packlink.com/v1",
+      apiKey: normalizeOptionalString(currentEnv.packlinkApiKey),
+      serviceId: normalizeOptionalString(currentEnv.packlinkServiceId),
+      sender: {
+        name: normalizeOptionalString(currentEnv.packlinkSenderName),
+        company: normalizeOptionalString(currentEnv.packlinkSenderCompany),
+        email: normalizeOptionalString(currentEnv.packlinkSenderEmail),
+        phone: normalizeOptionalString(currentEnv.packlinkSenderPhone),
+        street1: normalizeOptionalString(currentEnv.packlinkSenderStreet1),
+        city: normalizeOptionalString(currentEnv.packlinkSenderCity),
+        zip: normalizeOptionalString(currentEnv.packlinkSenderZip),
+        country: normalizeOptionalString(currentEnv.packlinkSenderCountry) || "IT",
+      },
+      parcelDefaults: {
+        weightKg: Number(currentEnv.packlinkParcelWeightKg || 1),
+        lengthCm: Number(currentEnv.packlinkParcelLengthCm || 30),
+        widthCm: Number(currentEnv.packlinkParcelWidthCm || 20),
+        heightCm: Number(currentEnv.packlinkParcelHeightCm || 5),
+      },
+    },
   }
 }

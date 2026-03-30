@@ -40,6 +40,22 @@ function createMockEnv(overrides = {}) {
     inpostApiKey: "mock-key",
     inpostOrganizationId: "org-1",
     inpostTrackingBaseUrl: "https://inpost.test/track",
+    packlinkUseMock: true,
+    packlinkApiBaseUrl: "https://api.packlink.test/v1",
+    packlinkApiKey: "",
+    packlinkServiceId: "",
+    packlinkSenderName: "BNS Studio",
+    packlinkSenderCompany: "BNS Studio",
+    packlinkSenderEmail: "hello@example.com",
+    packlinkSenderPhone: "3900000000",
+    packlinkSenderStreet1: "Via Roma 1",
+    packlinkSenderCity: "Milano",
+    packlinkSenderZip: "20100",
+    packlinkSenderCountry: "IT",
+    packlinkParcelWeightKg: 1,
+    packlinkParcelLengthCm: 30,
+    packlinkParcelWidthCm: 20,
+    packlinkParcelHeightCm: 5,
     shippingAutoCreateOnPayment: false,
     ...overrides,
   }
@@ -94,8 +110,8 @@ function createDb(order) {
   }
 }
 
-test("shipping provider resolver maps economy to InPost and premium to DHL", () => {
-  assert.equal(resolveShippingProvider("economy", createMockEnv())?.key, "inpost")
+test("shipping provider resolver maps economy to Packlink and premium to DHL", () => {
+  assert.equal(resolveShippingProvider("economy", createMockEnv())?.key, "packlink")
   assert.equal(resolveShippingProvider("premium", createMockEnv())?.key, "dhl")
 })
 
@@ -128,6 +144,72 @@ test("mock shipment creation persists tracking, label and normalized status on t
   assert.match(result.order.trackingNumber, /^DHL-TRK-/)
   assert.match(result.order.labelUrl, /^https:\/\/example\.com\/mock-shipping\/dhl\/labels\//)
   assert.equal(typeof result.order.shippingProviderPayload, "string")
+})
+
+test("packlink shipment creation parses real provider data when credentials are configured", async () => {
+  const order = createOrder({
+    shippingMethod: "economy",
+    shippingCarrier: "inpost",
+    shippingCost: 590,
+  })
+  const db = createDb(order)
+
+  const result = await createCarrierShipmentForOrder({
+    db,
+    order,
+    currentEnv: createMockEnv({
+      packlinkUseMock: false,
+      packlinkApiKey: "packlink-key",
+      packlinkServiceId: "service-123",
+    }),
+    fetchImpl: async () =>
+      new Response(
+        JSON.stringify({
+          shipment_id: "pk_123",
+          tracking_number: "BRT123456789",
+          tracking_url: "https://tracking.packlink.test/BRT123456789",
+          label_url: "https://labels.packlink.test/pk_123.pdf",
+          carrier: "BRT",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+  })
+
+  assert.equal(result.ok, true)
+  assert.equal(result.order.shippingCarrier, "BRT")
+  assert.equal(result.order.shippingStatus, "created")
+  assert.equal(result.order.trackingNumber, "BRT123456789")
+  assert.equal(result.order.trackingUrl, "https://tracking.packlink.test/BRT123456789")
+  assert.equal(result.order.labelUrl, "https://labels.packlink.test/pk_123.pdf")
+  assert.equal(result.order.shipmentReference, "pk_123")
+})
+
+test("packlink shipment creation fails clearly when order shipping data are incomplete", async () => {
+  const order = createOrder({
+    shippingMethod: "economy",
+    shippingCarrier: "inpost",
+    shippingCost: 590,
+    phone: "",
+    addressLine1: "",
+  })
+  const db = createDb(order)
+
+  const result = await createCarrierShipmentForOrder({
+    db,
+    order,
+    currentEnv: createMockEnv({
+      packlinkUseMock: false,
+      packlinkApiKey: "packlink-key",
+      packlinkServiceId: "service-123",
+    }),
+  })
+
+  assert.equal(result.ok, false)
+  assert.equal(result.order.shippingStatus, "failed")
+  assert.match(result.order.shippingError || "", /Dati spedizione incompleti/)
 })
 
 test("provider failure does not break the order and stores a safe failed shipping state", async () => {
@@ -169,6 +251,49 @@ test("tracking refresh uses the provider layer and updates the shipment status s
   assert.equal(result.ok, true)
   assert.equal(result.order.shippingStatus, "accepted")
   assert.match(result.order.trackingUrl, /\/shop\/tracking\/mock\//)
+})
+
+test("packlink tracking refresh uses shipment reference for real provider lookup", async () => {
+  const order = createOrder({
+    shippingMethod: "economy",
+    shippingCarrier: "BRT",
+    shippingStatus: "accepted",
+    trackingNumber: "BRT123456789",
+    shipmentReference: "pk_123",
+  })
+  const db = createDb(order)
+  let requestedUrl = ""
+
+  const result = await refreshCarrierTrackingForOrder({
+    db,
+    order,
+    currentEnv: createMockEnv({
+      packlinkUseMock: false,
+      packlinkApiKey: "packlink-key",
+      packlinkServiceId: "service-123",
+    }),
+    fetchImpl: async (input) => {
+      requestedUrl = String(input)
+      return new Response(
+        JSON.stringify({
+          shipment_id: "pk_123",
+          tracking_number: "BRT123456789",
+          tracking_url: "https://tracking.packlink.test/BRT123456789",
+          carrier_name: "BRT",
+          status: "out_for_delivery",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      )
+    },
+  })
+
+  assert.equal(result.ok, true)
+  assert.match(requestedUrl, /\/shipments\/pk_123$/)
+  assert.equal(result.order.shippingStatus, "out_for_delivery")
+  assert.equal(result.order.shippingCarrier, "BRT")
 })
 
 test("tracking refresh advances the mock shipment through a realistic progression", async () => {

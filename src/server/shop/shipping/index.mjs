@@ -1,6 +1,7 @@
 import { buildShippingConfig } from "./config.mjs"
 import { createDhlProvider } from "./providers/dhl.mjs"
 import { createInpostProvider } from "./providers/inpost.mjs"
+import { createPacklinkProvider } from "./providers/packlink.mjs"
 import {
   buildOrderShipmentUpdateData,
   createNormalizedShipment,
@@ -18,12 +19,14 @@ function createProviderRegistry(currentEnv) {
   const config = buildShippingConfig(currentEnv)
   const dhl = createDhlProvider(config.dhl)
   const inpost = createInpostProvider(config.inpost)
+  const packlink = createPacklinkProvider(config.packlink)
 
   return {
     config,
     providers: {
       dhl,
       inpost,
+      packlink,
     },
   }
 }
@@ -34,6 +37,10 @@ function getProviderByCarrier(carrier, currentEnv) {
 }
 
 function getProviderByMethod(method, currentEnv) {
+  const registry = createProviderRegistry(currentEnv)
+  if (normalizeMethod(method) === "economy" && registry.providers.packlink) {
+    return registry.providers.packlink
+  }
   const carrier = getCarrierForMethod(method)
   return carrier ? getProviderByCarrier(carrier, currentEnv) : null
 }
