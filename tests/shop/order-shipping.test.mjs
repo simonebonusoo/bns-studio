@@ -91,6 +91,7 @@ test("admin and customer order UIs render shipping visibility hooks", () => {
   assert.match(adminPage, /mergeUpdatedOrder/)
   assert.match(adminPage, /response\.order/)
   assert.match(adminPage, /getShippingAdminActionError/)
+  assert.match(adminPage, /response\.order\?\.shippingError/)
   assert.match(profile, /Traccia spedizione/)
   assert.match(profile, /Tracking non ancora disponibile/)
   assert.match(trackingPage, /Avanzamento spedizione/)

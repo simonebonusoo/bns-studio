@@ -340,7 +340,11 @@ function getSuggestedVariantCostCents(title: string) {
   return 0
 }
 
-function getShippingAdminActionError(code: string, fallback = "Operazione spedizione non completata.") {
+function getShippingAdminActionError(code: string, shippingError = "", fallback = "Operazione spedizione non completata.") {
+  if (String(shippingError || "").trim()) {
+    return shippingError
+  }
+
   switch (String(code || "").trim()) {
     case "shipment_not_required":
       return "La spedizione esiste gia oppure l'ordine non e idoneo alla creazione."
@@ -1503,7 +1507,7 @@ export function ShopAdminPage() {
                 mergeUpdatedOrder(response.order)
               }
               if (!response.ok) {
-                throw new Error(getShippingAdminActionError(response.code, "Errore durante la creazione della spedizione."))
+                throw new Error(getShippingAdminActionError(response.code, response.order?.shippingError || "", "Errore durante la creazione della spedizione."))
               }
               setMessage("Spedizione creata.")
               return response.order || null
@@ -1522,7 +1526,7 @@ export function ShopAdminPage() {
                 mergeUpdatedOrder(response.order)
               }
               if (!response.ok) {
-                throw new Error(getShippingAdminActionError(response.code, "Errore durante l'aggiornamento del tracking."))
+                throw new Error(getShippingAdminActionError(response.code, response.order?.shippingError || "", "Errore durante l'aggiornamento del tracking."))
               }
               setMessage("Tracking aggiornato.")
               return response.order || null

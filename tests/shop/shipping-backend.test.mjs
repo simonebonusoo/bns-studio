@@ -212,6 +212,37 @@ test("packlink shipment creation fails clearly when order shipping data are inco
   assert.match(result.order.shippingError || "", /Dati spedizione incompleti/)
 })
 
+test("packlink real failure does not silently fall back to mock shipment data", async () => {
+  const order = createOrder({
+    shippingMethod: "economy",
+    shippingCarrier: "inpost",
+    shippingCost: 590,
+  })
+  const db = createDb(order)
+
+  const result = await createCarrierShipmentForOrder({
+    db,
+    order,
+    currentEnv: createMockEnv({
+      packlinkUseMock: false,
+      packlinkApiKey: "packlink-key",
+      packlinkServiceId: "service-123",
+    }),
+    fetchImpl: async () =>
+      new Response(JSON.stringify({ error: "invalid service_id" }), {
+        status: 422,
+        headers: { "Content-Type": "application/json" },
+      }),
+  })
+
+  assert.equal(result.ok, false)
+  assert.equal(result.order.shippingStatus, "failed")
+  assert.equal(result.order.trackingNumber, null)
+  assert.equal(result.order.trackingUrl, null)
+  assert.equal(result.order.labelUrl, null)
+  assert.match(result.order.shippingError || "", /Packlink ha risposto con stato 422/)
+})
+
 test("provider failure does not break the order and stores a safe failed shipping state", async () => {
   const order = createOrder()
   const db = createDb(order)

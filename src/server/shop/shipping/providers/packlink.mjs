@@ -31,6 +31,25 @@ function buildPacklinkHeaders(providerConfig) {
   }
 }
 
+function buildPacklinkConfigValidation(providerConfig) {
+  const missing = []
+
+  if (!providerConfig.apiKey) missing.push("PACKLINK_API_KEY")
+  if (!providerConfig.serviceId) missing.push("PACKLINK_SERVICE_ID")
+  if (!providerConfig.sender?.name) missing.push("PACKLINK_SENDER_NAME")
+  if (!providerConfig.sender?.email) missing.push("PACKLINK_SENDER_EMAIL")
+  if (!providerConfig.sender?.phone) missing.push("PACKLINK_SENDER_PHONE")
+  if (!providerConfig.sender?.street1) missing.push("PACKLINK_SENDER_STREET1")
+  if (!providerConfig.sender?.city) missing.push("PACKLINK_SENDER_CITY")
+  if (!providerConfig.sender?.zip) missing.push("PACKLINK_SENDER_ZIP")
+  if (!providerConfig.sender?.country) missing.push("PACKLINK_SENDER_COUNTRY")
+
+  return {
+    ok: missing.length === 0,
+    missing,
+  }
+}
+
 function findFirstString(value, paths) {
   for (const path of paths) {
     let current = value
@@ -49,17 +68,7 @@ function findFirstString(value, paths) {
 }
 
 function isPacklinkConfigured(providerConfig) {
-  return Boolean(
-    providerConfig.apiKey &&
-      providerConfig.serviceId &&
-      providerConfig.sender?.name &&
-      providerConfig.sender?.email &&
-      providerConfig.sender?.phone &&
-      providerConfig.sender?.street1 &&
-      providerConfig.sender?.city &&
-      providerConfig.sender?.zip &&
-      providerConfig.sender?.country,
-  )
+  return buildPacklinkConfigValidation(providerConfig).ok
 }
 
 function buildRecipientName(orderContext) {
@@ -264,8 +273,31 @@ export function createPacklinkProvider(providerConfig) {
       })
     },
     async createShipment({ orderContext, fetchImpl = fetch }) {
-      if (providerConfig.useMock || !isPacklinkConfigured(providerConfig)) {
+      const configValidation = buildPacklinkConfigValidation(providerConfig)
+      logPacklink("createShipment.mode", {
+        useMock: providerConfig.useMock,
+        configured: configValidation.ok,
+        missingConfig: configValidation.missing,
+      })
+
+      if (providerConfig.useMock) {
         return getMockFallbackShipment(orderContext, providerConfig, providerConfig.useMock ? "mock_forced" : "missing_configuration")
+      }
+
+      if (!configValidation.ok) {
+        logPacklink("createShipment.invalid_config", {
+          missing: configValidation.missing,
+          orderReference: orderContext?.orderReference || orderContext?.order?.orderReference || null,
+        })
+        return createNormalizedShipment({
+          carrier: "packlink",
+          carrierLabel: "Packlink",
+          method: "economy",
+          methodLabel: "Spedizione economica",
+          handoffMode: "dropoff",
+          status: "failed",
+          errorMessage: `Configurazione Packlink incompleta: ${configValidation.missing.join(", ")}.`,
+        })
       }
 
       const recipientValidation = validateRecipientAddress(orderContext)
@@ -302,21 +334,73 @@ export function createPacklinkProvider(providerConfig) {
         const data = await safeJson(response)
         if (!response.ok) {
           console.error("Packlink createShipment failed", { status: response.status, data })
-          return getMockFallbackShipment(orderContext, providerConfig, `http_${response.status}`)
+          return createNormalizedShipment({
+            carrier: "packlink",
+            carrierLabel: "Packlink",
+            method: "economy",
+            methodLabel: "Spedizione economica",
+            handoffMode: "dropoff",
+            status: "failed",
+            rawProviderPayload: data,
+            errorMessage: `Packlink ha risposto con stato ${response.status}${data ? `: ${JSON.stringify(data)}` : ""}`,
+          })
         }
         return parsePacklinkShipmentResponse(data, orderContext)
       } catch (error) {
         console.error("Packlink createShipment error", error)
-        return getMockFallbackShipment(orderContext, providerConfig, "request_failed")
+        return createNormalizedShipment({
+          carrier: "packlink",
+          carrierLabel: "Packlink",
+          method: "economy",
+          methodLabel: "Spedizione economica",
+          handoffMode: "dropoff",
+          status: "failed",
+          errorMessage: error?.message || "Richiesta Packlink non riuscita.",
+        })
       }
     },
     async getTracking({ trackingNumber, shipmentReference, currentStatus, fetchImpl = fetch }) {
-      if (providerConfig.useMock || !providerConfig.apiKey) {
+      const configValidation = buildPacklinkConfigValidation(providerConfig)
+      logPacklink("getTracking.mode", {
+        useMock: providerConfig.useMock,
+        configured: configValidation.ok,
+        shipmentReference: shipmentReference || null,
+        trackingNumber: trackingNumber || null,
+      })
+
+      if (providerConfig.useMock) {
         return inpostMock.getTracking({ trackingNumber, currentStatus, providerConfig })
+      }
+
+      if (!providerConfig.apiKey) {
+        return createNormalizedShipment({
+          carrier: "packlink",
+          carrierLabel: "Packlink",
+          method: "economy",
+          methodLabel: "Spedizione economica",
+          trackingNumber,
+          shipmentReference,
+          handoffMode: "dropoff",
+          status: currentStatus || "pending",
+          errorMessage: "Configurazione Packlink incompleta: PACKLINK_API_KEY mancante.",
+        })
       }
 
       try {
         const lookupId = shipmentReference || trackingNumber
+        if (!lookupId) {
+          return createNormalizedShipment({
+            carrier: "packlink",
+            carrierLabel: "Packlink",
+            method: "economy",
+            methodLabel: "Spedizione economica",
+            trackingNumber,
+            shipmentReference,
+            handoffMode: "dropoff",
+            status: currentStatus || "pending",
+            errorMessage: "Tracking Packlink non disponibile: shipmentReference o trackingNumber mancanti.",
+          })
+        }
         logPacklink("getTracking.real_request", {
           lookupId,
           trackingNumber,
@@ -328,12 +412,33 @@ export function createPacklinkProvider(providerConfig) {
         const data = await safeJson(response)
         if (!response.ok) {
           console.error("Packlink getTracking failed", { status: response.status, data })
-          return inpostMock.getTracking({ trackingNumber, currentStatus, providerConfig })
+          return createNormalizedShipment({
+            carrier: "packlink",
+            carrierLabel: "Packlink",
+            method: "economy",
+            methodLabel: "Spedizione economica",
+            trackingNumber,
+            shipmentReference,
+            handoffMode: "dropoff",
+            status: currentStatus || "pending",
+            rawProviderPayload: data,
+            errorMessage: `Tracking Packlink fallito con stato ${response.status}${data ? `: ${JSON.stringify(data)}` : ""}`,
+          })
         }
         return parsePacklinkTrackingResponse(data, trackingNumber, shipmentReference)
       } catch (error) {
         console.error("Packlink getTracking error", error)
-        return inpostMock.getTracking({ trackingNumber, currentStatus, providerConfig })
+        return createNormalizedShipment({
+          carrier: "packlink",
+          carrierLabel: "Packlink",
+          method: "economy",
+          methodLabel: "Spedizione economica",
+          trackingNumber,
+          shipmentReference,
+          handoffMode: "dropoff",
+          status: currentStatus || "pending",
+          errorMessage: error?.message || "Tracking Packlink non riuscito.",
+        })
       }
     },
     async getLabel({ shipmentReference }) {
