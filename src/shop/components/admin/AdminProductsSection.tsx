@@ -1,4 +1,4 @@
-import type { FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 
 import { Button } from "../../../components/Button"
 import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
@@ -138,28 +138,66 @@ export function AdminProductsSection({
   onStartEditCollection,
   onDeleteCollection,
 }: AdminProductsSectionProps) {
-  return (
-    <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-      <AdminRenderGuard title="Form prodotto">
-        <ProductFormCard
-          editingProductId={editingProductId}
-          selectedCount={selectedProductIds.length}
-          isMultiEdit={isMultiEdit}
-          canSubmit={isMultiEdit ? hasTouchedFields : true}
-          productForm={productForm}
-          categories={categories}
-          collections={collections}
-          productImages={productImages}
-          onSubmit={onSubmitProduct}
-          onCancel={onCancelProduct}
-          onChange={onChangeProductForm}
-          onFileChange={onProductFileChange}
-          onReorderImages={onReorderProductImages}
-          onRemoveImage={onRemoveProductImage}
-        />
-      </AdminRenderGuard>
+  const formColumnRef = useRef<HTMLDivElement | null>(null)
+  const [listColumnHeight, setListColumnHeight] = useState<number | null>(null)
 
-      <div className="shop-card flex h-full min-h-0 flex-col gap-4 p-6">
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const updateHeight = () => {
+      if (window.innerWidth < 1280 || !formColumnRef.current) {
+        setListColumnHeight(null)
+        return
+      }
+
+      setListColumnHeight(formColumnRef.current.getBoundingClientRect().height)
+    }
+
+    updateHeight()
+
+    const observer = new ResizeObserver(() => {
+      updateHeight()
+    })
+
+    if (formColumnRef.current) {
+      observer.observe(formColumnRef.current)
+    }
+
+    window.addEventListener("resize", updateHeight)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("resize", updateHeight)
+    }
+  }, [productForm, categories.length, collections.length, editingProductId, hasTouchedFields, isMultiEdit, selectedProductIds.length])
+
+  return (
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <div ref={formColumnRef}>
+        <AdminRenderGuard title="Form prodotto">
+          <ProductFormCard
+            editingProductId={editingProductId}
+            selectedCount={selectedProductIds.length}
+            isMultiEdit={isMultiEdit}
+            canSubmit={isMultiEdit ? hasTouchedFields : true}
+            productForm={productForm}
+            categories={categories}
+            collections={collections}
+            productImages={productImages}
+            onSubmit={onSubmitProduct}
+            onCancel={onCancelProduct}
+            onChange={onChangeProductForm}
+            onFileChange={onProductFileChange}
+            onReorderImages={onReorderProductImages}
+            onRemoveImage={onRemoveProductImage}
+          />
+        </AdminRenderGuard>
+      </div>
+
+      <div
+        className="shop-card flex min-h-0 flex-col gap-4 overflow-hidden p-6"
+        style={listColumnHeight ? { height: `${listColumnHeight}px` } : undefined}
+      >
         <ProductFiltersBar
           search={productSearch}
           category={productCategoryFilter}

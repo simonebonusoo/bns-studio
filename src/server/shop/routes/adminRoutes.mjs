@@ -15,6 +15,7 @@ import { getProductStockLabel, getProductStockStatus } from "../lib/product-stoc
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredProductOrder, saveProductOrder } from "../lib/product-order.mjs"
+import { assertFeaturedProductLimit } from "../lib/product-featured.mjs"
 import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
 import { buildLegacyProductFieldsFromVariants, deriveLegacyVariantsFromProduct, serializeProductVariants, syncProductVariants } from "../lib/product-variants.mjs"
 
@@ -222,6 +223,21 @@ async function ensureCategoriesSetting() {
       key: "shopCategories",
       value: JSON.stringify(existingCategories.map((item) => item.category)),
     },
+  })
+}
+
+async function ensureFeaturedProductSlotAvailable(nextFeatured, excludeId = null, currentlyFeatured = false) {
+  const currentFeaturedCount = await prisma.product.count({
+    where: {
+      featured: true,
+      id: excludeId ? { not: excludeId } : undefined,
+    },
+  })
+
+  assertFeaturedProductLimit({
+    currentFeaturedCount,
+    nextFeatured,
+    currentlyFeatured,
   })
 }
 
@@ -679,6 +695,7 @@ router.post(
     const payload = resolveProductPayload(body)
     const slug = await ensureUniqueProductSlug(body.slug || body.title)
     const sku = await ensureUniqueSku(body.sku)
+    await ensureFeaturedProductSlotAvailable(Boolean(body.featured))
     const product = await prisma.product.create({
       data: {
         ...payload,
@@ -724,6 +741,7 @@ router.put(
       discountPriceA3: existingProduct.discountPriceA3,
       discountPriceA4: existingProduct.discountPriceA4,
     })
+    await ensureFeaturedProductSlotAvailable(Boolean(body.featured), productId, Boolean(existingProduct.featured))
     const sku = await ensureUniqueSku(body.sku, productId)
     const slug = body.slug
       ? await ensureUniqueProductSlug(body.slug, productId)

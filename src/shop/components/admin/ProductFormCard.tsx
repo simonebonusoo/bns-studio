@@ -119,7 +119,7 @@ export function ProductFormCard({
         : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
 
   return (
-    <form onSubmit={onSubmit} className="shop-card h-full space-y-5 p-6">
+    <form onSubmit={onSubmit} className="shop-card space-y-5 p-6">
       <div className="flex flex-col gap-3 border-b border-white/8 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.32em] text-white/45">Catalogo</p>
@@ -191,6 +191,7 @@ export function ProductFormCard({
               <input type="checkbox" checked={productForm.featured} onChange={(event) => onChange({ ...productForm, featured: event.target.checked })} />
               Metti in evidenza nel merchandising
             </label>
+            <p className="text-xs leading-5 text-white/45">I prodotti mostrati nella homepage sono al massimo 8. Se il limite e gia raggiunto, il salvataggio viene bloccato.</p>
           </div>
         </div>
       </Section>

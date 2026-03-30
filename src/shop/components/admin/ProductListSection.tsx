@@ -73,7 +73,7 @@ export function ProductListSection({ products, selectedIds, onToggleSelected, on
                   </span>
                   {product.featured ? (
                     <span className="rounded-full border border-[#e3f503]/30 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
-                      Featured
+                      Merchandising home
                     </span>
                   ) : null}
                 </div>

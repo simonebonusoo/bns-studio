@@ -6,6 +6,7 @@ import { productRelationInclude, serializeTaxonomyRelations, slugifyCatalogText 
 import { buildVisibleProductBadges, parseManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
+import { MAX_FEATURED_PRODUCTS } from "../lib/product-featured.mjs"
 import { calculatePricing } from "../services/pricing.mjs"
 import { createBackInStockSubscription } from "../services/back-in-stock.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getDefaultProductFormat } from "../lib/product-formats.mjs"
@@ -297,7 +298,7 @@ router.get(
       include: productRelationInclude(),
     })
 
-    res.json(products.slice(0, 3).map(serializePublicProduct))
+    res.json(products.slice(0, MAX_FEATURED_PRODUCTS).map(serializePublicProduct))
   })
 )
 
