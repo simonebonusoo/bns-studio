@@ -722,6 +722,10 @@ export function ShopAdminPage() {
     setError("")
   }
 
+  function mergeUpdatedOrder(nextOrder: ShopOrder) {
+    setOrders((current) => current.map((order) => (order.id === nextOrder.id ? nextOrder : order)))
+  }
+
   function resetProductForm() {
     setProductForm(emptyProductForm())
     setProductTouchedFields({})
@@ -1475,38 +1479,48 @@ export function ShopAdminPage() {
           onCreateShipment={async (orderId) => {
             clearFeedback()
             try {
-              await apiFetch(`/admin/orders/${orderId}/shipping/create`, {
+              const response = await apiFetch<{ ok: boolean; code: string; order: ShopOrder }>(`/admin/orders/${orderId}/shipping/create`, {
                 method: "POST",
               })
-              await refresh()
+              if (response.order) {
+                mergeUpdatedOrder(response.order)
+              }
               setMessage("Spedizione creata.")
+              return response.order || null
             } catch (err) {
               setError(err instanceof Error ? err.message : "Errore durante la creazione della spedizione.")
+              return null
             }
           }}
           onRefreshTracking={async (orderId) => {
             clearFeedback()
             try {
-              await apiFetch(`/admin/orders/${orderId}/shipping/refresh`, {
+              const response = await apiFetch<{ ok: boolean; code: string; order: ShopOrder }>(`/admin/orders/${orderId}/shipping/refresh`, {
                 method: "POST",
               })
-              await refresh()
+              if (response.order) {
+                mergeUpdatedOrder(response.order)
+              }
               setMessage("Tracking aggiornato.")
+              return response.order || null
             } catch (err) {
               setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento del tracking.")
+              return null
             }
           }}
           onUpdateOrderStatus={async (orderId, payload) => {
             clearFeedback()
             try {
-              await apiFetch(`/admin/orders/${orderId}`, {
+              const updatedOrder = await apiFetch<ShopOrder>(`/admin/orders/${orderId}`, {
                 method: "PATCH",
                 body: JSON.stringify(payload),
               })
-              await refresh()
+              mergeUpdatedOrder(updatedOrder)
               setMessage("Ordine aggiornato.")
+              return updatedOrder
             } catch (err) {
               setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento dell'ordine.")
+              return null
             }
           }}
         />

@@ -14,9 +14,9 @@ type AdminOrdersSectionProps = {
   loadingProfitOrderId: number | null
   containWheel: (event: React.WheelEvent<HTMLElement>) => void
   onOpenOrderProfit: (orderId: number) => void
-  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }) => void
-  onCreateShipment: (orderId: number) => void
-  onRefreshTracking: (orderId: number) => void
+  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }) => Promise<ShopOrder | null>
+  onCreateShipment: (orderId: number) => Promise<ShopOrder | null>
+  onRefreshTracking: (orderId: number) => Promise<ShopOrder | null>
 }
 
 export function AdminOrdersSection({
@@ -29,6 +29,8 @@ export function AdminOrdersSection({
   onRefreshTracking,
 }: AdminOrdersSectionProps) {
   const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }>>({})
+  const [shippingFeedback, setShippingFeedback] = useState<Record<number, string>>({})
+  const [shippingActionState, setShippingActionState] = useState<Record<number, "create" | "refresh" | "save" | null>>({})
 
   useEffect(() => {
     setDrafts(
@@ -48,6 +50,17 @@ export function AdminOrdersSection({
     )
   }, [orders])
 
+  useEffect(() => {
+    if (!Object.keys(shippingFeedback).length) return undefined
+
+    const timeoutId = window.setTimeout(() => setShippingFeedback({}), 3200)
+    return () => window.clearTimeout(timeoutId)
+  }, [shippingFeedback])
+
+  function markOrderUpdated(orderId: number, message: string) {
+    setShippingFeedback((current) => ({ ...current, [orderId]: message }))
+  }
+
   return (
     <div className="space-y-4">
       {orders.map((order) => (
@@ -64,7 +77,13 @@ export function AdminOrdersSection({
             <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">
               Cliente: {getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}
             </p>
-            <div className="mt-4 grid gap-3 rounded-[22px] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
+            <div
+              className={`mt-4 grid gap-3 rounded-[22px] border p-4 text-sm text-white/60 transition-all duration-300 ${
+                shippingFeedback[order.id]
+                  ? "border-emerald-300/40 bg-emerald-400/[0.08] shadow-[0_0_0_1px_rgba(110,231,183,0.16)]"
+                  : "border-white/10 bg-white/[0.03]"
+              }`}
+            >
               <div className="grid gap-2 md:grid-cols-2">
                 <p><span className="text-white">Corriere:</span> {shipping.carrier}</p>
                 <p><span className="text-white">Metodo:</span> {shipping.method}</p>
@@ -90,6 +109,11 @@ export function AdminOrdersSection({
                 )}
               </div>
               {shipping.shippingError ? <p className="text-amber-100">In attesa di generazione: {shipping.shippingError}</p> : null}
+              {shippingFeedback[order.id] ? (
+                <p className="rounded-2xl border border-emerald-200/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
+                  {shippingFeedback[order.id]}
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="flex flex-col items-stretch gap-3 lg:min-w-[320px]">
@@ -101,12 +125,40 @@ export function AdminOrdersSection({
                 {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
               </button>
               {!order.trackingNumber || !order.shipmentReference ? (
-                <button type="button" onClick={() => onCreateShipment(order.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
-                  Crea spedizione
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShippingActionState((current) => ({ ...current, [order.id]: "create" }))
+                    try {
+                      const updatedOrder = await onCreateShipment(order.id)
+                      if (updatedOrder) {
+                        markOrderUpdated(order.id, "Spedizione salvata e visibile qui sotto.")
+                      }
+                    } finally {
+                      setShippingActionState((current) => ({ ...current, [order.id]: null }))
+                    }
+                  }}
+                  className={getButtonClassName({ variant: "cart", size: "sm" })}
+                >
+                  {shippingActionState[order.id] === "create" ? "Creazione..." : "Crea spedizione"}
                 </button>
               ) : null}
-              <button type="button" onClick={() => onRefreshTracking(order.id)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                Aggiorna tracking
+              <button
+                type="button"
+                onClick={async () => {
+                  setShippingActionState((current) => ({ ...current, [order.id]: "refresh" }))
+                  try {
+                    const updatedOrder = await onRefreshTracking(order.id)
+                    if (updatedOrder) {
+                      markOrderUpdated(order.id, "Tracking aggiornato e visibile qui sotto.")
+                    }
+                  } finally {
+                    setShippingActionState((current) => ({ ...current, [order.id]: null }))
+                  }
+                }}
+                className={getButtonClassName({ variant: "profile", size: "sm" })}
+              >
+                {shippingActionState[order.id] === "refresh" ? "Aggiornamento..." : "Aggiorna tracking"}
               </button>
               {order.status === "paid" || order.status === "shipped" ? (
                 <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
@@ -219,12 +271,23 @@ export function AdminOrdersSection({
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() =>
-                  onUpdateOrderStatus(order.id, drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "", labelUrl: "" })
-                }
+                onClick={async () => {
+                  setShippingActionState((current) => ({ ...current, [order.id]: "save" }))
+                  try {
+                    const updatedOrder = await onUpdateOrderStatus(
+                      order.id,
+                      drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "", labelUrl: "" },
+                    )
+                    if (updatedOrder) {
+                      markOrderUpdated(order.id, "Dati ordine aggiornati e visibili qui sotto.")
+                    }
+                  } finally {
+                    setShippingActionState((current) => ({ ...current, [order.id]: null }))
+                  }
+                }}
                 className={getButtonClassName({ variant: "cart", size: "sm" })}
               >
-                Salva
+                {shippingActionState[order.id] === "save" ? "Salvataggio..." : "Salva"}
               </button>
             </div>
           </div>
