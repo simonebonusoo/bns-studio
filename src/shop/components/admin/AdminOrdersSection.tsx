@@ -15,6 +15,8 @@ type AdminOrdersSectionProps = {
   containWheel: (event: React.WheelEvent<HTMLElement>) => void
   onOpenOrderProfit: (orderId: number) => void
   onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }) => void
+  onCreateShipment: (orderId: number) => void
+  onRefreshTracking: (orderId: number) => void
 }
 
 export function AdminOrdersSection({
@@ -23,6 +25,8 @@ export function AdminOrdersSection({
   loadingProfitOrderId,
   onOpenOrderProfit,
   onUpdateOrderStatus,
+  onCreateShipment,
+  onRefreshTracking,
 }: AdminOrdersSectionProps) {
   const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }>>({})
 
@@ -95,6 +99,14 @@ export function AdminOrdersSection({
               </Link>
               <button type="button" onClick={() => onOpenOrderProfit(order.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
                 {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
+              </button>
+              {!order.trackingNumber || !order.shipmentReference ? (
+                <button type="button" onClick={() => onCreateShipment(order.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
+                  Crea spedizione
+                </button>
+              ) : null}
+              <button type="button" onClick={() => onRefreshTracking(order.id)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                Aggiorna tracking
               </button>
               {order.status === "paid" || order.status === "shipped" ? (
                 <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className={getButtonClassName({ variant: "profile", size: "sm" })}>

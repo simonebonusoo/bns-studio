@@ -1,11 +1,8 @@
 import { createNormalizedRateQuote, createNormalizedShipment } from "../normalizers/shipment-normalizer.mjs"
+import { buildMockLabelPath, buildMockTrackingPath } from "./mock-shipping-documents.mjs"
 
 function createId(prefix = "INPOST") {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
-}
-
-function buildMockUrl(path) {
-  return `https://example.com/mock-shipping/${path.replace(/^\//, "")}`
 }
 
 export async function getRates({ orderContext }) {
@@ -38,8 +35,8 @@ export async function createShipment({ orderContext }) {
     serviceName: "InPost Standard Mock",
     shippingCost: orderContext?.shippingCost ?? 590,
     trackingNumber,
-    trackingUrl: buildMockUrl(`/inpost/track/${encodeURIComponent(trackingNumber)}`),
-    labelUrl: buildMockUrl(`/inpost/labels/${encodeURIComponent(shipmentReference)}.pdf`),
+    trackingUrl: buildMockTrackingPath(trackingNumber),
+    labelUrl: buildMockLabelPath(shipmentReference),
     labelFormat: "pdf",
     shipmentReference,
     handoffMode: "dropoff",
@@ -58,7 +55,7 @@ export async function getTracking({ trackingNumber }) {
     method: "economy",
     methodLabel: "Spedizione economica",
     trackingNumber,
-    trackingUrl: buildMockUrl(`/inpost/track/${encodeURIComponent(trackingNumber || "missing")}`),
+    trackingUrl: buildMockTrackingPath(trackingNumber || "missing"),
     handoffMode: "dropoff",
     status: "in_transit",
     rawProviderPayload: { provider: "inpost", mode: "mock", trackingNumber },
@@ -67,7 +64,7 @@ export async function getTracking({ trackingNumber }) {
 
 export async function getLabel({ shipmentReference }) {
   return {
-    labelUrl: buildMockUrl(`/inpost/labels/${encodeURIComponent(shipmentReference || "shipment")}.pdf`),
+    labelUrl: buildMockLabelPath(shipmentReference || "shipment"),
     labelFormat: "pdf",
   }
 }

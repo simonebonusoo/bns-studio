@@ -65,10 +65,14 @@ test("handoff mode labels remain user-friendly", () => {
 test("admin and customer order UIs render shipping visibility hooks", () => {
   const admin = read("src/shop/components/admin/AdminOrdersSection.tsx")
   const profile = read("src/shop/pages/ShopProfilePage.tsx")
+  const trackingPage = read("src/shop/pages/ShopMockTrackingPage.tsx")
 
   assert.match(admin, /Apri etichetta PDF/)
+  assert.match(admin, /Crea spedizione/)
+  assert.match(admin, /Aggiorna tracking/)
   assert.match(admin, /Drop-off/)
   assert.match(admin, /Pickup/)
   assert.match(profile, /Traccia spedizione/)
   assert.match(profile, /Tracking non ancora disponibile/)
+  assert.match(trackingPage, /Avanzamento spedizione/)
 })

@@ -85,5 +85,5 @@ export const env = {
   inpostApiKey: process.env.INPOST_API_KEY || "",
   inpostOrganizationId: process.env.INPOST_ORGANIZATION_ID || "",
   inpostTrackingBaseUrl: process.env.INPOST_TRACKING_BASE_URL || "",
-  shippingAutoCreateOnPayment: parseBoolean(process.env.SHOP_SHIPPING_AUTO_CREATE_ON_PAYMENT, false),
+  shippingAutoCreateOnPayment: parseBoolean(process.env.SHOP_SHIPPING_AUTO_CREATE_ON_PAYMENT, true),
 }

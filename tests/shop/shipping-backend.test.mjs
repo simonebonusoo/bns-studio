@@ -4,9 +4,11 @@ import assert from "node:assert/strict"
 import {
   createCarrierShipmentForOrder,
   getAvailableShippingOptions,
+  maybeCreateShipmentForPaidOrder,
   refreshCarrierTrackingForOrder,
   resolveShippingProvider,
 } from "../../src/server/shop/shipping/index.mjs"
+import { createMockLabelResponse, createMockTrackingResponse } from "../../src/server/shop/shipping/mocks/mock-tracking-route.mjs"
 
 function createMockEnv(overrides = {}) {
   return {
@@ -124,7 +126,7 @@ test("mock shipment creation persists tracking, label and normalized status on t
   assert.equal(result.shipment.carrier, "dhl")
   assert.equal(result.order.shippingStatus, "created")
   assert.match(result.order.trackingNumber, /^DHL-TRK-/)
-  assert.match(result.order.labelUrl, /mock-shipping\/dhl\/labels\//)
+  assert.match(result.order.labelUrl, /^https:\/\/example\.com\/mock-shipping\/dhl\/labels\//)
   assert.equal(typeof result.order.shippingProviderPayload, "string")
 })
 
@@ -165,5 +167,49 @@ test("tracking refresh uses the provider layer and updates the shipment status s
 
   assert.equal(result.ok, true)
   assert.equal(result.order.shippingStatus, "in_transit")
-  assert.match(result.order.trackingUrl, /mock-shipping\/inpost\/track\//)
+  assert.match(result.order.trackingUrl, /\/shop\/tracking\/mock\//)
+})
+
+test("economy orders auto-create a mock InPost shipment when payment completes", async () => {
+  const order = createOrder({
+    shippingMethod: "economy",
+    shippingCarrier: "inpost",
+    shippingCost: 590,
+  })
+  const db = createDb(order)
+
+  const result = await maybeCreateShipmentForPaidOrder({
+    db,
+    order,
+    currentEnv: createMockEnv({ shippingAutoCreateOnPayment: true }),
+  })
+
+  assert.equal(result.ok, true)
+  assert.equal(result.order.shippingCarrier, "InPost")
+  assert.equal(result.order.shippingStatus, "created")
+  assert.match(result.order.trackingUrl, /\/shop\/tracking\/mock\//)
+  assert.match(result.order.labelUrl, /\/api\/store\/mock-shipping\/labels\//)
+  assert.equal(result.order.shippingHandoffMode, "dropoff")
+})
+
+test("mock tracking and label helpers produce project-local assets", () => {
+  const order = createOrder({
+    shippingMethod: "economy",
+    shippingCarrier: "InPost",
+    shippingStatus: "in_transit",
+    trackingNumber: "INPOST-TRK-999",
+    shipmentReference: "INPOST-SHIP-999",
+    shippingLabel: "Spedizione economica",
+    shippingHandoffMode: "dropoff",
+  })
+
+  const tracking = createMockTrackingResponse(order)
+  const label = createMockLabelResponse(order)
+
+  assert.equal(tracking.trackingNumber, "INPOST-TRK-999")
+  assert.equal(tracking.carrier, "InPost")
+  assert.ok(Array.isArray(tracking.timeline))
+  assert.equal(tracking.timeline.length >= 3, true)
+  assert.match(label.filename, /inpost-label-/)
+  assert.equal(label.buffer.subarray(0, 4).toString(), "%PDF")
 })

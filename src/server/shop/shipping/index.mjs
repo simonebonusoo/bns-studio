@@ -252,5 +252,18 @@ export async function maybeCreateShipmentForPaidOrder({ db, order, currentEnv, f
     }
   }
 
+  if (normalizeMethod(order?.shippingMethod) !== "economy") {
+    return {
+      ok: false,
+      code: "auto_create_not_enabled_for_method",
+      shipment: createNormalizedShipment({
+        carrier: getCarrierForMethod(order?.shippingMethod),
+        method: normalizeMethod(order?.shippingMethod),
+        status: "not_created",
+      }),
+      order,
+    }
+  }
+
   return createCarrierShipmentForOrder({ db, order, currentEnv, fetchImpl })
 }

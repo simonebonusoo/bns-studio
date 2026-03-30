@@ -1472,6 +1472,30 @@ export function ShopAdminPage() {
           loadingProfitOrderId={loadingProfitOrderId}
           containWheel={containWheel}
           onOpenOrderProfit={openOrderProfit}
+          onCreateShipment={async (orderId) => {
+            clearFeedback()
+            try {
+              await apiFetch(`/admin/orders/${orderId}/shipping/create`, {
+                method: "POST",
+              })
+              await refresh()
+              setMessage("Spedizione creata.")
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Errore durante la creazione della spedizione.")
+            }
+          }}
+          onRefreshTracking={async (orderId) => {
+            clearFeedback()
+            try {
+              await apiFetch(`/admin/orders/${orderId}/shipping/refresh`, {
+                method: "POST",
+              })
+              await refresh()
+              setMessage("Tracking aggiornato.")
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento del tracking.")
+            }
+          }}
           onUpdateOrderStatus={async (orderId, payload) => {
             clearFeedback()
             try {

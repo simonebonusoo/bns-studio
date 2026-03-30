@@ -15,6 +15,7 @@ import { getProductStockLabel, getProductStockStatus } from "../lib/product-stoc
 import { resolveSelectedVariant, serializeProductVariants } from "../lib/product-variants.mjs"
 import { rankRelatedProducts, sortCatalogSearchProducts } from "../lib/product-discovery.mjs"
 import { requireAuth } from "../middleware/auth.mjs"
+import { createMockLabelResponse, createMockTrackingResponse } from "../shipping/mocks/mock-tracking-route.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
@@ -435,6 +436,56 @@ router.post(
       .parse(req.body)
 
     res.json(await calculatePricing(body.items, body.couponCode, { shippingMethod: body.shippingMethod }))
+  })
+)
+
+router.get(
+  "/mock-shipping/tracking/:trackingNumber",
+  asyncHandler(async (req, res) => {
+    const trackingNumber = String(req.params.trackingNumber || "").trim()
+
+    if (!trackingNumber) {
+      return res.status(404).json({ message: "Tracking non trovato" })
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        trackingNumber,
+        OR: [{ shippingCarrier: "InPost" }, { shippingCarrier: "inpost" }],
+      },
+    })
+
+    if (!order) {
+      return res.status(404).json({ message: "Tracking non trovato" })
+    }
+
+    res.json(createMockTrackingResponse(order))
+  })
+)
+
+router.get(
+  "/mock-shipping/labels/:shipmentReference",
+  asyncHandler(async (req, res) => {
+    const shipmentReference = String(req.params.shipmentReference || "").trim()
+
+    if (!shipmentReference) {
+      return res.status(404).json({ message: "Etichetta non trovata" })
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [{ shipmentReference }, { dhlShipmentReference: shipmentReference }],
+      },
+    })
+
+    if (!order) {
+      return res.status(404).json({ message: "Etichetta non trovata" })
+    }
+
+    const { buffer, filename } = createMockLabelResponse(order)
+    res.setHeader("Content-Type", "application/pdf")
+    res.setHeader("Content-Disposition", `inline; filename=\"${filename}\"`)
+    res.send(buffer)
   })
 )
 

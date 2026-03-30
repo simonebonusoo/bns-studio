@@ -30,6 +30,7 @@ import { ShopProfilePage } from "./shop/pages/ShopProfilePage"
 import { ShopReceiptPage } from "./shop/pages/ShopReceiptPage"
 import { ShopAdminPage } from "./shop/pages/ShopAdminPage"
 import { ShopPaypalReturnPage } from "./shop/pages/ShopPaypalReturnPage"
+import { ShopMockTrackingPage } from "./shop/pages/ShopMockTrackingPage"
 import { ShopAdminRoute, ShopCustomerRoute, ShopProtectedRoute } from "./shop/components/ShopProtectedRoute"
 import { apiFetch } from "./shop/lib/api"
 import { clearHomeReturnState, readHomeReturnState } from "./shop/lib/home-return.mjs"
@@ -204,6 +205,7 @@ export default function App() {
             <Route path="/shop/:slug" element={<ShopProductPage />} />
             <Route path="/shop/cart" element={<ShopCartPage />} />
             <Route path="/shop/auth" element={<ShopAuthPage />} />
+            <Route path="/shop/tracking/mock/:trackingNumber" element={<ShopMockTrackingPage />} />
             <Route
               path="/shop/checkout"
               element={
