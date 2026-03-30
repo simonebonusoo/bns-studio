@@ -294,6 +294,8 @@ export async function syncDhlShipmentForPaidOrder({ db, order, currentEnv = env,
       data: {
         shippingCarrier: result.shippingCarrier,
         shippingStatus: result.shippingStatus,
+        shippingHandoffMode: "pickup",
+        shipmentReference: result.shipmentReference,
         trackingNumber: result.trackingNumber,
         trackingUrl: result.trackingUrl,
         shippingCreatedAt: new Date(),

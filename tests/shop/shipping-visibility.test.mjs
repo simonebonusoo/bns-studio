@@ -16,9 +16,9 @@ test("checkout, receipt, profile and admin orders render the selected shipping m
   const adminOrders = read("src/shop/components/admin/AdminOrdersSection.tsx")
 
   assert.match(checkout, /Scegli la spedizione/)
-  assert.match(checkout, /getShippingMethodOptions/)
+  assert.match(checkout, /availableShippingRates/)
   assert.match(checkout, /shippingMethod/)
-  assert.match(receipt, /formatShippingMethodSummary/)
-  assert.match(profile, /formatShippingMethodSummary/)
-  assert.match(adminOrders, /formatShippingMethodSummary/)
+  assert.match(receipt, /buildAdminOrderShippingSummary/)
+  assert.match(profile, /buildAdminOrderShippingSummary/)
+  assert.match(adminOrders, /buildAdminOrderShippingSummary/)
 })

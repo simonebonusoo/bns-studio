@@ -1198,8 +1198,10 @@ router.patch(
         status: z.enum(["pending", "paid", "shipped"]).optional(),
         fulfillmentStatus: z.enum(["processing", "accepted", "in_progress", "shipped", "completed"]).optional(),
         shippingStatus: z.enum(["pending", "accepted", "shipped", "failed"]).optional(),
+        shippingHandoffMode: z.enum(["dropoff", "pickup"]).nullable().optional(),
         trackingNumber: z.string().trim().nullable().optional(),
         trackingUrl: z.string().trim().nullable().optional(),
+        labelUrl: z.string().trim().nullable().optional(),
       })
       .parse(req.body)
     const existingOrder = await prisma.order.findUnique({
@@ -1222,8 +1224,10 @@ router.patch(
           ...(body.status ? { status: body.status } : {}),
           ...(body.fulfillmentStatus ? { fulfillmentStatus: body.fulfillmentStatus } : {}),
           ...(body.shippingStatus ? { shippingStatus: body.shippingStatus } : {}),
+          shippingHandoffMode: body.shippingHandoffMode ? body.shippingHandoffMode : null,
           trackingNumber: body.trackingNumber ? body.trackingNumber : null,
           trackingUrl: body.trackingUrl ? body.trackingUrl : null,
+          labelUrl: body.labelUrl ? body.labelUrl : null,
         },
       })
     )

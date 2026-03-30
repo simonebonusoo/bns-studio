@@ -4,8 +4,8 @@ import { Link } from "react-router-dom"
 import { getButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 import { downloadInvoicePdf } from "../../lib/invoice"
-import { getOrderFulfillmentStatusLabel, getOrderShippingStatusLabel } from "../../lib/order"
-import { formatShippingMethodSummary } from "../../lib/shipping-methods.mjs"
+import { getOrderFulfillmentStatusLabel } from "../../lib/order"
+import { buildAdminOrderShippingSummary } from "../../lib/order-shipping.mjs"
 import { ShopOrder, ShopSettings } from "../../types"
 
 type AdminOrdersSectionProps = {
@@ -14,7 +14,7 @@ type AdminOrdersSectionProps = {
   loadingProfitOrderId: number | null
   containWheel: (event: React.WheelEvent<HTMLElement>) => void
   onOpenOrderProfit: (orderId: number) => void
-  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; trackingUrl: string }) => void
+  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }) => void
 }
 
 export function AdminOrdersSection({
@@ -24,7 +24,7 @@ export function AdminOrdersSection({
   onOpenOrderProfit,
   onUpdateOrderStatus,
 }: AdminOrdersSectionProps) {
-  const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; trackingUrl: string }>>({})
+  const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }>>({})
 
   useEffect(() => {
     setDrafts(
@@ -34,8 +34,10 @@ export function AdminOrdersSection({
           {
             fulfillmentStatus: order.fulfillmentStatus || "processing",
             shippingStatus: order.shippingStatus || "pending",
+            shippingHandoffMode: order.shippingHandoffMode || "",
             trackingNumber: order.trackingNumber || "",
             trackingUrl: order.trackingUrl || "",
+            labelUrl: order.labelUrl || "",
           },
         ]),
       ),
@@ -45,7 +47,11 @@ export function AdminOrdersSection({
   return (
     <div className="space-y-4">
       {orders.map((order) => (
-        <article key={order.id} className="shop-card flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
+        <article key={order.id} className="shop-card flex flex-col gap-4 p-6 lg:flex-row lg:items-start lg:justify-between">
+          {(() => {
+            const shipping = buildAdminOrderShippingSummary(order)
+            return (
+          <>
           <div>
             <p className="text-lg font-semibold text-white">{order.orderReference}</p>
             <p className="mt-1 text-sm text-white/60">
@@ -54,11 +60,32 @@ export function AdminOrdersSection({
             <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">
               Cliente: {getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}
             </p>
-            <div className="mt-3 space-y-1 text-sm text-white/55">
-              {order.shippingMethod ? <p>{formatShippingMethodSummary(order.shippingMethod)}</p> : null}
-              {order.shippingCarrier ? <p>Corriere: {String(order.shippingCarrier).toUpperCase()}</p> : null}
-              <p>Stato spedizione: {getOrderShippingStatusLabel(order.shippingStatus, order.fulfillmentStatus)}</p>
-              {order.trackingNumber ? <p>Tracking: {order.trackingNumber}</p> : null}
+            <div className="mt-4 grid gap-3 rounded-[22px] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
+              <div className="grid gap-2 md:grid-cols-2">
+                <p><span className="text-white">Corriere:</span> {shipping.carrier}</p>
+                <p><span className="text-white">Metodo:</span> {shipping.method}</p>
+                <p><span className="text-white">Stato spedizione:</span> {shipping.status}</p>
+                <p><span className="text-white">Conferimento:</span> {shipping.handoffMode}</p>
+                <p><span className="text-white">Tracking:</span> {shipping.trackingNumber}</p>
+                <p><span className="text-white">Riferimento:</span> {shipping.shipmentReference}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {shipping.trackingUrl ? (
+                  <a href={shipping.trackingUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                    Apri tracking
+                  </a>
+                ) : (
+                  <span className="rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/40">Tracking non ancora disponibile</span>
+                )}
+                {shipping.labelUrl ? (
+                  <a href={shipping.labelUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "cart", size: "sm" })}>
+                    Apri etichetta PDF
+                  </a>
+                ) : (
+                  <span className="rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/40">Etichetta non ancora disponibile</span>
+                )}
+              </div>
+              {shipping.shippingError ? <p className="text-amber-100">In attesa di generazione: {shipping.shippingError}</p> : null}
             </div>
           </div>
           <div className="flex flex-col items-stretch gap-3 lg:min-w-[320px]">
@@ -83,7 +110,7 @@ export function AdminOrdersSection({
                   setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { shippingStatus: "pending", trackingNumber: "", trackingUrl: "" }),
+                      ...(current[order.id] || { shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
                       fulfillmentStatus: event.target.value,
                     },
                   }))
@@ -103,7 +130,7 @@ export function AdminOrdersSection({
                   setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingUrl: "", labelUrl: "" }),
                       trackingNumber: event.target.value,
                     },
                   }))
@@ -116,7 +143,7 @@ export function AdminOrdersSection({
                   setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", trackingNumber: "", trackingUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
                       shippingStatus: event.target.value,
                     },
                   }))
@@ -127,6 +154,23 @@ export function AdminOrdersSection({
                 <option value="shipped">Spedizione spedita</option>
                 <option value="failed">Spedizione da completare</option>
               </select>
+              <select
+                className="shop-select"
+                value={drafts[order.id]?.shippingHandoffMode || ""}
+                onChange={(event) =>
+                  setDrafts((current) => ({
+                    ...current,
+                    [order.id]: {
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
+                      shippingHandoffMode: event.target.value,
+                    },
+                  }))
+                }
+              >
+                <option value="">Modalità da definire</option>
+                <option value="dropoff">Drop-off</option>
+                <option value="pickup">Pickup</option>
+              </select>
               <input
                 className="shop-input"
                 placeholder="Link tracking opzionale"
@@ -135,8 +179,22 @@ export function AdminOrdersSection({
                   setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", labelUrl: "" }),
                       trackingUrl: event.target.value,
+                    },
+                  }))
+                }
+              />
+              <input
+                className="shop-input"
+                placeholder="Link etichetta PDF"
+                value={drafts[order.id]?.labelUrl || ""}
+                onChange={(event) =>
+                  setDrafts((current) => ({
+                    ...current,
+                    [order.id]: {
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "" }),
+                      labelUrl: event.target.value,
                     },
                   }))
                 }
@@ -146,7 +204,7 @@ export function AdminOrdersSection({
               <button
                 type="button"
                 onClick={() =>
-                  onUpdateOrderStatus(order.id, drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", trackingUrl: "" })
+                  onUpdateOrderStatus(order.id, drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "", labelUrl: "" })
                 }
                 className={getButtonClassName({ variant: "cart", size: "sm" })}
               >
@@ -154,6 +212,9 @@ export function AdminOrdersSection({
               </button>
             </div>
           </div>
+          </>
+            )
+          })()}
         </article>
       ))}
     </div>

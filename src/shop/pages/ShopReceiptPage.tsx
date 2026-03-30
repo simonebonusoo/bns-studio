@@ -7,8 +7,8 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
-import { getOrderFulfillmentStatusLabel, getOrderShippingStatusLabel, getOrderStatusLabel } from "../lib/order"
-import { formatShippingMethodSummary } from "../lib/shipping-methods.mjs"
+import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
+import { buildAdminOrderShippingSummary } from "../lib/order-shipping.mjs"
 import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
 import { ShopOrder, ShopPayment, ShopSettings } from "../types"
 
@@ -57,6 +57,7 @@ export function ShopReceiptPage() {
   const isPaid = order.status === "paid" || order.status === "shipped"
   const isAdminView = effectiveRole === "admin"
   const shipping = formatShippingAddressLines(order)
+  const shippingSummary = buildAdminOrderShippingSummary(order)
 
   async function handlePayPalClick() {
     if (isRedirectingToPaypal) {
@@ -134,14 +135,26 @@ export function ShopReceiptPage() {
         <aside className="shop-card space-y-4 p-6">
           <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
           <p className="text-sm text-white/55">Pagamento: {getOrderStatusLabel(order.status)}</p>
-          {order.shippingMethod ? <p className="text-sm text-white/60">{formatShippingMethodSummary(order.shippingMethod)}</p> : null}
-          {order.shippingCarrier ? <p className="text-sm text-white/60">Corriere: {String(order.shippingCarrier).toUpperCase()}</p> : null}
-          <p className="text-sm text-white/60">Stato spedizione: {getOrderShippingStatusLabel(order.shippingStatus, order.fulfillmentStatus)}</p>
-          {order.trackingNumber ? <p className="text-sm text-white/60">Tracking: {order.trackingNumber}</p> : null}
-          {order.trackingUrl ? (
-            <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">
+          <div className="space-y-1 rounded-[22px] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
+            <p><span className="text-white">Metodo:</span> {shippingSummary.method}</p>
+            <p><span className="text-white">Corriere:</span> {shippingSummary.carrier}</p>
+            <p><span className="text-white">Stato spedizione:</span> {shippingSummary.status}</p>
+            <p><span className="text-white">Tracking:</span> {shippingSummary.trackingNumber}</p>
+            <p><span className="text-white">Conferimento:</span> {shippingSummary.handoffMode}</p>
+          </div>
+          {shippingSummary.trackingUrl ? (
+            <a href={shippingSummary.trackingUrl} target="_blank" rel="noreferrer" className="text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">
               Traccia spedizione
             </a>
+          ) : null}
+          {isAdminView ? (
+            shippingSummary.labelUrl ? (
+              <a href={shippingSummary.labelUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                Apri etichetta PDF
+              </a>
+            ) : (
+              <p className="text-sm text-white/45">Etichetta non ancora disponibile.</p>
+            )
           ) : null}
           {!isAdminView && paymentCancelled ? <p className="text-sm text-amber-200">Pagamento annullato. Puoi riprovare con PayPal quando vuoi.</p> : null}
           <div className="space-y-3 text-sm text-white/70">

@@ -162,12 +162,14 @@ model Order {
   shippingCarrier  String?
   shippingLabel    String?
   shippingStatus   String?
+  shippingHandoffMode String?
   subtotal         Int
   discountTotal    Int
   shippingCost     Int?
   shippingTotal    Int
   total            Int
   couponCode       String?
+  shipmentReference String?
   trackingNumber   String?
   trackingUrl      String?
   shippingCreatedAt DateTime?
@@ -203,6 +205,7 @@ model CheckoutSession {
   country          String
   status           String   @default("pending")
   shippingMethod   String?
+  shippingHandoffMode String?
   subtotal         Int
   discountTotal    Int
   shippingLabel    String?
@@ -211,6 +214,7 @@ model CheckoutSession {
   total            Int
   couponCode       String?
   shippingCarrier  String?
+  shipmentReference String?
   trackingNumber   String?
   pricingBreakdown String
   itemsSnapshot    String
