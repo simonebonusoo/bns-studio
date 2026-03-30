@@ -348,17 +348,11 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
   return query ? `${pathname}?${query}` : pathname
 }
 
-function forwardHorizontalScroll(event: React.WheelEvent<HTMLElement>) {
-  const target = event.currentTarget
-  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
-  target.scrollLeft += event.deltaY
-  event.preventDefault()
-}
-
 export function HomeShop() {
   const navigate = useNavigate();
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [collections, setCollections] = useState<AdminCollection[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -369,14 +363,16 @@ export function HomeShop() {
     async function loadProducts() {
       try {
         setStatus("loading");
-        const [productData, settingsData] = await Promise.all([
+        const [productData, settingsData, collectionsData] = await Promise.all([
           apiFetch<ShopProductListResponse>("/store/products?page=1&pageSize=100&sort=manual"),
           apiFetch<Record<string, string>>("/store/settings"),
+          apiFetch<AdminCollection[]>("/store/collections"),
         ]);
         if (!cancelled) {
           setProducts(productData.items);
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
+          setCollections(collectionsData);
           setStatus("idle");
         }
       } catch (error) {
@@ -401,6 +397,11 @@ export function HomeShop() {
     [shopSettings]
   );
 
+  const showcases = useMemo(
+    () => parseHomepageShowcases(shopSettings.homepageShowcases, defaultShowcases, collections),
+    [collections, shopSettings]
+  )
+
   const popularCategoryCards = useMemo(
     () =>
       popularCategories.map((category, index) => ({
@@ -410,13 +411,26 @@ export function HomeShop() {
     [products, popularCategories],
   );
 
+  const showcaseCards = useMemo(
+    () =>
+      showcases.map((showcase, index) => ({
+        ...showcase,
+        imageUrl:
+          showcase.imageUrl ||
+          (showcase.collectionSlug
+            ? pickProductImageByCollection(products, showcase.collectionSlug, index + 3)
+            : pickProductImage(products, showcase.query, index + 3)),
+      })),
+    [products, showcases],
+  )
+
   const trendingProducts = useMemo(() => {
     const featured = products.filter((product) => product.featured)
     const others = products.filter((product) => !product.featured)
     return [...featured, ...others].slice(0, 20)
   }, [products])
 
-  const catalogPreviewProducts = useMemo(() => products.slice(0, 20), [products])
+  const catalogPreviewProducts = useMemo(() => products.slice(0, 16), [products])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
@@ -445,8 +459,7 @@ export function HomeShop() {
           </div>
 
           <div
-            className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
-            onWheel={forwardHorizontalScroll}
+            className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden"
           >
             <div className="flex min-w-full gap-6">
               {trendingProducts.map((product) => (
@@ -516,6 +529,85 @@ export function HomeShop() {
         </div>
 
         <div className="space-y-8 pt-10 sm:pt-16">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.32em] text-white/45">Le nostre collezioni</p>
+              <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                Le nostre collezioni
+              </h3>
+              <p className="max-w-3xl text-sm leading-6 text-white/62 sm:text-base">
+                Collezioni curate per iniziare da una direzione forte e aprire il catalogo da percorsi editoriali gia costruiti.
+              </p>
+            </div>
+            {effectiveRole === "admin" ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="self-start md:self-auto"
+                onClick={() => navigate("/shop/admin?tab=homepage&section=showcases")}
+              >
+                Modifica
+              </Button>
+            ) : null}
+          </div>
+
+          <div className="space-y-6">
+            {showcaseCards.map((showcase, index) => (
+              <article
+                key={showcase.title}
+                className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03]"
+              >
+                <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
+                  <div
+                    className={`flex min-h-[20rem] flex-col justify-between gap-8 p-7 sm:min-h-[22rem] sm:p-9 ${
+                      index % 2 === 1 ? "lg:order-2" : ""
+                    }`}
+                  >
+                    <div className="space-y-4">
+                      <p className="text-xs uppercase tracking-[0.32em] text-white/45">{showcase.eyebrow}</p>
+                      <div className="space-y-3">
+                        <h3 className="max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                          {showcase.title}
+                        </h3>
+                        <p className="max-w-xl text-base leading-7 text-white/68">{showcase.description}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <Link
+                        to={
+                          showcase.collectionSlug
+                            ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
+                            : withCatalogContext(showcase.href, showcase.title, showcase.description)
+                        }
+                        className={getButtonClassName({ variant: "cart", size: "sm" })}
+                      >
+                        {showcase.ctaLabel || "Esplora la collezione"}
+                      </Link>
+                    </div>
+                  </div>
+                  <div
+                    className={`relative min-h-[18rem] border-t border-white/10 lg:min-h-[22rem] lg:border-l lg:border-t-0 ${
+                      index % 2 === 1 ? "lg:order-1 lg:border-l-0 lg:border-r" : ""
+                    }`}
+                  >
+                    {showcase.imageUrl ? (
+                      <img
+                        src={showcase.imageUrl}
+                        alt={showcase.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_52%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
+                    )}
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,0,0,0.12),rgba(0,0,0,0.48))]" />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-8 pt-10 sm:pt-16">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
               <div className="shop-pill inline-flex items-center gap-3">
@@ -529,18 +621,15 @@ export function HomeShop() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3 self-start md:self-auto">
-              {effectiveRole === "admin" ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/shop/admin?tab=prodotti")}
+            {effectiveRole === "admin" ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/shop/admin?tab=prodotti")}
                 >
                   Modifica
                 </Button>
               ) : null}
-              <Link to="/shop" className={getButtonClassName({ variant: "cart", size: "sm" })}>
-                Vedi catalogo completo
-              </Link>
             </div>
           </div>
 
@@ -548,6 +637,12 @@ export function HomeShop() {
             {catalogPreviewProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
+          </div>
+
+          <div className="flex justify-center pt-2">
+            <Link to="/shop" className={getButtonClassName({ variant: "cart", size: "sm" })}>
+              Vedi catalogo completo
+            </Link>
           </div>
         </div>
 
