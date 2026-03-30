@@ -50,3 +50,10 @@ test("getRecentlyViewedProducts returns empty when there are no other products t
 
   assert.deepEqual(recent, [])
 })
+
+test("getRecentlyViewedProducts preserves recent-first ordering for the horizontal strip", () => {
+  const history = [buildProduct(8), buildProduct(7), buildProduct(6), buildProduct(5)]
+  const recent = getRecentlyViewedProducts(history, "product-999", 8)
+
+  assert.deepEqual(recent.map((product) => product.id), [8, 7, 6, 5])
+})

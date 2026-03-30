@@ -5,6 +5,7 @@ import { getButtonClassName } from "../../components/Button"
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
+import { scrollCatalogSectionToTop } from "../lib/catalog-navigation.mjs"
 import { AdminCollection, ShopProduct, ShopProductListResponse } from "../types"
 
 const SORT_OPTIONS = [
@@ -18,6 +19,8 @@ const SORT_OPTIONS = [
 const PAGE_SIZE = 12
 
 export function ShopPage() {
+  const catalogTopRef = useRef<HTMLDivElement | null>(null)
+  const previousPageRef = useRef<number | null>(null)
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
@@ -46,6 +49,18 @@ export function ShopPage() {
   useEffect(() => {
     apiFetch<AdminCollection[]>("/store/collections").then(setCollections).catch(() => setCollections([]))
   }, [])
+
+  useEffect(() => {
+    if (previousPageRef.current === null) {
+      previousPageRef.current = filters.page
+      return
+    }
+
+    if (previousPageRef.current !== filters.page) {
+      scrollCatalogSectionToTop(catalogTopRef.current)
+      previousPageRef.current = filters.page
+    }
+  }, [filters.page])
 
   useEffect(() => {
     const params = new URLSearchParams()
@@ -154,6 +169,7 @@ export function ShopPage() {
       title={pageContextLabel}
       intro=""
     >
+      <div ref={catalogTopRef} />
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
         <div className="border-b border-white/10 pb-4">
           <div>

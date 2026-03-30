@@ -414,7 +414,7 @@ export function ShopProductPage() {
             <h3 className="text-2xl font-semibold text-white">Stavi guardando</h3>
             <p className="text-sm leading-6 text-white/62">Altri poster che hai visitato di recente.</p>
           </div>
-          <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-1 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
             <div className="flex min-w-full gap-6">
               {recentlyViewedProducts.map((recentProduct) => (
                 <div key={recentProduct.slug} className="w-[18.5rem] flex-none sm:w-[20rem]">
