@@ -77,120 +77,132 @@ export function AdminOrdersSection({
   return (
     <div className="space-y-4">
       {orders.map((order) => (
-        <article key={order.id} className="shop-card flex flex-col gap-4 p-6 lg:flex-row lg:items-start lg:justify-between">
+        <article key={order.id} className="shop-card p-6">
           {(() => {
             const shipping = buildAdminOrderShippingSummary(order)
             const shipmentCreated = hasCreatedShipment(order)
             return (
           <>
-          <div>
-            <p className="text-lg font-semibold text-white">{order.orderReference}</p>
-            <p className="mt-1 text-sm text-white/60">
-              {order.firstName} {order.lastName} · {formatPrice(order.total)}
-            </p>
-            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">
-              Cliente: {getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}
-            </p>
-            <div
-              className={`mt-4 grid gap-3 rounded-[22px] border p-4 text-sm text-white/60 transition-all duration-300 ${
-                shippingFeedback[order.id]
-                  ? "border-emerald-300/40 bg-emerald-400/[0.08] shadow-[0_0_0_1px_rgba(110,231,183,0.16)]"
-                  : "border-white/10 bg-white/[0.03]"
-              }`}
-            >
-              <div className="grid gap-2 md:grid-cols-2">
-                <p><span className="text-white">Metodo:</span> {shipping.method}</p>
-                <p><span className="text-white">Costo spedizione:</span> {typeof order.shippingCost === "number" ? formatPrice(order.shippingCost) : "Non disponibile"}</p>
-                <p><span className="text-white">Stato spedizione:</span> {shipping.status}</p>
-                <p><span className="text-white">Tracking:</span> {shipping.trackingNumber}</p>
-                <p><span className="text-white">Riferimento:</span> {shipping.shipmentReference}</p>
-                <p><span className="text-white">Peso:</span> {defaultParcel.weightKg} kg</p>
-                <p><span className="text-white">Lunghezza:</span> {defaultParcel.lengthCm} cm</p>
-                <p><span className="text-white">Larghezza:</span> {defaultParcel.widthCm} cm</p>
-                <p><span className="text-white">Altezza:</span> {defaultParcel.heightCm} cm</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {shipping.trackingUrl ? (
-                  <a href={shipping.trackingUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                    Apri tracking
-                  </a>
-                ) : (
-                  <span className="rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/40">Tracking non ancora disponibile</span>
-                )}
-                {shipping.labelUrl ? (
-                  <a href={shipping.labelUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "cart", size: "sm" })}>
-                    Apri etichetta PDF
-                  </a>
-                ) : (
-                  <span className="rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/40">Etichetta non ancora disponibile</span>
-                )}
-              </div>
-              {shipping.shippingError ? <p className="text-amber-100">In attesa di generazione: {shipping.shippingError}</p> : null}
-              {shippingFeedback[order.id] ? (
-                <p className="rounded-2xl border border-emerald-200/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
-                  {shippingFeedback[order.id]}
-                </p>
-              ) : null}
-              {packlinkProNewShipmentUrl ? (
-                <p className="text-xs text-white/45">
-                  Packlink Pro: <a href={packlinkProNewShipmentUrl} target="_blank" rel="noreferrer" className="text-[#e3f503] underline underline-offset-4">Nuova spedizione</a>
-                </p>
-              ) : null}
+          <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.95fr)]">
+          <div
+            className={`flex h-full flex-col rounded-[22px] border p-5 text-sm text-white/60 transition-all duration-300 ${
+              shippingFeedback[order.id]
+                ? "border-emerald-300/40 bg-emerald-400/[0.08] shadow-[0_0_0_1px_rgba(110,231,183,0.16)]"
+                : "border-white/10 bg-white/[0.03]"
+            }`}
+          >
+            <div>
+              <p className="text-lg font-semibold text-white">{order.orderReference}</p>
+              <p className="mt-1 text-sm text-white/60">
+                {order.firstName} {order.lastName} · {formatPrice(order.total)}
+              </p>
+              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">
+                Cliente: {getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}
+              </p>
             </div>
-          </div>
-          <div className="flex flex-col items-stretch gap-3 lg:mt-[4.5rem] lg:min-w-[360px]">
-            <div className="grid gap-2 md:grid-cols-3">
-              <Link to={`/shop/orders/${order.orderReference}`} className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full text-center`}>
-                Visualizza ordine
-              </Link>
-              <button type="button" onClick={() => onOpenOrderProfit(order.id)} className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full justify-center`}>
-                {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
-              </button>
-              {order.status === "paid" || order.status === "shipped" ? (
-                <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className={`${getButtonClassName({ variant: "cart", size: "sm" })} w-full justify-center`}>
-                  Scarica ricevuta
-                </button>
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              <p><span className="text-white">Metodo:</span> {shipping.method}</p>
+              <p><span className="text-white">Costo spedizione:</span> {typeof order.shippingCost === "number" ? formatPrice(order.shippingCost) : "Non disponibile"}</p>
+              <p><span className="text-white">Stato spedizione:</span> {shipping.status}</p>
+              <p><span className="text-white">Tracking:</span> {shipping.trackingNumber}</p>
+              <p><span className="text-white">Riferimento:</span> {shipping.shipmentReference}</p>
+              <p><span className="text-white">Peso:</span> {defaultParcel.weightKg} kg</p>
+              <p><span className="text-white">Lunghezza:</span> {defaultParcel.lengthCm} cm</p>
+              <p><span className="text-white">Larghezza:</span> {defaultParcel.widthCm} cm</p>
+              <p><span className="text-white">Altezza:</span> {defaultParcel.heightCm} cm</p>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {shipping.trackingUrl ? (
+                <a href={shipping.trackingUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                  Apri tracking
+                </a>
               ) : (
-                <div />
+                <span className="rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/40">Tracking non ancora disponibile</span>
+              )}
+              {shipping.labelUrl ? (
+                <a href={shipping.labelUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "cart", size: "sm" })}>
+                  Apri etichetta PDF
+                </a>
+              ) : (
+                <span className="rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/40">Etichetta non ancora disponibile</span>
               )}
             </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  setShippingActionState((current) => ({ ...current, [order.id]: "create" }))
-                  try {
-                    const updatedOrder = await onCreateShipment(order.id)
-                    if (updatedOrder) {
-                      markOrderUpdated(order.id, "Packlink Pro aperto. Inserisci tracking, link ed etichetta qui sotto dopo aver creato la spedizione.")
-                    }
-                  } finally {
-                    setShippingActionState((current) => ({ ...current, [order.id]: null }))
-                  }
-                }}
-                className={`${getButtonClassName({ variant: "cart", size: "sm" })} w-full justify-center`}
-              >
-                {shippingActionState[order.id] === "create" ? "Apertura..." : shipmentCreated ? "Visualizza spedizione" : "Crea spedizione"}
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  setShippingActionState((current) => ({ ...current, [order.id]: "refresh" }))
-                  try {
-                    const updatedOrder = await onRefreshTracking(order.id)
-                    if (updatedOrder) {
-                      markOrderUpdated(order.id, "Aggiorna manualmente tracking, link ed etichetta nei campi qui sotto, poi salva.")
-                    }
-                  } finally {
-                    setShippingActionState((current) => ({ ...current, [order.id]: null }))
-                  }
-                }}
-                className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full justify-center`}
-              >
-                {shippingActionState[order.id] === "refresh" ? "Verifica..." : "Tracking manuale"}
-              </button>
+            {shipping.shippingError ? <p className="mt-4 text-amber-100">In attesa di generazione: {shipping.shippingError}</p> : null}
+            {shippingFeedback[order.id] ? (
+              <p className="mt-4 rounded-2xl border border-emerald-200/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
+                {shippingFeedback[order.id]}
+              </p>
+            ) : null}
+            {packlinkProNewShipmentUrl ? (
+              <p className="mt-4 text-xs text-white/45">
+                Packlink Pro: <a href={packlinkProNewShipmentUrl} target="_blank" rel="noreferrer" className="text-[#e3f503] underline underline-offset-4">Nuova spedizione</a>
+              </p>
+            ) : null}
+          </div>
+          <div className="flex h-full flex-col rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/45">Azioni principali</p>
+                <div className="grid gap-2 md:grid-cols-3">
+                  <Link to={`/shop/orders/${order.orderReference}`} className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full text-center`}>
+                Visualizza ordine
+                  </Link>
+                  <button type="button" onClick={() => onOpenOrderProfit(order.id)} className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full justify-center`}>
+                    {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
+                  </button>
+                  {order.status === "paid" || order.status === "shipped" ? (
+                    <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className={`${getButtonClassName({ variant: "cart", size: "sm" })} w-full justify-center`}>
+                      Scarica ricevuta
+                    </button>
+                  ) : (
+                    <div className="hidden md:block" />
+                  )}
+                </div>
+              </div>
+              <div className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/45">Spedizione</p>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setShippingActionState((current) => ({ ...current, [order.id]: "create" }))
+                      try {
+                        const updatedOrder = await onCreateShipment(order.id)
+                        if (updatedOrder) {
+                          markOrderUpdated(order.id, "Packlink Pro aperto. Inserisci tracking, link ed etichetta qui sotto dopo aver creato la spedizione.")
+                        }
+                      } finally {
+                        setShippingActionState((current) => ({ ...current, [order.id]: null }))
+                      }
+                    }}
+                    className={`${getButtonClassName({ variant: "cart", size: "sm" })} w-full justify-center`}
+                  >
+                    {shippingActionState[order.id] === "create" ? "Apertura..." : shipmentCreated ? "Visualizza spedizione" : "Crea spedizione"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setShippingActionState((current) => ({ ...current, [order.id]: "refresh" }))
+                      try {
+                        const updatedOrder = await onRefreshTracking(order.id)
+                        if (updatedOrder) {
+                          markOrderUpdated(order.id, "Aggiorna manualmente tracking, link ed etichetta nei campi qui sotto, poi salva.")
+                        }
+                      } finally {
+                        setShippingActionState((current) => ({ ...current, [order.id]: null }))
+                      }
+                    }}
+                    className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full justify-center`}
+                  >
+                    {shippingActionState[order.id] === "refresh" ? "Verifica..." : "Tracking manuale"}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)]">
+            <div className="mt-6 flex flex-1 flex-col justify-end">
+            <div className="space-y-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Controlli manuali</p>
+              <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)]">
               <select
                 className="shop-select"
                 value={drafts[order.id]?.fulfillmentStatus || "processing"}
@@ -275,8 +287,8 @@ export function AdminOrdersSection({
                   }))
                 }
               />
-            </div>
-            <div className="flex justify-end">
+              </div>
+            <div className="flex justify-end pt-1">
               <button
                 type="button"
                 onClick={async () => {
@@ -298,6 +310,9 @@ export function AdminOrdersSection({
                 {shippingActionState[order.id] === "save" ? "Salvataggio..." : "Salva"}
               </button>
             </div>
+            </div>
+            </div>
+          </div>
           </div>
           </>
             )
