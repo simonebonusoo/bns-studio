@@ -73,7 +73,7 @@ test("admin and customer order UIs render shipping visibility hooks", () => {
   assert.match(admin, /Apri etichetta PDF/)
   assert.match(admin, /Crea spedizione/)
   assert.match(admin, /Tracking manuale/)
-  assert.match(admin, /visibile qui sotto/)
+  assert.match(admin, /Inserisci tracking, link ed etichetta qui sotto/)
   assert.match(admin, /out_for_delivery/)
   assert.match(adminPage, /mergeUpdatedOrder/)
   assert.match(adminPage, /window\.open/)

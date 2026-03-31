@@ -69,12 +69,18 @@ export function AdminOrdersSection({
     setShippingFeedback((current) => ({ ...current, [orderId]: message }))
   }
 
+  function hasCreatedShipment(order: ShopOrder) {
+    if (order.trackingNumber || order.trackingUrl || order.labelUrl) return true
+    return ["accepted", "created", "in_transit", "out_for_delivery", "shipped", "delivered"].includes(String(order.shippingStatus || "").trim().toLowerCase())
+  }
+
   return (
     <div className="space-y-4">
       {orders.map((order) => (
         <article key={order.id} className="shop-card flex flex-col gap-4 p-6 lg:flex-row lg:items-start lg:justify-between">
           {(() => {
             const shipping = buildAdminOrderShippingSummary(order)
+            const shipmentCreated = hasCreatedShipment(order)
             return (
           <>
           <div>
@@ -132,33 +138,40 @@ export function AdminOrdersSection({
               ) : null}
             </div>
           </div>
-          <div className="flex flex-col items-stretch gap-3 lg:min-w-[320px]">
-            <div className="flex flex-wrap gap-2">
-              <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+          <div className="flex flex-col items-stretch gap-3 lg:mt-[4.5rem] lg:min-w-[360px]">
+            <div className="grid gap-2 md:grid-cols-3">
+              <Link to={`/shop/orders/${order.orderReference}`} className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full text-center`}>
                 Visualizza ordine
               </Link>
-              <button type="button" onClick={() => onOpenOrderProfit(order.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
+              <button type="button" onClick={() => onOpenOrderProfit(order.id)} className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full justify-center`}>
                 {loadingProfitOrderId === order.id ? "Calcolo..." : "Visualizza guadagno"}
               </button>
-              {!order.trackingNumber || !order.shipmentReference ? (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setShippingActionState((current) => ({ ...current, [order.id]: "create" }))
-                    try {
-                      const updatedOrder = await onCreateShipment(order.id)
-                      if (updatedOrder) {
-                        markOrderUpdated(order.id, "Spedizione salvata e visibile qui sotto.")
-                      }
-                    } finally {
-                      setShippingActionState((current) => ({ ...current, [order.id]: null }))
-                    }
-                  }}
-                  className={getButtonClassName({ variant: "cart", size: "sm" })}
-                >
-                  {shippingActionState[order.id] === "create" ? "Apertura..." : "Crea spedizione"}
+              {order.status === "paid" || order.status === "shipped" ? (
+                <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className={`${getButtonClassName({ variant: "cart", size: "sm" })} w-full justify-center`}>
+                  Scarica ricevuta
                 </button>
-              ) : null}
+              ) : (
+                <div />
+              )}
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setShippingActionState((current) => ({ ...current, [order.id]: "create" }))
+                  try {
+                    const updatedOrder = await onCreateShipment(order.id)
+                    if (updatedOrder) {
+                      markOrderUpdated(order.id, "Packlink Pro aperto. Inserisci tracking, link ed etichetta qui sotto dopo aver creato la spedizione.")
+                    }
+                  } finally {
+                    setShippingActionState((current) => ({ ...current, [order.id]: null }))
+                  }
+                }}
+                className={`${getButtonClassName({ variant: "cart", size: "sm" })} w-full justify-center`}
+              >
+                {shippingActionState[order.id] === "create" ? "Apertura..." : shipmentCreated ? "Visualizza spedizione" : "Crea spedizione"}
+              </button>
               <button
                 type="button"
                 onClick={async () => {
@@ -166,21 +179,16 @@ export function AdminOrdersSection({
                   try {
                     const updatedOrder = await onRefreshTracking(order.id)
                     if (updatedOrder) {
-                      markOrderUpdated(order.id, "Tracking aggiornato e visibile qui sotto.")
+                      markOrderUpdated(order.id, "Aggiorna manualmente tracking, link ed etichetta nei campi qui sotto, poi salva.")
                     }
                   } finally {
                     setShippingActionState((current) => ({ ...current, [order.id]: null }))
                   }
                 }}
-                className={getButtonClassName({ variant: "profile", size: "sm" })}
+                className={`${getButtonClassName({ variant: "profile", size: "sm" })} w-full justify-center`}
               >
                 {shippingActionState[order.id] === "refresh" ? "Verifica..." : "Tracking manuale"}
               </button>
-              {order.status === "paid" || order.status === "shipped" ? (
-                <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                  Scarica ricevuta
-                </button>
-              ) : null}
             </div>
             <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)]">
               <select
