@@ -1,10 +1,5 @@
-import { buildShippingConfig } from "./config.mjs"
-import { createDhlProvider } from "./providers/dhl.mjs"
-import { createInpostProvider } from "./providers/inpost.mjs"
-import { createPacklinkProvider } from "./providers/packlink.mjs"
 import {
   createNormalizedRateQuote,
-  buildOrderShipmentUpdateData,
   createNormalizedShipment,
   getCarrierForMethod,
   normalizeCarrier,
@@ -17,38 +12,8 @@ function normalizeOptionalString(value) {
   return normalized || null
 }
 
-function createProviderRegistry(currentEnv) {
-  const config = buildShippingConfig(currentEnv)
-  const dhl = createDhlProvider(config.dhl)
-  const inpost = createInpostProvider(config.inpost)
-  const packlink = createPacklinkProvider(config.packlink)
-
-  return {
-    config,
-    providers: {
-      dhl,
-      inpost,
-      packlink,
-    },
-  }
-}
-
-function getProviderByCarrier(carrier, currentEnv) {
-  const registry = createProviderRegistry(currentEnv)
-  return registry.providers[normalizeCarrier(carrier) || ""] || null
-}
-
-function getProviderByMethod(method, currentEnv) {
-  const registry = createProviderRegistry(currentEnv)
-  if (normalizeMethod(method) === "economy" && registry.providers.packlink) {
-    return registry.providers.packlink
-  }
-  const carrier = getCarrierForMethod(method)
-  return carrier ? getProviderByCarrier(carrier, currentEnv) : null
-}
-
 export function resolveShippingProvider(value, currentEnv) {
-  return getProviderByMethod(value, currentEnv) || getProviderByCarrier(value, currentEnv)
+  return null
 }
 
 export function normalizeShippingMethodSelection(value) {
@@ -141,59 +106,24 @@ export async function createCarrierShipmentForOrder({ db, orderId = null, order 
     }
   }
 
-  if (!shouldCreateShipmentForOrder(dbOrder)) {
-    return {
-      ok: false,
-      code: "shipment_not_required",
-      shipment: createNormalizedShipment({
-        carrier: normalizeCarrier(dbOrder.shippingCarrier) || getCarrierForMethod(dbOrder.shippingMethod),
-        method: normalizeMethod(dbOrder.shippingMethod),
-        status: dbOrder.trackingNumber ? "created" : "not_created",
-      }),
-      order: dbOrder,
-    }
-  }
-
-  const provider = resolveShippingProvider(dbOrder.shippingMethod || dbOrder.shippingCarrier, currentEnv)
-
-  if (!provider) {
-    const failedShipment = createNormalizedShipment({
-      carrier: getCarrierForMethod(dbOrder.shippingMethod),
-      method: normalizeMethod(dbOrder.shippingMethod),
-      status: "failed",
-      errorMessage: "Provider spedizione non supportato.",
-    })
-
-    const updated = await db.order.update({
-      where: { id: dbOrder.id },
-      data: buildOrderShipmentUpdateData(failedShipment),
-      include: { items: true },
-    })
-
-    return {
-      ok: false,
-      code: "provider_not_supported",
-      shipment: failedShipment,
-      order: updated,
-    }
-  }
-
-  const shipment = await provider.createShipment({
-    orderContext: buildOrderContext(dbOrder),
-    fetchImpl,
-  })
-
-  const updated = await db.order.update({
-    where: { id: dbOrder.id },
-    data: buildOrderShipmentUpdateData(shipment),
-    include: { items: true },
+  const shipment = createNormalizedShipment({
+    carrier: normalizeCarrier(dbOrder.shippingCarrier) || getCarrierForMethod(dbOrder.shippingMethod),
+    method: normalizeMethod(dbOrder.shippingMethod),
+    trackingNumber: dbOrder.trackingNumber || null,
+    trackingUrl: dbOrder.trackingUrl || null,
+    labelUrl: dbOrder.labelUrl || null,
+    shipmentReference: dbOrder.shipmentReference || dbOrder.dhlShipmentReference || null,
+    handoffMode: dbOrder.shippingHandoffMode || null,
+    shippingCost: typeof dbOrder.shippingCost === "number" ? dbOrder.shippingCost : null,
+    status: dbOrder.trackingNumber ? normalizeMethod(dbOrder.shippingMethod) === "economy" ? "created" : dbOrder.shippingStatus || "created" : "not_created",
+    errorMessage: "Creazione spedizione manuale richiesta in Packlink Pro.",
   })
 
   return {
-    ok: shipment.status !== "failed",
-    code: shipment.status === "failed" ? "shipment_failed" : "shipment_created",
+    ok: false,
+    code: shouldCreateShipmentForOrder(dbOrder) ? "manual_shipping_only" : "shipment_not_required",
     shipment,
-    order: updated,
+    order: dbOrder,
   }
 }
 
@@ -208,45 +138,26 @@ export async function refreshCarrierTrackingForOrder({ db, orderId = null, order
     }
   }
 
-  const provider = resolveShippingProvider(dbOrder.shippingMethod || dbOrder.shippingCarrier, currentEnv)
-  if (!provider || !normalizeOptionalString(dbOrder.trackingNumber)) {
-    return {
-      ok: false,
-      code: "tracking_not_available",
-      shipment: createNormalizedShipment({
-        carrier: normalizeCarrier(dbOrder.shippingCarrier) || getCarrierForMethod(dbOrder.shippingMethod),
-        method: normalizeMethod(dbOrder.shippingMethod),
-        trackingNumber: dbOrder.trackingNumber,
-        status: "pending",
-      }),
-      order: dbOrder,
-    }
-  }
-
-  const shipment = await provider.getTracking({
-    trackingNumber: dbOrder.trackingNumber,
-    shipmentReference: dbOrder.shipmentReference || dbOrder.dhlShipmentReference,
-    currentStatus: dbOrder.shippingStatus,
-    orderContext: buildOrderContext(dbOrder),
-    fetchImpl,
-  })
-
-  const updated = await db.order.update({
-    where: { id: dbOrder.id },
-    data: buildOrderShipmentUpdateData({
-      ...shipment,
-      labelUrl: shipment.labelUrl || dbOrder.labelUrl || null,
-      shipmentReference: shipment.shipmentReference || dbOrder.shipmentReference || dbOrder.dhlShipmentReference || null,
-      shippingCost: shipment.shippingCost ?? dbOrder.shippingCost ?? null,
-    }),
-    include: { items: true },
+  const shipment = createNormalizedShipment({
+    carrier: normalizeCarrier(dbOrder.shippingCarrier) || getCarrierForMethod(dbOrder.shippingMethod),
+    method: normalizeMethod(dbOrder.shippingMethod),
+    trackingNumber: dbOrder.trackingNumber || null,
+    trackingUrl: dbOrder.trackingUrl || null,
+    labelUrl: dbOrder.labelUrl || null,
+    shipmentReference: dbOrder.shipmentReference || dbOrder.dhlShipmentReference || null,
+    handoffMode: dbOrder.shippingHandoffMode || null,
+    shippingCost: typeof dbOrder.shippingCost === "number" ? dbOrder.shippingCost : null,
+    status: dbOrder.shippingStatus || (dbOrder.trackingNumber ? "created" : "pending"),
+    errorMessage: dbOrder.trackingNumber
+      ? "Tracking gestito manualmente dall'admin."
+      : "Tracking non disponibile finché non inserisci i dati manualmente.",
   })
 
   return {
-    ok: shipment.status !== "failed",
-    code: shipment.status === "failed" ? "tracking_refresh_failed" : "tracking_refreshed",
+    ok: false,
+    code: normalizeOptionalString(dbOrder.trackingNumber) ? "manual_tracking_only" : "tracking_not_available",
     shipment,
-    order: updated,
+    order: dbOrder,
   }
 }
 
