@@ -18,8 +18,8 @@ test("getFulfillmentStatusLabel returns client-friendly order progress labels", 
   assert.equal(getFulfillmentStatusLabel("processing"), "Ordine in lavorazione")
   assert.equal(getFulfillmentStatusLabel("accepted"), "Ordine accettato")
   assert.equal(getFulfillmentStatusLabel("in_progress"), "Spedizione creata")
-  assert.equal(getFulfillmentStatusLabel("shipped"), "Spedito")
-  assert.equal(getFulfillmentStatusLabel("completed"), "Consegnato")
+  assert.equal(getFulfillmentStatusLabel("shipped"), "Ordine spedito")
+  assert.equal(getFulfillmentStatusLabel("completed"), "Ordine consegnato")
 })
 
 test("getFulfillmentStatusSteps marks previous steps active and current step highlighted", () => {

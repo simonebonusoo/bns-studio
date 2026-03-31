@@ -1,9 +1,12 @@
+import type { ReactNode } from "react"
+
 import { getOrderFulfillmentSteps } from "../../lib/order"
 import { buildAdminOrderShippingSummary } from "../../lib/order-shipping.mjs"
 import { ShopOrder } from "../../types"
 
 type OrderTimelineProps = {
   order: ShopOrder
+  actions?: ReactNode
 }
 
 function formatTimelineTimestamp(value?: string | null) {
@@ -56,7 +59,7 @@ function getTimelineStepCopy(order: ShopOrder, stepKey: string, shipping: Return
   }
 }
 
-export function OrderTimeline({ order }: OrderTimelineProps) {
+export function OrderTimeline({ order, actions }: OrderTimelineProps) {
   const steps = getOrderFulfillmentSteps(order.fulfillmentStatus)
   const shipping = buildAdminOrderShippingSummary(order)
   const currentStep = steps.find((step) => step.current) || steps[0]
@@ -67,12 +70,10 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
     ["in_progress", "shipped", "completed"].includes(currentStep.key) && shipping.trackingNumber !== "Non ancora disponibile"
 
   return (
-    <section className="space-y-5 rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] px-4 py-5 md:px-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">Timeline ordine</p>
-          <p className="mt-1 text-sm text-white/56">Segui l'avanzamento del tuo ordine in ogni fase.</p>
-        </div>
+    <section className="space-y-5">
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">Timeline ordine</p>
+        <p className="mt-1 text-sm text-white/56">Segui l'avanzamento del tuo ordine in ogni fase.</p>
       </div>
 
       <ol className="space-y-3 md:hidden">
@@ -149,10 +150,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
 
       <div className="border-t border-white/8 pt-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">Step attuale</p>
-            <h3 className="mt-2 text-base font-semibold text-white">{currentStep.label}</h3>
-          </div>
+          <h3 className="text-base font-semibold text-white">{currentStep.label}</h3>
           <span
             className={`rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${
               currentState === "current"
@@ -166,7 +164,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
           </span>
         </div>
 
-        {currentCopy.timestamp ? <p className="mt-3 text-xs uppercase tracking-[0.16em] text-white/42">{currentCopy.timestamp}</p> : null}
+        {currentCopy.timestamp ? <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/42">{currentCopy.timestamp}</p> : null}
         {currentCopy.description ? <p className="mt-3 max-w-2xl text-sm leading-7 text-white/66">{currentCopy.description}</p> : null}
 
         {showShippingTracking ? (
@@ -190,12 +188,9 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
           <p className="mt-4 text-sm text-white/42">Il tracking sarà disponibile appena il corriere lo renderà visibile.</p>
         ) : null}
 
-        <div className="mt-5 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-white/38">
-          <span>
-            Step {currentStepIndex + 1} di {steps.length}
-          </span>
-          <span className="text-white/18">•</span>
-          <span>{steps.filter((step) => step.active).length} completati</span>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="text-xs uppercase tracking-[0.16em] text-white/38">Step {currentStepIndex + 1} di {steps.length}</div>
+          {actions ? <div className="flex flex-wrap justify-end gap-3">{actions}</div> : null}
         </div>
       </div>
     </section>

@@ -6,19 +6,16 @@ import { ShopLayout } from "../components/ShopLayout"
 import { OrderTimeline } from "../components/orders/OrderTimeline"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
-import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
-import { ShopOrder, ShopSettings } from "../types"
+import { ShopOrder } from "../types"
 
 export function ShopProfilePage() {
   const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview } = useShopAuth()
   const [orders, setOrders] = useState<ShopOrder[]>([])
-  const [settings, setSettings] = useState<ShopSettings>({})
 
   useEffect(() => {
     apiFetch<ShopOrder[]>("/orders/my-orders").then(setOrders)
-    apiFetch<ShopSettings>("/store/settings").then(setSettings)
   }, [])
 
   return (
@@ -73,18 +70,26 @@ export function ShopProfilePage() {
               <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
             </div>
 
-            <OrderTimeline order={order} />
-
-            <div className="flex flex-wrap gap-3">
-              <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                Visualizza ordine
-              </Link>
-              {order.status === "paid" || order.status === "shipped" ? (
-                <button type="button" onClick={() => downloadInvoicePdf(order, settings)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                  Scarica ricevuta
-                </button>
-              ) : null}
-            </div>
+            <OrderTimeline
+              order={order}
+              actions={
+                <>
+                  <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                    Visualizza ordine
+                  </Link>
+                  {order.trackingUrl ? (
+                    <a
+                      href={order.trackingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={getButtonClassName({ variant: "cart", size: "sm" })}
+                    >
+                      Traccia spedizione
+                    </a>
+                  ) : null}
+                </>
+              }
+            />
           </article>
         ))}
       </div>
