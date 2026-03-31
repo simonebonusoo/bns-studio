@@ -116,36 +116,17 @@ test("shipping provider resolver maps economy to Packlink and premium to DHL", (
   assert.equal(resolveShippingProvider("premium", createMockEnv())?.key, "dhl")
 })
 
-test("shipping options expose both Packlink and DHL through the common layer", async () => {
+test("shipping options expose both internal manual methods through the common layer", async () => {
   const options = await getAvailableShippingOptions({
     items: [{ format: "A4", quantity: 1 }],
-    currentEnv: createMockEnv({
-      packlinkUseMock: false,
-      packlinkApiKey: "packlink-key",
-      packlinkApiBaseUrl: "https://api.packlink.test",
-      packlinkDefaultCarrier: "BRT",
-    }),
-    fetchImpl: async (input) => {
-      if (String(input).endsWith("/quotes")) {
-        return new Response(
-          JSON.stringify({
-            quotes: [
-              { service_id: "service-brt", carrier_name: "BRT", amount: 4.9, service_name: "BRT Economy" },
-              { service_id: "service-gls", carrier_name: "GLS", amount: 5.2, service_name: "GLS Standard" },
-            ],
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        )
-      }
-      throw new Error(`Unexpected fetch URL: ${String(input)}`)
-    },
+    currentEnv: createMockEnv(),
   })
 
   assert.equal(options.length, 2)
-  assert.equal(options[0].carrier, "brt")
+  assert.equal(options[0].carrier, "inpost")
   assert.equal(options[1].carrier, "dhl")
-  assert.equal(typeof options[0].cost, "number")
-  assert.equal(typeof options[1].cost, "number")
+  assert.equal(options[0].cost, 700)
+  assert.equal(options[1].cost, 1000)
 })
 
 test("mock shipment creation persists tracking, label and normalized status on the order", async () => {
@@ -524,53 +505,25 @@ test("tracking refresh keeps real Packlink status progression data", async () =>
   assert.equal(first.order.trackingUrl, "https://tracking.packlink.test/BRT456789123")
 })
 
-test("economy orders auto-create a real Packlink shipment when payment completes", async () => {
+test("economy orders stay in manual shipping mode after payment completion", async () => {
   const order = createOrder({
     shippingMethod: "economy",
     shippingCarrier: "BRT",
-    shippingCost: 590,
+    shippingCost: 700,
   })
   const db = createDb(order)
 
   const result = await maybeCreateShipmentForPaidOrder({
     db,
     order,
-    currentEnv: createMockEnv({
-      shippingAutoCreateOnPayment: true,
-      packlinkUseMock: false,
-      packlinkApiKey: "packlink-key",
-      packlinkDefaultCarrier: "BRT",
-    }),
-    fetchImpl: async (input) => {
-      if (String(input).endsWith("/quotes")) {
-        return new Response(
-          JSON.stringify({
-            quotes: [{ service_id: "service-brt", carrier_name: "BRT", amount: 4.9 }],
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        )
-      }
-
-      return new Response(
-        JSON.stringify({
-          shipment_id: "pk_auto_001",
-          tracking_number: "BRTAUTO123456",
-          tracking_url: "https://tracking.packlink.test/BRTAUTO123456",
-          label_url: "https://labels.packlink.test/pk_auto_001.pdf",
-          carrier_name: "BRT",
-          status: "created",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      )
-    },
+    currentEnv: createMockEnv({ shippingAutoCreateOnPayment: true }),
   })
 
-  assert.equal(result.ok, true)
+  assert.equal(result.ok, false)
+  assert.equal(result.code, "manual_shipping_only")
   assert.equal(result.order.shippingCarrier, "BRT")
-  assert.equal(result.order.shippingStatus, "created")
-  assert.equal(result.order.trackingUrl, "https://tracking.packlink.test/BRTAUTO123456")
-  assert.equal(result.order.labelUrl, "https://labels.packlink.test/pk_auto_001.pdf")
-  assert.equal(result.order.shippingHandoffMode, "dropoff")
+  assert.equal(result.order.trackingUrl, undefined)
+  assert.equal(result.shipment.status, "not_created")
 })
 
 test("mock tracking and label helpers produce project-local assets", () => {

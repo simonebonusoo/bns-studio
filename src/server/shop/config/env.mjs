@@ -103,5 +103,6 @@ export const env = {
   packlinkParcelLengthCm: Number(process.env.PACKLINK_PARCEL_LENGTH_CM || 30),
   packlinkParcelWidthCm: Number(process.env.PACKLINK_PARCEL_WIDTH_CM || 20),
   packlinkParcelHeightCm: Number(process.env.PACKLINK_PARCEL_HEIGHT_CM || 5),
+  packlinkProNewShipmentUrl: process.env.PACKLINK_PRO_NEW_SHIPMENT_URL || "https://pro.packlink.it/app/shipments/new",
   shippingAutoCreateOnPayment: parseBoolean(process.env.SHOP_SHIPPING_AUTO_CREATE_ON_PAYMENT, true),
 }

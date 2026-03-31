@@ -3,12 +3,14 @@ import { createDhlProvider } from "./providers/dhl.mjs"
 import { createInpostProvider } from "./providers/inpost.mjs"
 import { createPacklinkProvider } from "./providers/packlink.mjs"
 import {
+  createNormalizedRateQuote,
   buildOrderShipmentUpdateData,
   createNormalizedShipment,
   getCarrierForMethod,
   normalizeCarrier,
   normalizeMethod,
 } from "./normalizers/shipment-normalizer.mjs"
+import { getShippingMethodOptions } from "../../../shop/lib/shipping-methods.mjs"
 
 function normalizeOptionalString(value) {
   const normalized = String(value || "").trim()
@@ -85,18 +87,20 @@ function buildOrderContext(order) {
 }
 
 export async function getAvailableShippingOptions({ items, shippingAddress = null, currentEnv, fetchImpl = fetch }) {
-  const registry = createProviderRegistry(currentEnv)
-  const orderContext = {
-    items: Array.isArray(items) ? items : [],
-    shippingAddress,
-  }
-
-  const [economy, premium] = await Promise.all([
-    registry.providers.packlink.getRates({ orderContext, fetchImpl }),
-    registry.providers.dhl.getRates({ orderContext, fetchImpl }),
-  ])
-
-  return [economy, premium]
+  return getShippingMethodOptions()
+    .filter((option) => typeof option.cost === "number")
+    .map((option) =>
+      createNormalizedRateQuote({
+        carrier: option.carrier,
+        carrierLabel: option.carrierLabel,
+        method: option.key,
+        methodLabel: option.label,
+        description: option.description,
+        shippingCost: option.cost,
+        currency: "EUR",
+        rateSource: "internal_manual_shipping",
+      }),
+    )
 }
 
 export async function resolveSelectedShippingOption({ items, shippingMethod, shippingAddress = null, currentEnv, fetchImpl = fetch }) {
@@ -247,32 +251,15 @@ export async function refreshCarrierTrackingForOrder({ db, orderId = null, order
 }
 
 export async function maybeCreateShipmentForPaidOrder({ db, order, currentEnv, fetchImpl = fetch }) {
-  const registry = createProviderRegistry(currentEnv)
-  if (!registry.config.autoCreateOnPayment) {
-    return {
-      ok: false,
-      code: "auto_create_disabled",
-      shipment: createNormalizedShipment({
-        carrier: getCarrierForMethod(order?.shippingMethod),
-        method: normalizeMethod(order?.shippingMethod),
-        status: "not_created",
-      }),
-      order,
-    }
+  return {
+    ok: false,
+    code: "manual_shipping_only",
+    shipment: createNormalizedShipment({
+      carrier: getCarrierForMethod(order?.shippingMethod),
+      method: normalizeMethod(order?.shippingMethod),
+      status: "not_created",
+      errorMessage: "Creazione spedizione manuale richiesta in Packlink Pro.",
+    }),
+    order,
   }
-
-  if (normalizeMethod(order?.shippingMethod) !== "economy") {
-    return {
-      ok: false,
-      code: "auto_create_not_enabled_for_method",
-      shipment: createNormalizedShipment({
-        carrier: getCarrierForMethod(order?.shippingMethod),
-        method: normalizeMethod(order?.shippingMethod),
-        status: "not_created",
-      }),
-      order,
-    }
-  }
-
-  return createCarrierShipmentForOrder({ db, order, currentEnv, fetchImpl })
 }

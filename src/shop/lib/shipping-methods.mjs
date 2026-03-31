@@ -7,16 +7,16 @@ const SHIPPING_METHOD_MAP = {
     carrier: "inpost",
     carrierLabel: "InPost",
     label: "Spedizione economica",
-    description: "Opzione più conveniente con consegna standard.",
-    cost: 590,
+    description: "Più conveniente, ideale per risparmiare.",
+    cost: 700,
   },
   premium: {
     key: "premium",
     carrier: "dhl",
     carrierLabel: "DHL",
     label: "Spedizione premium",
-    description: "Consegna premium con tracking completo.",
-    cost: 990,
+    description: "Più rapida e premium, con esperienza di consegna più completa.",
+    cost: 1000,
   },
 }
 

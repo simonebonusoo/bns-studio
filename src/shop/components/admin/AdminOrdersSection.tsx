@@ -11,6 +11,13 @@ import { ShopOrder, ShopSettings } from "../../types"
 type AdminOrdersSectionProps = {
   orders: ShopOrder[]
   shopSettings: ShopSettings
+  packlinkProNewShipmentUrl: string
+  defaultParcel: {
+    weightKg: number
+    lengthCm: number
+    widthCm: number
+    heightCm: number
+  }
   loadingProfitOrderId: number | null
   containWheel: (event: React.WheelEvent<HTMLElement>) => void
   onOpenOrderProfit: (orderId: number) => void
@@ -22,6 +29,8 @@ type AdminOrdersSectionProps = {
 export function AdminOrdersSection({
   orders,
   shopSettings,
+  packlinkProNewShipmentUrl,
+  defaultParcel,
   loadingProfitOrderId,
   onOpenOrderProfit,
   onUpdateOrderStatus,
@@ -87,10 +96,15 @@ export function AdminOrdersSection({
               <div className="grid gap-2 md:grid-cols-2">
                 <p><span className="text-white">Corriere:</span> {shipping.carrier}</p>
                 <p><span className="text-white">Metodo:</span> {shipping.method}</p>
+                <p><span className="text-white">Costo spedizione:</span> {typeof order.shippingCost === "number" ? formatPrice(order.shippingCost) : "Non disponibile"}</p>
                 <p><span className="text-white">Stato spedizione:</span> {shipping.status}</p>
                 <p><span className="text-white">Conferimento:</span> {shipping.handoffMode}</p>
                 <p><span className="text-white">Tracking:</span> {shipping.trackingNumber}</p>
                 <p><span className="text-white">Riferimento:</span> {shipping.shipmentReference}</p>
+                <p><span className="text-white">Peso:</span> {defaultParcel.weightKg} kg</p>
+                <p><span className="text-white">Lunghezza:</span> {defaultParcel.lengthCm} cm</p>
+                <p><span className="text-white">Larghezza:</span> {defaultParcel.widthCm} cm</p>
+                <p><span className="text-white">Altezza:</span> {defaultParcel.heightCm} cm</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {shipping.trackingUrl ? (
@@ -112,6 +126,11 @@ export function AdminOrdersSection({
               {shippingFeedback[order.id] ? (
                 <p className="rounded-2xl border border-emerald-200/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
                   {shippingFeedback[order.id]}
+                </p>
+              ) : null}
+              {packlinkProNewShipmentUrl ? (
+                <p className="text-xs text-white/45">
+                  Packlink Pro: <a href={packlinkProNewShipmentUrl} target="_blank" rel="noreferrer" className="text-[#e3f503] underline underline-offset-4">Nuova spedizione</a>
                 </p>
               ) : null}
             </div>
@@ -140,7 +159,7 @@ export function AdminOrdersSection({
                   }}
                   className={getButtonClassName({ variant: "cart", size: "sm" })}
                 >
-                  {shippingActionState[order.id] === "create" ? "Creazione..." : "Crea spedizione"}
+                  {shippingActionState[order.id] === "create" ? "Apertura..." : "Crea spedizione"}
                 </button>
               ) : null}
               <button
@@ -158,7 +177,7 @@ export function AdminOrdersSection({
                 }}
                 className={getButtonClassName({ variant: "profile", size: "sm" })}
               >
-                {shippingActionState[order.id] === "refresh" ? "Aggiornamento..." : "Aggiorna tracking"}
+                {shippingActionState[order.id] === "refresh" ? "Verifica..." : "Tracking manuale"}
               </button>
               {order.status === "paid" || order.status === "shipped" ? (
                 <button type="button" onClick={() => downloadInvoicePdf(order, shopSettings)} className={getButtonClassName({ variant: "profile", size: "sm" })}>

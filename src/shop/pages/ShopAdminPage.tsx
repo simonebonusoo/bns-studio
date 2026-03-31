@@ -184,6 +184,15 @@ type AdminRuntimeStatus = {
     uploadsGuaranteed: boolean
     storageGuaranteed: boolean
   }
+  shippingManual?: {
+    packlinkProNewShipmentUrl?: string
+    defaultParcel?: {
+      weightKg: number
+      lengthCm: number
+      widthCm: number
+      heightCm: number
+    }
+  }
   warnings: string[]
 }
 
@@ -1494,44 +1503,30 @@ export function ShopAdminPage() {
         <AdminOrdersSection
           orders={orders}
           shopSettings={shopSettings}
+          packlinkProNewShipmentUrl={runtimeStatus?.shippingManual?.packlinkProNewShipmentUrl || "https://pro.packlink.it/app/shipments/new"}
+          defaultParcel={runtimeStatus?.shippingManual?.defaultParcel || { weightKg: 1, lengthCm: 30, widthCm: 20, heightCm: 5 }}
           loadingProfitOrderId={loadingProfitOrderId}
           containWheel={containWheel}
           onOpenOrderProfit={openOrderProfit}
           onCreateShipment={async (orderId) => {
             clearFeedback()
             try {
-              const response = await apiFetch<{ ok: boolean; code: string; order: ShopOrder }>(`/admin/orders/${orderId}/shipping/create`, {
-                method: "POST",
-              })
-              if (response.order) {
-                mergeUpdatedOrder(response.order)
-              }
-              if (!response.ok) {
-                throw new Error(getShippingAdminActionError(response.code, response.order?.shippingError || "", "Errore durante la creazione della spedizione."))
-              }
-              setMessage("Spedizione creata.")
-              return response.order || null
+              const targetUrl = runtimeStatus?.shippingManual?.packlinkProNewShipmentUrl || "https://pro.packlink.it/app/shipments/new"
+              window.open(targetUrl, "_blank", "noopener,noreferrer")
+              setMessage("Packlink Pro aperto in una nuova scheda.")
+              return orders.find((entry) => entry.id === orderId) || null
             } catch (err) {
-              setError(err instanceof Error ? err.message : "Errore durante la creazione della spedizione.")
+              setError(err instanceof Error ? err.message : "Impossibile aprire Packlink Pro.")
               return null
             }
           }}
           onRefreshTracking={async (orderId) => {
             clearFeedback()
             try {
-              const response = await apiFetch<{ ok: boolean; code: string; order: ShopOrder }>(`/admin/orders/${orderId}/shipping/refresh`, {
-                method: "POST",
-              })
-              if (response.order) {
-                mergeUpdatedOrder(response.order)
-              }
-              if (!response.ok) {
-                throw new Error(getShippingAdminActionError(response.code, response.order?.shippingError || "", "Errore durante l'aggiornamento del tracking."))
-              }
-              setMessage("Tracking aggiornato.")
-              return response.order || null
+              setMessage("Aggiorna tracking, link ed etichetta manualmente nei campi qui sotto, poi salva l'ordine.")
+              return orders.find((entry) => entry.id === orderId) || null
             } catch (err) {
-              setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento del tracking.")
+              setError(err instanceof Error ? err.message : "Aggiornamento tracking manuale non disponibile.")
               return null
             }
           }}

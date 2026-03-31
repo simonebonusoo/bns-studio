@@ -4,6 +4,7 @@ import path from "node:path"
 import multer from "multer"
 import { z } from "zod"
 
+import { env } from "../config/env.mjs"
 import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
 import { ensureUniqueSlug, normalizeSku, normalizeTagNames, productRelationInclude, serializeTaxonomyRelations, slugifyCatalogText, syncProductCollections, syncProductTags } from "../lib/catalog-taxonomy.mjs"
@@ -19,7 +20,6 @@ import { assertFeaturedProductLimit } from "../lib/product-featured.mjs"
 import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
 import { buildLegacyProductFieldsFromVariants, deriveLegacyVariantsFromProduct, serializeProductVariants, syncProductVariants } from "../lib/product-variants.mjs"
 import { serializeShopOrder } from "../lib/order-serialization.mjs"
-import { createCarrierShipmentForOrder, refreshCarrierTrackingForOrder } from "../shipping/index.mjs"
 
 const router = Router()
 const uploadsDir = resolveProductUploadsDir()
@@ -446,7 +446,18 @@ router.post(
 router.get(
   "/runtime-status",
   asyncHandler(async (_req, res) => {
-    res.json(getPersistenceStatus())
+    res.json({
+      ...getPersistenceStatus(),
+      shippingManual: {
+        packlinkProNewShipmentUrl: env.packlinkProNewShipmentUrl,
+        defaultParcel: {
+          weightKg: env.packlinkParcelWeightKg,
+          lengthCm: env.packlinkParcelLengthCm,
+          widthCm: env.packlinkParcelWidthCm,
+          heightCm: env.packlinkParcelHeightCm,
+        },
+      },
+    })
   })
 )
 
@@ -1251,12 +1262,10 @@ router.post(
       throw new HttpError(404, "Ordine cliente non trovato")
     }
 
-    const result = await createCarrierShipmentForOrder({ db: prisma, order })
-
     res.json({
-      ok: result.ok,
-      code: result.code,
-      order: serializeShopOrder(result.order || order),
+      ok: false,
+      code: "manual_shipping_only",
+      order: serializeShopOrder(order),
     })
   })
 )
@@ -1277,12 +1286,10 @@ router.post(
       throw new HttpError(404, "Ordine cliente non trovato")
     }
 
-    const result = await refreshCarrierTrackingForOrder({ db: prisma, order })
-
     res.json({
-      ok: result.ok,
-      code: result.code,
-      order: serializeShopOrder(result.order || order),
+      ok: false,
+      code: "manual_shipping_only",
+      order: serializeShopOrder(order),
     })
   })
 )
