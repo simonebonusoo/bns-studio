@@ -10,6 +10,14 @@ import { formatPrice } from "../lib/format"
 import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
 import { ShopPricing } from "../types"
 
+function mapPricingPreviewErrorMessage(message: string) {
+  if (!message) return "Errore durante il calcolo del riepilogo."
+  if (/Packlink quotes/i.test(message) || /Packlink shipment/i.test(message)) {
+    return "Tariffe spedizione temporaneamente non disponibili. Riprova tra poco."
+  }
+  return message
+}
+
 export function ShopCartPage() {
   const { user, loading, effectiveRole } = useShopAuth()
   const { items, updateItem, decrementItem, couponCode, setCouponCode } = useShopCart()
@@ -44,7 +52,7 @@ export function ShopCartPage() {
       })
       .catch((err) => {
         setPricing(null)
-        setError(err.message)
+        setError(mapPricingPreviewErrorMessage(err instanceof Error ? err.message : "Errore durante il calcolo del riepilogo."))
       })
   }, [couponCode, items, user])
 

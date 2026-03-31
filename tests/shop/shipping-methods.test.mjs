@@ -43,3 +43,21 @@ test("shipping rates are centralized and selectable with internal manual shippin
   assert.equal(selected.selectedRate?.key, "premium")
   assert.equal(selected.selectedRate?.cost, 1000)
 })
+
+test("shipping rates do not call live quote providers anymore", async () => {
+  const items = [{ format: "A4", quantity: 1 }]
+  let fetchCalled = false
+
+  const rates = await getAvailableShippingRates({
+    items,
+    fetchImpl: async () => {
+      fetchCalled = true
+      throw new Error("fetch should not be called")
+    },
+  })
+
+  assert.equal(fetchCalled, false)
+  assert.equal(rates.length, 2)
+  assert.equal(rates[0].cost, 700)
+  assert.equal(rates[1].cost, 1000)
+})
