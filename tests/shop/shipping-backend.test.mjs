@@ -122,6 +122,7 @@ test("shipping options expose both Packlink and DHL through the common layer", a
     currentEnv: createMockEnv({
       packlinkUseMock: false,
       packlinkApiKey: "packlink-key",
+      packlinkApiBaseUrl: "https://api.packlink.test",
       packlinkDefaultCarrier: "BRT",
     }),
     fetchImpl: async (input) => {
@@ -224,8 +225,8 @@ test("packlink shipment creation selects the best quote automatically and parses
   assert.equal(result.order.trackingUrl, "https://tracking.packlink.test/BRT123456789")
   assert.equal(result.order.labelUrl, "https://labels.packlink.test/pk_123.pdf")
   assert.equal(result.order.shipmentReference, "pk_123")
-  assert.match(requests[0].url, /\/quotes$/)
-  assert.match(requests[1].url, /\/shipments$/)
+  assert.equal(requests[0].url, "https://api.packlink.test/v1/quotes")
+  assert.equal(requests[1].url, "https://api.packlink.test/v1/shipments")
   assert.equal(requests[1].body?.service_id, "service-brt")
 })
 

@@ -5,8 +5,16 @@ function normalizeOptionalString(value) {
   return normalized || null
 }
 
+function normalizePacklinkApiBaseUrl(baseUrl) {
+  const normalized = String(baseUrl || "").trim().replace(/\/+$/, "")
+  if (!normalized) return ""
+  if (/\/v1$/i.test(normalized)) return normalized
+  return `${normalized}/v1`
+}
+
 function buildApiUrl(providerConfig, path) {
-  return `${String(providerConfig.apiBaseUrl || "").replace(/\/$/, "")}/${String(path || "").replace(/^\//, "")}`
+  const normalizedBaseUrl = normalizePacklinkApiBaseUrl(providerConfig.apiBaseUrl)
+  return `${normalizedBaseUrl}/${String(path || "").replace(/^\/+/, "")}`
 }
 
 function logPacklink(event, details = {}) {
@@ -209,8 +217,14 @@ async function getBestQuote(orderContext, providerConfig, fetchImpl = fetch) {
   const payload = buildPacklinkQuotesPayload(orderContext, providerConfig)
   const endpoint = buildApiUrl(providerConfig, "/quotes")
 
+  logPacklink("quotes.final_url", {
+    finalUrl: endpoint,
+    method: "POST",
+  })
+
   logPacklink("quotes.real_request", {
     endpoint,
+    payload,
     orderReference: orderContext?.orderReference || orderContext?.order?.orderReference || null,
     destinationCountry: payload?.to?.country || null,
     destinationZip: payload?.to?.zip || null,
@@ -450,8 +464,16 @@ export function createPacklinkProvider(providerConfig) {
       try {
         const bestQuote = await getBestQuote(orderContext, providerConfig, fetchImpl)
         const payload = buildPacklinkShipmentPayload(orderContext, providerConfig, bestQuote.serviceId)
+        const endpoint = buildApiUrl(providerConfig, "/shipments")
+
+        logPacklink("shipments.final_url", {
+          finalUrl: endpoint,
+          method: "POST",
+        })
+
         logPacklink("createShipment.real_request", {
-          apiBaseUrl: providerConfig.apiBaseUrl,
+          endpoint,
+          payload,
           serviceId: bestQuote.serviceId,
           selectedCarrier: bestQuote.carrier || null,
           selectedAmount: bestQuote.amount,
@@ -459,7 +481,7 @@ export function createPacklinkProvider(providerConfig) {
           destinationCountry: payload?.to?.country || null,
           destinationZip: payload?.to?.zip || null,
         })
-        const response = await fetchImpl(buildApiUrl(providerConfig, "/shipments"), {
+        const response = await fetchImpl(endpoint, {
           method: "POST",
           headers: buildPacklinkHeaders(providerConfig),
           body: JSON.stringify(payload),
@@ -554,7 +576,12 @@ export function createPacklinkProvider(providerConfig) {
           trackingNumber,
           currentStatus,
         })
-        const response = await fetchImpl(buildApiUrl(providerConfig, `/shipments/${encodeURIComponent(lookupId || "")}`), {
+        const endpoint = buildApiUrl(providerConfig, `/shipments/${encodeURIComponent(lookupId || "")}`)
+        logPacklink("tracking.final_url", {
+          finalUrl: endpoint,
+          method: "GET",
+        })
+        const response = await fetchImpl(endpoint, {
           headers: buildPacklinkHeaders(providerConfig),
         })
         const data = await safeJson(response)
