@@ -11,11 +11,11 @@ export function getFulfillmentStatusLabel(status) {
     case "accepted":
       return "Ordine accettato"
     case "in_progress":
-      return "Ordine in corso"
+      return "Spedizione creata"
     case "shipped":
-      return "Ordine spedito"
+      return "Spedito"
     case "completed":
-      return "Ordine completato"
+      return "Consegnato"
     case "processing":
     default:
       return "Ordine in lavorazione"
@@ -25,11 +25,11 @@ export function getFulfillmentStatusLabel(status) {
 export function getFulfillmentStatusSteps(status) {
   const current = normalizeFulfillmentStatus(status)
   const sequence = [
-    { key: "processing", label: "In lavorazione" },
-    { key: "accepted", label: "Accettato" },
-    { key: "in_progress", label: "In corso" },
+    { key: "processing", label: "Ordine in lavorazione" },
+    { key: "accepted", label: "Ordine accettato" },
+    { key: "in_progress", label: "Spedizione creata" },
     { key: "shipped", label: "Spedito" },
-    { key: "completed", label: "Completato" },
+    { key: "completed", label: "Consegnato" },
   ]
   const currentIndex = sequence.findIndex((step) => step.key === current)
 

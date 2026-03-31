@@ -21,7 +21,7 @@ type AdminOrdersSectionProps = {
   loadingProfitOrderId: number | null
   containWheel: (event: React.WheelEvent<HTMLElement>) => void
   onOpenOrderProfit: (orderId: number) => void
-  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }) => Promise<ShopOrder | null>
+  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; trackingUrl: string; labelUrl: string }) => Promise<ShopOrder | null>
   onCreateShipment: (orderId: number) => Promise<ShopOrder | null>
   onRefreshTracking: (orderId: number) => Promise<ShopOrder | null>
 }
@@ -37,7 +37,7 @@ export function AdminOrdersSection({
   onCreateShipment,
   onRefreshTracking,
 }: AdminOrdersSectionProps) {
-  const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; shippingHandoffMode: string; trackingNumber: string; trackingUrl: string; labelUrl: string }>>({})
+  const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; trackingUrl: string; labelUrl: string }>>({})
   const [shippingFeedback, setShippingFeedback] = useState<Record<number, string>>({})
   const [shippingActionState, setShippingActionState] = useState<Record<number, "create" | "refresh" | "save" | null>>({})
 
@@ -49,7 +49,6 @@ export function AdminOrdersSection({
           {
             fulfillmentStatus: order.fulfillmentStatus || "processing",
             shippingStatus: order.shippingStatus || "pending",
-            shippingHandoffMode: order.shippingHandoffMode || "",
             trackingNumber: order.trackingNumber || "",
             trackingUrl: order.trackingUrl || "",
             labelUrl: order.labelUrl || "",
@@ -94,11 +93,9 @@ export function AdminOrdersSection({
               }`}
             >
               <div className="grid gap-2 md:grid-cols-2">
-                <p><span className="text-white">Corriere:</span> {shipping.carrier}</p>
                 <p><span className="text-white">Metodo:</span> {shipping.method}</p>
                 <p><span className="text-white">Costo spedizione:</span> {typeof order.shippingCost === "number" ? formatPrice(order.shippingCost) : "Non disponibile"}</p>
                 <p><span className="text-white">Stato spedizione:</span> {shipping.status}</p>
-                <p><span className="text-white">Conferimento:</span> {shipping.handoffMode}</p>
                 <p><span className="text-white">Tracking:</span> {shipping.trackingNumber}</p>
                 <p><span className="text-white">Riferimento:</span> {shipping.shipmentReference}</p>
                 <p><span className="text-white">Peso:</span> {defaultParcel.weightKg} kg</p>
@@ -190,10 +187,10 @@ export function AdminOrdersSection({
                 className="shop-select"
                 value={drafts[order.id]?.fulfillmentStatus || "processing"}
                 onChange={(event) =>
-                  setDrafts((current) => ({
-                    ...current,
-                    [order.id]: {
-                      ...(current[order.id] || { shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
+                    setDrafts((current) => ({
+                      ...current,
+                      [order.id]: {
+                      ...(current[order.id] || { shippingStatus: "pending", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
                       fulfillmentStatus: event.target.value,
                     },
                   }))
@@ -210,10 +207,10 @@ export function AdminOrdersSection({
                 placeholder="Tracking number"
                 value={drafts[order.id]?.trackingNumber || ""}
                 onChange={(event) =>
-                  setDrafts((current) => ({
+                    setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingUrl: "", labelUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingUrl: "", labelUrl: "" }),
                       trackingNumber: event.target.value,
                     },
                   }))
@@ -223,10 +220,10 @@ export function AdminOrdersSection({
                 className="shop-select"
                 value={drafts[order.id]?.shippingStatus || "pending"}
                 onChange={(event) =>
-                  setDrafts((current) => ({
+                    setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
                       shippingStatus: event.target.value,
                     },
                   }))
@@ -242,23 +239,6 @@ export function AdminOrdersSection({
                 <option value="failed">Spedizione da completare</option>
                 <option value="not_created">In attesa di creazione</option>
               </select>
-              <select
-                className="shop-select"
-                value={drafts[order.id]?.shippingHandoffMode || ""}
-                onChange={(event) =>
-                  setDrafts((current) => ({
-                    ...current,
-                    [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
-                      shippingHandoffMode: event.target.value,
-                    },
-                  }))
-                }
-              >
-                <option value="">Modalità da definire</option>
-                <option value="dropoff">Drop-off</option>
-                <option value="pickup">Pickup</option>
-              </select>
               <input
                 className="shop-input"
                 placeholder="Link tracking opzionale"
@@ -267,7 +247,7 @@ export function AdminOrdersSection({
                   setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", labelUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", labelUrl: "" }),
                       trackingUrl: event.target.value,
                     },
                   }))
@@ -278,10 +258,10 @@ export function AdminOrdersSection({
                 placeholder="Link etichetta PDF"
                 value={drafts[order.id]?.labelUrl || ""}
                 onChange={(event) =>
-                  setDrafts((current) => ({
+                    setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", trackingUrl: "" }),
                       labelUrl: event.target.value,
                     },
                   }))
@@ -296,7 +276,7 @@ export function AdminOrdersSection({
                   try {
                     const updatedOrder = await onUpdateOrderStatus(
                       order.id,
-                      drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shippingHandoffMode: "", trackingNumber: "", trackingUrl: "", labelUrl: "" },
+                      drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", trackingUrl: "", labelUrl: "" },
                     )
                     if (updatedOrder) {
                       markOrderUpdated(order.id, "Dati ordine aggiornati e visibili qui sotto.")

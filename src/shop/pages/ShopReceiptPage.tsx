@@ -137,10 +137,8 @@ export function ShopReceiptPage() {
           <p className="text-sm text-white/55">Pagamento: {getOrderStatusLabel(order.status)}</p>
           <div className="space-y-1 rounded-[22px] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
             <p><span className="text-white">Metodo:</span> {shippingSummary.method}</p>
-            <p><span className="text-white">Corriere:</span> {shippingSummary.carrier}</p>
             <p><span className="text-white">Stato spedizione:</span> {shippingSummary.status}</p>
             <p><span className="text-white">Tracking:</span> {shippingSummary.trackingNumber}</p>
-            <p><span className="text-white">Conferimento:</span> {shippingSummary.handoffMode}</p>
           </div>
           {shippingSummary.trackingUrl ? (
             <a href={shippingSummary.trackingUrl} target="_blank" rel="noreferrer" className="text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">

@@ -25,9 +25,13 @@ test("getShippingMethodConfig returns centralized pricing and carrier data", () 
 
   assert.equal(economy.carrier, "inpost")
   assert.equal(premium.carrier, "dhl")
+  assert.equal(economy.label, "Standard")
+  assert.equal(economy.description, "4 giorni lavorativi")
+  assert.equal(premium.label, "Premium")
+  assert.equal(premium.description, "2 giorni lavorativi")
   assert.equal(economy.cost, 700)
   assert.equal(premium.cost, 1000)
-  assert.equal(formatShippingMethodSummary("premium"), "Spedizione premium (DHL)")
+  assert.equal(formatShippingMethodSummary("premium"), "Premium — 2 giorni lavorativi")
 })
 
 test("shipping rates are centralized and selectable with internal manual shipping", async () => {

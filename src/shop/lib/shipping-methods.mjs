@@ -5,17 +5,17 @@ const SHIPPING_METHOD_MAP = {
   economy: {
     key: "economy",
     carrier: "inpost",
-    carrierLabel: "InPost",
-    label: "Spedizione economica",
-    description: "Più conveniente, ideale per risparmiare.",
+    carrierLabel: "Standard",
+    label: "Standard",
+    description: "4 giorni lavorativi",
     cost: 700,
   },
   premium: {
     key: "premium",
     carrier: "dhl",
-    carrierLabel: "DHL",
-    label: "Spedizione premium",
-    description: "Più rapida e premium, con esperienza di consegna più completa.",
+    carrierLabel: "Premium",
+    label: "Premium",
+    description: "2 giorni lavorativi",
     cost: 1000,
   },
 }
@@ -36,5 +36,5 @@ export function getShippingMethodOptions() {
 
 export function formatShippingMethodSummary(value) {
   const method = getShippingMethodConfig(value)
-  return `${method.label} (${method.carrierLabel})`
+  return `${method.label} — ${method.description}`
 }

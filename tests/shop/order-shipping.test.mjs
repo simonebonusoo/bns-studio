@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
 
-import { buildAdminOrderShippingSummary, getOrderShippingHandoffModeLabel } from "../../src/shop/lib/order-shipping.mjs"
+import { buildAdminOrderShippingSummary } from "../../src/shop/lib/order-shipping.mjs"
 
 const root = process.cwd()
 
@@ -26,9 +26,7 @@ test("buildAdminOrderShippingSummary exposes friendly fallbacks for legacy order
     shippingError: null,
   })
 
-  assert.equal(summary.carrier, "Non disponibile")
   assert.equal(summary.method, "Non disponibile")
-  assert.equal(summary.handoffMode, "Da definire")
   assert.equal(summary.trackingNumber, "Non ancora disponibile")
   assert.equal(summary.shipmentReference, "Non disponibile")
   assert.equal(summary.labelUrl, null)
@@ -48,10 +46,8 @@ test("buildAdminOrderShippingSummary preserves tracking, label and handoff mode 
     shippingError: "temporaneo",
   })
 
-  assert.equal(summary.carrier, "DHL")
-  assert.equal(summary.method, "Spedizione premium (DHL)")
+  assert.equal(summary.method, "Premium — 2 giorni lavorativi")
   assert.equal(summary.status, "Spedizione spedita")
-  assert.equal(summary.handoffMode, "Pickup")
   assert.equal(summary.trackingNumber, "1234567890")
   assert.equal(summary.labelUrl, "https://labels.example/label.pdf")
 })
@@ -65,14 +61,7 @@ test("buildAdminOrderShippingSummary prefers the real carrier label when the shi
     shippingLabel: "Spedizione economica",
   })
 
-  assert.equal(summary.carrier, "BRT")
-  assert.equal(summary.method, "Spedizione economica (BRT)")
-})
-
-test("handoff mode labels remain user-friendly", () => {
-  assert.equal(getOrderShippingHandoffModeLabel("dropoff"), "Drop-off")
-  assert.equal(getOrderShippingHandoffModeLabel("pickup"), "Pickup")
-  assert.equal(getOrderShippingHandoffModeLabel(""), "Da definire")
+  assert.equal(summary.method, "Spedizione economica")
 })
 
 test("admin and customer order UIs render shipping visibility hooks", () => {
@@ -86,8 +75,6 @@ test("admin and customer order UIs render shipping visibility hooks", () => {
   assert.match(admin, /Tracking manuale/)
   assert.match(admin, /visibile qui sotto/)
   assert.match(admin, /out_for_delivery/)
-  assert.match(admin, /Drop-off/)
-  assert.match(admin, /Pickup/)
   assert.match(adminPage, /mergeUpdatedOrder/)
   assert.match(adminPage, /window\.open/)
   assert.match(adminPage, /Packlink Pro aperto in una nuova scheda/)

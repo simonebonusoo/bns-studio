@@ -28,9 +28,8 @@ export function getOrderTrackingUrlDisplay(order) {
 
 export function getOrderShippingMethodDisplay(order) {
   const label = normalizeOptionalString(order?.shippingLabel)
-  const carrier = normalizeOptionalString(order?.shippingCarrier)
   if (label) {
-    return carrier ? `${label} (${carrier.toUpperCase()})` : label
+    return label
   }
   return order?.shippingMethod ? formatShippingMethodSummary(order.shippingMethod) : "Non disponibile"
 }
@@ -41,17 +40,15 @@ export function getOrderShippingStatusDisplay(order) {
 
 export function getOrderShippingHandoffModeLabel(value) {
   const normalized = String(value || "").trim().toLowerCase()
-  if (normalized === "dropoff") return "Drop-off"
-  if (normalized === "pickup") return "Pickup"
-  return "Da definire"
+  if (normalized === "dropoff") return "Conferimento in sede"
+  if (normalized === "pickup") return "Ritiro organizzato"
+  return "Gestione manuale"
 }
 
 export function buildAdminOrderShippingSummary(order) {
   return {
-    carrier: getOrderCarrierDisplay(order),
     method: getOrderShippingMethodDisplay(order),
     status: getOrderShippingStatusDisplay(order),
-    handoffMode: getOrderShippingHandoffModeLabel(order?.shippingHandoffMode),
     trackingNumber: getOrderTrackingNumberDisplay(order),
     trackingUrl: getOrderTrackingUrlDisplay(order),
     labelUrl: getOrderLabelDisplay(order),

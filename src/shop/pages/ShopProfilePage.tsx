@@ -79,7 +79,6 @@ export function ShopProfilePage() {
 
             <div className="space-y-2 rounded-[22px] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
               <p><span className="text-white">Metodo:</span> {shipping.method}</p>
-              <p><span className="text-white">Corriere:</span> {shipping.carrier}</p>
               <p><span className="text-white">Stato spedizione:</span> {shipping.status}</p>
               <p><span className="text-white">Tracking:</span> {shipping.trackingNumber}</p>
             </div>

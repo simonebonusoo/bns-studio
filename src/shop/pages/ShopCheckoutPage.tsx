@@ -27,10 +27,7 @@ function mapPaypalErrorMessage(message: string) {
 
 function mapShippingPreviewErrorMessage(message: string) {
   if (!message) return ""
-  if (/Packlink quotes/i.test(message) || /Packlink shipment/i.test(message)) {
-    return "Tariffe spedizione temporaneamente non disponibili. Puoi comunque continuare e scegliere il metodo nel passaggio successivo."
-  }
-  return "Tariffe spedizione temporaneamente non disponibili. Riprova tra poco."
+  return "La spedizione viene confermata nel passaggio successivo. Puoi scegliere tra Standard e Premium prima del pagamento."
 }
 
 export function ShopCheckoutPage() {
@@ -306,6 +303,7 @@ export function ShopCheckoutPage() {
               value={couponCode}
               onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
             />
+            <p className="text-sm text-white/55">Potrai scegliere la spedizione nel prossimo step: Standard in 4 giorni lavorativi oppure Premium in 2 giorni lavorativi.</p>
             {shippingNotice ? <p className="text-sm text-amber-200">{shippingNotice}</p> : null}
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             {pricing ? (
@@ -393,11 +391,15 @@ export function ShopCheckoutPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-white">{method.label}</p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/45">{method.carrierLabel}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/45">{method.description}</p>
                         </div>
                         <span className={`mt-0.5 h-4 w-4 rounded-full border ${active ? "border-[#e3f503] bg-[#e3f503]" : "border-white/25"}`} />
                       </div>
-                      <p className="mt-3 text-sm text-white/62">{method.description}</p>
+                      <p className="mt-3 text-sm text-white/62">
+                        {method.key === "economy"
+                          ? "Consegna standard, ideale per un acquisto essenziale."
+                          : "Consegna più rapida e prioritaria."}
+                      </p>
                       <p className="mt-4 text-sm font-medium text-[#eef879]">{formatPrice(method.cost)}</p>
                     </button>
                   )
