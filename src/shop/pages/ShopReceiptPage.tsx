@@ -138,16 +138,6 @@ export function ShopReceiptPage() {
         <aside className="shop-card space-y-4 p-6">
           <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
           <p className="text-sm text-white/55">Pagamento: {getOrderStatusLabel(order.status)}</p>
-          <div className="space-y-1 rounded-[22px] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
-            <p><span className="text-white">Metodo:</span> {shippingSummary.method}</p>
-            <p><span className="text-white">Stato spedizione:</span> {shippingSummary.status}</p>
-            <p><span className="text-white">Tracking:</span> {shippingSummary.trackingNumber}</p>
-          </div>
-          {shippingSummary.trackingUrl ? (
-            <a href={shippingSummary.trackingUrl} target="_blank" rel="noreferrer" className="text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">
-              Traccia spedizione
-            </a>
-          ) : null}
           {isAdminView ? (
             shippingSummary.labelUrl ? (
               <a href={shippingSummary.labelUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "profile", size: "sm" })}>

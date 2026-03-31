@@ -72,6 +72,7 @@ test("admin and customer order UIs render shipping visibility hooks", () => {
   const admin = read("src/shop/components/admin/AdminOrdersSection.tsx")
   const adminPage = read("src/shop/pages/ShopAdminPage.tsx")
   const profile = read("src/shop/pages/ShopProfilePage.tsx")
+  const timeline = read("src/shop/components/orders/OrderTimeline.tsx")
   const trackingPage = read("src/shop/pages/ShopMockTrackingPage.tsx")
 
   assert.match(admin, /Apri etichetta PDF/)
@@ -85,7 +86,7 @@ test("admin and customer order UIs render shipping visibility hooks", () => {
   assert.match(adminPage, /mergeUpdatedOrder/)
   assert.match(adminPage, /window\.open/)
   assert.match(adminPage, /Packlink Pro aperto in una nuova scheda/)
-  assert.match(profile, /Traccia spedizione/)
-  assert.match(profile, /Tracking non ancora disponibile/)
+  assert.match(profile, /OrderTimeline/)
+  assert.match(timeline, /Traccia spedizione/)
   assert.match(trackingPage, /Avanzamento spedizione/)
 })

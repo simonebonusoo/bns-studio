@@ -9,7 +9,6 @@ import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
-import { buildAdminOrderShippingSummary } from "../lib/order-shipping.mjs"
 import { ShopOrder, ShopSettings } from "../types"
 
 export function ShopProfilePage() {
@@ -56,10 +55,6 @@ export function ShopProfilePage() {
       <div className="grid gap-5 xl:grid-cols-2">
         {orders.map((order) => (
           <article key={order.id} className="shop-card space-y-4 p-6">
-            {(() => {
-              const shipping = buildAdminOrderShippingSummary(order)
-              return (
-                <>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
@@ -78,20 +73,7 @@ export function ShopProfilePage() {
               <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
             </div>
 
-            <div className="space-y-2 rounded-[22px] border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
-              <p><span className="text-white">Metodo:</span> {shipping.method}</p>
-              <p><span className="text-white">Stato spedizione:</span> {shipping.status}</p>
-              <p><span className="text-white">Tracking:</span> {shipping.trackingNumber}</p>
-            </div>
             <OrderTimeline order={order} />
-
-            {shipping.trackingUrl ? (
-              <a href={shipping.trackingUrl} target="_blank" rel="noreferrer" className="inline-flex text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">
-                Traccia spedizione
-              </a>
-            ) : (
-              <p className="text-sm text-white/45">Tracking non ancora disponibile.</p>
-            )}
 
             <div className="flex flex-wrap gap-3">
               <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
@@ -103,9 +85,6 @@ export function ShopProfilePage() {
                 </button>
               ) : null}
             </div>
-                </>
-              )
-            })()}
           </article>
         ))}
       </div>

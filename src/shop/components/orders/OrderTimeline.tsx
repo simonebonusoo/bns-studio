@@ -67,11 +67,11 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
     ["in_progress", "shipped", "completed"].includes(currentStep.key) && shipping.trackingNumber !== "Non ancora disponibile"
 
   return (
-    <section className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.02))] p-4 md:p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <section className="space-y-5 rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] px-4 py-5 md:px-5">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">Timeline ordine</p>
-          <p className="mt-1 text-sm text-white/58">Stato aggiornato in base alla lavorazione e alla spedizione.</p>
+          <p className="mt-1 text-sm text-white/56">Segui l'avanzamento del tuo ordine in ogni fase.</p>
         </div>
       </div>
 
@@ -147,15 +147,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
         })}
       </ol>
 
-      <div
-        className={`mt-5 rounded-[22px] border px-4 py-4 md:px-5 ${
-          currentState === "current"
-            ? "border-[#e3f503]/30 bg-[#e3f503]/10"
-            : currentState === "completed"
-              ? "border-white/14 bg-white/[0.05]"
-              : "border-white/10 bg-white/[0.025]"
-        }`}
-      >
+      <div className="border-t border-white/8 pt-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">Step attuale</p>
@@ -175,30 +167,30 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
         </div>
 
         {currentCopy.timestamp ? <p className="mt-3 text-xs uppercase tracking-[0.16em] text-white/42">{currentCopy.timestamp}</p> : null}
-        {currentCopy.description ? <p className="mt-3 text-sm leading-6 text-white/68">{currentCopy.description}</p> : null}
+        {currentCopy.description ? <p className="mt-3 max-w-2xl text-sm leading-7 text-white/66">{currentCopy.description}</p> : null}
 
         {showShippingTracking ? (
-          <div className="mt-4 rounded-[18px] border border-white/10 bg-black/10 px-3 py-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">Tracking</p>
-                <p className="mt-1 text-sm text-white">{shipping.trackingNumber}</p>
-              </div>
-              {shipping.trackingUrl ? (
-                <a
-                  href={shipping.trackingUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex text-sm text-[#eef879] underline underline-offset-4 transition hover:text-white"
-                >
-                  Traccia spedizione
-                </a>
-              ) : null}
+          <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-sm text-white/62">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">Tracking</p>
+              <p className="mt-1 text-white">{shipping.trackingNumber}</p>
             </div>
+            {shipping.trackingUrl ? (
+              <a
+                href={shipping.trackingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center text-sm text-[#eef879] underline underline-offset-4 transition hover:text-white"
+              >
+                Traccia spedizione
+              </a>
+            ) : null}
           </div>
+        ) : ["in_progress", "shipped", "completed"].includes(currentStep.key) ? (
+          <p className="mt-4 text-sm text-white/42">Il tracking sarà disponibile appena il corriere lo renderà visibile.</p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-white/38">
+        <div className="mt-5 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-white/38">
           <span>
             Step {currentStepIndex + 1} di {steps.length}
           </span>
