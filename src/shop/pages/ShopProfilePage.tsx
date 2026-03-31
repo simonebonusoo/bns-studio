@@ -3,11 +3,12 @@ import { Link } from "react-router-dom"
 
 import { getButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
+import { OrderTimeline } from "../components/orders/OrderTimeline"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
-import { getOrderFulfillmentStatusLabel, getOrderFulfillmentSteps, getOrderStatusLabel } from "../lib/order"
+import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
 import { buildAdminOrderShippingSummary } from "../lib/order-shipping.mjs"
 import { ShopOrder, ShopSettings } from "../types"
 
@@ -82,23 +83,7 @@ export function ShopProfilePage() {
               <p><span className="text-white">Stato spedizione:</span> {shipping.status}</p>
               <p><span className="text-white">Tracking:</span> {shipping.trackingNumber}</p>
             </div>
-
-            <div className="grid gap-2 sm:grid-cols-5">
-              {getOrderFulfillmentSteps(order.fulfillmentStatus).map((step) => (
-                <div
-                  key={step.key}
-                  className={`rounded-2xl border px-3 py-3 text-center text-[11px] uppercase tracking-[0.18em] ${
-                    step.current
-                      ? "border-[#e3f503]/30 bg-[#e3f503]/12 text-[#eef879]"
-                      : step.active
-                        ? "border-white/18 bg-white/[0.06] text-white/78"
-                        : "border-white/10 text-white/35"
-                  }`}
-                >
-                  {step.label}
-                </div>
-              ))}
-            </div>
+            <OrderTimeline order={order} />
 
             {shipping.trackingUrl ? (
               <a href={shipping.trackingUrl} target="_blank" rel="noreferrer" className="inline-flex text-sm text-white underline underline-offset-4 transition hover:text-[#eef879]">

@@ -3,6 +3,7 @@ import { useLocation, useParams } from "react-router-dom"
 
 import { Button, getButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
+import { OrderTimeline } from "../components/orders/OrderTimeline"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
@@ -130,6 +131,8 @@ export function ShopReceiptPage() {
               </div>
             ))}
           </div>
+
+          <OrderTimeline order={order} />
         </section>
 
         <aside className="shop-card space-y-4 p-6">
