@@ -4,7 +4,7 @@ import { getProductCostForFormat, getProductPriceForFormat, normalizeProductForm
 import { isProductPurchasable } from "../lib/product-status.mjs"
 import { resolveSelectedVariant } from "../lib/product-variants.mjs"
 import { resolveSelectedShippingRate } from "./shipping-rates.mjs"
-import { getShippingMethodOptions } from "../../shop/lib/shipping-methods.mjs"
+import { getShippingMethodOptions } from "../../../shop/lib/shipping-methods.mjs"
 
 function buildStaticShippingRatesFallback() {
   return getShippingMethodOptions()

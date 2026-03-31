@@ -90,7 +90,7 @@ export function ShopCheckoutPage() {
       .catch((err) => {
         setPricing(null)
         setShippingNotice("")
-        setError(err instanceof Error ? err.message : "Errore durante il calcolo del riepilogo.")
+        setError(mapShippingPreviewErrorMessage(err instanceof Error ? err.message : "Errore durante il calcolo del riepilogo."))
       })
   }, [couponCode, form.shippingMethod, items])
 
