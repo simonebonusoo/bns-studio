@@ -59,6 +59,12 @@ function getTimelineStepCopy(order: ShopOrder, stepKey: string, shipping: Return
 export function OrderTimeline({ order }: OrderTimelineProps) {
   const steps = getOrderFulfillmentSteps(order.fulfillmentStatus)
   const shipping = buildAdminOrderShippingSummary(order)
+  const currentStep = steps.find((step) => step.current) || steps[0]
+  const currentState = currentStep.current ? "current" : currentStep.active ? "completed" : "upcoming"
+  const currentCopy = getTimelineStepCopy(order, currentStep.key, shipping)
+  const currentStepIndex = steps.findIndex((step) => step.key === currentStep.key)
+  const showShippingTracking =
+    ["in_progress", "shipped", "completed"].includes(currentStep.key) && shipping.trackingNumber !== "Non ancora disponibile"
 
   return (
     <section className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.02))] p-4 md:p-5">
@@ -69,16 +75,13 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
         </div>
       </div>
 
-      <ol className="relative grid gap-4 md:grid-cols-5 md:gap-3">
-        <div className="absolute bottom-4 left-[17px] top-4 w-px bg-white/10 md:left-8 md:right-8 md:top-[1.05rem] md:h-px md:w-auto" />
+      <ol className="space-y-3 md:hidden">
         {steps.map((step, index) => {
           const state = step.current ? "current" : step.active ? "completed" : "upcoming"
-          const { description, timestamp } = getTimelineStepCopy(order, step.key, shipping)
-          const isShippingPhase = step.key === "in_progress" || step.key === "shipped" || step.key === "completed"
 
           return (
-            <li key={step.key} className="relative flex items-start gap-3 md:flex-col md:gap-4">
-              <div className="relative z-[1] shrink-0 pt-0.5 md:pt-0">
+            <li key={step.key} className="flex items-start gap-3">
+              <div className="flex flex-col items-center">
                 <span
                   className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold transition-all ${
                     state === "current"
@@ -88,19 +91,11 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
                         : "border-white/12 bg-[#111214] text-white/38"
                   }`}
                 >
-                  {step.active ? "✓" : step.key === "completed" ? "5" : String(index + 1)}
+                  {step.active ? "✓" : String(index + 1)}
                 </span>
+                {index < steps.length - 1 ? <span className={`mt-2 h-8 w-px ${step.active ? "bg-emerald-300/35" : "bg-white/10"}`} /> : null}
               </div>
-
-              <div
-                className={`min-w-0 flex-1 rounded-[22px] border px-4 py-3 md:h-full ${
-                  state === "current"
-                    ? "border-[#e3f503]/30 bg-[#e3f503]/10"
-                    : state === "completed"
-                      ? "border-white/14 bg-white/[0.05]"
-                      : "border-white/10 bg-white/[0.025]"
-                }`}
-              >
+              <div className="min-w-0 flex-1 pt-1">
                 <div className="flex items-start justify-between gap-3">
                   <p className={`text-sm font-medium ${state === "upcoming" ? "text-white/42" : "text-white"}`}>{step.label}</p>
                   <span
@@ -115,31 +110,102 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
                     {state === "current" ? "Attuale" : state === "completed" ? "Completato" : "In attesa"}
                   </span>
                 </div>
-
-                {timestamp ? <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/42">{timestamp}</p> : null}
-                {description ? <p className={`mt-2 text-sm leading-6 ${state === "upcoming" ? "text-white/40" : "text-white/62"}`}>{description}</p> : null}
-
-                {isShippingPhase && shipping.trackingNumber !== "Non ancora disponibile" ? (
-                  <div className="mt-3 rounded-[18px] border border-white/10 bg-black/10 px-3 py-2.5">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">Tracking</p>
-                    <p className="mt-1 text-sm text-white">{shipping.trackingNumber}</p>
-                    {shipping.trackingUrl ? (
-                      <a
-                        href={shipping.trackingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-2 inline-flex text-sm text-[#eef879] underline underline-offset-4 transition hover:text-white"
-                      >
-                        Traccia spedizione
-                      </a>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
             </li>
           )
         })}
       </ol>
+
+      <ol className="hidden grid-cols-5 gap-3 md:grid">
+        {steps.map((step, index) => {
+          const state = step.current ? "current" : step.active ? "completed" : "upcoming"
+
+          return (
+            <li key={step.key} className="min-w-0">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-sm font-semibold transition-all ${
+                    state === "current"
+                      ? "border-[#e3f503]/50 bg-[#e3f503]/18 text-[#f3ff94] shadow-[0_0_24px_rgba(227,245,3,0.18)]"
+                      : state === "completed"
+                        ? "border-emerald-300/35 bg-emerald-300/12 text-emerald-100"
+                        : "border-white/12 bg-[#111214] text-white/38"
+                  }`}
+                >
+                  {step.active ? "✓" : String(index + 1)}
+                </span>
+                {index < steps.length - 1 ? <span className={`h-px flex-1 ${step.active ? "bg-emerald-300/35" : "bg-white/10"}`} /> : null}
+              </div>
+              <div className="mt-3 space-y-1">
+                <p className={`text-sm font-medium ${state === "upcoming" ? "text-white/42" : "text-white"}`}>{step.label}</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">
+                  {state === "current" ? "Attuale" : state === "completed" ? "Completato" : "In attesa"}
+                </p>
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+
+      <div
+        className={`mt-5 rounded-[22px] border px-4 py-4 md:px-5 ${
+          currentState === "current"
+            ? "border-[#e3f503]/30 bg-[#e3f503]/10"
+            : currentState === "completed"
+              ? "border-white/14 bg-white/[0.05]"
+              : "border-white/10 bg-white/[0.025]"
+        }`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">Step attuale</p>
+            <h3 className="mt-2 text-base font-semibold text-white">{currentStep.label}</h3>
+          </div>
+          <span
+            className={`rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${
+              currentState === "current"
+                ? "bg-[#e3f503]/16 text-[#effb89]"
+                : currentState === "completed"
+                  ? "bg-emerald-300/14 text-emerald-100"
+                  : "bg-white/5 text-white/35"
+            }`}
+          >
+            {currentState === "current" ? "Attuale" : currentState === "completed" ? "Completato" : "In attesa"}
+          </span>
+        </div>
+
+        {currentCopy.timestamp ? <p className="mt-3 text-xs uppercase tracking-[0.16em] text-white/42">{currentCopy.timestamp}</p> : null}
+        {currentCopy.description ? <p className="mt-3 text-sm leading-6 text-white/68">{currentCopy.description}</p> : null}
+
+        {showShippingTracking ? (
+          <div className="mt-4 rounded-[18px] border border-white/10 bg-black/10 px-3 py-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">Tracking</p>
+                <p className="mt-1 text-sm text-white">{shipping.trackingNumber}</p>
+              </div>
+              {shipping.trackingUrl ? (
+                <a
+                  href={shipping.trackingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-sm text-[#eef879] underline underline-offset-4 transition hover:text-white"
+                >
+                  Traccia spedizione
+                </a>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-white/38">
+          <span>
+            Step {currentStepIndex + 1} di {steps.length}
+          </span>
+          <span className="text-white/18">•</span>
+          <span>{steps.filter((step) => step.active).length} completati</span>
+        </div>
+      </div>
     </section>
   )
 }
