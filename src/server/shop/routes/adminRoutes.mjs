@@ -1212,6 +1212,7 @@ router.patch(
         shippingStatus: z.enum(["pending", "accepted", "created", "in_transit", "out_for_delivery", "shipped", "delivered", "failed", "not_created"]).optional(),
         shippingHandoffMode: z.enum(["dropoff", "pickup"]).nullable().optional(),
         trackingNumber: z.string().trim().nullable().optional(),
+        shipmentUrl: z.string().trim().nullable().optional(),
         trackingUrl: z.string().trim().nullable().optional(),
         labelUrl: z.string().trim().nullable().optional(),
       })
@@ -1238,6 +1239,7 @@ router.patch(
           ...(body.shippingStatus ? { shippingStatus: body.shippingStatus } : {}),
           shippingHandoffMode: body.shippingHandoffMode ? body.shippingHandoffMode : null,
           trackingNumber: body.trackingNumber ? body.trackingNumber : null,
+          shipmentUrl: body.shipmentUrl ? body.shipmentUrl : null,
           trackingUrl: body.trackingUrl ? body.trackingUrl : null,
           labelUrl: body.labelUrl ? body.labelUrl : null,
         },

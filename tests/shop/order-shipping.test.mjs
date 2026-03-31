@@ -19,6 +19,7 @@ test("buildAdminOrderShippingSummary exposes friendly fallbacks for legacy order
     shippingMethod: null,
     shippingHandoffMode: null,
     trackingNumber: null,
+    shipmentUrl: null,
     trackingUrl: null,
     labelUrl: null,
     shipmentReference: null,
@@ -29,6 +30,7 @@ test("buildAdminOrderShippingSummary exposes friendly fallbacks for legacy order
   assert.equal(summary.method, "Non disponibile")
   assert.equal(summary.trackingNumber, "Non ancora disponibile")
   assert.equal(summary.shipmentReference, "Non disponibile")
+  assert.equal(summary.shipmentUrl, null)
   assert.equal(summary.labelUrl, null)
 })
 
@@ -40,6 +42,7 @@ test("buildAdminOrderShippingSummary preserves tracking, label and handoff mode 
     shippingMethod: "premium",
     shippingHandoffMode: "pickup",
     trackingNumber: "1234567890",
+    shipmentUrl: "https://pro.packlink.it/app/shipments/SHIP-REF-1",
     trackingUrl: "https://tracking.example/1234567890",
     labelUrl: "https://labels.example/label.pdf",
     shipmentReference: "SHIP-REF-1",
@@ -49,6 +52,7 @@ test("buildAdminOrderShippingSummary preserves tracking, label and handoff mode 
   assert.equal(summary.method, "Premium — 2 giorni lavorativi")
   assert.equal(summary.status, "Spedizione spedita")
   assert.equal(summary.trackingNumber, "1234567890")
+  assert.equal(summary.shipmentUrl, "https://pro.packlink.it/app/shipments/SHIP-REF-1")
   assert.equal(summary.labelUrl, "https://labels.example/label.pdf")
 })
 
@@ -71,9 +75,12 @@ test("admin and customer order UIs render shipping visibility hooks", () => {
   const trackingPage = read("src/shop/pages/ShopMockTrackingPage.tsx")
 
   assert.match(admin, /Apri etichetta PDF/)
+  assert.match(admin, /Apri spedizione/)
   assert.match(admin, /Crea spedizione/)
+  assert.match(admin, /Visualizza spedizione/)
   assert.match(admin, /Tracking manuale/)
-  assert.match(admin, /Inserisci tracking, link ed etichetta qui sotto/)
+  assert.match(admin, /Inserisci tracking, link spedizione ed etichetta qui sotto/)
+  assert.match(admin, /Link spedizione/)
   assert.match(admin, /out_for_delivery/)
   assert.match(adminPage, /mergeUpdatedOrder/)
   assert.match(adminPage, /window\.open/)

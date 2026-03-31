@@ -170,6 +170,7 @@ model Order {
   total            Int
   couponCode       String?
   shipmentReference String?
+  shipmentUrl      String?
   trackingNumber   String?
   trackingUrl      String?
   shippingCreatedAt DateTime?

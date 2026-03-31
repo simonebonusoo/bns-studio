@@ -22,6 +22,10 @@ export function getOrderLabelDisplay(order) {
   return normalizeOptionalString(order?.labelUrl) || null
 }
 
+export function getOrderShipmentUrlDisplay(order) {
+  return normalizeOptionalString(order?.shipmentUrl) || null
+}
+
 export function getOrderTrackingUrlDisplay(order) {
   return normalizeOptionalString(order?.trackingUrl) || null
 }
@@ -50,6 +54,7 @@ export function buildAdminOrderShippingSummary(order) {
     method: getOrderShippingMethodDisplay(order),
     status: getOrderShippingStatusDisplay(order),
     trackingNumber: getOrderTrackingNumberDisplay(order),
+    shipmentUrl: getOrderShipmentUrlDisplay(order),
     trackingUrl: getOrderTrackingUrlDisplay(order),
     labelUrl: getOrderLabelDisplay(order),
     shipmentReference: getOrderShipmentReference(order),

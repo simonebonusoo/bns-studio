@@ -43,6 +43,7 @@ export function serializeShopOrder(order) {
     shippingStatus: normalizeShippingStatus(order.shippingStatus, order.fulfillmentStatus),
     shippingCost: typeof order.shippingCost === "number" ? order.shippingCost : null,
     shipmentReference: normalizeOptionalString(order.shipmentReference || order.dhlShipmentReference),
+    shipmentUrl: normalizeTrackingUrl(order.shipmentUrl),
     trackingNumber: normalizeTrackingNumber(order.trackingNumber),
     trackingUrl: normalizeTrackingUrl(order.trackingUrl),
     shippingCreatedAt: order.shippingCreatedAt ? new Date(order.shippingCreatedAt).toISOString() : null,

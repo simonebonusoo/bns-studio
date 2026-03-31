@@ -1523,7 +1523,7 @@ export function ShopAdminPage() {
           onRefreshTracking={async (orderId) => {
             clearFeedback()
             try {
-              setMessage("Aggiorna tracking, link ed etichetta manualmente nei campi qui sotto, poi salva l'ordine.")
+              setMessage("Aggiorna tracking, link spedizione ed etichetta manualmente nei campi qui sotto, poi salva l'ordine.")
               return orders.find((entry) => entry.id === orderId) || null
             } catch (err) {
               setError(err instanceof Error ? err.message : "Aggiornamento tracking manuale non disponibile.")

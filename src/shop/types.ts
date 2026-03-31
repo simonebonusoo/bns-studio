@@ -210,6 +210,7 @@ export type ShopOrder = {
   shippingStatus?: string | null
   shippingCost?: number | null
   shipmentReference?: string | null
+  shipmentUrl?: string | null
   trackingNumber?: string | null
   subtotal: number
   discountTotal: number

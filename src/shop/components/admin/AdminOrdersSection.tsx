@@ -21,7 +21,7 @@ type AdminOrdersSectionProps = {
   loadingProfitOrderId: number | null
   containWheel: (event: React.WheelEvent<HTMLElement>) => void
   onOpenOrderProfit: (orderId: number) => void
-  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; trackingUrl: string; labelUrl: string }) => Promise<ShopOrder | null>
+  onUpdateOrderStatus: (orderId: number, payload: { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; shipmentUrl: string; trackingUrl: string; labelUrl: string }) => Promise<ShopOrder | null>
   onCreateShipment: (orderId: number) => Promise<ShopOrder | null>
   onRefreshTracking: (orderId: number) => Promise<ShopOrder | null>
 }
@@ -37,7 +37,7 @@ export function AdminOrdersSection({
   onCreateShipment,
   onRefreshTracking,
 }: AdminOrdersSectionProps) {
-  const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; trackingUrl: string; labelUrl: string }>>({})
+  const [drafts, setDrafts] = useState<Record<number, { fulfillmentStatus: string; shippingStatus: string; trackingNumber: string; shipmentUrl: string; trackingUrl: string; labelUrl: string }>>({})
   const [shippingFeedback, setShippingFeedback] = useState<Record<number, string>>({})
   const [shippingActionState, setShippingActionState] = useState<Record<number, "create" | "refresh" | "save" | null>>({})
 
@@ -50,6 +50,7 @@ export function AdminOrdersSection({
             fulfillmentStatus: order.fulfillmentStatus || "processing",
             shippingStatus: order.shippingStatus || "pending",
             trackingNumber: order.trackingNumber || "",
+            shipmentUrl: order.shipmentUrl || "",
             trackingUrl: order.trackingUrl || "",
             labelUrl: order.labelUrl || "",
           },
@@ -70,7 +71,7 @@ export function AdminOrdersSection({
   }
 
   function hasCreatedShipment(order: ShopOrder) {
-    if (order.trackingNumber || order.trackingUrl || order.labelUrl) return true
+    if (order.shipmentUrl || order.trackingNumber || order.trackingUrl || order.labelUrl) return true
     return ["accepted", "created", "in_transit", "out_for_delivery", "shipped", "delivered"].includes(String(order.shippingStatus || "").trim().toLowerCase())
   }
 
@@ -81,6 +82,7 @@ export function AdminOrdersSection({
           {(() => {
             const shipping = buildAdminOrderShippingSummary(order)
             const shipmentCreated = hasCreatedShipment(order)
+            const shipmentPageUrl = shipping.shipmentUrl
             return (
           <>
           <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.95fr)]">
@@ -126,6 +128,11 @@ export function AdminOrdersSection({
               ) : (
                 <span className="rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/40">Etichetta non ancora disponibile</span>
               )}
+              {shipmentPageUrl ? (
+                <a href={shipmentPageUrl} target="_blank" rel="noreferrer" className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                  Apri spedizione
+                </a>
+              ) : null}
             </div>
             {shipping.shippingError ? <p className="mt-4 text-amber-100">In attesa di generazione: {shipping.shippingError}</p> : null}
             {shippingFeedback[order.id] ? (
@@ -167,9 +174,14 @@ export function AdminOrdersSection({
                     onClick={async () => {
                       setShippingActionState((current) => ({ ...current, [order.id]: "create" }))
                       try {
-                        const updatedOrder = await onCreateShipment(order.id)
-                        if (updatedOrder) {
-                          markOrderUpdated(order.id, "Packlink Pro aperto. Inserisci tracking, link ed etichetta qui sotto dopo aver creato la spedizione.")
+                        if (shipmentPageUrl) {
+                          window.open(shipmentPageUrl, "_blank", "noopener,noreferrer")
+                          markOrderUpdated(order.id, "Pagina spedizione aperta in una nuova scheda.")
+                        } else {
+                          const updatedOrder = await onCreateShipment(order.id)
+                          if (updatedOrder) {
+                            markOrderUpdated(order.id, "Packlink Pro aperto. Inserisci tracking, link spedizione ed etichetta qui sotto dopo aver creato la spedizione.")
+                          }
                         }
                       } finally {
                         setShippingActionState((current) => ({ ...current, [order.id]: null }))
@@ -186,7 +198,7 @@ export function AdminOrdersSection({
                       try {
                         const updatedOrder = await onRefreshTracking(order.id)
                         if (updatedOrder) {
-                          markOrderUpdated(order.id, "Aggiorna manualmente tracking, link ed etichetta nei campi qui sotto, poi salva.")
+                          markOrderUpdated(order.id, "Aggiorna manualmente tracking, link spedizione ed etichetta nei campi qui sotto, poi salva.")
                         }
                       } finally {
                         setShippingActionState((current) => ({ ...current, [order.id]: null }))
@@ -210,7 +222,7 @@ export function AdminOrdersSection({
                     setDrafts((current) => ({
                       ...current,
                       [order.id]: {
-                      ...(current[order.id] || { shippingStatus: "pending", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
+                      ...(current[order.id] || { shippingStatus: "pending", trackingNumber: "", shipmentUrl: "", trackingUrl: "", labelUrl: "" }),
                       fulfillmentStatus: event.target.value,
                     },
                   }))
@@ -230,7 +242,7 @@ export function AdminOrdersSection({
                     setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingUrl: "", labelUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", shipmentUrl: "", trackingUrl: "", labelUrl: "" }),
                       trackingNumber: event.target.value,
                     },
                   }))
@@ -243,7 +255,7 @@ export function AdminOrdersSection({
                     setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", trackingNumber: "", trackingUrl: "", labelUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", trackingNumber: "", shipmentUrl: "", trackingUrl: "", labelUrl: "" }),
                       shippingStatus: event.target.value,
                     },
                   }))
@@ -261,13 +273,27 @@ export function AdminOrdersSection({
               </select>
               <input
                 className="shop-input"
+                placeholder="Link spedizione"
+                value={drafts[order.id]?.shipmentUrl || ""}
+                onChange={(event) =>
+                  setDrafts((current) => ({
+                    ...current,
+                    [order.id]: {
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", shipmentUrl: "", trackingUrl: "", labelUrl: "" }),
+                      shipmentUrl: event.target.value,
+                    },
+                  }))
+                }
+              />
+              <input
+                className="shop-input"
                 placeholder="Link tracking opzionale"
                 value={drafts[order.id]?.trackingUrl || ""}
                 onChange={(event) =>
                   setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", labelUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", shipmentUrl: "", labelUrl: "" }),
                       trackingUrl: event.target.value,
                     },
                   }))
@@ -281,7 +307,7 @@ export function AdminOrdersSection({
                     setDrafts((current) => ({
                     ...current,
                     [order.id]: {
-                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", trackingUrl: "" }),
+                      ...(current[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", shipmentUrl: "", trackingUrl: "" }),
                       labelUrl: event.target.value,
                     },
                   }))
@@ -296,7 +322,7 @@ export function AdminOrdersSection({
                   try {
                     const updatedOrder = await onUpdateOrderStatus(
                       order.id,
-                      drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", trackingUrl: "", labelUrl: "" },
+                      drafts[order.id] || { fulfillmentStatus: "processing", shippingStatus: "pending", trackingNumber: "", shipmentUrl: "", trackingUrl: "", labelUrl: "" },
                     )
                     if (updatedOrder) {
                       markOrderUpdated(order.id, "Dati ordine aggiornati e visibili qui sotto.")

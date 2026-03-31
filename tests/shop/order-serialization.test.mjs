@@ -14,6 +14,7 @@ test("serializeShopOrder keeps legacy orders safe when new shipping fields are m
     shippingLabel: null,
     shippingCost: null,
     trackingNumber: null,
+    shipmentUrl: "",
     trackingUrl: "",
     shippingCreatedAt: null,
     dhlShipmentReference: null,
@@ -28,6 +29,7 @@ test("serializeShopOrder keeps legacy orders safe when new shipping fields are m
   assert.equal(order.shippingLabel, null)
   assert.equal(order.shippingStatus, "pending")
   assert.equal(order.trackingNumber, null)
+  assert.equal(order.shipmentUrl, null)
   assert.equal(order.trackingUrl, null)
   assert.equal(order.shippingProviderPayload, null)
   assert.equal(order.pricingBreakdown.total, 1000)
@@ -44,6 +46,7 @@ test("serializeShopOrder parses provider payload when available", () => {
     shippingLabel: "Spedizione premium",
     shippingCost: 990,
     trackingNumber: "DHL-TRK-1",
+    shipmentUrl: "https://pro.packlink.it/app/shipments/REF-1",
     trackingUrl: "https://example.com/track",
     shippingCreatedAt: "2026-03-30T10:00:00.000Z",
     dhlShipmentReference: "REF-1",
@@ -54,4 +57,5 @@ test("serializeShopOrder parses provider payload when available", () => {
   })
 
   assert.deepEqual(order.shippingProviderPayload, { provider: "dhl", mode: "mock" })
+  assert.equal(order.shipmentUrl, "https://pro.packlink.it/app/shipments/REF-1")
 })
