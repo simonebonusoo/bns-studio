@@ -1,4 +1,3 @@
-import * as inpostMock from "../mocks/inpost.mock.mjs"
 import { createNormalizedRateQuote, createNormalizedShipment } from "../normalizers/shipment-normalizer.mjs"
 
 function normalizeOptionalString(value) {
@@ -35,7 +34,7 @@ function buildPacklinkConfigValidation(providerConfig) {
   const missing = []
 
   if (!providerConfig.apiKey) missing.push("PACKLINK_API_KEY")
-  if (!providerConfig.serviceId) missing.push("PACKLINK_SERVICE_ID")
+  if (!providerConfig.apiBaseUrl) missing.push("PACKLINK_API_BASE_URL")
   if (!providerConfig.sender?.name) missing.push("PACKLINK_SENDER_NAME")
   if (!providerConfig.sender?.email) missing.push("PACKLINK_SENDER_EMAIL")
   if (!providerConfig.sender?.phone) missing.push("PACKLINK_SENDER_PHONE")
@@ -43,6 +42,10 @@ function buildPacklinkConfigValidation(providerConfig) {
   if (!providerConfig.sender?.city) missing.push("PACKLINK_SENDER_CITY")
   if (!providerConfig.sender?.zip) missing.push("PACKLINK_SENDER_ZIP")
   if (!providerConfig.sender?.country) missing.push("PACKLINK_SENDER_COUNTRY")
+  if (!Number(providerConfig.parcelDefaults?.weightKg || 0)) missing.push("PACKLINK_PARCEL_WEIGHT_KG")
+  if (!Number(providerConfig.parcelDefaults?.lengthCm || 0)) missing.push("PACKLINK_PARCEL_LENGTH_CM")
+  if (!Number(providerConfig.parcelDefaults?.widthCm || 0)) missing.push("PACKLINK_PARCEL_WIDTH_CM")
+  if (!Number(providerConfig.parcelDefaults?.heightCm || 0)) missing.push("PACKLINK_PARCEL_HEIGHT_CM")
 
   return {
     ok: missing.length === 0,
@@ -80,8 +83,7 @@ function validateRecipientAddress(orderContext) {
   const missing = []
 
   if (!buildRecipientName(orderContext)) missing.push("nome destinatario")
-  if (!normalizeOptionalString(shippingAddress.email)) missing.push("email")
-  if (!normalizeOptionalString(shippingAddress.phone)) missing.push("telefono")
+  if (!normalizeOptionalString(shippingAddress.email) && !normalizeOptionalString(shippingAddress.phone)) missing.push("email o telefono")
   if (!normalizeOptionalString(shippingAddress.addressLine1)) missing.push("indirizzo")
   if (!normalizeOptionalString(shippingAddress.city)) missing.push("citta")
   if (!normalizeOptionalString(shippingAddress.postalCode)) missing.push("CAP")
@@ -93,10 +95,9 @@ function validateRecipientAddress(orderContext) {
   }
 }
 
-function buildPacklinkShipmentPayload(orderContext, providerConfig) {
+function buildPacklinkBasePayload(orderContext, providerConfig) {
   const shippingAddress = orderContext?.shippingAddress || {}
   return {
-    service_id: providerConfig.serviceId,
     from: {
       name: providerConfig.sender.name,
       email: providerConfig.sender.email,
@@ -124,6 +125,137 @@ function buildPacklinkShipmentPayload(orderContext, providerConfig) {
       },
     ],
   }
+}
+
+function buildPacklinkShipmentPayload(orderContext, providerConfig, serviceId) {
+  return {
+    ...buildPacklinkBasePayload(orderContext, providerConfig),
+    service_id: serviceId,
+  }
+}
+
+function buildPacklinkQuotesPayload(orderContext, providerConfig) {
+  return buildPacklinkBasePayload(orderContext, providerConfig)
+}
+
+function normalizeCarrierName(value) {
+  return String(value || "").trim().toLowerCase()
+}
+
+function normalizeQuoteAmount(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+function extractQuoteCandidates(data) {
+  const rawCandidates = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.quotes)
+      ? data.quotes
+      : Array.isArray(data?.services)
+        ? data.services
+        : Array.isArray(data?.results)
+          ? data.results
+          : Array.isArray(data?.data)
+            ? data.data
+            : []
+
+  return rawCandidates
+    .map((entry) => {
+      const serviceId =
+        findFirstString(entry, [["service_id"], ["serviceId"], ["id"], ["service", "id"], ["service", "service_id"]])
+      const carrier =
+        findFirstString(entry, [["carrier"], ["carrier_name"], ["carrierName"], ["service", "carrier_name"], ["service", "carrier"], ["carrier", "name"]])
+      const label =
+        findFirstString(entry, [["label"], ["name"], ["service_name"], ["service", "name"], ["service", "label"]]) ||
+        carrier ||
+        "Servizio Packlink"
+      const amount =
+        normalizeQuoteAmount(entry?.amount) ??
+        normalizeQuoteAmount(entry?.price) ??
+        normalizeQuoteAmount(entry?.total_price) ??
+        normalizeQuoteAmount(entry?.totalPrice) ??
+        normalizeQuoteAmount(entry?.price?.amount) ??
+        normalizeQuoteAmount(entry?.base_price)
+
+      return {
+        serviceId,
+        carrier,
+        label,
+        amount,
+        raw: entry,
+      }
+    })
+    .filter((entry) => entry.serviceId && typeof entry.amount === "number")
+}
+
+function pickBestQuote(quotes, providerConfig) {
+  const preferredCarrier = normalizeCarrierName(providerConfig.defaultCarrier)
+  const normalizedQuotes = Array.isArray(quotes) ? quotes : []
+  const matchingPreferred =
+    preferredCarrier
+      ? normalizedQuotes.filter((quote) => normalizeCarrierName(quote.carrier).includes(preferredCarrier))
+      : []
+  const pool = matchingPreferred.length ? matchingPreferred : normalizedQuotes
+  if (!pool.length) return null
+  return [...pool].sort((left, right) => left.amount - right.amount)[0]
+}
+
+async function getBestQuote(orderContext, providerConfig, fetchImpl = fetch) {
+  const payload = buildPacklinkQuotesPayload(orderContext, providerConfig)
+  const endpoint = buildApiUrl(providerConfig, "/quotes")
+
+  logPacklink("quotes.real_request", {
+    endpoint,
+    orderReference: orderContext?.orderReference || orderContext?.order?.orderReference || null,
+    destinationCountry: payload?.to?.country || null,
+    destinationZip: payload?.to?.zip || null,
+    preferredCarrier: providerConfig.defaultCarrier || null,
+  })
+
+  const response = await fetchImpl(endpoint, {
+    method: "POST",
+    headers: buildPacklinkHeaders(providerConfig),
+    body: JSON.stringify(payload),
+  })
+  const data = await safeJson(response)
+
+  logPacklink("quotes.real_response", {
+    status: response.status,
+    body: data,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Packlink quotes ha risposto con stato ${response.status}${data ? `: ${JSON.stringify(data)}` : ""}`)
+  }
+
+  const candidates = extractQuoteCandidates(data)
+  const bestQuote = pickBestQuote(candidates, providerConfig)
+
+  logPacklink("quotes.selected_service", {
+    candidates: candidates.map((entry) => ({
+      serviceId: entry.serviceId,
+      carrier: entry.carrier,
+      amount: entry.amount,
+    })),
+    selected: bestQuote
+      ? {
+          serviceId: bestQuote.serviceId,
+          carrier: bestQuote.carrier,
+          amount: bestQuote.amount,
+        }
+      : null,
+  })
+
+  if (!bestQuote) {
+    throw new Error("Packlink non ha restituito nessun servizio valido per questa spedizione.")
+  }
+
+  return bestQuote
 }
 
 function parsePacklinkShipmentResponse(data, orderContext) {
@@ -243,52 +375,50 @@ function parsePacklinkTrackingResponse(data, trackingNumber, shipmentReference =
   })
 }
 
-async function getMockFallbackShipment(orderContext, providerConfig, reason) {
-  logPacklink("createShipment.fallback", {
-    reason,
-    orderReference: orderContext?.orderReference || orderContext?.order?.orderReference || null,
-  })
-  const fallback = await inpostMock.createShipment({ orderContext, providerConfig })
-  return createNormalizedShipment({
-    ...fallback,
-    rawProviderPayload: {
-      ...(fallback.rawProviderPayload || {}),
-      provider: "packlink",
-      fallbackReason: reason,
-    },
-  })
-}
-
 export function createPacklinkProvider(providerConfig) {
   return {
     key: "packlink",
     carrier: "packlink",
     method: "economy",
-    async getRates({ orderContext }) {
-      const fallback = await inpostMock.getRates({ orderContext, providerConfig })
-      return createNormalizedRateQuote({
-        ...fallback,
-        source: "packlink_fallback_rate",
-        meta: { ...(fallback.meta || {}), provider: "packlink" },
-      })
-    },
-    async createShipment({ orderContext, fetchImpl = fetch }) {
+    async getRates({ orderContext, fetchImpl = fetch }) {
       const configValidation = buildPacklinkConfigValidation(providerConfig)
-      logPacklink("createShipment.mode", {
-        useMock: providerConfig.useMock,
+      logPacklink("quotes.mode", {
+        useMockRequested: providerConfig.useMock,
         configured: configValidation.ok,
         missingConfig: configValidation.missing,
       })
 
-      if (providerConfig.useMock) {
-        return getMockFallbackShipment(orderContext, providerConfig, providerConfig.useMock ? "mock_forced" : "missing_configuration")
+      if (!configValidation.ok) {
+        throw new Error(`Packlink configuration incomplete: ${configValidation.missing.join(", ")}`)
       }
 
-      if (!configValidation.ok) {
-        logPacklink("createShipment.invalid_config", {
-          missing: configValidation.missing,
-          orderReference: orderContext?.orderReference || orderContext?.order?.orderReference || null,
+      try {
+        const bestQuote = await getBestQuote(orderContext, providerConfig, fetchImpl)
+        return createNormalizedRateQuote({
+          carrier: normalizeCarrierName(bestQuote.carrier) || "packlink",
+          carrierLabel: bestQuote.carrier || "Packlink",
+          method: "economy",
+          methodLabel: "Spedizione economica",
+          description: "Servizio selezionato automaticamente tramite Packlink.",
+          serviceName: bestQuote.label,
+          shippingCost: Math.round(bestQuote.amount * 100),
+          currency: "EUR",
+          rateSource: "packlink_quotes",
+          rawProviderPayload: bestQuote.raw,
         })
+      } catch (error) {
+        throw new Error(error?.message || "Packlink quotes failed.")
+      }
+    },
+    async createShipment({ orderContext, fetchImpl = fetch }) {
+      const configValidation = buildPacklinkConfigValidation(providerConfig)
+      logPacklink("createShipment.mode", {
+        useMockRequested: providerConfig.useMock,
+        configured: configValidation.ok,
+        missingConfig: configValidation.missing,
+      })
+
+      if (!configValidation.ok) {
         return createNormalizedShipment({
           carrier: "packlink",
           carrierLabel: "Packlink",
@@ -296,7 +426,7 @@ export function createPacklinkProvider(providerConfig) {
           methodLabel: "Spedizione economica",
           handoffMode: "dropoff",
           status: "failed",
-          errorMessage: `Configurazione Packlink incompleta: ${configValidation.missing.join(", ")}.`,
+          errorMessage: `Packlink configuration incomplete: ${configValidation.missing.join(", ")}`,
         })
       }
 
@@ -313,15 +443,18 @@ export function createPacklinkProvider(providerConfig) {
           methodLabel: "Spedizione economica",
           handoffMode: "dropoff",
           status: "failed",
-          errorMessage: `Dati spedizione incompleti: ${recipientValidation.missing.join(", ")}.`,
+          errorMessage: `Packlink shipment creation failed: dati spedizione incompleti (${recipientValidation.missing.join(", ")})`,
         })
       }
 
       try {
-        const payload = buildPacklinkShipmentPayload(orderContext, providerConfig)
+        const bestQuote = await getBestQuote(orderContext, providerConfig, fetchImpl)
+        const payload = buildPacklinkShipmentPayload(orderContext, providerConfig, bestQuote.serviceId)
         logPacklink("createShipment.real_request", {
           apiBaseUrl: providerConfig.apiBaseUrl,
-          serviceId: providerConfig.serviceId,
+          serviceId: bestQuote.serviceId,
+          selectedCarrier: bestQuote.carrier || null,
+          selectedAmount: bestQuote.amount,
           orderReference: orderContext?.orderReference || orderContext?.order?.orderReference || null,
           destinationCountry: payload?.to?.country || null,
           destinationZip: payload?.to?.zip || null,
@@ -332,6 +465,10 @@ export function createPacklinkProvider(providerConfig) {
           body: JSON.stringify(payload),
         })
         const data = await safeJson(response)
+        logPacklink("createShipment.real_response", {
+          status: response.status,
+          body: data,
+        })
         if (!response.ok) {
           console.error("Packlink createShipment failed", { status: response.status, data })
           return createNormalizedShipment({
@@ -342,7 +479,7 @@ export function createPacklinkProvider(providerConfig) {
             handoffMode: "dropoff",
             status: "failed",
             rawProviderPayload: data,
-            errorMessage: `Packlink ha risposto con stato ${response.status}${data ? `: ${JSON.stringify(data)}` : ""}`,
+            errorMessage: `Packlink shipment creation failed: ${response.status}${data ? ` ${JSON.stringify(data)}` : ""}`,
           })
         }
         return parsePacklinkShipmentResponse(data, orderContext)
@@ -355,22 +492,19 @@ export function createPacklinkProvider(providerConfig) {
           methodLabel: "Spedizione economica",
           handoffMode: "dropoff",
           status: "failed",
-          errorMessage: error?.message || "Richiesta Packlink non riuscita.",
+          errorMessage: error?.message || "Packlink shipment creation failed.",
         })
       }
     },
     async getTracking({ trackingNumber, shipmentReference, currentStatus, fetchImpl = fetch }) {
       const configValidation = buildPacklinkConfigValidation(providerConfig)
       logPacklink("getTracking.mode", {
-        useMock: providerConfig.useMock,
+        useMockRequested: providerConfig.useMock,
         configured: configValidation.ok,
         shipmentReference: shipmentReference || null,
         trackingNumber: trackingNumber || null,
+        missingConfig: configValidation.missing,
       })
-
-      if (providerConfig.useMock) {
-        return inpostMock.getTracking({ trackingNumber, currentStatus, providerConfig })
-      }
 
       if (!providerConfig.apiKey) {
         return createNormalizedShipment({
@@ -382,7 +516,21 @@ export function createPacklinkProvider(providerConfig) {
           shipmentReference,
           handoffMode: "dropoff",
           status: currentStatus || "pending",
-          errorMessage: "Configurazione Packlink incompleta: PACKLINK_API_KEY mancante.",
+          errorMessage: "Packlink configuration incomplete: PACKLINK_API_KEY",
+        })
+      }
+
+      if (!configValidation.ok) {
+        return createNormalizedShipment({
+          carrier: "packlink",
+          carrierLabel: "Packlink",
+          method: "economy",
+          methodLabel: "Spedizione economica",
+          trackingNumber,
+          shipmentReference,
+          handoffMode: "dropoff",
+          status: currentStatus || "pending",
+          errorMessage: `Packlink configuration incomplete: ${configValidation.missing.join(", ")}`,
         })
       }
 
@@ -422,7 +570,7 @@ export function createPacklinkProvider(providerConfig) {
             handoffMode: "dropoff",
             status: currentStatus || "pending",
             rawProviderPayload: data,
-            errorMessage: `Tracking Packlink fallito con stato ${response.status}${data ? `: ${JSON.stringify(data)}` : ""}`,
+            errorMessage: `Packlink tracking failed: ${response.status}${data ? ` ${JSON.stringify(data)}` : ""}`,
           })
         }
         return parsePacklinkTrackingResponse(data, trackingNumber, shipmentReference)
@@ -437,18 +585,29 @@ export function createPacklinkProvider(providerConfig) {
           shipmentReference,
           handoffMode: "dropoff",
           status: currentStatus || "pending",
-          errorMessage: error?.message || "Tracking Packlink non riuscito.",
+          errorMessage: error?.message || "Packlink tracking failed.",
         })
       }
     },
     async getLabel({ shipmentReference }) {
-      return inpostMock.getLabel({ shipmentReference, providerConfig })
+      return {
+        labelUrl: shipmentReference ? buildApiUrl(providerConfig, `/shipments/${encodeURIComponent(shipmentReference)}/label`) : null,
+        labelFormat: "pdf",
+      }
     },
     async createPickup(context) {
-      return inpostMock.createPickup(context)
+      return {
+        ok: false,
+        status: "pending",
+        message: "Pickup Packlink non ancora attivo.",
+      }
     },
     async validateAddress(context) {
-      return inpostMock.validateAddress(context)
+      return {
+        ok: true,
+        valid: true,
+        warnings: [],
+      }
     },
   }
 }

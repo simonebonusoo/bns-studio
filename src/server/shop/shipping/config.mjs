@@ -51,6 +51,7 @@ export function buildShippingConfig(currentEnv = env) {
       apiBaseUrl: normalizeOptionalString(currentEnv.packlinkApiBaseUrl) || "https://api.packlink.com/v1",
       apiKey: normalizeOptionalString(currentEnv.packlinkApiKey),
       serviceId: normalizeOptionalString(currentEnv.packlinkServiceId),
+      defaultCarrier: normalizeOptionalString(currentEnv.packlinkDefaultCarrier),
       sender: {
         name: normalizeOptionalString(currentEnv.packlinkSenderName),
         company: normalizeOptionalString(currentEnv.packlinkSenderCompany),

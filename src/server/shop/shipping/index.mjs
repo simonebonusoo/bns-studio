@@ -92,7 +92,7 @@ export async function getAvailableShippingOptions({ items, shippingAddress = nul
   }
 
   const [economy, premium] = await Promise.all([
-    registry.providers.inpost.getRates({ orderContext, fetchImpl }),
+    registry.providers.packlink.getRates({ orderContext, fetchImpl }),
     registry.providers.dhl.getRates({ orderContext, fetchImpl }),
   ])
 

@@ -90,6 +90,7 @@ export const env = {
   packlinkApiBaseUrl: process.env.PACKLINK_API_BASE_URL || "https://api.packlink.com/v1",
   packlinkApiKey: process.env.PACKLINK_API_KEY || "",
   packlinkServiceId: process.env.PACKLINK_SERVICE_ID || "",
+  packlinkDefaultCarrier: process.env.PACKLINK_DEFAULT_CARRIER || "",
   packlinkSenderName: process.env.PACKLINK_SENDER_NAME || process.env.DHL_SHIPPER_NAME || "",
   packlinkSenderCompany: process.env.PACKLINK_SENDER_COMPANY || process.env.DHL_SHIPPER_COMPANY || "",
   packlinkSenderEmail: process.env.PACKLINK_SENDER_EMAIL || process.env.DHL_SHIPPER_EMAIL || "",

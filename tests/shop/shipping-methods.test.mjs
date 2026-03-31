@@ -28,13 +28,46 @@ test("getShippingMethodConfig returns centralized pricing and carrier data", () 
   assert.equal(formatShippingMethodSummary("premium"), "Spedizione premium (DHL)")
 })
 
-test("shipping rates are centralized and selectable for InPost and DHL", async () => {
+test("shipping rates are centralized and selectable for Packlink economy and DHL premium", async () => {
   const items = [{ format: "A4", quantity: 1 }]
-  const rates = await getAvailableShippingRates({ items })
-  const selected = await resolveSelectedShippingRate({ items, shippingMethod: "premium" })
+  const currentEnv = {
+    packlinkUseMock: false,
+    packlinkApiBaseUrl: "https://api.packlink.test/v1",
+    packlinkApiKey: "packlink-key",
+    packlinkDefaultCarrier: "BRT",
+    packlinkSenderName: "BNS Studio",
+    packlinkSenderEmail: "hello@example.com",
+    packlinkSenderPhone: "3900000000",
+    packlinkSenderStreet1: "Via Roma 1",
+    packlinkSenderCity: "Milano",
+    packlinkSenderZip: "20100",
+    packlinkSenderCountry: "IT",
+    packlinkParcelWeightKg: 1,
+    packlinkParcelLengthCm: 30,
+    packlinkParcelWidthCm: 20,
+    packlinkParcelHeightCm: 5,
+  }
+  const fetchImpl = async (input) => {
+    if (String(input).endsWith("/quotes")) {
+      return new Response(
+        JSON.stringify({
+          quotes: [
+            { service_id: "service-brt", carrier_name: "BRT", amount: 4.9, service_name: "BRT Economy" },
+            { service_id: "service-gls", carrier_name: "GLS", amount: 5.2, service_name: "GLS Standard" },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      )
+    }
+
+    throw new Error(`Unexpected fetch URL: ${String(input)}`)
+  }
+
+  const rates = await getAvailableShippingRates({ items, currentEnv, fetchImpl })
+  const selected = await resolveSelectedShippingRate({ items, shippingMethod: "premium", currentEnv, fetchImpl })
 
   assert.equal(rates.length, 2)
-  assert.equal(rates[0].carrier, "inpost")
+  assert.equal(rates[0].carrier, "brt")
   assert.equal(rates[1].carrier, "dhl")
   assert.equal(selected.selectedRate?.key, "premium")
   assert.equal(typeof selected.selectedRate?.cost, "number")
