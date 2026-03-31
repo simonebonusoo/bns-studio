@@ -143,6 +143,7 @@ export type ShopPricing = {
   shippingCarrier?: string | null
   shippingLabel?: string | null
   shippingCost?: number | null
+  shippingError?: string | null
   availableShippingRates?: Array<{
     key: string
     carrier: string

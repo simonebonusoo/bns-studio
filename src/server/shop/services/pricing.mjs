@@ -4,6 +4,23 @@ import { getProductCostForFormat, getProductPriceForFormat, normalizeProductForm
 import { isProductPurchasable } from "../lib/product-status.mjs"
 import { resolveSelectedVariant } from "../lib/product-variants.mjs"
 import { resolveSelectedShippingRate } from "./shipping-rates.mjs"
+import { getShippingMethodOptions } from "../../shop/lib/shipping-methods.mjs"
+
+function buildStaticShippingRatesFallback() {
+  return getShippingMethodOptions()
+    .filter((option) => typeof option.cost === "number")
+    .map((option) => ({
+      key: option.key,
+      carrier: option.carrier,
+      carrierLabel: option.carrierLabel,
+      label: option.label,
+      description: option.description,
+      cost: option.cost,
+      currency: "EUR",
+      source: "static_checkout_fallback",
+      meta: null,
+    }))
+}
 
 export async function calculatePricing(cartItems, couponCode, options = {}) {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
@@ -83,7 +100,26 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
 
   let automaticDiscount = 0
-  const shippingPricing = await resolveSelectedShippingRate({ items, shippingMethod: requestedShippingMethod })
+  let shippingPricing
+  let shippingError = null
+
+  try {
+    shippingPricing = await resolveSelectedShippingRate({ items, shippingMethod: requestedShippingMethod })
+  } catch (error) {
+    if (!options.allowShippingQuoteFailure) {
+      throw error
+    }
+
+    shippingError = error instanceof Error ? error.message : "Tariffe spedizione temporaneamente non disponibili."
+    const rates = buildStaticShippingRatesFallback()
+
+    shippingPricing = {
+      selectedMethod: requestedShippingMethod,
+      rates,
+      selectedRate: requestedShippingMethod ? rates.find((entry) => entry.key === requestedShippingMethod) || null : null,
+    }
+  }
+
   let shippingTotal = shippingPricing.selectedRate ? shippingPricing.selectedRate.cost : null
   const appliedRules = []
   const now = new Date()
@@ -168,5 +204,6 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     appliedRules,
     isShippingPending: !shippingPricing.selectedRate,
     availableShippingRates: shippingPricing.rates,
+    shippingError,
   }
 }

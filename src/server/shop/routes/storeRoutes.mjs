@@ -435,7 +435,10 @@ router.post(
       })
       .parse(req.body)
 
-    res.json(await calculatePricing(body.items, body.couponCode, { shippingMethod: body.shippingMethod }))
+    res.json(await calculatePricing(body.items, body.couponCode, {
+      shippingMethod: body.shippingMethod,
+      allowShippingQuoteFailure: true,
+    }))
   })
 )
 

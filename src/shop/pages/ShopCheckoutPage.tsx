@@ -25,12 +25,21 @@ function mapPaypalErrorMessage(message: string) {
   return PAYPAL_UI_ERROR
 }
 
+function mapShippingPreviewErrorMessage(message: string) {
+  if (!message) return ""
+  if (/Packlink quotes/i.test(message) || /Packlink shipment/i.test(message)) {
+    return "Tariffe spedizione temporaneamente non disponibili. Puoi comunque continuare e scegliere il metodo nel passaggio successivo."
+  }
+  return "Tariffe spedizione temporaneamente non disponibili. Riprova tra poco."
+}
+
 export function ShopCheckoutPage() {
   const { user, isGuestPreview } = useShopAuth()
   const { items, couponCode, setCouponCode, clearCart } = useShopCart()
   const [step, setStep] = useState<CheckoutStep>("review")
   const [pricing, setPricing] = useState<ShopPricing | null>(null)
   const [error, setError] = useState("")
+  const [shippingNotice, setShippingNotice] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [isRedirectingToPaypal, setIsRedirectingToPaypal] = useState(false)
   const [order, setOrder] = useState<ShopOrder | null>(null)
@@ -76,9 +85,11 @@ export function ShopCheckoutPage() {
       .then((data) => {
         setPricing(data)
         setError("")
+        setShippingNotice(data.shippingError ? mapShippingPreviewErrorMessage(data.shippingError) : "")
       })
       .catch((err) => {
         setPricing(null)
+        setShippingNotice("")
         setError(err instanceof Error ? err.message : "Errore durante il calcolo del riepilogo.")
       })
   }, [couponCode, form.shippingMethod, items])
@@ -295,6 +306,7 @@ export function ShopCheckoutPage() {
               value={couponCode}
               onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
             />
+            {shippingNotice ? <p className="text-sm text-amber-200">{shippingNotice}</p> : null}
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             {pricing ? (
               <div className="space-y-3 text-sm text-white/70">
@@ -393,6 +405,7 @@ export function ShopCheckoutPage() {
               </div>
             </div>
             <textarea className="shop-input min-h-[116px] resize-y py-3" placeholder="Note consegna (opzionale)" value={form.deliveryNotes} onChange={(event) => setForm({ ...form, deliveryNotes: event.target.value })} />
+            {shippingNotice ? <p className="text-sm text-amber-200">{shippingNotice}</p> : null}
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             <div className="flex flex-wrap gap-3">
               <button

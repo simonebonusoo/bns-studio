@@ -16,6 +16,7 @@ const SHIPPING_METHOD_MAP = {
     carrierLabel: "DHL",
     label: "Spedizione premium",
     description: "Consegna premium con tracking completo.",
+    cost: 990,
   },
 }
 
