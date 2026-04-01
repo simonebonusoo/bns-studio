@@ -341,7 +341,7 @@ export function ShopRegisterPage() {
           {!isEditMode ? (
             <p className="text-sm text-white/55">
               Hai già un account?{" "}
-              <Link to="/?profile=open&step=login" className="text-white underline underline-offset-4">
+              <Link to="/" state={{ openProfileStep: "login" }} className="text-white underline underline-offset-4">
                 Accedi
               </Link>
             </p>

@@ -1,4 +1,4 @@
-import { ChevronRightIcon } from "@heroicons/react/24/outline"
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline"
 import { type ReactNode, type WheelEventHandler, useEffect, useRef, useState } from "react"
 
 type HorizontalScrollRailProps = {
@@ -17,6 +17,7 @@ export function HorizontalScrollRail({
   onWheel,
 }: HorizontalScrollRailProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export function HorizontalScrollRail({
     if (!node) return
 
     const updateScrollState = () => {
+      setCanScrollLeft(node.scrollLeft > 8)
       setCanScrollRight(node.scrollLeft + node.clientWidth < node.scrollWidth - 8)
     }
 
@@ -40,10 +42,10 @@ export function HorizontalScrollRail({
     }
   }, [])
 
-  function handleScrollRight() {
+  function handleScroll(delta: number) {
     const node = scrollRef.current
     if (!node) return
-    node.scrollBy({ left: Math.max(node.clientWidth * 0.82, 280), behavior: "smooth" })
+    node.scrollBy({ left: delta, behavior: "smooth" })
   }
 
   return (
@@ -52,15 +54,30 @@ export function HorizontalScrollRail({
         {children}
       </div>
 
+      {canScrollLeft ? (
+        <div className="pointer-events-none absolute inset-y-0 left-2 z-10 flex items-center">
+          <button
+            type="button"
+            aria-label="Scorri a sinistra"
+            onClick={() => handleScroll(-Math.max(scrollRef.current?.clientWidth ? scrollRef.current.clientWidth * 0.82 : 0, 280))}
+            className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-black/55 text-white shadow-[0_10px_30px_rgba(0,0,0,.35)] backdrop-blur-md transition hover:border-white/24 hover:bg-black/72"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+        </div>
+      ) : null}
+
       {canScrollRight ? (
-        <button
-          type="button"
-          aria-label={ariaLabel}
-          onClick={handleScrollRight}
-          className="absolute right-2 top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/12 bg-black/55 text-white shadow-[0_10px_30px_rgba(0,0,0,.35)] backdrop-blur-md transition hover:border-white/24 hover:bg-black/72"
-        >
-          <ChevronRightIcon className="h-5 w-5" />
-        </button>
+        <div className="pointer-events-none absolute inset-y-0 right-2 z-10 flex items-center">
+          <button
+            type="button"
+            aria-label={ariaLabel}
+            onClick={() => handleScroll(Math.max(scrollRef.current?.clientWidth ? scrollRef.current.clientWidth * 0.82 : 0, 280))}
+            className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-black/55 text-white shadow-[0_10px_30px_rgba(0,0,0,.35)] backdrop-blur-md transition hover:border-white/24 hover:bg-black/72"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        </div>
       ) : null}
     </div>
   )

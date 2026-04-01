@@ -356,13 +356,17 @@ export function Navbar() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
-    if (location.pathname !== "/" || params.get("profile") !== "open") return
+    const requestedStepFromState =
+      location.state && typeof location.state === "object" && "openProfileStep" in location.state
+        ? (location.state as { openProfileStep?: "initial" | "login" | "register" }).openProfileStep
+        : undefined
+    if (location.pathname !== "/" || (params.get("profile") !== "open" && !requestedStepFromState)) return
     const requestedStep = params.get("step")
 
     setMenuOpen(false)
     setSearchOpen(false)
     setCartOpen(false)
-    setProfileStep(requestedStep === "login" ? "login" : "initial")
+    setProfileStep(requestedStepFromState === "login" || requestedStep === "login" ? "login" : "initial")
     setProfileLoggedStep("overview")
     setProfileEditField(null)
     setProfileOpen(true)
@@ -374,7 +378,7 @@ export function Navbar() {
         pathname: "/",
         search: params.toString() ? `?${params.toString()}` : "",
       },
-      { replace: true }
+      { replace: true, state: null }
     )
   }, [location.pathname, location.search, navigate])
 
@@ -1526,8 +1530,9 @@ export function Navbar() {
                       <button
                         type="button"
                         onClick={() => {
-                          setProfileOpen(false)
-                          navigate("/shop/account")
+                          setProfileLoggedStep("edit")
+                          setProfileEditField(null)
+                          setProfileError("")
                         }}
                         className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                       >
@@ -1941,8 +1946,9 @@ export function Navbar() {
                             <button
                               type="button"
                               onClick={() => {
-                                setProfileOpen(false)
-                                navigate("/shop/account")
+                                setProfileLoggedStep("edit")
+                                setProfileEditField(null)
+                                setProfileError("")
                               }}
                               className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                             >
