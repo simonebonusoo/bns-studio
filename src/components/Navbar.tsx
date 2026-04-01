@@ -155,6 +155,7 @@ export function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [profileStep, setProfileStep] = useState<"initial" | "login" | "register">("initial")
+  const [registerMobileStep, setRegisterMobileStep] = useState<1 | 2>(1)
   const [profileLoggedStep, setProfileLoggedStep] = useState<"overview" | "edit">("overview")
   const [profileEditField, setProfileEditField] = useState<null | "username" | "email" | "password">(null)
   const [search, setSearch] = useState("")
@@ -363,6 +364,7 @@ export function Navbar() {
   useEffect(() => {
     if (!profileOpen) {
       setProfileStep("initial")
+      setRegisterMobileStep(1)
       setProfileLoggedStep("overview")
       setProfileEditField(null)
       setProfileError("")
@@ -438,12 +440,20 @@ export function Navbar() {
     setSearchOpen(false)
     setCartOpen(false)
     setProfileStep(step)
+    setRegisterMobileStep(1)
     setProfileLoggedStep("overview")
     setProfileEditField(null)
     setProfileOpen(true)
   }
 
   function openCartPanel() {
+    if (isMobileViewport) {
+      setMenuOpen(false)
+      setSearchOpen(false)
+      setProfileOpen(false)
+      navigate("/shop/cart")
+      return
+    }
     setMenuOpen(false)
     setSearchOpen(false)
     setProfileOpen(false)
@@ -517,6 +527,7 @@ export function Navbar() {
         password: "",
         confirmPassword: "",
       })
+      setRegisterMobileStep(1)
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : "Errore durante la registrazione.")
     } finally {
@@ -1363,12 +1374,43 @@ export function Navbar() {
               footer={
                 profileView === "register" ? (
                   <div className="flex flex-col gap-3">
-                    <Button type="submit" form="mobile-register-form" className="w-full">
-                      {profileSubmitting ? "Creazione account..." : "Crea account"}
-                    </Button>
-                    <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
-                      Indietro
-                    </Button>
+                    {registerMobileStep === 1 ? (
+                      <Button
+                        type="button"
+                        className="w-full"
+                        onClick={() => {
+                          setProfileError("")
+                          if (!registerForm.firstName.trim()) {
+                            setProfileError("Inserisci il nome.")
+                            return
+                          }
+                          if (!registerForm.lastName.trim()) {
+                            setProfileError("Inserisci il cognome.")
+                            return
+                          }
+                          if (!registerForm.username.trim()) {
+                            setProfileError("Inserisci lo username.")
+                            return
+                          }
+                          if (!registerForm.email.trim()) {
+                            setProfileError("Inserisci l'email.")
+                            return
+                          }
+                          setRegisterMobileStep(2)
+                        }}
+                      >
+                        Avanti
+                      </Button>
+                    ) : (
+                      <>
+                        <Button type="submit" form="mobile-register-form" className="w-full">
+                          {profileSubmitting ? "Creazione account..." : "Crea account"}
+                        </Button>
+                        <Button type="button" variant="ghost" className="w-full" onClick={() => setRegisterMobileStep(1)}>
+                          Indietro
+                        </Button>
+                      </>
+                    )}
                   </div>
                 ) : profileView === "logged" && user ? (
                   <button
@@ -1613,58 +1655,77 @@ export function Navbar() {
                         className="min-h-0 flex-1 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-5"
                       >
                         <div className={`${mobileScrollablePanelClass} h-full space-y-4 pr-1`}>
-                          <div>
-                            <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
-                            <input
-                              className="shop-input"
-                              placeholder="Username"
-                              value={registerForm.username}
-                              onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
-                            />
-                          </div>
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <input
-                              className="shop-input"
-                              placeholder="Nome"
-                              value={registerForm.firstName}
-                              onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
-                              required
-                            />
-                            <input
-                              className="shop-input"
-                              placeholder="Cognome"
-                              value={registerForm.lastName}
-                              onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
-                              required
-                            />
-                          </div>
-                          <input
-                            className="shop-input"
-                            type="email"
-                            placeholder="Email"
-                            value={registerForm.email}
-                            onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
-                            required
-                          />
-                          <input
-                            className="shop-input"
-                            type="password"
-                            placeholder="Password"
-                            value={registerForm.password}
-                            onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
-                            minLength={8}
-                            required
-                          />
-                          <input
-                            className="shop-input"
-                            type="password"
-                            placeholder="Conferma password"
-                            value={registerForm.confirmPassword}
-                            onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
-                            minLength={8}
-                            required
-                          />
-                          <p className="text-xs text-white/45">Lo username viene salvato davvero nel tuo account ed è disponibile anche per il login.</p>
+                          {registerMobileStep === 1 ? (
+                            <>
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Dati personali</p>
+                                <p className="mt-2 text-sm text-white/60">Inserisci le informazioni base del tuo account.</p>
+                              </div>
+                              <div className="grid gap-4">
+                                <input
+                                  className="shop-input"
+                                  placeholder="Nome"
+                                  value={registerForm.firstName}
+                                  onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
+                                  required
+                                />
+                                <input
+                                  className="shop-input"
+                                  placeholder="Cognome"
+                                  value={registerForm.lastName}
+                                  onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
+                                <input
+                                  className="shop-input"
+                                  placeholder="Username"
+                                  value={registerForm.username}
+                                  onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Email</label>
+                                <input
+                                  className="shop-input"
+                                  type="email"
+                                  placeholder="Email"
+                                  value={registerForm.email}
+                                  onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
+                                  required
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Sicurezza account</p>
+                                <p className="mt-2 text-sm text-white/60">Scegli la password e confermala per completare la registrazione.</p>
+                              </div>
+                              <input
+                                className="shop-input"
+                                type="password"
+                                placeholder="Password"
+                                value={registerForm.password}
+                                onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
+                                minLength={8}
+                                required
+                              />
+                              <input
+                                className="shop-input"
+                                type="password"
+                                placeholder="Conferma password"
+                                value={registerForm.confirmPassword}
+                                onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
+                                minLength={8}
+                                required
+                              />
+                              <p className="text-xs text-white/45">Lo username viene salvato davvero nel tuo account ed è disponibile anche per il login.</p>
+                            </>
+                          )}
                           {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
                         </div>
                       </form>

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 import { useEffect, useState } from "react"
 
 import { getButtonClassName } from "../../components/Button"
+import { useIsMobileViewport } from "../../hooks/useIsMobileViewport"
 import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
@@ -19,6 +20,7 @@ function mapPricingPreviewErrorMessage(message: string) {
 }
 
 export function ShopCartPage() {
+  const isMobileViewport = useIsMobileViewport()
   const { user, loading, effectiveRole } = useShopAuth()
   const { items, updateItem, decrementItem, couponCode, setCouponCode } = useShopCart()
   const [pricing, setPricing] = useState<ShopPricing | null>(null)
@@ -57,7 +59,11 @@ export function ShopCartPage() {
   }, [couponCode, items, user])
 
   return (
-    <ShopLayout eyebrow="Cart" title="Riepilogo ordine" intro="Carrello, coupon e totale sono calcolati dal nuovo backend integrato, senza separare l’esperienza dallo shell principale del sito.">
+    <ShopLayout
+      eyebrow="Cart"
+      title={isMobileViewport ? "Carrello" : "Riepilogo ordine"}
+      intro="Carrello, coupon e totale sono calcolati dal nuovo backend integrato, senza separare l’esperienza dallo shell principale del sito."
+    >
       {loading ? (
         <div className="rounded-[24px] border border-white/10 px-6 py-14 text-center text-white/60">
           Verifica accesso in corso...
