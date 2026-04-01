@@ -1,7 +1,8 @@
-import type { FormEvent } from "react"
+import { useState, type FormEvent } from "react"
 
 import { Button, getButtonClassName, getDangerButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
+import { ConfirmActionModal } from "./ConfirmActionModal"
 
 type Coupon = {
   id: number
@@ -102,7 +103,14 @@ export function AdminDiscountsSection({
   getRuleThresholdLabel,
   getRuleAmountLabel,
 }: AdminDiscountsSectionProps) {
+  const [pendingDelete, setPendingDelete] = useState<
+    | { type: "coupon"; id: number }
+    | { type: "rule"; id: number }
+    | null
+  >(null)
+
   return (
+    <>
     <div className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-2">
         <form onSubmit={onSaveCoupon} className="shop-card h-full space-y-4 p-6">
@@ -167,7 +175,7 @@ export function AdminDiscountsSection({
                     <button type="button" onClick={() => onEditCoupon(coupon)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                       Modifica
                     </button>
-                    <button type="button" onClick={() => onDeleteCoupon(coupon.id)} className={getDangerButtonClassName({ size: "sm" })}>
+                    <button type="button" onClick={() => setPendingDelete({ type: "coupon", id: coupon.id })} className={getDangerButtonClassName({ size: "sm" })}>
                       Elimina
                     </button>
                   </div>
@@ -265,7 +273,7 @@ export function AdminDiscountsSection({
                     <button type="button" onClick={() => onEditRule(rule)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                       Modifica
                     </button>
-                    <button type="button" onClick={() => onDeleteRule(rule.id)} className={getDangerButtonClassName({ size: "sm" })}>
+                    <button type="button" onClick={() => setPendingDelete({ type: "rule", id: rule.id })} className={getDangerButtonClassName({ size: "sm" })}>
                       Elimina
                     </button>
                   </div>
@@ -321,5 +329,25 @@ export function AdminDiscountsSection({
         </Button>
       </form>
     </div>
+    <ConfirmActionModal
+      open={Boolean(pendingDelete)}
+      title={pendingDelete?.type === "coupon" ? "Elimina coupon" : "Elimina regola sconto"}
+      description={
+        pendingDelete?.type === "coupon"
+          ? "Sei sicuro di voler eliminare questo coupon?"
+          : "Sei sicuro di voler eliminare questa regola sconto?"
+      }
+      onCancel={() => setPendingDelete(null)}
+      onConfirm={async () => {
+        if (!pendingDelete) return
+        if (pendingDelete.type === "coupon") {
+          await onDeleteCoupon(pendingDelete.id)
+        } else {
+          await onDeleteRule(pendingDelete.id)
+        }
+        setPendingDelete(null)
+      }}
+    />
+    </>
   )
 }

@@ -71,8 +71,8 @@ export function getDangerButtonClassName({
     size,
     disabled,
     className: clsx(
-      "!border-red-400/20 !text-red-100",
-      !disabled && "hover:!border-red-400/55 hover:!text-red-100 hover:!bg-red-400/12",
+      "danger-button !border-red-400/30 !text-red-100/95",
+      !disabled && "hover:!border-red-400/75 hover:!text-red-50 hover:!bg-red-500/14",
       className,
     ),
   })
@@ -136,17 +136,23 @@ export function Button({
 
   const resolvedVariant = resolveVariant(variant)
   const cls = getButtonClassName({ variant: resolvedVariant, size, className, disabled })
+  const isDanger = String(className || "").includes("danger-button")
 
   const iconCls =
     resolvedVariant === "cart"
       ? "text-black/80"
-      : "text-white/80 group-hover:text-[color:var(--brand)] transition-colors"
+      : clsx(
+          "text-white/80 transition-colors",
+          isDanger ? "group-hover:text-red-100" : "group-hover:text-[color:var(--brand)]",
+        )
 
   const labelCls =
     "absolute left-0 top-0 whitespace-pre transition-colors " +
     (resolvedVariant === "cart"
       ? "text-black"
-      : "text-white/80 group-hover:text-[color:var(--brand)]")
+      : isDanger
+        ? "text-white/80 group-hover:text-red-100"
+        : "text-white/80 group-hover:text-[color:var(--brand)]")
 
   const Inner = (
     <>

@@ -1,5 +1,8 @@
+import { useState } from "react"
+
 import { getDangerButtonClassName } from "../../../components/Button"
 import { ShopReview } from "../../types"
+import { ConfirmActionModal } from "./ConfirmActionModal"
 
 type AdminReview = ShopReview & {
   status: string
@@ -13,7 +16,10 @@ type AdminReviewsSectionProps = {
 }
 
 export function AdminReviewsSection({ reviews, onToggleHomepageReview, onDeleteReview }: AdminReviewsSectionProps) {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
   return (
+    <>
     <section className="shop-card space-y-5 p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
@@ -57,10 +63,7 @@ export function AdminReviewsSection({ reviews, onToggleHomepageReview, onDeleteR
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (!window.confirm("Sei sicuro di voler eliminare questa recensione? Questa azione è irreversibile.")) return
-                      await onDeleteReview(review.id)
-                    }}
+                    onClick={() => setPendingDeleteId(review.id)}
                     className={getDangerButtonClassName({ size: "sm" })}
                   >
                     Elimina
@@ -72,5 +75,17 @@ export function AdminReviewsSection({ reviews, onToggleHomepageReview, onDeleteR
         })}
       </div>
     </section>
+    <ConfirmActionModal
+      open={Boolean(pendingDeleteId)}
+      title="Elimina recensione"
+      description="Sei sicuro di voler eliminare questa recensione? Questa azione è irreversibile."
+      onCancel={() => setPendingDeleteId(null)}
+      onConfirm={async () => {
+        if (!pendingDeleteId) return
+        await onDeleteReview(pendingDeleteId)
+        setPendingDeleteId(null)
+      }}
+    />
+    </>
   )
 }

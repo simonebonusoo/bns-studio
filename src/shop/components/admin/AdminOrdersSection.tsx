@@ -8,6 +8,7 @@ import { downloadInvoicePdf } from "../../lib/invoice"
 import { getOrderFulfillmentStatusLabel } from "../../lib/order"
 import { buildAdminOrderShippingSummary } from "../../lib/order-shipping.mjs"
 import { ShopOrder, ShopSettings } from "../../types"
+import { ConfirmActionModal } from "./ConfirmActionModal"
 
 type OrderDraft = {
   fulfillmentStatus: string
@@ -98,6 +99,7 @@ export function AdminOrdersSection({
   const [drafts, setDrafts] = useState<Record<number, OrderDraft>>({})
   const [shippingFeedback, setShippingFeedback] = useState<Record<number, string>>({})
   const [shippingActionState, setShippingActionState] = useState<Record<number, "create" | "refresh" | "save" | "delete" | null>>({})
+  const [pendingDeleteOrderId, setPendingDeleteOrderId] = useState<number | null>(null)
 
   useEffect(() => {
     setDrafts(Object.fromEntries(orders.map((order) => [order.id, buildDraft(order)])))
@@ -326,13 +328,7 @@ export function AdminOrdersSection({
                     <button
                       type="button"
                       onClick={async () => {
-                        if (!window.confirm("Sei sicuro di voler eliminare questo ordine? Questa azione è irreversibile.")) return
-                        setShippingActionState((current) => ({ ...current, [order.id]: "delete" }))
-                        try {
-                          await onDeleteOrder(order.id)
-                        } finally {
-                          setShippingActionState((current) => ({ ...current, [order.id]: null }))
-                        }
+                        setPendingDeleteOrderId(order.id)
                       }}
                       className={getDangerButtonClassName({ size: "sm" })}
                     >
@@ -362,6 +358,23 @@ export function AdminOrdersSection({
           </article>
         )
       })}
+      <ConfirmActionModal
+        open={pendingDeleteOrderId !== null}
+        title="Elimina ordine"
+        description="Sei sicuro di voler eliminare questo ordine? Questa azione è irreversibile."
+        loading={pendingDeleteOrderId !== null ? shippingActionState[pendingDeleteOrderId] === "delete" : false}
+        onCancel={() => setPendingDeleteOrderId(null)}
+        onConfirm={async () => {
+          if (pendingDeleteOrderId === null) return
+          setShippingActionState((current) => ({ ...current, [pendingDeleteOrderId]: "delete" }))
+          try {
+            await onDeleteOrder(pendingDeleteOrderId)
+            setPendingDeleteOrderId(null)
+          } finally {
+            setShippingActionState((current) => ({ ...current, [pendingDeleteOrderId]: null }))
+          }
+        }}
+      />
     </div>
   )
 }

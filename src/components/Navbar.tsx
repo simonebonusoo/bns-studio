@@ -158,7 +158,7 @@ export function Navbar() {
   const [profileStep, setProfileStep] = useState<"initial" | "login" | "register">("initial")
   const [registerMobileStep, setRegisterMobileStep] = useState<1 | 2 | 3>(1)
   const [profileLoggedStep, setProfileLoggedStep] = useState<"overview" | "edit">("overview")
-  const [profileEditField, setProfileEditField] = useState<null | "username" | "email" | "password">(null)
+  const [profileEditField, setProfileEditField] = useState<null | "username" | "email" | "password" | "shipping">(null)
   const [search, setSearch] = useState("")
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [shuffledSuggestedProducts, setShuffledSuggestedProducts] = useState<ShopProduct[]>([])
@@ -193,6 +193,12 @@ export function Navbar() {
   const [profileForms, setProfileForms] = useState({
     username: "",
     email: "",
+    shippingCountry: "",
+    shippingRegion: "",
+    shippingCity: "",
+    shippingAddressLine1: "",
+    shippingStreetNumber: "",
+    shippingPostalCode: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -411,6 +417,12 @@ export function Navbar() {
     setProfileForms({
       username: user.username || "",
       email: user.email || "",
+      shippingCountry: user.shippingCountry || "",
+      shippingRegion: user.shippingRegion || "",
+      shippingCity: user.shippingCity || "",
+      shippingAddressLine1: user.shippingAddressLine1 || "",
+      shippingStreetNumber: user.shippingStreetNumber || "",
+      shippingPostalCode: user.shippingPostalCode || "",
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
@@ -574,7 +586,7 @@ export function Navbar() {
     }
   }
 
-  async function submitProfileUpdate(field: "username" | "email" | "password", event: React.FormEvent<HTMLFormElement>) {
+  async function submitProfileUpdate(field: "username" | "email" | "password" | "shipping", event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setProfileError("")
 
@@ -600,6 +612,17 @@ export function Navbar() {
         await updateProfile({
           currentPassword: profileForms.currentPassword,
           newPassword: profileForms.newPassword,
+        })
+      }
+
+      if (field === "shipping") {
+        await updateProfile({
+          shippingCountry: profileForms.shippingCountry,
+          shippingRegion: profileForms.shippingRegion,
+          shippingCity: profileForms.shippingCity,
+          shippingAddressLine1: profileForms.shippingAddressLine1,
+          shippingStreetNumber: profileForms.shippingStreetNumber,
+          shippingPostalCode: profileForms.shippingPostalCode,
         })
       }
 
@@ -2082,6 +2105,65 @@ export function Navbar() {
                                   onClick={() => setProfileEditField("password")}
                                 >
                                   {profileSubmitting && profileEditField === "password" ? "Salvataggio..." : "Salva password"}
+                                </Button>
+                              </form>
+                            </div>
+
+                            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Dati spedizione</p>
+                                <p className="mt-2 text-base font-medium text-white">Base precompilata per il checkout</p>
+                              </div>
+                              <form onSubmit={(event) => submitProfileUpdate("shipping", event)} className="mt-4 space-y-3">
+                                <div className="grid gap-3">
+                                  <input
+                                    className="shop-input"
+                                    placeholder="Stato"
+                                    value={profileForms.shippingCountry}
+                                    onChange={(event) => setProfileForms({ ...profileForms, shippingCountry: event.target.value })}
+                                    required
+                                  />
+                                  <input
+                                    className="shop-input"
+                                    placeholder="Provincia"
+                                    value={profileForms.shippingRegion}
+                                    onChange={(event) => setProfileForms({ ...profileForms, shippingRegion: event.target.value })}
+                                    required
+                                  />
+                                  <input
+                                    className="shop-input"
+                                    placeholder="Paese o citta"
+                                    value={profileForms.shippingCity}
+                                    onChange={(event) => setProfileForms({ ...profileForms, shippingCity: event.target.value })}
+                                    required
+                                  />
+                                  <input
+                                    className="shop-input"
+                                    placeholder="Via"
+                                    value={profileForms.shippingAddressLine1}
+                                    onChange={(event) => setProfileForms({ ...profileForms, shippingAddressLine1: event.target.value })}
+                                    required
+                                  />
+                                  <div className="grid gap-3 md:grid-cols-2">
+                                    <input
+                                      className="shop-input"
+                                      placeholder="Numero civico"
+                                      value={profileForms.shippingStreetNumber}
+                                      onChange={(event) => setProfileForms({ ...profileForms, shippingStreetNumber: event.target.value })}
+                                      required
+                                    />
+                                    <input
+                                      className="shop-input"
+                                      placeholder="CAP"
+                                      value={profileForms.shippingPostalCode}
+                                      onChange={(event) => setProfileForms({ ...profileForms, shippingPostalCode: event.target.value })}
+                                      required
+                                    />
+                                  </div>
+                                </div>
+                                {profileError && profileEditField === "shipping" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                                <Button type="submit" className="w-full" onClick={() => setProfileEditField("shipping")}>
+                                  {profileSubmitting && profileEditField === "shipping" ? "Salvataggio..." : "Salva dati"}
                                 </Button>
                               </form>
                             </div>

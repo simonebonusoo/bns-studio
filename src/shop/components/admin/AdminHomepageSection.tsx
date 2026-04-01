@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react"
 
 import { Button, getButtonClassName, getDangerButtonClassName } from "../../../components/Button"
+import { ConfirmActionModal } from "./ConfirmActionModal"
 
 type HomepagePopularCategory = {
   title: string
@@ -56,6 +57,11 @@ export function AdminHomepageSection({
 }: AdminHomepageSectionProps) {
   const [popularCategoriesSnapshot, setPopularCategoriesSnapshot] = useState<HomepagePopularCategory[] | null>(null)
   const [showcasesSnapshot, setShowcasesSnapshot] = useState<HomepageShowcase[] | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<
+    | { type: "showcase"; index: number }
+    | { type: "popular-category"; index: number }
+    | null
+  >(null)
 
   function isFocused(section: "showcases" | "popular-categories", item: number) {
     return homepageFocus.section === section && homepageFocus.item === item
@@ -210,7 +216,7 @@ export function AdminHomepageSection({
                     </button>
                     <button
                       type="button"
-                      onClick={() => void deleteShowcase(index)}
+                      onClick={() => setPendingDelete({ type: "showcase", index })}
                       className={getDangerButtonClassName({ size: "sm" })}
                     >
                       Elimina
@@ -371,7 +377,7 @@ export function AdminHomepageSection({
                     </button>
                     <button
                       type="button"
-                      onClick={() => void deletePopularCategory(index)}
+                      onClick={() => setPendingDelete({ type: "popular-category", index })}
                       className={getDangerButtonClassName({ size: "sm" })}
                     >
                       Elimina
@@ -428,6 +434,25 @@ export function AdminHomepageSection({
           ))}
         </div>
       </section>
+      <ConfirmActionModal
+        open={Boolean(pendingDelete)}
+        title={pendingDelete?.type === "showcase" ? "Elimina selezione" : "Elimina categoria popolare"}
+        description={
+          pendingDelete?.type === "showcase"
+            ? "Sei sicuro di voler eliminare questa selezione in evidenza?"
+            : "Sei sicuro di voler eliminare questa categoria popolare?"
+        }
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          if (!pendingDelete) return
+          if (pendingDelete.type === "showcase") {
+            await deleteShowcase(pendingDelete.index)
+          } else {
+            await deletePopularCategory(pendingDelete.index)
+          }
+          setPendingDelete(null)
+        }}
+      />
     </div>
   )
 }

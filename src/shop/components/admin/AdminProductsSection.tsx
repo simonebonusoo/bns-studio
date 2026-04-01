@@ -4,6 +4,7 @@ import { getDangerButtonClassName } from "../../../components/Button"
 import { Button } from "../../../components/Button"
 import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
 import { AdminRenderGuard } from "./AdminRenderGuard"
+import { ConfirmActionModal } from "./ConfirmActionModal"
 import { ProductFiltersBar } from "./ProductFiltersBar"
 import { ProductFormCard } from "./ProductFormCard"
 import { ProductListSection } from "./ProductListSection"
@@ -143,6 +144,11 @@ export function AdminProductsSection({
 }: AdminProductsSectionProps) {
   const formColumnRef = useRef<HTMLDivElement | null>(null)
   const [listColumnHeight, setListColumnHeight] = useState<number | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<
+    | { type: "category"; category: string }
+    | { type: "collection"; collectionId: number; title: string }
+    | null
+  >(null)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -247,7 +253,14 @@ export function AdminProductsSection({
                     <Button type="button" variant="profile" size="sm" text="Rinomina" onClick={() => onStartRenameCategory(category)}>
                       Rinomina
                     </Button>
-                    <Button type="button" variant="profile" size="sm" className={getDangerButtonClassName({ size: "sm" })} text="Elimina" onClick={() => onDeleteCategory(category)}>
+                    <Button
+                      type="button"
+                      variant="profile"
+                      size="sm"
+                      className={getDangerButtonClassName({ size: "sm" })}
+                      text="Elimina"
+                      onClick={() => setPendingDelete({ type: "category", category })}
+                    >
                       Elimina
                     </Button>
                   </div>
@@ -329,7 +342,14 @@ export function AdminProductsSection({
                       <Button type="button" variant="profile" size="sm" text="Modifica" onClick={() => onStartEditCollection(collection)}>
                         Modifica
                       </Button>
-                      <Button type="button" variant="profile" size="sm" className={getDangerButtonClassName({ size: "sm" })} text="Elimina" onClick={() => onDeleteCollection(collection.id)}>
+                      <Button
+                        type="button"
+                        variant="profile"
+                        size="sm"
+                        className={getDangerButtonClassName({ size: "sm" })}
+                        text="Elimina"
+                        onClick={() => setPendingDelete({ type: "collection", collectionId: collection.id, title: collection.title })}
+                      >
                         Elimina
                       </Button>
                     </div>
@@ -341,6 +361,25 @@ export function AdminProductsSection({
           </div>
         </div>
       </section>
+      <ConfirmActionModal
+        open={Boolean(pendingDelete)}
+        title={pendingDelete?.type === "category" ? "Elimina categoria" : "Elimina collezione"}
+        description={
+          pendingDelete?.type === "category"
+            ? "Sei sicuro di voler eliminare questa categoria?"
+            : "Sei sicuro di voler eliminare questa collezione?"
+        }
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          if (!pendingDelete) return
+          if (pendingDelete.type === "category") {
+            await onDeleteCategory(pendingDelete.category)
+          } else {
+            await onDeleteCollection(pendingDelete.collectionId)
+          }
+          setPendingDelete(null)
+        }}
+      />
     </div>
   )
 }

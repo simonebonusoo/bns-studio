@@ -6,6 +6,7 @@ import { Button } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
 import { getButtonClassName, getDangerButtonClassName } from "../../components/Button"
 import { AdminAnalyticsSection } from "../components/admin/AdminAnalyticsSection"
+import { ConfirmActionModal } from "../components/admin/ConfirmActionModal"
 import { AdminDiscountsSection } from "../components/admin/AdminDiscountsSection"
 import { AdminHomepageSection } from "../components/admin/AdminHomepageSection"
 import { AdminOrdersSection } from "../components/admin/AdminOrdersSection"
@@ -636,6 +637,7 @@ export function ShopAdminPage() {
   const [ruleForm, setRuleForm] = useState<RuleFormState>(emptyRuleForm)
   const [editingRuleId, setEditingRuleId] = useState<number | null>(null)
   const [orderProfit, setOrderProfit] = useState<OrderProfitSummary | null>(null)
+  const [pendingArchiveDelete, setPendingArchiveDelete] = useState<null | { type: "review" | "order"; id: string | number }>(null)
   const [loadingProfitOrderId, setLoadingProfitOrderId] = useState<number | null>(null)
 
   const [message, setMessage] = useState("")
@@ -1644,17 +1646,7 @@ export function ShopAdminPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={async () => {
-                            if (!window.confirm("Sei sicuro di voler eliminare definitivamente questo elemento? Questa azione è irreversibile.")) return
-                            clearFeedback()
-                            try {
-                              await apiFetch(`/admin/archive/reviews/${review.id}`, { method: "DELETE" })
-                              setArchivedReviews((current) => current.filter((entry) => entry.id !== review.id))
-                              setMessage("Recensione eliminata definitivamente.")
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione definitiva della recensione.")
-                            }
-                          }}
+                          onClick={() => setPendingArchiveDelete({ type: "review", id: review.id })}
                           className={getDangerButtonClassName({ size: "sm" })}
                         >
                           Elimina
@@ -1704,17 +1696,7 @@ export function ShopAdminPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={async () => {
-                            if (!window.confirm("Sei sicuro di voler eliminare definitivamente questo elemento? Questa azione è irreversibile.")) return
-                            clearFeedback()
-                            try {
-                              await apiFetch(`/admin/archive/orders/${order.id}`, { method: "DELETE" })
-                              setArchivedOrders((current) => current.filter((entry) => entry.id !== order.id))
-                              setMessage("Ordine eliminato definitivamente.")
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione definitiva dell'ordine.")
-                            }
-                          }}
+                          onClick={() => setPendingArchiveDelete({ type: "order", id: order.id })}
                           className={getDangerButtonClassName({ size: "sm" })}
                         >
                           Elimina
@@ -1733,6 +1715,37 @@ export function ShopAdminPage() {
       {tab === "utenti" ? <AdminUsersSection users={users} usersTotal={usersTotal} containWheel={containWheel} /> : null}
 
       {tab === "data" ? <AdminAnalyticsSection analytics={analytics} /> : null}
+
+      <ConfirmActionModal
+        open={Boolean(pendingArchiveDelete)}
+        title="Elimina definitivamente"
+        description="Sei sicuro di voler eliminare definitivamente questo elemento? Questa azione è irreversibile."
+        onCancel={() => setPendingArchiveDelete(null)}
+        onConfirm={async () => {
+          if (!pendingArchiveDelete) return
+          clearFeedback()
+          try {
+            if (pendingArchiveDelete.type === "review") {
+              await apiFetch(`/admin/archive/reviews/${pendingArchiveDelete.id}`, { method: "DELETE" })
+              setArchivedReviews((current) => current.filter((entry) => entry.id !== pendingArchiveDelete.id))
+              setMessage("Recensione eliminata definitivamente.")
+            } else {
+              await apiFetch(`/admin/archive/orders/${pendingArchiveDelete.id}`, { method: "DELETE" })
+              setArchivedOrders((current) => current.filter((entry) => entry.id !== pendingArchiveDelete.id))
+              setMessage("Ordine eliminato definitivamente.")
+            }
+            setPendingArchiveDelete(null)
+          } catch (err) {
+            setError(
+              err instanceof Error
+                ? err.message
+                : pendingArchiveDelete.type === "review"
+                  ? "Errore durante l'eliminazione definitiva della recensione."
+                  : "Errore durante l'eliminazione definitiva dell'ordine.",
+            )
+          }
+        }}
+      />
 
       {tab === "sconti" ? (
         <AdminDiscountsSection

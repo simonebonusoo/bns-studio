@@ -1,5 +1,8 @@
+import { useState, type WheelEvent } from "react"
+
 import { Button, getDangerButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
+import { ConfirmActionModal } from "./ConfirmActionModal"
 import { getAvailableFormats, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants } from "../../lib/product"
 import { ShopProduct } from "../../types"
 
@@ -37,9 +40,24 @@ export function ProductListSection({
   onDuplicate,
   onDelete,
 }: ProductListSectionProps) {
+  const [pendingDelete, setPendingDelete] = useState<ShopProduct | null>(null)
+
+  function containListWheel(event: WheelEvent<HTMLDivElement>) {
+    const node = event.currentTarget
+    const movingUp = event.deltaY < 0
+    const movingDown = event.deltaY > 0
+    const atTop = node.scrollTop <= 0
+    const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 1
+
+    if ((movingUp && !atTop) || (movingDown && !atBottom)) {
+      event.stopPropagation()
+    }
+  }
+
   return (
+    <>
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1" onWheelCapture={containListWheel}>
       {!products.length ? (
         <div className="rounded-2xl border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/55">
           Nessun prodotto trovato con i filtri attuali.
@@ -107,14 +125,14 @@ export function ProductListSection({
               </div>
               <div className="flex h-full min-w-0 flex-col justify-end">
                 <div className="space-y-2.5">
-                  <Button type="button" variant="ghost" size="sm" className="w-full" text="Modifica" onClick={() => onEdit(product)}>
+                  <Button type="button" variant="cart" size="sm" className="w-full" text="Modifica" onClick={() => onEdit(product)}>
                     Modifica
                   </Button>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button type="button" variant="ghost" size="sm" className="w-full" text="Duplica" onClick={() => void onDuplicate(product)}>
+                    <Button type="button" variant="profile" size="sm" className="w-full" text="Duplica" onClick={() => void onDuplicate(product)}>
                       Duplica
                     </Button>
-                    <Button type="button" variant="profile" size="sm" className={getDangerButtonClassName({ size: "sm", className: "w-full" })} text="Elimina" onClick={() => void onDelete(product)}>
+                    <Button type="button" variant="profile" size="sm" className={getDangerButtonClassName({ size: "sm", className: "w-full" })} text="Elimina" onClick={() => setPendingDelete(product)}>
                       Elimina
                     </Button>
                   </div>
@@ -151,5 +169,17 @@ export function ProductListSection({
       })}
       </div>
     </div>
+    <ConfirmActionModal
+      open={Boolean(pendingDelete)}
+      title="Elimina prodotto"
+      description="Sei sicuro di voler eliminare questo prodotto?"
+      onCancel={() => setPendingDelete(null)}
+      onConfirm={async () => {
+        if (!pendingDelete) return
+        await onDelete(pendingDelete)
+        setPendingDelete(null)
+      }}
+    />
+    </>
   )
 }
