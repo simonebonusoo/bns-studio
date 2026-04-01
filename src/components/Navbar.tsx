@@ -357,16 +357,18 @@ export function Navbar() {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     if (location.pathname !== "/" || params.get("profile") !== "open") return
+    const requestedStep = params.get("step")
 
     setMenuOpen(false)
     setSearchOpen(false)
     setCartOpen(false)
-    setProfileStep("initial")
+    setProfileStep(requestedStep === "login" ? "login" : "initial")
     setProfileLoggedStep("overview")
     setProfileEditField(null)
     setProfileOpen(true)
 
     params.delete("profile")
+    params.delete("step")
     navigate(
       {
         pathname: "/",
