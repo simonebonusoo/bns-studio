@@ -657,11 +657,15 @@ export function ShopAdminPage() {
   )
 
   useEffect(() => {
-    refresh()
+    refresh().catch((err) => {
+      setError(err instanceof Error ? err.message : "Errore durante il caricamento della dashboard admin.")
+    })
   }, [])
 
   useEffect(() => {
-    void refreshProducts()
+    void refreshProducts().catch((err) => {
+      setError(err instanceof Error ? err.message : "Errore durante il caricamento dei prodotti admin.")
+    })
   }, [productCategoryFilter, productSearch, productStatusFilter])
 
   useEffect(() => {
