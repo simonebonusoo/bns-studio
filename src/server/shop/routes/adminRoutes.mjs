@@ -156,11 +156,16 @@ function averageFromTotals(total, count) {
 function buildAnalyticsChartSeries({ orders, pageViews }) {
   const revenueByDay = new Map()
   const viewsByDay = new Map()
+  const expensesByDay = new Map()
+  const netByDay = new Map()
   const formatter = new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "2-digit" })
 
   orders.forEach((order) => {
+    const profitRow = buildOrderProfitSummary(order)
     const key = order.createdAt.toISOString().slice(0, 10)
-    revenueByDay.set(key, (revenueByDay.get(key) || 0) + order.total)
+    revenueByDay.set(key, (revenueByDay.get(key) || 0) + profitRow.grossTotal)
+    expensesByDay.set(key, (expensesByDay.get(key) || 0) + profitRow.totalExpenses)
+    netByDay.set(key, (netByDay.get(key) || 0) + profitRow.netTotal)
   })
 
   pageViews.forEach((entry) => {
@@ -178,6 +183,8 @@ function buildAnalyticsChartSeries({ orders, pageViews }) {
       label: formatter.format(date),
       siteViews: viewsByDay.get(key) || 0,
       revenue: revenueByDay.get(key) || 0,
+      expenses: expensesByDay.get(key) || 0,
+      net: netByDay.get(key) || 0,
     }
   })
 }

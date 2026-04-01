@@ -326,6 +326,21 @@ export function AdminOrdersSection({
                     <button
                       type="button"
                       onClick={async () => {
+                        if (!window.confirm("Sei sicuro di voler eliminare questo ordine? Questa azione è irreversibile.")) return
+                        setShippingActionState((current) => ({ ...current, [order.id]: "delete" }))
+                        try {
+                          await onDeleteOrder(order.id)
+                        } finally {
+                          setShippingActionState((current) => ({ ...current, [order.id]: null }))
+                        }
+                      }}
+                      className={getButtonClassName({ variant: "profile", size: "sm" })}
+                    >
+                      {shippingActionState[order.id] === "delete" ? "Eliminazione..." : "Elimina"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
                         setShippingActionState((current) => ({ ...current, [order.id]: "save" }))
                         try {
                           const updatedOrder = await onUpdateOrderStatus(order.id, draft)
@@ -339,21 +354,6 @@ export function AdminOrdersSection({
                       className={getButtonClassName({ variant: "cart", size: "sm" })}
                     >
                       {shippingActionState[order.id] === "save" ? "Salvataggio..." : "Salva"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!window.confirm("Sei sicuro di voler eliminare questo ordine? Questa azione è irreversibile.")) return
-                        setShippingActionState((current) => ({ ...current, [order.id]: "delete" }))
-                        try {
-                          await onDeleteOrder(order.id)
-                        } finally {
-                          setShippingActionState((current) => ({ ...current, [order.id]: null }))
-                        }
-                      }}
-                      className="inline-flex items-center justify-center rounded-full border border-red-400/20 bg-red-400/8 px-5 py-2.5 text-sm font-medium text-red-100 transition hover:border-red-400/35 hover:bg-red-400/14"
-                    >
-                      {shippingActionState[order.id] === "delete" ? "Eliminazione..." : "Elimina"}
                     </button>
                   </div>
                 </div>

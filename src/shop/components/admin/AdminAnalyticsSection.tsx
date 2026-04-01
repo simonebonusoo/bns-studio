@@ -2,6 +2,15 @@ import { useMemo, useState } from "react"
 
 import { formatPrice } from "../../lib/format"
 
+type ChartPoint = {
+  key: string
+  label: string
+  siteViews: number
+  revenue: number
+  expenses: number
+  net: number
+}
+
 type AdminAnalytics = {
   siteViewsTotal: number
   siteViewsToday: number
@@ -18,12 +27,7 @@ type AdminAnalytics = {
   averageMonthlyExpenses: number
   bestSellingProduct: { productId: number; title: string; quantity: number } | null
   shippingCostsTracked: boolean
-  chartSeries?: Array<{
-    key: string
-    label: string
-    siteViews: number
-    revenue: number
-  }>
+  chartSeries?: ChartPoint[]
 }
 
 type AdminAnalyticsSectionProps = {
@@ -42,8 +46,8 @@ function EyeToggle({
       type="button"
       onClick={onClick}
       className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/60 transition hover:border-white/20 hover:text-white"
-      aria-label={visible ? "Nascondi valori sensibili" : "Mostra valori sensibili"}
-      title={visible ? "Nascondi valori sensibili" : "Mostra valori sensibili"}
+      aria-label={visible ? "Nascondi dati sezione data" : "Mostra dati sezione data"}
+      title={visible ? "Nascondi dati sezione data" : "Mostra dati sezione data"}
     >
       {visible ? (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -62,72 +66,132 @@ function EyeToggle({
   )
 }
 
-function renderSensitiveValue(visible: boolean, value: string) {
-  return visible ? value : "******"
+function maskValue(hidden: boolean, value: string | number) {
+  return hidden ? "******" : value
+}
+
+function buildPrimaryChart(points: ChartPoint[]) {
+  if (!points.length) return null
+
+  const width = 640
+  const height = 220
+  const paddingX = 24
+  const paddingTop = 18
+  const paddingBottom = 34
+  const usableWidth = width - paddingX * 2
+  const usableHeight = height - paddingTop - paddingBottom
+  const maxViews = Math.max(...points.map((point) => point.siteViews), 1)
+  const maxRevenue = Math.max(...points.map((point) => point.revenue), 1)
+  const stepX = points.length > 1 ? usableWidth / (points.length - 1) : usableWidth
+
+  const linePoints = points.map((point, index) => {
+    const x = paddingX + stepX * index
+    const y = paddingTop + usableHeight - (point.siteViews / maxViews) * usableHeight
+    return { ...point, x, y }
+  })
+
+  const revenueBars = points.map((point, index) => {
+    const x = paddingX + stepX * index - 18
+    const barHeight = (point.revenue / maxRevenue) * usableHeight
+    return {
+      ...point,
+      x,
+      y: paddingTop + usableHeight - barHeight,
+      width: 36,
+      height: Math.max(barHeight, 8),
+    }
+  })
+
+  return {
+    width,
+    height,
+    paddingTop,
+    usableHeight,
+    linePoints,
+    revenueBars,
+    polyline: linePoints.map((point) => `${point.x},${point.y}`).join(" "),
+  }
+}
+
+function buildSecondaryChart(points: ChartPoint[]) {
+  if (!points.length) return null
+
+  const width = 640
+  const height = 220
+  const paddingX = 24
+  const paddingTop = 18
+  const paddingBottom = 34
+  const usableWidth = width - paddingX * 2
+  const usableHeight = height - paddingTop - paddingBottom
+  const maxValue = Math.max(...points.flatMap((point) => [point.expenses, point.net]), 1)
+  const stepX = points.length > 1 ? usableWidth / (points.length - 1) : usableWidth
+
+  const expensePoints = points.map((point, index) => {
+    const x = paddingX + stepX * index
+    const y = paddingTop + usableHeight - (point.expenses / maxValue) * usableHeight
+    return { ...point, x, y }
+  })
+
+  const netPoints = points.map((point, index) => {
+    const x = paddingX + stepX * index
+    const y = paddingTop + usableHeight - (point.net / maxValue) * usableHeight
+    return { ...point, x, y }
+  })
+
+  return {
+    width,
+    height,
+    paddingTop,
+    usableHeight,
+    expensePoints,
+    netPoints,
+    expenseLine: expensePoints.map((point) => `${point.x},${point.y}`).join(" "),
+    netLine: netPoints.map((point) => `${point.x},${point.y}`).join(" "),
+  }
 }
 
 export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps) {
-  const [showSensitiveValues, setShowSensitiveValues] = useState(false)
+  const [showMetrics, setShowMetrics] = useState(true)
+  const [activePrimaryDatum, setActivePrimaryDatum] = useState<{ key: string; type: "views" | "revenue" } | null>(null)
 
-  const chart = useMemo(() => {
-    const series = analytics?.chartSeries || []
-    if (!series.length) return null
+  const points = analytics?.chartSeries || []
+  const primaryChart = useMemo(() => buildPrimaryChart(points), [points])
+  const secondaryChart = useMemo(() => buildSecondaryChart(points), [points])
 
-    const width = 640
-    const height = 220
-    const paddingX = 24
-    const paddingTop = 20
-    const paddingBottom = 36
-    const usableWidth = width - paddingX * 2
-    const usableHeight = height - paddingTop - paddingBottom
-    const maxViews = Math.max(...series.map((point) => point.siteViews), 1)
-    const maxRevenue = Math.max(...series.map((point) => point.revenue), 1)
-    const stepX = series.length > 1 ? usableWidth / (series.length - 1) : usableWidth
-
-    const viewPoints = series
-      .map((point, index) => {
-        const x = paddingX + stepX * index
-        const y = paddingTop + usableHeight - (point.siteViews / maxViews) * usableHeight
-        return `${x},${y}`
-      })
-      .join(" ")
-
-    const revenueBars = series.map((point, index) => {
-      const x = paddingX + stepX * index - 16
-      const barHeight = (point.revenue / maxRevenue) * usableHeight
+  const activePrimaryValue = useMemo(() => {
+    if (!activePrimaryDatum) return null
+    const point = points.find((entry) => entry.key === activePrimaryDatum.key)
+    if (!point) return null
+    if (activePrimaryDatum.type === "views") {
       return {
-        key: point.key,
-        label: point.label,
-        x,
-        y: paddingTop + usableHeight - barHeight,
-        height: Math.max(barHeight, 6),
+        title: `Visualizzazioni ${point.label}`,
+        value: `${point.siteViews}`,
       }
-    })
-
-    return {
-      width,
-      height,
-      paddingTop,
-      paddingBottom,
-      usableHeight,
-      series,
-      viewPoints,
-      revenueBars,
     }
-  }, [analytics?.chartSeries])
+    return {
+      title: `Incassi ${point.label}`,
+      value: formatPrice(point.revenue),
+    }
+  }, [activePrimaryDatum, points])
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <article className="shop-card p-5">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/45">Visualizzazioni sito</p>
+            <EyeToggle visible={showMetrics} onClick={() => setShowMetrics((current) => !current)} />
+          </div>
+          <p className="mt-3 text-3xl font-semibold text-white">{maskValue(!showMetrics, analytics?.siteViewsTotal ?? 0)}</p>
+        </article>
         {[
-          ["Visualizzazioni sito", analytics?.siteViewsTotal ?? 0],
           ["Vendite concluse", analytics?.salesCount ?? 0],
           ["Ordini totali", analytics?.totalOrders ?? 0],
-          ["Ticket medio ordine", renderSensitiveValue(showSensitiveValues, formatPrice(analytics?.averageOrderValue ?? 0))],
+          ["Ticket medio ordine", formatPrice(analytics?.averageOrderValue ?? 0)],
         ].map(([label, value]) => (
           <article key={label} className="shop-card p-5">
             <p className="text-xs uppercase tracking-[0.2em] text-white/45">{label}</p>
-            <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{maskValue(!showMetrics, String(value))}</p>
           </article>
         ))}
       </div>
@@ -135,126 +199,195 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           ["Guadagno netto totale", formatPrice(analytics?.totalNet ?? 0)],
-          ["Spese totali", formatPrice(analytics?.totalExpenses ?? 0)],
+          ["Spese totali prodotti", formatPrice(analytics?.totalExpenses ?? 0)],
           ["Incassato totale", formatPrice(analytics?.totalRevenue ?? 0)],
-          ["Ticket medio ordine", formatPrice(analytics?.averageOrderValue ?? 0)],
+          ["Visualizzazioni mese", String(analytics?.siteViewsThisMonth ?? 0)],
         ].map(([label, value]) => (
           <article key={label} className="shop-card p-5">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/45">{label}</p>
-              <EyeToggle visible={showSensitiveValues} onClick={() => setShowSensitiveValues((current) => !current)} />
-            </div>
-            <p className="mt-3 text-3xl font-semibold text-white">{renderSensitiveValue(showSensitiveValues, String(value))}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/45">{label}</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{maskValue(!showMetrics, value)}</p>
           </article>
         ))}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
-        <article className="shop-card space-y-5 p-6">
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Andamento ultimi 7 giorni</p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Visualizzazioni e incassi</h2>
+        <div className="space-y-4">
+          <article className="shop-card space-y-5 p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Andamento ultimi 7 giorni</p>
+                <h2 className="mt-2 text-xl font-semibold text-white">Visualizzazioni e incassi</h2>
+              </div>
+              <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-white/42">
+                <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#eef879]" /> Visualizzazioni</span>
+                <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" /> Incassi</span>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-white/42">
-              <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#eef879]" /> Visualizzazioni</span>
-              <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" /> Incassi</span>
-            </div>
-          </div>
 
-          {chart ? (
-            <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(238,248,121,0.12),transparent_48%),rgba(255,255,255,0.03)] p-4">
-              <svg viewBox={`0 0 ${chart.width} ${chart.height}`} className="h-[240px] w-full">
-                {[0, 0.5, 1].map((ratio) => {
-                  const y = chart.paddingTop + chart.usableHeight * ratio
-                  return (
-                    <line
-                      key={ratio}
-                      x1="24"
-                      y1={y}
-                      x2={chart.width - 24}
-                      y2={y}
-                      stroke="rgba(255,255,255,0.08)"
-                      strokeDasharray="4 8"
-                    />
-                  )
-                })}
-                {chart.revenueBars.map((bar) => (
-                  <rect
-                    key={bar.key}
-                    x={bar.x}
-                    y={bar.y}
-                    width="32"
-                    height={bar.height}
-                    rx="10"
-                    fill="rgba(110,231,183,0.42)"
-                  />
-                ))}
-                <polyline
-                  fill="none"
-                  stroke="#eef879"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  points={chart.viewPoints}
-                />
-                {chart.series.map((point, index) => {
-                  const x = 24 + ((chart.width - 48) / Math.max(chart.series.length - 1, 1)) * index
-                  return (
-                    <g key={point.key}>
-                      <circle
-                        cx={x}
-                        cy={chart.paddingTop + chart.usableHeight - (point.siteViews / Math.max(...chart.series.map((entry) => entry.siteViews), 1)) * chart.usableHeight}
-                        r="4"
-                        fill="#eef879"
+            {primaryChart ? (
+              <div className="relative rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(238,248,121,0.12),transparent_48%),rgba(255,255,255,0.03)] p-4">
+                {activePrimaryValue ? (
+                  <div className="absolute right-4 top-4 rounded-2xl border border-white/10 bg-[#0e0e10]/95 px-4 py-3 text-right shadow-xl">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/42">{activePrimaryValue.title}</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{activePrimaryValue.value}</p>
+                  </div>
+                ) : null}
+                <svg viewBox={`0 0 ${primaryChart.width} ${primaryChart.height}`} className="h-[240px] w-full">
+                  {[0, 0.5, 1].map((ratio) => {
+                    const y = primaryChart.paddingTop + primaryChart.usableHeight * ratio
+                    return (
+                      <line
+                        key={ratio}
+                        x1="24"
+                        y1={y}
+                        x2={primaryChart.width - 24}
+                        y2={y}
+                        stroke="rgba(255,255,255,0.08)"
+                        strokeDasharray="4 8"
                       />
-                      <text x={x} y={chart.height - 10} textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="12">
+                    )
+                  })}
+                  {primaryChart.revenueBars.map((bar) => (
+                    <g key={bar.key}>
+                      <rect
+                        x={bar.x}
+                        y={bar.y}
+                        width={bar.width}
+                        height={bar.height}
+                        rx="10"
+                        fill="rgba(110,231,183,0.42)"
+                      />
+                      <rect
+                        x={bar.x}
+                        y={bar.y}
+                        width={bar.width}
+                        height={bar.height}
+                        rx="10"
+                        fill="transparent"
+                        onMouseEnter={() => setActivePrimaryDatum({ key: bar.key, type: "revenue" })}
+                        onMouseLeave={() => setActivePrimaryDatum(null)}
+                        onFocus={() => setActivePrimaryDatum({ key: bar.key, type: "revenue" })}
+                        onBlur={() => setActivePrimaryDatum(null)}
+                        onClick={() => setActivePrimaryDatum({ key: bar.key, type: "revenue" })}
+                      />
+                    </g>
+                  ))}
+                  <polyline
+                    fill="none"
+                    stroke="#eef879"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={primaryChart.polyline}
+                  />
+                  {primaryChart.linePoints.map((point) => (
+                    <g key={point.key}>
+                      <circle cx={point.x} cy={point.y} r="4" fill="#eef879" />
+                      <circle
+                        cx={point.x}
+                        cy={point.y}
+                        r="12"
+                        fill="transparent"
+                        onMouseEnter={() => setActivePrimaryDatum({ key: point.key, type: "views" })}
+                        onMouseLeave={() => setActivePrimaryDatum(null)}
+                        onFocus={() => setActivePrimaryDatum({ key: point.key, type: "views" })}
+                        onBlur={() => setActivePrimaryDatum(null)}
+                        onClick={() => setActivePrimaryDatum({ key: point.key, type: "views" })}
+                      />
+                      <text x={point.x} y={primaryChart.height - 10} textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="12">
                         {point.label}
                       </text>
                     </g>
-                  )
-                })}
-              </svg>
+                  ))}
+                </svg>
+              </div>
+            ) : (
+              <div className="rounded-[24px] border border-dashed border-white/10 px-4 py-10 text-sm text-white/50">
+                Dati non ancora sufficienti per mostrare l&apos;andamento settimanale.
+              </div>
+            )}
+          </article>
+
+          <article className="shop-card space-y-5 p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Secondo grafico</p>
+                <h2 className="mt-2 text-xl font-semibold text-white">Spese e utile netto</h2>
+              </div>
+              <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-white/42">
+                <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-white/60" /> Spese</span>
+                <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#eef879]" /> Utile netto</span>
+              </div>
             </div>
-          ) : (
-            <div className="rounded-[24px] border border-dashed border-white/10 px-4 py-10 text-sm text-white/50">
-              Dati non ancora sufficienti per mostrare l&apos;andamento settimanale.
-            </div>
-          )}
-        </article>
+
+            {secondaryChart ? (
+              <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+                <svg viewBox={`0 0 ${secondaryChart.width} ${secondaryChart.height}`} className="h-[220px] w-full">
+                  {[0, 0.5, 1].map((ratio) => {
+                    const y = secondaryChart.paddingTop + secondaryChart.usableHeight * ratio
+                    return (
+                      <line
+                        key={ratio}
+                        x1="24"
+                        y1={y}
+                        x2={secondaryChart.width - 24}
+                        y2={y}
+                        stroke="rgba(255,255,255,0.08)"
+                        strokeDasharray="4 8"
+                      />
+                    )
+                  })}
+                  <polyline fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={secondaryChart.expenseLine} />
+                  <polyline fill="none" stroke="#eef879" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={secondaryChart.netLine} />
+                  {secondaryChart.expensePoints.map((point) => (
+                    <g key={`expense-${point.key}`}>
+                      <circle cx={point.x} cy={point.y} r="3.5" fill="rgba(255,255,255,0.55)" />
+                      <text x={point.x} y={secondaryChart.height - 10} textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="12">
+                        {point.label}
+                      </text>
+                    </g>
+                  ))}
+                  {secondaryChart.netPoints.map((point) => (
+                    <circle key={`net-${point.key}`} cx={point.x} cy={point.y} r="3.5" fill="#eef879" />
+                  ))}
+                </svg>
+              </div>
+            ) : null}
+          </article>
+        </div>
 
         <article className="shop-card space-y-4 p-6">
           <h2 className="text-xl font-semibold text-white">Medie e indicatori</h2>
           <div className="grid gap-4">
             <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
               <p className="text-sm text-white/55">Guadagno medio giornaliero</p>
-              <p className="mt-2 text-xl font-semibold text-white">{formatPrice(analytics?.averageDailyNet ?? 0)}</p>
+              <p className="mt-2 text-xl font-semibold text-white">{maskValue(!showMetrics, formatPrice(analytics?.averageDailyNet ?? 0))}</p>
             </div>
             <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
               <p className="text-sm text-white/55">Guadagno medio mensile</p>
-              <p className="mt-2 text-xl font-semibold text-white">{formatPrice(analytics?.averageMonthlyNet ?? 0)}</p>
+              <p className="mt-2 text-xl font-semibold text-white">{maskValue(!showMetrics, formatPrice(analytics?.averageMonthlyNet ?? 0))}</p>
             </div>
             <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
               <p className="text-sm text-white/55">Spese medie giornaliere</p>
-              <p className="mt-2 text-xl font-semibold text-white">{formatPrice(analytics?.averageDailyExpenses ?? 0)}</p>
+              <p className="mt-2 text-xl font-semibold text-white">{maskValue(!showMetrics, formatPrice(analytics?.averageDailyExpenses ?? 0))}</p>
             </div>
             <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
               <p className="text-sm text-white/55">Spese medie mensili</p>
-              <p className="mt-2 text-xl font-semibold text-white">{formatPrice(analytics?.averageMonthlyExpenses ?? 0)}</p>
+              <p className="mt-2 text-xl font-semibold text-white">{maskValue(!showMetrics, formatPrice(analytics?.averageMonthlyExpenses ?? 0))}</p>
             </div>
             <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
               <p className="text-sm text-white/55">Prodotto più venduto</p>
               <p className="mt-2 text-lg font-semibold text-white">{analytics?.bestSellingProduct?.title || "Nessun dato disponibile"}</p>
-              {analytics?.bestSellingProduct ? <p className="mt-1 text-sm text-white/55">{analytics.bestSellingProduct.quantity} unità vendute</p> : null}
+              {analytics?.bestSellingProduct ? <p className="mt-1 text-sm text-white/55">{maskValue(!showMetrics, `${analytics.bestSellingProduct.quantity} unità vendute`)}</p> : null}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
                 <p className="text-sm text-white/55">Visualizzazioni oggi</p>
-                <p className="mt-2 text-xl font-semibold text-white">{analytics?.siteViewsToday ?? 0}</p>
+                <p className="mt-2 text-xl font-semibold text-white">{maskValue(!showMetrics, analytics?.siteViewsToday ?? 0)}</p>
               </div>
               <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
                 <p className="text-sm text-white/55">Visualizzazioni mese</p>
-                <p className="mt-2 text-xl font-semibold text-white">{analytics?.siteViewsThisMonth ?? 0}</p>
+                <p className="mt-2 text-xl font-semibold text-white">{maskValue(!showMetrics, analytics?.siteViewsThisMonth ?? 0)}</p>
               </div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { getButtonClassName } from "../../../components/Button"
 import { ShopReview } from "../../types"
 
 type AdminReview = ShopReview & {
@@ -31,7 +32,8 @@ export function AdminReviewsSection({ reviews, onToggleHomepageReview, onDeleteR
 
           return (
             <article key={review.id} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <p className="text-base font-medium text-white">{review.authorName}</p>
@@ -50,13 +52,16 @@ export function AdminReviewsSection({ reviews, onToggleHomepageReview, onDeleteR
                     <input type="checkbox" checked={review.showOnHomepage} disabled={disableSelect} onChange={(event) => onToggleHomepageReview(review.id, event.target.checked)} />
                     Mostra in homepage
                   </label>
+                </div>
+                </div>
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={async () => {
                       if (!window.confirm("Sei sicuro di voler eliminare questa recensione? Questa azione è irreversibile.")) return
                       await onDeleteReview(review.id)
                     }}
-                    className="inline-flex items-center justify-center rounded-full border border-red-400/18 bg-red-400/8 px-4 py-2 text-sm text-red-100 transition hover:border-red-400/35 hover:bg-red-400/14"
+                    className={getButtonClassName({ variant: "cart", size: "sm" })}
                   >
                     Elimina
                   </button>

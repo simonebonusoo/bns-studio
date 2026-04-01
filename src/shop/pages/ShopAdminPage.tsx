@@ -170,6 +170,8 @@ type AdminAnalytics = {
     label: string
     siteViews: number
     revenue: number
+    expenses: number
+    net: number
   }>
 }
 
@@ -595,6 +597,7 @@ export function ShopAdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [usersTotal, setUsersTotal] = useState(0)
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
+  const [showOrderProfitBreakdown, setShowOrderProfitBreakdown] = useState(false)
   const [runtimeStatus, setRuntimeStatus] = useState<AdminRuntimeStatus | null>(null)
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [rules, setRules] = useState<DiscountRule[]>([])
@@ -706,6 +709,7 @@ export function ShopAdminPage() {
     setMessage("")
     setError("")
     setOrderProfit(null)
+    setShowOrderProfitBreakdown(false)
   }, [tab])
 
   useEffect(() => {
@@ -1315,6 +1319,7 @@ export function ShopAdminPage() {
     clearFeedback()
     try {
       setLoadingProfitOrderId(orderId)
+      setShowOrderProfitBreakdown(false)
       const data = await apiFetch<OrderProfitSummary>(`/admin/orders/${orderId}/profit`)
       setOrderProfit(data)
     } catch (err) {
@@ -1655,7 +1660,10 @@ export function ShopAdminPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setOrderProfit(null)}
+                onClick={() => {
+                  setOrderProfit(null)
+                  setShowOrderProfitBreakdown(false)
+                }}
                 className={getButtonClassName({ variant: "profile", size: "sm" })}
               >
                 Chiudi
@@ -1668,7 +1676,16 @@ export function ShopAdminPage() {
                 <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.grossTotal)}</p>
               </div>
               <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-                <p className="text-sm text-white/55">Spese prodotti</p>
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-sm text-white/55">Spese prodotti</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowOrderProfitBreakdown((current) => !current)}
+                    className={getButtonClassName({ variant: "profile", size: "sm" })}
+                  >
+                    {showOrderProfitBreakdown ? "Nascondi dettaglio" : "Vedi dettaglio"}
+                  </button>
+                </div>
                 <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.productCostsTotal)}</p>
               </div>
               <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
@@ -1706,6 +1723,38 @@ export function ShopAdminPage() {
                 </article>
               ))}
             </div>
+
+            {showOrderProfitBreakdown ? (
+              <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm uppercase tracking-[0.18em] text-white/45">Dettaglio spese ordine</p>
+                  <span className="text-xs uppercase tracking-[0.16em] text-white/38">Breakdown completo</span>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {orderProfit.items.map((item, index) => (
+                    <div key={item.id} className="flex items-center justify-between gap-4 border-b border-white/6 pb-3 text-sm text-white/65 last:border-b-0 last:pb-0">
+                      <div>
+                        <p className="text-white">Spesa produzione articolo {index + 1}</p>
+                        <p className="mt-1 text-white/45">{item.title} · {item.format} · {item.quantity} pz</p>
+                      </div>
+                      <p className="font-medium text-white">{formatPrice(item.costTotal)}</p>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-sm text-white/65">
+                    <p>Spesa spedizione totale</p>
+                    <p className="font-medium text-white">{formatPrice(orderProfit.shippingOperationalCost)}</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 text-sm text-white/65">
+                    <p>Totale spese prodotti</p>
+                    <p className="font-medium text-white">{formatPrice(orderProfit.productCostsTotal)}</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 text-sm text-white/65">
+                    <p>Totale spese ordine</p>
+                    <p className="font-medium text-white">{formatPrice(orderProfit.totalExpenses)}</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             <p className="mt-5 text-sm text-white/50">
               Il netto considera i costi reali prodotto e una sola spedizione operativa per ordine: 6,50 € per Standard, 8,50 € per Premium.
