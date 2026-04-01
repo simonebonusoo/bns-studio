@@ -154,11 +154,13 @@ router.patch(
     const body = z
       .object({
         username: usernameSchema.optional(),
+        firstName: z.string().trim().min(1).optional(),
+        lastName: z.string().trim().min(1).optional(),
         email: z.string().trim().email().optional(),
         currentPassword: passwordSchema.optional(),
         newPassword: passwordSchema.optional(),
       })
-      .refine((value) => value.username || value.email || value.newPassword, {
+      .refine((value) => value.username || value.firstName || value.lastName || value.email || value.newPassword, {
         message: "Nessuna modifica richiesta",
       })
       .parse(req.body)
@@ -172,6 +174,14 @@ router.patch(
         throw new HttpError(409, "Username gia registrato")
       }
       updates.username = username
+    }
+
+    if (body.firstName) {
+      updates.firstName = body.firstName.trim()
+    }
+
+    if (body.lastName) {
+      updates.lastName = body.lastName.trim()
     }
 
     if (body.email) {

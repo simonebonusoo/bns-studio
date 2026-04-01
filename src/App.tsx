@@ -206,6 +206,7 @@ export default function App() {
             <Route path="/shop/cart" element={<ShopCartPage />} />
             <Route path="/shop/auth" element={<ShopAuthPage />} />
             <Route path="/shop/register" element={<ShopRegisterPage />} />
+            <Route path="/shop/account" element={<ShopRegisterPage />} />
             <Route path="/shop/tracking/mock/:trackingNumber" element={<ShopMockTrackingPage />} />
             <Route
               path="/shop/checkout"

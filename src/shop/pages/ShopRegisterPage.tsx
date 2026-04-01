@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
 import { Button } from "../../components/Button"
@@ -6,8 +6,9 @@ import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 
 export function ShopRegisterPage() {
-  const { login } = useShopAuth()
+  const { user, login, updateProfile } = useShopAuth()
   const navigate = useNavigate()
+  const isEditMode = Boolean(user)
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -19,34 +20,67 @@ export function ShopRegisterPage() {
     addressLine1: "",
     username: "",
     email: "",
+    currentPassword: "",
     password: "",
     confirmPassword: "",
   })
 
-  async function submitRegister(event: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (!user) return
+    setForm((current) => ({
+      ...current,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      username: user.username || "",
+      email: user.email || "",
+      currentPassword: "",
+      password: "",
+      confirmPassword: "",
+    }))
+  }, [user])
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
 
-    if (form.password !== form.confirmPassword) {
+    if (!isEditMode && form.password !== form.confirmPassword) {
       setError("La conferma password non coincide.")
       return
     }
 
     try {
       setSubmitting(true)
-      await login(
-        {
+
+      if (isEditMode) {
+        const isChangingEmail = form.email.trim().toLowerCase() !== user?.email.toLowerCase()
+        if (isChangingEmail && !form.currentPassword.trim()) {
+          setError("Inserisci la password attuale per modificare l'email.")
+          return
+        }
+
+        await updateProfile({
           firstName: form.firstName,
           lastName: form.lastName,
           username: form.username,
           email: form.email,
-          password: form.password,
-        },
-        "register",
-      )
+          ...(isChangingEmail ? { currentPassword: form.currentPassword } : {}),
+        })
+      } else {
+        await login(
+          {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            username: form.username,
+            email: form.email,
+            password: form.password,
+          },
+          "register",
+        )
+      }
+
       navigate("/shop/profile", { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante la registrazione.")
+      setError(err instanceof Error ? err.message : isEditMode ? "Errore durante il salvataggio del profilo." : "Errore durante la registrazione.")
     } finally {
       setSubmitting(false)
     }
@@ -60,6 +94,7 @@ export function ShopRegisterPage() {
       setStep(2)
       return
     }
+
     if (!form.country.trim()) return setError("Inserisci il paese.")
     if (!form.region.trim()) return setError("Inserisci la provincia.")
     if (!form.addressLine1.trim()) return setError("Inserisci la via.")
@@ -69,11 +104,15 @@ export function ShopRegisterPage() {
   return (
     <ShopLayout
       eyebrow="Account"
-      title="Crea un account cliente"
-      intro="Registrazione su pagina dedicata, pensata per mobile e stabile anche con form multi-step."
+      title={isEditMode ? "Modifica profilo" : "Crea un account cliente"}
+      intro={
+        isEditMode
+          ? "Gestisci i tuoi dati da una pagina dedicata, con la stessa esperienza chiara e stabile della registrazione."
+          : "Registrazione su pagina dedicata, pensata per mobile e stabile anche con form multi-step."
+      }
     >
       <div className="mx-auto max-w-2xl">
-        <form onSubmit={submitRegister} className="shop-card space-y-5 p-5 md:p-8">
+        <form onSubmit={handleSubmit} className="shop-card space-y-5 p-5 md:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/45">
@@ -82,6 +121,15 @@ export function ShopRegisterPage() {
               <h2 className="mt-3 text-2xl font-semibold text-white">
                 {step === 1 ? "Dati personali" : step === 2 ? "Indirizzo" : "Account"}
               </h2>
+              <p className="mt-2 text-sm text-white/60">
+                {step === 1
+                  ? "Inserisci i dati principali del profilo."
+                  : step === 2
+                    ? "Completa i dettagli di indirizzo."
+                    : isEditMode
+                      ? "Aggiorna i dati account e, se cambi email, conferma con la password attuale."
+                      : "Scegli le credenziali del nuovo account."}
+              </p>
             </div>
             <p className="shrink-0 text-xs uppercase tracking-[0.18em] text-[#e3f503]">Pagina {step} di 3</p>
           </div>
@@ -148,24 +196,36 @@ export function ShopRegisterPage() {
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
                 required
               />
-              <input
-                className="shop-input py-2.5"
-                type="password"
-                placeholder="Password"
-                value={form.password}
-                onChange={(event) => setForm({ ...form, password: event.target.value })}
-                minLength={8}
-                required
-              />
-              <input
-                className="shop-input py-2.5"
-                type="password"
-                placeholder="Conferma password"
-                value={form.confirmPassword}
-                onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
-                minLength={8}
-                required
-              />
+              {isEditMode ? (
+                <input
+                  className="shop-input py-2.5"
+                  type="password"
+                  placeholder="Password attuale (solo se cambi email)"
+                  value={form.currentPassword}
+                  onChange={(event) => setForm({ ...form, currentPassword: event.target.value })}
+                />
+              ) : (
+                <>
+                  <input
+                    className="shop-input py-2.5"
+                    type="password"
+                    placeholder="Password"
+                    value={form.password}
+                    onChange={(event) => setForm({ ...form, password: event.target.value })}
+                    minLength={8}
+                    required
+                  />
+                  <input
+                    className="shop-input py-2.5"
+                    type="password"
+                    placeholder="Conferma password"
+                    value={form.confirmPassword}
+                    onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
+                    minLength={8}
+                    required
+                  />
+                </>
+              )}
             </div>
           ) : null}
 
@@ -176,7 +236,9 @@ export function ShopRegisterPage() {
               <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={() => setStep((current) => (current - 1) as 1 | 2 | 3)}>
                 Indietro
               </Button>
-            ) : <div />}
+            ) : (
+              <div />
+            )}
 
             {step < 3 ? (
               <Button type="button" className="w-full sm:w-auto" onClick={goNextStep}>
@@ -184,17 +246,19 @@ export function ShopRegisterPage() {
               </Button>
             ) : (
               <Button type="submit" className="w-full sm:w-auto">
-                {submitting ? "Creazione account..." : "Crea account"}
+                {submitting ? (isEditMode ? "Salvataggio..." : "Creazione account...") : isEditMode ? "Salva modifiche" : "Crea account"}
               </Button>
             )}
           </div>
 
-          <p className="text-sm text-white/55">
-            Hai già un account?{" "}
-            <Link to="/shop/auth" className="text-white underline underline-offset-4">
-              Accedi
-            </Link>
-          </p>
+          {!isEditMode ? (
+            <p className="text-sm text-white/55">
+              Hai già un account?{" "}
+              <Link to="/shop/auth" className="text-white underline underline-offset-4">
+                Accedi
+              </Link>
+            </p>
+          ) : null}
         </form>
       </div>
     </ShopLayout>

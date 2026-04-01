@@ -230,7 +230,7 @@ export function Navbar() {
         setSearchOpen(false)
         setCartOpen(false)
         setProfileOpen(false)
-        navigate("/shop/register")
+        navigate("/shop/account")
         return
       }
 
@@ -460,7 +460,7 @@ export function Navbar() {
       setSearchOpen(false)
       setCartOpen(false)
       setProfileOpen(false)
-      navigate("/shop/register")
+      navigate("/shop/account")
       return
     }
     setMenuOpen(false)
@@ -790,7 +790,7 @@ export function Navbar() {
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-white/45">Menu shop</p>
                     <h2 className="mt-3 text-2xl font-semibold text-white">Naviga BNS Studio</h2>
-                    <p className="mt-2 text-sm text-white/60">Accesso rapido a shop, categorie, account, ordini e informazioni.</p>
+                    <p className="mt-2 text-sm text-white/60">Accesso rapido alle sezioni principali dello shop e ai tuoi ordini.</p>
                   </div>
 
                   <button
@@ -821,6 +821,33 @@ export function Navbar() {
                       onClick: () => {
                         setMenuOpen(false)
                         navigate("/#shop-categories")
+                      },
+                    },
+                    {
+                      label: "Collezioni",
+                      description: "Vai alla sezione Le nostre collezioni.",
+                      icon: <Squares2X2Icon className="h-5 w-5" />,
+                      onClick: () => {
+                        setMenuOpen(false)
+                        navigate("/#shop-collections")
+                      },
+                    },
+                    {
+                      label: "Catalogo completo",
+                      description: "Vai alla preview del catalogo completo.",
+                      icon: <ShoppingBagIcon className="h-5 w-5" />,
+                      onClick: () => {
+                        setMenuOpen(false)
+                        navigate("/#shop-catalog")
+                      },
+                    },
+                    {
+                      label: "Recensioni",
+                      description: "Vai alla sezione recensioni.",
+                      icon: <UserCircleIcon className="h-5 w-5" />,
+                      onClick: () => {
+                        setMenuOpen(false)
+                        navigate("/#recensioni")
                       },
                     },
                     {
@@ -1117,7 +1144,7 @@ export function Navbar() {
                       className="w-full"
                       onClick={() => {
                         setCartOpen(false)
-                        navigate("/shop/register")
+                        navigate("/shop/account")
                       }}
                     >
                       Crea account
@@ -1498,7 +1525,10 @@ export function Navbar() {
                     <div className="grid gap-3">
                       <button
                         type="button"
-                        onClick={() => setProfileLoggedStep("edit")}
+                        onClick={() => {
+                          setProfileOpen(false)
+                          navigate("/shop/account")
+                        }}
                         className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                       >
                         Modifica profilo
@@ -1903,7 +1933,10 @@ export function Navbar() {
                           <div className="grid gap-3">
                             <button
                               type="button"
-                              onClick={() => setProfileLoggedStep("edit")}
+                              onClick={() => {
+                                setProfileOpen(false)
+                                navigate("/shop/account")
+                              }}
                               className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                             >
                               Modifica profilo
@@ -2071,7 +2104,7 @@ export function Navbar() {
                                 className="w-full"
                                 onClick={() => {
                                   setProfileOpen(false)
-                                  navigate("/shop/register")
+                                  navigate("/shop/account")
                                 }}
                               >
                                 Crea account

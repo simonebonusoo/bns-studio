@@ -608,7 +608,7 @@ export function HomeShop() {
           )}
         </div>
 
-        <div className="space-y-8 pt-10 sm:pt-16">
+        <div id="shop-collections" className="space-y-8 pt-10 sm:pt-16">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.32em] text-white/45">Le nostre collezioni</p>
@@ -697,7 +697,7 @@ export function HomeShop() {
           )}
         </div>
 
-        <div className="space-y-8 pt-10 sm:pt-16">
+        <div id="shop-catalog" className="space-y-8 pt-10 sm:pt-16">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
               <div className="shop-pill inline-flex items-center gap-3">
