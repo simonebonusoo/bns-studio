@@ -1,12 +1,8 @@
-import type { ReactNode } from "react"
-
 import { getOrderFulfillmentSteps } from "../../lib/order"
-import { buildAdminOrderShippingSummary } from "../../lib/order-shipping.mjs"
 import { ShopOrder } from "../../types"
 
 type OrderTimelineProps = {
   order: ShopOrder
-  actions?: ReactNode
 }
 
 function formatTimelineTimestamp(value?: string | null) {
@@ -22,7 +18,7 @@ function formatTimelineTimestamp(value?: string | null) {
   })
 }
 
-function getTimelineStepCopy(order: ShopOrder, stepKey: string, shipping: ReturnType<typeof buildAdminOrderShippingSummary>) {
+function getTimelineStepCopy(order: ShopOrder, stepKey: string) {
   switch (stepKey) {
     case "processing":
       return {
@@ -41,9 +37,7 @@ function getTimelineStepCopy(order: ShopOrder, stepKey: string, shipping: Return
       }
     case "shipped":
       return {
-        description: shipping.trackingUrl
-          ? "Il pacco e in viaggio. Puoi seguire ogni passaggio dal link di tracking."
-          : "Il pacco e stato affidato al corriere ed e in viaggio.",
+        description: "Il pacco e stato affidato al corriere ed e in viaggio verso la destinazione finale.",
         timestamp: null,
       }
     case "completed":
@@ -59,15 +53,20 @@ function getTimelineStepCopy(order: ShopOrder, stepKey: string, shipping: Return
   }
 }
 
-export function OrderTimeline({ order, actions }: OrderTimelineProps) {
+function getTimelineLabelLines(label: string) {
+  const [firstWord, ...rest] = label.split(" ")
+  return {
+    firstLine: firstWord,
+    secondLine: rest.join(" "),
+  }
+}
+
+export function OrderTimeline({ order }: OrderTimelineProps) {
   const steps = getOrderFulfillmentSteps(order.fulfillmentStatus)
-  const shipping = buildAdminOrderShippingSummary(order)
   const currentStep = steps.find((step) => step.current) || steps[0]
   const currentState = currentStep.current ? "current" : currentStep.active ? "completed" : "upcoming"
-  const currentCopy = getTimelineStepCopy(order, currentStep.key, shipping)
+  const currentCopy = getTimelineStepCopy(order, currentStep.key)
   const currentStepIndex = steps.findIndex((step) => step.key === currentStep.key)
-  const showShippingTracking =
-    ["in_progress", "shipped", "completed"].includes(currentStep.key) && shipping.trackingNumber !== "Non ancora disponibile"
 
   return (
     <section className="space-y-5">
@@ -79,6 +78,7 @@ export function OrderTimeline({ order, actions }: OrderTimelineProps) {
       <ol className="space-y-3 md:hidden">
         {steps.map((step, index) => {
           const state = step.current ? "current" : step.active ? "completed" : "upcoming"
+          const lines = getTimelineLabelLines(step.label)
 
           return (
             <li key={step.key} className="flex items-start gap-3">
@@ -98,7 +98,10 @@ export function OrderTimeline({ order, actions }: OrderTimelineProps) {
               </div>
               <div className="min-w-0 flex-1 pt-1">
                 <div className="flex items-start justify-between gap-3">
-                  <p className={`text-sm font-medium ${state === "upcoming" ? "text-white/42" : "text-white"}`}>{step.label}</p>
+                  <p className={`text-sm font-medium leading-5 ${state === "upcoming" ? "text-white/42" : "text-white"}`}>
+                    <span className="block">{lines.firstLine}</span>
+                    <span className="block">{lines.secondLine}</span>
+                  </p>
                   <span
                     className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${
                       state === "current"
@@ -120,6 +123,7 @@ export function OrderTimeline({ order, actions }: OrderTimelineProps) {
       <ol className="hidden grid-cols-5 gap-3 md:grid">
         {steps.map((step, index) => {
           const state = step.current ? "current" : step.active ? "completed" : "upcoming"
+          const lines = getTimelineLabelLines(step.label)
 
           return (
             <li key={step.key} className="min-w-0">
@@ -138,7 +142,10 @@ export function OrderTimeline({ order, actions }: OrderTimelineProps) {
                 {index < steps.length - 1 ? <span className={`h-px flex-1 ${step.active ? "bg-emerald-300/35" : "bg-white/10"}`} /> : null}
               </div>
               <div className="mt-3 space-y-1">
-                <p className={`text-sm font-medium ${state === "upcoming" ? "text-white/42" : "text-white"}`}>{step.label}</p>
+                <p className={`text-sm font-medium leading-5 ${state === "upcoming" ? "text-white/42" : "text-white"}`}>
+                  <span className="block">{lines.firstLine}</span>
+                  <span className="block">{lines.secondLine}</span>
+                </p>
                 <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">
                   {state === "current" ? "Attuale" : state === "completed" ? "Completato" : "In attesa"}
                 </p>
@@ -167,30 +174,8 @@ export function OrderTimeline({ order, actions }: OrderTimelineProps) {
         {currentCopy.timestamp ? <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/42">{currentCopy.timestamp}</p> : null}
         {currentCopy.description ? <p className="mt-3 max-w-2xl text-sm leading-7 text-white/66">{currentCopy.description}</p> : null}
 
-        {showShippingTracking ? (
-          <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-sm text-white/62">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">Tracking</p>
-              <p className="mt-1 text-white">{shipping.trackingNumber}</p>
-            </div>
-            {shipping.trackingUrl ? (
-              <a
-                href={shipping.trackingUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center text-sm text-[#eef879] underline underline-offset-4 transition hover:text-white"
-              >
-                Traccia spedizione
-              </a>
-            ) : null}
-          </div>
-        ) : ["in_progress", "shipped", "completed"].includes(currentStep.key) ? (
-          <p className="mt-4 text-sm text-white/42">Il tracking sarà disponibile appena il corriere lo renderà visibile.</p>
-        ) : null}
-
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
           <div className="text-xs uppercase tracking-[0.16em] text-white/38">Step {currentStepIndex + 1} di {steps.length}</div>
-          {actions ? <div className="flex flex-wrap justify-end gap-3">{actions}</div> : null}
         </div>
       </div>
     </section>

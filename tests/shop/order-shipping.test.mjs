@@ -89,6 +89,8 @@ test("admin and customer order UIs render shipping visibility hooks", () => {
   assert.match(profile, /Informazioni ordine/)
   assert.match(profile, /Tracking ancora non disponibile/)
   assert.match(timeline, /Step \{currentStepIndex \+ 1\} di \{steps.length\}/)
+  assert.match(timeline, /lines\.firstLine/)
   assert.doesNotMatch(timeline, /Step attuale/)
+  assert.doesNotMatch(timeline, /Traccia spedizione/)
   assert.match(trackingPage, /Avanzamento spedizione/)
 })

@@ -105,7 +105,7 @@ export function ShopReceiptPage() {
           : "Il checkout è pronto ma l'ordine definitivo verrà creato solo dopo il pagamento PayPal completato. La ricevuta sarà disponibile subito dopo."
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_0.85fr]">
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_0.85fr]">
         <section className="shop-card space-y-4 p-6">
           <div className="grid gap-4 md:grid-cols-2 text-sm text-white/70">
             <div>
@@ -123,19 +123,10 @@ export function ShopReceiptPage() {
             </div>
           </div>
 
-          <div className="space-y-3 border-t border-white/10 pt-4">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-4 text-sm text-white/70">
-                <span>{item.title} · {item.variantLabel || item.format || "Variante"} x {item.quantity}</span>
-                <span>{formatPrice(item.lineTotal)}</span>
-              </div>
-            ))}
-          </div>
-
           <OrderTimeline order={order} />
         </section>
 
-        <aside className="shop-card space-y-4 p-6">
+        <aside className="shop-card self-start space-y-4 p-6">
           <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
           <p className="text-sm text-white/55">Pagamento: {getOrderStatusLabel(order.status)}</p>
           {isAdminView ? (

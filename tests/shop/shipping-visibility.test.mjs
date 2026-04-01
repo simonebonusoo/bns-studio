@@ -24,5 +24,5 @@ test("checkout, receipt, profile and admin orders render the selected shipping m
   assert.match(profile, /Tracking ancora non disponibile/)
   assert.match(adminOrders, /buildAdminOrderShippingSummary/)
   assert.match(timeline, /Timeline ordine/)
-  assert.match(timeline, /Traccia spedizione/)
+  assert.doesNotMatch(timeline, /Traccia spedizione/)
 })
