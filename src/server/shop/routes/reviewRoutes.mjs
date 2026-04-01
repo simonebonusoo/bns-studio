@@ -4,6 +4,7 @@ import { z } from "zod"
 import { asyncHandler } from "../lib/http.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { requireAuth } from "../middleware/auth.mjs"
+import { sanitizeMultilineText, sanitizePlainText } from "../lib/sanitize-text.mjs"
 
 const router = Router()
 
@@ -78,9 +79,9 @@ router.post(
       data: {
         userId: req.user.id,
         rating: body.rating,
-        title: body.title,
-        body: body.body,
-        tag: body.tag || "Cliente verificato",
+        title: sanitizePlainText(body.title),
+        body: sanitizeMultilineText(body.body),
+        tag: sanitizePlainText(body.tag || "Cliente verificato"),
         status: "approved",
         showOnHomepage: false,
       },

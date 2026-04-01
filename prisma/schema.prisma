@@ -20,6 +20,8 @@ model User {
   shippingAddressLine1 String?
   shippingStreetNumber String?
   shippingPostalCode String?
+  sessionNonce String?
+  sessionFingerprintHash String?
   role         String   @default("customer")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

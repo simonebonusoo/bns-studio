@@ -9,7 +9,7 @@ type AuthContextValue = {
   isGuestPreview: boolean
   login: (payload: Record<string, string>, mode?: "login" | "register") => Promise<ShopUser>
   updateProfile: (payload: Record<string, string>) => Promise<ShopUser>
-  logout: () => void
+  logout: () => Promise<void>
   enableGuestPreview: () => void
   disableGuestPreview: () => void
 }
@@ -22,16 +22,9 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
   const [isGuestPreview, setIsGuestPreview] = useState(localStorage.getItem("bns_shop_guest_preview") === "true")
 
   useEffect(() => {
-    const token = localStorage.getItem("bns_shop_token")
-    if (!token) {
-      setLoading(false)
-      return
-    }
-
     apiFetch<{ user: ShopUser }>("/auth/me")
       .then((data) => setUser(data.user))
       .catch(() => {
-        localStorage.removeItem("bns_shop_token")
         setUser(null)
       })
       .finally(() => setLoading(false))
@@ -47,12 +40,11 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
             password: payload.password,
           }
 
-    const data = await apiFetch<{ token: string; user: ShopUser }>(endpoint, {
+    const data = await apiFetch<{ user: ShopUser }>(endpoint, {
       method: "POST",
       body: JSON.stringify(body),
     })
 
-    localStorage.setItem("bns_shop_token", data.token)
     setUser(data.user)
     return data.user
   }
@@ -67,8 +59,14 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
     return data.user
   }
 
-  function logout() {
-    localStorage.removeItem("bns_shop_token")
+  async function logout() {
+    try {
+      await apiFetch<{ ok: boolean }>("/auth/logout", {
+        method: "POST",
+      })
+    } catch {
+      // ignore logout transport failures and clear client state anyway
+    }
     localStorage.removeItem("bns_shop_guest_preview")
     setUser(null)
     setIsGuestPreview(false)

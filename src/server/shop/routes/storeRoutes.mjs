@@ -16,6 +16,7 @@ import { resolveSelectedVariant, serializeProductVariants } from "../lib/product
 import { rankRelatedProducts, sortCatalogSearchProducts } from "../lib/product-discovery.mjs"
 import { requireAuth } from "../middleware/auth.mjs"
 import { createMockLabelResponse, createMockTrackingResponse } from "../shipping/mocks/mock-tracking-route.mjs"
+import { sanitizeMultilineText, sanitizePlainText } from "../lib/sanitize-text.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
@@ -221,10 +222,10 @@ router.post(
     const contactEmail = (contactSetting?.value || FALLBACK_CONTACT_EMAIL).trim()
     const mailSubject = `[BNS Studio] ${body.subject}`
     const mailBody = [
-      `Nome: ${body.name}`,
-      `Email: ${body.email}`,
+      `Nome: ${sanitizePlainText(body.name)}`,
+      `Email: ${body.email.trim().toLowerCase()}`,
       "",
-      body.message,
+      sanitizeMultilineText(body.message),
     ].join("\n")
 
     const mailtoUrl = `mailto:${encodeURIComponent(contactEmail)}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`

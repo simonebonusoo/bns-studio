@@ -13,6 +13,7 @@ import { syncProductVariants } from "../lib/product-variants.mjs"
 import { normalizeShippingDetails } from "../../../shop/lib/shipping-details.mjs"
 import { serializeShopOrder } from "../lib/order-serialization.mjs"
 import { normalizeShippingMethodSelection } from "../services/shipping-rates.mjs"
+import { logInfo, logWarning } from "../lib/monitoring.mjs"
 
 const router = Router()
 const ADMIN_CHECKOUT_BLOCK_MESSAGE = "Gli account admin non possono effettuare ordini cliente."
@@ -203,8 +204,6 @@ router.get(
       throw new HttpError(403, ADMIN_CHECKOUT_BLOCK_MESSAGE)
     }
 
-    console.log(`[shop] GET /api/orders/payment/${req.params.orderReference}`)
-
     const order = await prisma.order.findUnique({
       where: { orderReference: req.params.orderReference },
       include: { user: { select: { role: true } } },
@@ -240,11 +239,6 @@ router.get(
 
     const paymentTarget = order || checkoutSession
 
-    console.log(`[shop] ordine trovato: ${paymentTarget.orderReference} totale=${paymentTarget.total} stato=${paymentTarget.status}`)
-    console.log(
-      `[shop] totali ordine: subtotal=${paymentTarget.subtotal} shipping=${paymentTarget.shippingTotal} discount=${paymentTarget.discountTotal} total=${paymentTarget.total}`
-    )
-
     let payment
     try {
       payment = await buildPaypalRedirect({
@@ -253,11 +247,16 @@ router.get(
         clientUrl: env.clientUrl,
       })
     } catch (error) {
-      console.error("[shop] errore generazione link paypal:", error?.message || error)
+      logWarning("paypal_redirect_generation_failed", {
+        orderReference: paymentTarget.orderReference,
+        userId: req.user.id,
+      })
       throw error
     }
-
-    console.log(`[shop] paypal url generato: ${payment.redirectUrl}`)
+    logInfo("paypal_redirect_generated", {
+      orderReference: paymentTarget.orderReference,
+      userId: req.user.id,
+    })
 
     res.json({
       orderReference: paymentTarget.orderReference,
@@ -435,7 +434,10 @@ router.post(
       }
     } catch (error) {
       paymentError = error?.message || "Impossibile generare il link PayPal"
-      console.error("[shop] errore generazione link paypal durante checkout:", paymentError)
+      logWarning("checkout_paypal_redirect_failed", {
+        orderReference: checkoutSession.orderReference,
+        userId: req.user.id,
+      })
     }
 
     res.status(201).json({

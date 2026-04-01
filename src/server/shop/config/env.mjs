@@ -29,12 +29,16 @@ const isRenderRuntime = Boolean(process.env.RENDER || process.env.RENDER_SERVICE
 const hasDhlCredentials = Boolean(process.env.DHL_API_KEY && process.env.DHL_API_SECRET && process.env.DHL_ACCOUNT_NUMBER)
 const hasInpostCredentials = Boolean(process.env.INPOST_API_KEY)
 const hasPacklinkCredentials = Boolean(process.env.PACKLINK_API_KEY)
+const isProductionNodeEnv = (process.env.NODE_ENV || "development") === "production"
 
 export const env = {
   port: Number(process.env.PORT || 4000),
   nodeEnv: process.env.NODE_ENV || "development",
   renderDiskPath: process.env.RENDER_DISK_PATH || (isRenderRuntime ? "/var/data" : ""),
-  jwtSecret: requireEnv("JWT_SECRET", "bns-shop-local-secret"),
+  jwtSecret: isProductionNodeEnv ? requireEnv("JWT_SECRET") : requireEnv("JWT_SECRET", "bns-shop-local-secret"),
+  authCookieName: process.env.AUTH_COOKIE_NAME || "bns_shop_session",
+  authCookieSecure: parseBoolean(process.env.AUTH_COOKIE_SECURE, isProductionNodeEnv || isRenderRuntime),
+  authCookieSameSite: process.env.AUTH_COOKIE_SAME_SITE || "lax",
   clientUrl,
   clientOrigins,
   uploadsDir: process.env.UPLOADS_DIR || "",

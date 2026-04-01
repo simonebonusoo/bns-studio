@@ -14,6 +14,7 @@ import { prisma } from "../lib/prisma.mjs"
 import { normalizeProductStatus, PRODUCT_STATUSES } from "../lib/product-status.mjs"
 import { getProductStockLabel, getProductStockStatus } from "../lib/product-stock.mjs"
 import { requireAdmin, requireAuth } from "../middleware/auth.mjs"
+import { logInfo } from "../lib/monitoring.mjs"
 import { getAvailableProductFormats, getBaseProductPrice, getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredProductOrder, saveProductOrder } from "../lib/product-order.mjs"
 import { assertFeaturedProductLimit } from "../lib/product-featured.mjs"
@@ -51,6 +52,25 @@ const upload = multer({
 })
 
 router.use(requireAuth, requireAdmin)
+router.use((req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    next()
+    return
+  }
+
+  res.on("finish", () => {
+    if (res.statusCode >= 200 && res.statusCode < 400) {
+      logInfo("admin_mutation", {
+        method: req.method,
+        path: req.originalUrl || req.url,
+        userId: req.user?.id || null,
+        role: req.user?.role || null,
+      })
+    }
+  })
+
+  next()
+})
 
 function parseCategories(value) {
   try {

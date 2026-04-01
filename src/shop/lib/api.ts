@@ -115,17 +115,16 @@ function buildApiError(response: Response, data: any, rawText: string) {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem("bns_shop_token")
   const isFormData = options.body instanceof FormData
 
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...options,
+      credentials: "include",
       headers: {
         Accept: "application/json",
         ...(isFormData ? {} : { "Content-Type": "application/json" }),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },
     })

@@ -1,13 +1,30 @@
 import bcrypt from "bcryptjs"
+import crypto from "node:crypto"
 import { Router } from "express"
 import { z } from "zod"
 
-import { signToken } from "../lib/auth.mjs"
+import { env } from "../config/env.mjs"
+import { clearAuthCookie, createSessionState, parseRequestCookies, setAuthCookie, signToken, verifyToken } from "../lib/auth.mjs"
 import { asyncHandler, HttpError } from "../lib/http.mjs"
+import { logInfo, logWarning } from "../lib/monitoring.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { requireAuth } from "../middleware/auth.mjs"
+import { createRateLimiter } from "../middleware/rate-limit.mjs"
+import { sanitizePlainText } from "../lib/sanitize-text.mjs"
 
 const router = Router()
+const authLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  keyPrefix: "auth",
+  message: "Troppi tentativi. Riprova tra qualche minuto.",
+})
+const profileLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  keyPrefix: "profile",
+  message: "Troppe modifiche profilo ravvicinate. Riprova tra poco.",
+})
 
 const passwordSchema = z.string().min(8)
 
@@ -83,6 +100,7 @@ async function serializeUser(user) {
 
 router.post(
   "/register",
+  authLimiter,
   asyncHandler(async (req, res) => {
     const body = credentialsSchema
       .extend({
@@ -105,31 +123,41 @@ router.post(
     ])
 
     if (existingEmail) {
+      logWarning("auth_register_conflict_email", { email: body.email.trim().toLowerCase() })
       throw new HttpError(409, "Email gia registrata")
     }
 
     if (existingUsername) {
+      logWarning("auth_register_conflict_username", { username: normalizedUsername })
       throw new HttpError(409, "Username gia registrato")
     }
 
+    const sessionState = createSessionState(req)
     const user = await prisma.user.create({
       data: {
-        email: body.email,
+        email: body.email.trim().toLowerCase(),
         username: normalizedUsername,
         passwordHash: await bcrypt.hash(body.password, 10),
-        firstName: body.firstName,
-        lastName: body.lastName,
-        shippingCountry: body.shippingCountry.trim(),
-        shippingRegion: body.shippingRegion.trim(),
-        shippingCity: body.shippingCity.trim(),
-        shippingAddressLine1: body.shippingAddressLine1.trim(),
-        shippingStreetNumber: body.shippingStreetNumber.trim(),
-        shippingPostalCode: body.shippingPostalCode.trim(),
+        firstName: sanitizePlainText(body.firstName),
+        lastName: sanitizePlainText(body.lastName),
+        shippingCountry: sanitizePlainText(body.shippingCountry),
+        shippingRegion: sanitizePlainText(body.shippingRegion),
+        shippingCity: sanitizePlainText(body.shippingCity),
+        shippingAddressLine1: sanitizePlainText(body.shippingAddressLine1),
+        shippingStreetNumber: sanitizePlainText(body.shippingStreetNumber),
+        shippingPostalCode: sanitizePlainText(body.shippingPostalCode),
+        sessionNonce: sessionState.sessionNonce,
+        sessionFingerprintHash: sessionState.sessionFingerprintHash,
       },
     })
 
+    const token = signToken(user, sessionState.sessionNonce)
+    setAuthCookie(res, token)
+    logInfo("auth_register_success", {
+      userId: user.id,
+      role: user.role,
+    })
     return res.status(201).json({
-      token: signToken(user),
       user: await serializeUser(user),
     })
   })
@@ -137,6 +165,7 @@ router.post(
 
 router.post(
   "/login",
+  authLimiter,
   asyncHandler(async (req, res) => {
     const body = loginSchema.parse(req.body)
     const identifier = body.identifier.trim()
@@ -145,14 +174,55 @@ router.post(
       : await prisma.user.findUnique({ where: { username: normalizeUsername(identifier) } })
 
     if (!user || !(await bcrypt.compare(body.password, user.passwordHash))) {
+      logWarning("auth_login_failed", {
+        identifierType: identifier.includes("@") ? "email" : "username",
+      })
       throw new HttpError(401, "Credenziali non valide")
     }
 
+    const sessionState = createSessionState(req)
+    const authenticatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        sessionNonce: sessionState.sessionNonce,
+        sessionFingerprintHash: sessionState.sessionFingerprintHash,
+      },
+    })
+
+    const token = signToken(authenticatedUser, sessionState.sessionNonce)
+    setAuthCookie(res, token)
+    logInfo("auth_login_success", {
+      userId: authenticatedUser.id,
+      role: authenticatedUser.role,
+      identifierType: identifier.includes("@") ? "email" : "username",
+    })
     return res.status(200).json({
-      token: signToken(user),
-      user: await serializeUser(user),
+      user: await serializeUser(authenticatedUser),
     })
   })
+)
+
+router.post(
+  "/logout",
+  asyncHandler(async (req, res) => {
+    const cookies = parseRequestCookies(req.headers.cookie)
+    const token = cookies[env.authCookieName]
+
+    if (token) {
+      try {
+        const payload = verifyToken(token)
+        await prisma.user.update({
+          where: { id: Number(payload.sub) },
+          data: {
+            sessionNonce: crypto.randomUUID(),
+            sessionFingerprintHash: null,
+          },
+        })
+      } catch {}
+    }
+    clearAuthCookie(res)
+    return res.status(200).json({ ok: true })
+  }),
 )
 
 router.get(
@@ -168,6 +238,7 @@ router.get(
 router.patch(
   "/profile",
   requireAuth,
+  profileLimiter,
   asyncHandler(async (req, res) => {
     const body = z
       .object({
@@ -201,35 +272,35 @@ router.patch(
     }
 
     if (body.firstName) {
-      updates.firstName = body.firstName.trim()
+      updates.firstName = sanitizePlainText(body.firstName)
     }
 
     if (body.lastName) {
-      updates.lastName = body.lastName.trim()
+      updates.lastName = sanitizePlainText(body.lastName)
     }
 
     if (body.shippingCountry) {
-      updates.shippingCountry = body.shippingCountry.trim()
+      updates.shippingCountry = sanitizePlainText(body.shippingCountry)
     }
 
     if (body.shippingRegion) {
-      updates.shippingRegion = body.shippingRegion.trim()
+      updates.shippingRegion = sanitizePlainText(body.shippingRegion)
     }
 
     if (body.shippingCity) {
-      updates.shippingCity = body.shippingCity.trim()
+      updates.shippingCity = sanitizePlainText(body.shippingCity)
     }
 
     if (body.shippingAddressLine1) {
-      updates.shippingAddressLine1 = body.shippingAddressLine1.trim()
+      updates.shippingAddressLine1 = sanitizePlainText(body.shippingAddressLine1)
     }
 
     if (body.shippingStreetNumber) {
-      updates.shippingStreetNumber = body.shippingStreetNumber.trim()
+      updates.shippingStreetNumber = sanitizePlainText(body.shippingStreetNumber)
     }
 
     if (body.shippingPostalCode) {
-      updates.shippingPostalCode = body.shippingPostalCode.trim()
+      updates.shippingPostalCode = sanitizePlainText(body.shippingPostalCode)
     }
 
     if (body.email) {
@@ -243,6 +314,9 @@ router.patch(
         throw new HttpError(409, "Email gia registrata")
       }
       updates.email = email
+      logInfo("profile_email_change_requested", {
+        userId: req.user.id,
+      })
     }
 
     if (body.newPassword) {
@@ -250,11 +324,27 @@ router.patch(
         throw new HttpError(401, "Password attuale non valida")
       }
       updates.passwordHash = await bcrypt.hash(body.newPassword, 10)
+      logInfo("profile_password_change_requested", {
+        userId: req.user.id,
+      })
     }
 
+    const sessionState = createSessionState(req)
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: updates,
+      data: {
+        ...updates,
+        sessionNonce: sessionState.sessionNonce,
+        sessionFingerprintHash: sessionState.sessionFingerprintHash,
+      },
+    })
+    setAuthCookie(res, signToken(user, sessionState.sessionNonce))
+
+    logInfo("profile_updated", {
+      userId: req.user.id,
+      changedFields: Object.keys(updates)
+        .filter((key) => key !== "passwordHash")
+        .concat(body.newPassword ? ["password"] : []),
     })
 
     return res.status(200).json({
