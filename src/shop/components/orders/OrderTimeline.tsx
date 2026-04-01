@@ -125,16 +125,16 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
         })}
       </ol>
 
-      <ol className="hidden grid-cols-5 gap-3 md:grid">
+      <ol className="hidden flex-nowrap items-start gap-2 overflow-hidden md:flex xl:gap-3">
         {steps.map((step, index) => {
           const state = step.current ? "current" : step.active ? "completed" : "upcoming"
           const lines = getTimelineLabelLines(step.label)
 
           return (
-            <li key={step.key} className="min-w-0">
+            <li key={step.key} className="flex min-w-0 flex-1 basis-0 items-start gap-2">
               <div className="flex items-center gap-3">
                 <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-sm font-semibold transition-all ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-all xl:h-10 xl:w-10 xl:text-sm ${
                     state === "current"
                       ? "border-[#e3f503]/50 bg-[#e3f503]/18 text-[#f3ff94] shadow-[0_0_24px_rgba(227,245,3,0.18)]"
                       : state === "completed"
@@ -144,14 +144,14 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
                 >
                   {step.active ? "✓" : String(index + 1)}
                 </span>
-                {index < steps.length - 1 ? <span className={`h-px flex-1 ${step.active ? "bg-emerald-300/35" : "bg-white/10"}`} /> : null}
+                {index < steps.length - 1 ? <span className={`h-px min-w-[0.6rem] flex-1 ${step.active ? "bg-emerald-300/35" : "bg-white/10"}`} /> : null}
               </div>
-              <div className="mt-3 space-y-1">
-                <p className={`text-sm font-medium leading-5 ${state === "upcoming" ? "text-white/42" : "text-white"}`}>
+              <div className="mt-1 min-w-0 space-y-1">
+                <p className={`text-[12px] font-medium leading-4 xl:text-sm xl:leading-5 ${state === "upcoming" ? "text-white/42" : "text-white"}`}>
                   <span className="block">{lines.firstLine}</span>
                   <span className="block">{lines.secondLine}</span>
                 </p>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-white/38 xl:text-[11px] xl:tracking-[0.18em]">
                   {state === "current" ? "Attuale" : state === "completed" ? "Completato" : "In attesa"}
                 </p>
               </div>

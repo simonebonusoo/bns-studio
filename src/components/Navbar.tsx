@@ -2,7 +2,16 @@ import type { WheelEvent } from "react"
 import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useLocation, useNavigate } from "react-router-dom"
-import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline"
+import {
+  Bars3Icon,
+  HomeIcon,
+  MagnifyingGlassIcon,
+  ShoppingBagIcon,
+  Squares2X2Icon,
+  UserCircleIcon,
+  UserIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline"
 
 import { Container } from "./Container"
 import { Logo } from "./Logo"
@@ -143,6 +152,7 @@ function SuggestionProductCard({
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
@@ -188,6 +198,7 @@ export function Navbar() {
   const { items, couponCode, clearCart, removeItem } = useShopCart()
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
   const profileRef = useRef<HTMLDivElement | null>(null)
   const cartRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -208,6 +219,7 @@ export function Navbar() {
           ? (event.detail as { step?: "initial" | "login" | "register" } | undefined)
           : undefined
 
+      setMenuOpen(false)
       setSearchOpen(false)
       setCartOpen(false)
       setProfileStep(detail?.step || "initial")
@@ -251,7 +263,7 @@ export function Navbar() {
   }, [products, searchOpen])
 
   useEffect(() => {
-    if (!searchOpen && !profileOpen && !cartOpen) return
+    if (!menuOpen && !searchOpen && !profileOpen && !cartOpen) return
 
     const previousOverflow = document.body.style.overflow
     const previousHtmlOverflow = document.documentElement.style.overflow
@@ -270,20 +282,25 @@ export function Navbar() {
     document.documentElement.style.overflow = "hidden"
     window.__lenis?.stop?.()
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setSearchOpen(false)
-        setProfileOpen(false)
-        setCartOpen(false)
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          setMenuOpen(false)
+          setSearchOpen(false)
+          setProfileOpen(false)
+          setCartOpen(false)
       }
     }
 
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node
+      const handlePointerDown = (event: MouseEvent) => {
+        const target = event.target as Node
 
-      if (searchOpen && !overlayRef.current?.contains(target) && !inputRef.current?.contains(target)) {
-        setSearchOpen(false)
-      }
+        if (menuOpen && !menuRef.current?.contains(target)) {
+          setMenuOpen(false)
+        }
+
+        if (searchOpen && !overlayRef.current?.contains(target) && !inputRef.current?.contains(target)) {
+          setSearchOpen(false)
+        }
 
       if (profileOpen && !profileRef.current?.contains(target)) {
         setProfileOpen(false)
@@ -306,7 +323,7 @@ export function Navbar() {
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("mousedown", handlePointerDown)
     }
-  }, [cartOpen, profileOpen, searchOpen])
+  }, [cartOpen, menuOpen, profileOpen, searchOpen])
 
   useEffect(() => {
     if (!searchOpen) return
@@ -315,6 +332,7 @@ export function Navbar() {
   }, [searchOpen])
 
   useEffect(() => {
+    setMenuOpen(false)
     setSearchOpen(false)
     setProfileOpen(false)
     setCartOpen(false)
@@ -324,6 +342,7 @@ export function Navbar() {
     const params = new URLSearchParams(location.search)
     if (location.pathname !== "/" || params.get("profile") !== "open") return
 
+    setMenuOpen(false)
     setSearchOpen(false)
     setCartOpen(false)
     setProfileStep("initial")
@@ -414,9 +433,27 @@ export function Navbar() {
       .sort((left, right) => scoreSearchSuggestion(right, trimmedSearch) - scoreSearchSuggestion(left, trimmedSearch))
   }, [products, trimmedSearch])
 
+  function openProfilePanel(step: "initial" | "login" | "register" = "initial") {
+    setMenuOpen(false)
+    setSearchOpen(false)
+    setCartOpen(false)
+    setProfileStep(step)
+    setProfileLoggedStep("overview")
+    setProfileEditField(null)
+    setProfileOpen(true)
+  }
+
+  function openCartPanel() {
+    setMenuOpen(false)
+    setSearchOpen(false)
+    setProfileOpen(false)
+    setCartOpen(true)
+  }
+
   function submitSearch(nextSearch = trimmedSearch) {
     const value = nextSearch.trim()
     navigate(value ? `/shop?search=${encodeURIComponent(value)}` : "/shop")
+    setMenuOpen(false)
     setSearchOpen(false)
   }
 
@@ -564,82 +601,246 @@ export function Navbar() {
                 initial={{ y: -12, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="relative z-20 grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-3 md:min-h-[88px] md:gap-6 md:py-4"
+                className="relative z-20"
               >
-                <a href="#top" aria-label="Vai all'inizio" className="flex items-center no-underline">
-                  <Logo className="h-8 md:h-9" />
-                </a>
-
-                <div
-                  className={[
-                    "flex h-[46px] w-full items-center gap-3 rounded-full border bg-white/[0.04] px-4 backdrop-blur-xl transition md:h-[50px] md:px-5",
-                    searchOpen ? "border-white/20 text-white" : "border-white/10 text-white/55 hover:border-white/20 hover:text-white",
-                  ].join(" ")}
-                >
-                  <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
-                  <input
-                    ref={inputRef}
-                    value={search}
-                    onFocus={() => setSearchOpen(true)}
-                    onChange={(event) => {
-                      setSearch(event.target.value)
-                      if (!searchOpen) setSearchOpen(true)
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        submitSearch(search)
-                      }
-                    }}
-                    placeholder="Cerca prodotti, nomi, artisti..."
-                    className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none md:text-base"
-                  />
-                  {search || searchOpen ? (
+                <div className="flex min-h-[68px] items-center justify-between gap-3 py-3 md:hidden">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => {
-                        setSearch("")
                         setSearchOpen(false)
+                        setCartOpen(false)
+                        setProfileOpen(false)
+                        setMenuOpen((current) => !current)
                       }}
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
-                      aria-label="Chiudi ricerca"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/72 transition hover:border-white/20 hover:text-white"
+                      aria-label="Apri menu"
                     >
-                      <XMarkIcon className="h-4 w-4" />
+                      <Bars3Icon className="h-5 w-5" />
                     </button>
-                  ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        setCartOpen(false)
+                        setProfileOpen(false)
+                        setSearchOpen(true)
+                      }}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/72 transition hover:border-white/20 hover:text-white"
+                      aria-label="Apri ricerca"
+                    >
+                      <MagnifyingGlassIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  <a href="#top" aria-label="Vai all'inizio" className="flex flex-1 items-center justify-center no-underline">
+                    <Logo className="h-7" />
+                  </a>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={openCartPanel}
+                      className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/72 transition hover:border-white/20 hover:text-white"
+                      aria-label="Apri carrello"
+                    >
+                      <ShoppingBagIcon className="h-5 w-5" />
+                      {cartCount ? (
+                        <span className="absolute -right-1 -top-1 inline-flex min-w-[1.15rem] items-center justify-center rounded-full bg-[#e3f503] px-1.5 py-0.5 text-[10px] font-semibold text-black">
+                          {cartCount}
+                        </span>
+                      ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (user) {
+                          navigate("/shop/profile")
+                          return
+                        }
+                        openProfilePanel("initial")
+                      }}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/72 transition hover:border-white/20 hover:text-white"
+                      aria-label={user ? "Apri profilo" : "Accedi o crea account"}
+                    >
+                      <UserCircleIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 md:gap-3">
-                  <Button
-                    onClick={() => {
-                      setSearchOpen(false)
-                      setCartOpen(false)
-                      setProfileStep("initial")
-                      setProfileOpen(true)
-                    }}
-                    variant="ghost"
-                    size="sm"
-                    className="hidden sm:inline-flex"
-                  >
-                    Profilo
-                  </Button>
+                <div className="hidden min-h-[88px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-6 py-4 md:grid">
+                  <a href="#top" aria-label="Vai all'inizio" className="flex items-center no-underline">
+                    <Logo className="h-9" />
+                  </a>
 
-                  <Button
-                    onClick={() => {
-                      setSearchOpen(false)
-                      setProfileOpen(false)
-                      setCartOpen(true)
-                    }}
-                    size="sm"
-                    text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}
+                  <div
+                    className={[
+                      "flex h-[50px] w-full items-center gap-3 rounded-full border bg-white/[0.04] px-5 backdrop-blur-xl transition",
+                      searchOpen ? "border-white/20 text-white" : "border-white/10 text-white/55 hover:border-white/20 hover:text-white",
+                    ].join(" ")}
                   >
-                    Carrello
-                  </Button>
+                    <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
+                    <input
+                      ref={inputRef}
+                      value={search}
+                      onFocus={() => setSearchOpen(true)}
+                      onChange={(event) => {
+                        setSearch(event.target.value)
+                        if (!searchOpen) setSearchOpen(true)
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          submitSearch(search)
+                        }
+                      }}
+                      placeholder="Cerca prodotti, nomi, artisti..."
+                      className="w-full bg-transparent text-base text-white placeholder:text-white/35 outline-none"
+                    />
+                    {search || searchOpen ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearch("")
+                          setSearchOpen(false)
+                        }}
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
+                        aria-label="Chiudi ricerca"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3">
+                    <Button onClick={() => openProfilePanel("initial")} variant="ghost" size="sm" className="hidden sm:inline-flex">
+                      Profilo
+                    </Button>
+
+                    <Button onClick={openCartPanel} size="sm" text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}>
+                      Carrello
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             </Container>
           </div>
         </div>
       </header>
+
+      <AnimatePresence>
+        {menuOpen ? (
+          <Fragment>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={overlayTransition}
+              className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm md:hidden"
+            />
+
+            <motion.aside
+              ref={menuRef}
+              initial={{ opacity: 0, x: -18 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={drawerTransition}
+              className="fixed inset-y-0 left-0 z-50 w-[88vw] max-w-sm border-r border-white/10 bg-[#0b0b0c]/97 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl md:hidden"
+            >
+              <div className="flex h-full flex-col">
+                <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">Menu shop</p>
+                    <h2 className="mt-3 text-2xl font-semibold text-white">Naviga BNS Studio</h2>
+                    <p className="mt-2 text-sm text-white/60">Accesso rapido a shop, categorie, account, ordini e informazioni.</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen(false)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/55 transition hover:border-white/20 hover:text-white"
+                    aria-label="Chiudi menu"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 space-y-3 overflow-y-auto py-6">
+                  {[
+                    {
+                      label: "Shop / homepage",
+                      description: "Torna alla home principale dello shop.",
+                      icon: <HomeIcon className="h-5 w-5" />,
+                      onClick: () => {
+                        setMenuOpen(false)
+                        navigate("/")
+                      },
+                    },
+                    {
+                      label: "Categorie",
+                      description: "Apri il catalogo e le collezioni disponibili.",
+                      icon: <Squares2X2Icon className="h-5 w-5" />,
+                      onClick: () => {
+                        setMenuOpen(false)
+                        navigate("/shop")
+                      },
+                    },
+                    {
+                      label: "Account",
+                      description: "Gestisci accesso, profilo e area personale.",
+                      icon: <UserCircleIcon className="h-5 w-5" />,
+                      onClick: () => {
+                        if (user) {
+                          setMenuOpen(false)
+                          navigate("/shop/profile")
+                          return
+                        }
+                        openProfilePanel("initial")
+                      },
+                    },
+                    {
+                      label: "Ordini",
+                      description: "Consulta ordini e stato spedizione.",
+                      icon: <UserIcon className="h-5 w-5" />,
+                      onClick: () => {
+                        if (user) {
+                          setMenuOpen(false)
+                          navigate("/shop/profile")
+                          return
+                        }
+                        openProfilePanel("login")
+                      },
+                    },
+                    {
+                      label: "Privacy / info",
+                      description: "Apri privacy policy e informazioni utili.",
+                      icon: <MagnifyingGlassIcon className="h-5 w-5" />,
+                      onClick: () => {
+                        setMenuOpen(false)
+                        navigate("/privacy")
+                      },
+                    },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.onClick}
+                      className="flex w-full items-center gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4 text-left transition hover:border-white/20 hover:bg-white/[0.05]"
+                    >
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/82">
+                        {item.icon}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-white">{item.label}</span>
+                        <span className="mt-1 block text-xs text-white/55">{item.description}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.aside>
+          </Fragment>
+        ) : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {searchOpen ? (
@@ -658,15 +859,44 @@ export function Navbar() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={drawerTransition}
-              className="fixed inset-x-0 top-[72px] z-50 pb-6 md:top-[88px]"
+              className="fixed inset-0 z-50 px-4 pb-5 pt-[calc(env(safe-area-inset-top)+14px)] md:inset-x-0 md:top-[88px] md:px-0 md:pb-6 md:pt-0"
             >
-              <Container>
-                <div
-                  ref={overlayRef}
-                  className="overflow-hidden rounded-[32px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-2xl"
-                >
+              <div className="h-full md:h-auto">
+                <Container>
+                  <div
+                    ref={overlayRef}
+                    className="flex h-full flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-2xl md:h-auto md:rounded-[32px]"
+                  >
+                    <div className="border-b border-white/10 p-4 md:hidden">
+                      <div className="flex h-12 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4">
+                        <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
+                        <input
+                          ref={inputRef}
+                          value={search}
+                          onChange={(event) => setSearch(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              submitSearch(search)
+                            }
+                          }}
+                          placeholder="Cerca prodotti, nomi, artisti..."
+                          className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearch("")
+                            setSearchOpen(false)
+                          }}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
+                          aria-label="Chiudi ricerca"
+                        >
+                          <XMarkIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
                   {!trimmedSearch ? (
-                    <div className="p-4 md:p-6">
+                    <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
                       <div className="mb-5 flex items-center justify-between gap-4">
                         <div>
                           <p className="text-xs uppercase tracking-[0.26em] text-white/45">Suggerimenti</p>
@@ -695,7 +925,7 @@ export function Navbar() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-4 md:p-6">
+                    <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
                       <div className="mb-5 flex items-center justify-between gap-4">
                         <div>
                           <p className="text-xs uppercase tracking-[0.26em] text-white/45">Risultati live</p>
@@ -736,8 +966,9 @@ export function Navbar() {
                       </div>
                     </div>
                   )}
-                </div>
-              </Container>
+                  </div>
+                </Container>
+              </div>
             </motion.div>
           </Fragment>
         ) : null}
@@ -972,11 +1203,11 @@ export function Navbar() {
 
             <motion.aside
               ref={profileRef}
-              initial={{ opacity: 0, x: 18 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 18 }}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 18 }}
               transition={drawerTransition}
-              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-hidden border-l border-white/10 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform"
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[86dvh] w-full overflow-hidden rounded-t-[30px] border border-white/10 border-b-0 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform md:inset-y-0 md:left-auto md:right-0 md:top-0 md:max-h-none md:max-w-md md:rounded-none md:border md:border-b-0 md:border-l"
             >
                 <div className="flex h-full min-h-0 flex-col">
                   <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
@@ -1175,6 +1406,26 @@ export function Navbar() {
                             <p className="text-sm text-white/65">
                               Entra nel tuo account per checkout piu rapido, storico ordini e area personale.
                             </p>
+                            <div className="mt-5 space-y-3 md:hidden">
+                              <input
+                                className="shop-input"
+                                type="email"
+                                placeholder="Inserisci la tua email"
+                                value={loginForm.identifier}
+                                onChange={(event) => setLoginForm({ ...loginForm, identifier: event.target.value })}
+                              />
+                              <Button className="w-full" onClick={() => setProfileStep("login")}>
+                                Accedi o crea un account
+                              </Button>
+                              <div className="grid grid-cols-2 gap-3">
+                                <Button variant="ghost" className="w-full" onClick={() => setProfileStep("login")}>
+                                  Ordini
+                                </Button>
+                                <Button variant="ghost" className="w-full" onClick={() => setProfileStep("login")}>
+                                  Profilo
+                                </Button>
+                              </div>
+                            </div>
                             <div className="mt-5 flex flex-col gap-3">
                               <Button className="w-full" onClick={() => setProfileStep("login")}>
                                 Accedi

@@ -171,6 +171,7 @@ function downloadChartCsv(filename: string, rows: Array<Record<string, string | 
 export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps) {
   const [showMetrics, setShowMetrics] = useState(true)
   const [activePrimaryDatum, setActivePrimaryDatum] = useState<{ key: string; type: "views" | "revenue" } | null>(null)
+  const [activeSecondaryDatum, setActiveSecondaryDatum] = useState<string | null>(null)
 
   const points = analytics?.chartSeries || []
   const primaryChart = useMemo(() => buildPrimaryChart(points), [points])
@@ -191,6 +192,17 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
       value: formatPrice(point.revenue),
     }
   }, [activePrimaryDatum, points])
+
+  const activeSecondaryValue = useMemo(() => {
+    if (!activeSecondaryDatum) return null
+    const point = points.find((entry) => entry.key === activeSecondaryDatum)
+    if (!point) return null
+    return {
+      title: point.label,
+      expenses: formatPrice(point.expenses),
+      net: formatPrice(point.net),
+    }
+  }, [activeSecondaryDatum, points])
 
   return (
     <div className="space-y-6">
@@ -393,7 +405,22 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
                 </div>
               </div>
             ) : secondaryChart ? (
-              <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="relative rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+                {activeSecondaryValue ? (
+                  <div className="absolute right-4 top-4 rounded-2xl border border-white/10 bg-[#0e0e10]/95 px-4 py-3 text-right shadow-xl">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/42">{activeSecondaryValue.title}</p>
+                    <div className="mt-2 space-y-1.5 text-sm">
+                      <p className="flex items-center justify-end gap-2 text-white/72">
+                        <span className="h-2.5 w-2.5 rounded-full bg-white/60" />
+                        <span>Spese {activeSecondaryValue.expenses}</span>
+                      </p>
+                      <p className="flex items-center justify-end gap-2 text-white">
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#eef879]" />
+                        <span>Utile netto {activeSecondaryValue.net}</span>
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
                 <svg viewBox={`0 0 ${secondaryChart.width} ${secondaryChart.height}`} className="h-[220px] w-full">
                   {[0, 0.5, 1].map((ratio) => {
                     const y = secondaryChart.paddingTop + secondaryChart.usableHeight * ratio
@@ -422,13 +449,37 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
                   {secondaryChart.expensePoints.map((point) => (
                     <g key={`expense-${point.key}`}>
                       <circle cx={point.x} cy={point.y} r="3.5" fill="rgba(255,255,255,0.55)" />
+                      <circle
+                        cx={point.x}
+                        cy={point.y}
+                        r="12"
+                        fill="transparent"
+                        onMouseEnter={() => setActiveSecondaryDatum(point.key)}
+                        onMouseLeave={() => setActiveSecondaryDatum(null)}
+                        onFocus={() => setActiveSecondaryDatum(point.key)}
+                        onBlur={() => setActiveSecondaryDatum(null)}
+                        onClick={() => setActiveSecondaryDatum(point.key)}
+                      />
                       <text x={point.x} y={secondaryChart.height - 10} textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="12">
                         {point.label}
                       </text>
                     </g>
                   ))}
                   {secondaryChart.netPoints.map((point) => (
-                    <circle key={`net-${point.key}`} cx={point.x} cy={point.y} r="3.5" fill="#eef879" />
+                    <g key={`net-${point.key}`}>
+                      <circle cx={point.x} cy={point.y} r="3.5" fill="#eef879" />
+                      <circle
+                        cx={point.x}
+                        cy={point.y}
+                        r="12"
+                        fill="transparent"
+                        onMouseEnter={() => setActiveSecondaryDatum(point.key)}
+                        onMouseLeave={() => setActiveSecondaryDatum(null)}
+                        onFocus={() => setActiveSecondaryDatum(point.key)}
+                        onBlur={() => setActiveSecondaryDatum(null)}
+                        onClick={() => setActiveSecondaryDatum(point.key)}
+                      />
+                    </g>
                   ))}
                 </svg>
               </div>
