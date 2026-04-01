@@ -53,25 +53,60 @@ export function parseRequestCookies(headerValue = "") {
     }, {})
 }
 
-export function getAuthCookieOptions() {
+function getRequestOrigin(req) {
+  const origin = String(req?.headers?.origin || "").trim()
+  if (origin) return origin
+
+  const referer = String(req?.headers?.referer || "").trim()
+  if (!referer) return ""
+
+  try {
+    return new URL(referer).origin
+  } catch {
+    return ""
+  }
+}
+
+function resolveCookieSameSite(req) {
+  const configured = String(env.authCookieSameSite || "lax").trim().toLowerCase()
+  const requestOrigin = getRequestOrigin(req)
+  const requestHost = String(req?.headers?.host || "").trim().toLowerCase()
+
+  if (!requestOrigin || !requestHost) {
+    return configured
+  }
+
+  try {
+    const originHost = new URL(requestOrigin).host.toLowerCase()
+    if (originHost && originHost !== requestHost) {
+      return "none"
+    }
+  } catch {}
+
+  return configured
+}
+
+export function getAuthCookieOptions(req) {
+  const sameSite = resolveCookieSameSite(req)
   return {
     httpOnly: true,
-    secure: env.authCookieSecure,
-    sameSite: env.authCookieSameSite,
+    secure: env.authCookieSecure || sameSite === "none",
+    sameSite,
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
     path: "/",
   }
 }
 
-export function setAuthCookie(res, token) {
-  res.cookie(env.authCookieName, token, getAuthCookieOptions())
+export function setAuthCookie(res, token, req) {
+  res.cookie(env.authCookieName, token, getAuthCookieOptions(req))
 }
 
-export function clearAuthCookie(res) {
+export function clearAuthCookie(res, req) {
+  const { secure, sameSite, path, httpOnly } = getAuthCookieOptions(req)
   res.clearCookie(env.authCookieName, {
-    httpOnly: true,
-    secure: env.authCookieSecure,
-    sameSite: env.authCookieSameSite,
-    path: "/",
+    httpOnly,
+    secure,
+    sameSite,
+    path,
   })
 }

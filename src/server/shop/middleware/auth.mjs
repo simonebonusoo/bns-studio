@@ -15,6 +15,8 @@ export async function requireAuth(req, _res, next) {
     logWarning("auth_missing_credentials", {
       method: req.method,
       path: req.originalUrl || req.url,
+      hasCookie: Boolean(cookieToken),
+      hasBearer: Boolean(bearerToken),
     })
     return next(new HttpError(401, "Autenticazione richiesta"))
   }
@@ -27,6 +29,7 @@ export async function requireAuth(req, _res, next) {
         method: req.method,
         path: req.originalUrl || req.url,
         userId: Number(payload.sub) || null,
+        hasCookie: Boolean(cookieToken),
       })
       return next(new HttpError(401, "Utente non trovato"))
     }
@@ -35,6 +38,7 @@ export async function requireAuth(req, _res, next) {
         method: req.method,
         path: req.originalUrl || req.url,
         userId: user.id,
+        hasCookie: Boolean(cookieToken),
       })
       return next(new HttpError(401, "Sessione non valida"))
     }
@@ -43,6 +47,7 @@ export async function requireAuth(req, _res, next) {
         method: req.method,
         path: req.originalUrl || req.url,
         userId: user.id,
+        hasCookie: Boolean(cookieToken),
       })
       return next(new HttpError(401, "Sessione non valida"))
     }
@@ -52,6 +57,8 @@ export async function requireAuth(req, _res, next) {
     logWarning("auth_invalid_token", {
       method: req.method,
       path: req.originalUrl || req.url,
+      hasCookie: Boolean(cookieToken),
+      hasBearer: Boolean(bearerToken),
     })
     next(error instanceof HttpError ? error : new HttpError(401, "Token non valido"))
   }

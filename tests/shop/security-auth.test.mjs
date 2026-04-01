@@ -30,11 +30,13 @@ test("auth and admin security use cookies, server-side guards and rate limiting"
   assert.match(authProvider, /apiFetch<\{ user: ShopUser \}>\("\/auth\/me"\)/)
 
   assert.match(authLib, /httpOnly: true/)
-  assert.match(authLib, /sameSite:/)
+  assert.match(authLib, /sameSite/)
   assert.match(authLib, /res\.cookie\(env\.authCookieName/)
   assert.match(authLib, /res\.clearCookie\(env\.authCookieName/)
   assert.match(authLib, /sessionNonce|sid/)
   assert.match(authLib, /hashSessionFingerprint/)
+  assert.match(authLib, /originHost && originHost !== requestHost/)
+  assert.match(authLib, /return "none"/)
 
   assert.match(authMiddleware, /parseRequestCookies/)
   assert.match(authMiddleware, /cookieToken \|\| bearerToken/)
@@ -44,7 +46,7 @@ test("auth and admin security use cookies, server-side guards and rate limiting"
 
   assert.match(authRoutes, /authLimiter/)
   assert.match(authRoutes, /profileLimiter/)
-  assert.match(authRoutes, /setAuthCookie\(res, token\)/)
+  assert.match(authRoutes, /setAuthCookie\(res, token, req\)/)
   assert.doesNotMatch(authRoutes, /token: signToken/)
   assert.match(authRoutes, /router\.post\(\s*"\/logout"/)
   assert.match(authRoutes, /auth_login_failed/)

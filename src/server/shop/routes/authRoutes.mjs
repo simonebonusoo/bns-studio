@@ -152,7 +152,7 @@ router.post(
     })
 
     const token = signToken(user, sessionState.sessionNonce)
-    setAuthCookie(res, token)
+    setAuthCookie(res, token, req)
     logInfo("auth_register_success", {
       userId: user.id,
       role: user.role,
@@ -190,7 +190,7 @@ router.post(
     })
 
     const token = signToken(authenticatedUser, sessionState.sessionNonce)
-    setAuthCookie(res, token)
+    setAuthCookie(res, token, req)
     logInfo("auth_login_success", {
       userId: authenticatedUser.id,
       role: authenticatedUser.role,
@@ -220,7 +220,7 @@ router.post(
         })
       } catch {}
     }
-    clearAuthCookie(res)
+    clearAuthCookie(res, req)
     return res.status(200).json({ ok: true })
   }),
 )
