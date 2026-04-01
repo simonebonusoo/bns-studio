@@ -15,11 +15,14 @@ export function ShopRegisterPage() {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
-    country: "",
-    region: "",
-    addressLine1: "",
-    username: "",
     email: "",
+    username: "",
+    shippingCountry: "",
+    shippingRegion: "",
+    shippingCity: "",
+    shippingAddressLine1: "",
+    shippingStreetNumber: "",
+    shippingPostalCode: "",
     currentPassword: "",
     password: "",
     confirmPassword: "",
@@ -31,8 +34,14 @@ export function ShopRegisterPage() {
       ...current,
       firstName: user.firstName || "",
       lastName: user.lastName || "",
-      username: user.username || "",
       email: user.email || "",
+      username: user.username || "",
+      shippingCountry: user.shippingCountry || "",
+      shippingRegion: user.shippingRegion || "",
+      shippingCity: user.shippingCity || "",
+      shippingAddressLine1: user.shippingAddressLine1 || "",
+      shippingStreetNumber: user.shippingStreetNumber || "",
+      shippingPostalCode: user.shippingPostalCode || "",
       currentPassword: "",
       password: "",
       confirmPassword: "",
@@ -43,7 +52,7 @@ export function ShopRegisterPage() {
     event.preventDefault()
     setError("")
 
-    if (!isEditMode && form.password !== form.confirmPassword) {
+    if (form.password !== form.confirmPassword) {
       setError("La conferma password non coincide.")
       return
     }
@@ -53,25 +62,44 @@ export function ShopRegisterPage() {
 
       if (isEditMode) {
         const isChangingEmail = form.email.trim().toLowerCase() !== user?.email.toLowerCase()
+        const isChangingPassword = Boolean(form.password.trim())
         if (isChangingEmail && !form.currentPassword.trim()) {
           setError("Inserisci la password attuale per modificare l'email.")
+          return
+        }
+        if (isChangingPassword && !form.currentPassword.trim()) {
+          setError("Inserisci la password attuale per cambiare la password.")
           return
         }
 
         await updateProfile({
           firstName: form.firstName,
           lastName: form.lastName,
-          username: form.username,
           email: form.email,
+          username: form.username,
+          shippingCountry: form.shippingCountry,
+          shippingRegion: form.shippingRegion,
+          shippingCity: form.shippingCity,
+          shippingAddressLine1: form.shippingAddressLine1,
+          shippingStreetNumber: form.shippingStreetNumber,
+          shippingPostalCode: form.shippingPostalCode,
+          ...(isChangingPassword ? { newPassword: form.password } : {}),
           ...(isChangingEmail ? { currentPassword: form.currentPassword } : {}),
+          ...(!isChangingEmail && isChangingPassword ? { currentPassword: form.currentPassword } : {}),
         })
       } else {
         await login(
           {
             firstName: form.firstName,
             lastName: form.lastName,
-            username: form.username,
             email: form.email,
+            username: form.username,
+            shippingCountry: form.shippingCountry,
+            shippingRegion: form.shippingRegion,
+            shippingCity: form.shippingCity,
+            shippingAddressLine1: form.shippingAddressLine1,
+            shippingStreetNumber: form.shippingStreetNumber,
+            shippingPostalCode: form.shippingPostalCode,
             password: form.password,
           },
           "register",
@@ -91,13 +119,18 @@ export function ShopRegisterPage() {
     if (step === 1) {
       if (!form.firstName.trim()) return setError("Inserisci il nome.")
       if (!form.lastName.trim()) return setError("Inserisci il cognome.")
+      if (!form.email.trim()) return setError("Inserisci l'email.")
+      if (!form.username.trim()) return setError("Inserisci lo username.")
       setStep(2)
       return
     }
 
-    if (!form.country.trim()) return setError("Inserisci il paese.")
-    if (!form.region.trim()) return setError("Inserisci la provincia.")
-    if (!form.addressLine1.trim()) return setError("Inserisci la via.")
+    if (!form.shippingCountry.trim()) return setError("Inserisci lo stato.")
+    if (!form.shippingRegion.trim()) return setError("Inserisci la provincia.")
+    if (!form.shippingCity.trim()) return setError("Inserisci paese o citta.")
+    if (!form.shippingAddressLine1.trim()) return setError("Inserisci la via.")
+    if (!form.shippingStreetNumber.trim()) return setError("Inserisci il numero civico.")
+    if (!form.shippingPostalCode.trim()) return setError("Inserisci il CAP.")
     setStep(3)
   }
 
@@ -116,18 +149,18 @@ export function ShopRegisterPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                {step === 1 ? "Dati personali" : step === 2 ? "Indirizzo" : "Account"}
+                {step === 1 ? "Dati personali" : step === 2 ? "Indirizzo spedizione" : "Sicurezza account"}
               </p>
               <h2 className="mt-3 text-2xl font-semibold text-white">
-                {step === 1 ? "Dati personali" : step === 2 ? "Indirizzo" : "Account"}
+                {step === 1 ? "Dati personali" : step === 2 ? "Indirizzo spedizione" : "Sicurezza account"}
               </h2>
               <p className="mt-2 text-sm text-white/60">
                 {step === 1
-                  ? "Inserisci i dati principali del profilo."
+                  ? "Imposta i dati principali dell'account e del profilo cliente."
                   : step === 2
-                    ? "Completa i dettagli di indirizzo."
+                    ? "Salva i dati base da riutilizzare come spedizione iniziale nei prossimi ordini."
                     : isEditMode
-                      ? "Aggiorna i dati account e, se cambi email, conferma con la password attuale."
+                      ? "Aggiorna email e sicurezza. La password resta opzionale se non devi cambiarla."
                       : "Scegli le credenziali del nuovo account."}
               </p>
             </div>
@@ -150,44 +183,6 @@ export function ShopRegisterPage() {
                 onChange={(event) => setForm({ ...form, lastName: event.target.value })}
                 required
               />
-            </div>
-          ) : null}
-
-          {step === 2 ? (
-            <div className="grid gap-3">
-              <input
-                className="shop-input py-2.5"
-                placeholder="Stato / Paese"
-                value={form.country}
-                onChange={(event) => setForm({ ...form, country: event.target.value })}
-                required
-              />
-              <input
-                className="shop-input py-2.5"
-                placeholder="Provincia"
-                value={form.region}
-                onChange={(event) => setForm({ ...form, region: event.target.value })}
-                required
-              />
-              <input
-                className="shop-input py-2.5"
-                placeholder="Via"
-                value={form.addressLine1}
-                onChange={(event) => setForm({ ...form, addressLine1: event.target.value })}
-                required
-              />
-            </div>
-          ) : null}
-
-          {step === 3 ? (
-            <div className="grid gap-3">
-              <input
-                className="shop-input py-2.5"
-                placeholder="Username"
-                value={form.username}
-                onChange={(event) => setForm({ ...form, username: event.target.value })}
-                required
-              />
               <input
                 className="shop-input py-2.5"
                 type="email"
@@ -196,14 +191,91 @@ export function ShopRegisterPage() {
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
                 required
               />
+              <input
+                className="shop-input py-2.5"
+                placeholder="Username"
+                value={form.username}
+                onChange={(event) => setForm({ ...form, username: event.target.value })}
+                required
+              />
+            </div>
+          ) : null}
+
+          {step === 2 ? (
+            <div className="grid gap-3">
+              <input
+                className="shop-input py-2.5"
+                placeholder="Stato"
+                value={form.shippingCountry}
+                onChange={(event) => setForm({ ...form, shippingCountry: event.target.value })}
+                required
+              />
+              <input
+                className="shop-input py-2.5"
+                placeholder="Provincia"
+                value={form.shippingRegion}
+                onChange={(event) => setForm({ ...form, shippingRegion: event.target.value })}
+                required
+              />
+              <input
+                className="shop-input py-2.5"
+                placeholder="Paese o citta"
+                value={form.shippingCity}
+                onChange={(event) => setForm({ ...form, shippingCity: event.target.value })}
+                required
+              />
+              <input
+                className="shop-input py-2.5"
+                placeholder="Via"
+                value={form.shippingAddressLine1}
+                onChange={(event) => setForm({ ...form, shippingAddressLine1: event.target.value })}
+                required
+              />
+              <input
+                className="shop-input py-2.5"
+                placeholder="Numero civico"
+                value={form.shippingStreetNumber}
+                onChange={(event) => setForm({ ...form, shippingStreetNumber: event.target.value })}
+                required
+              />
+              <input
+                className="shop-input py-2.5"
+                placeholder="CAP"
+                value={form.shippingPostalCode}
+                onChange={(event) => setForm({ ...form, shippingPostalCode: event.target.value })}
+                required
+              />
+            </div>
+          ) : null}
+
+          {step === 3 ? (
+            <div className="grid gap-3">
               {isEditMode ? (
-                <input
-                  className="shop-input py-2.5"
-                  type="password"
-                  placeholder="Password attuale (solo se cambi email)"
-                  value={form.currentPassword}
-                  onChange={(event) => setForm({ ...form, currentPassword: event.target.value })}
-                />
+                <>
+                  <input
+                    className="shop-input py-2.5"
+                    type="password"
+                    placeholder="Nuova password (opzionale)"
+                    value={form.password}
+                    onChange={(event) => setForm({ ...form, password: event.target.value })}
+                    minLength={8}
+                  />
+                  <input
+                    className="shop-input py-2.5"
+                    type="password"
+                    placeholder="Conferma password"
+                    value={form.confirmPassword}
+                    onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
+                    minLength={8}
+                  />
+                  <input
+                    className="shop-input py-2.5"
+                    type="password"
+                    placeholder="Password attuale (solo se cambi email o password)"
+                    value={form.currentPassword}
+                    onChange={(event) => setForm({ ...form, currentPassword: event.target.value })}
+                  />
+                </>
               ) : (
                 <>
                   <input

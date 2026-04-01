@@ -98,6 +98,12 @@ export function ShopCheckoutPage() {
       email: user.email || current.email,
       firstName: user.firstName || current.firstName,
       lastName: user.lastName || current.lastName,
+      country: user.shippingCountry || current.country,
+      region: user.shippingRegion || current.region,
+      city: user.shippingCity || current.city,
+      addressLine1: user.shippingAddressLine1 || current.addressLine1,
+      streetNumber: user.shippingStreetNumber || current.streetNumber,
+      postalCode: user.shippingPostalCode || current.postalCode,
     }))
   }, [user])
 

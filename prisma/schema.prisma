@@ -14,6 +14,12 @@ model User {
   passwordHash String
   firstName    String
   lastName     String
+  shippingCountry String?
+  shippingRegion String?
+  shippingCity String?
+  shippingAddressLine1 String?
+  shippingStreetNumber String?
+  shippingPostalCode String?
   role         String   @default("customer")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

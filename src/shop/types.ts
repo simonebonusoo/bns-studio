@@ -55,6 +55,12 @@ export type ShopUser = {
   username: string
   firstName: string
   lastName: string
+  shippingCountry?: string | null
+  shippingRegion?: string | null
+  shippingCity?: string | null
+  shippingAddressLine1?: string | null
+  shippingStreetNumber?: string | null
+  shippingPostalCode?: string | null
   role: string
 }
 

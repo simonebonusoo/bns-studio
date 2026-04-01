@@ -71,6 +71,12 @@ async function serializeUser(user) {
     username,
     firstName: user.firstName,
     lastName: user.lastName,
+    shippingCountry: user.shippingCountry || null,
+    shippingRegion: user.shippingRegion || null,
+    shippingCity: user.shippingCity || null,
+    shippingAddressLine1: user.shippingAddressLine1 || null,
+    shippingStreetNumber: user.shippingStreetNumber || null,
+    shippingPostalCode: user.shippingPostalCode || null,
     role: user.role,
   }
 }
@@ -83,6 +89,12 @@ router.post(
         username: usernameSchema,
         firstName: z.string().min(1),
         lastName: z.string().min(1),
+        shippingCountry: z.string().trim().min(1),
+        shippingRegion: z.string().trim().min(1),
+        shippingCity: z.string().trim().min(1),
+        shippingAddressLine1: z.string().trim().min(1),
+        shippingStreetNumber: z.string().trim().min(1),
+        shippingPostalCode: z.string().trim().min(1),
       })
       .parse(req.body)
 
@@ -107,6 +119,12 @@ router.post(
         passwordHash: await bcrypt.hash(body.password, 10),
         firstName: body.firstName,
         lastName: body.lastName,
+        shippingCountry: body.shippingCountry.trim(),
+        shippingRegion: body.shippingRegion.trim(),
+        shippingCity: body.shippingCity.trim(),
+        shippingAddressLine1: body.shippingAddressLine1.trim(),
+        shippingStreetNumber: body.shippingStreetNumber.trim(),
+        shippingPostalCode: body.shippingPostalCode.trim(),
       },
     })
 
@@ -157,10 +175,16 @@ router.patch(
         firstName: z.string().trim().min(1).optional(),
         lastName: z.string().trim().min(1).optional(),
         email: z.string().trim().email().optional(),
+        shippingCountry: z.string().trim().min(1).optional(),
+        shippingRegion: z.string().trim().min(1).optional(),
+        shippingCity: z.string().trim().min(1).optional(),
+        shippingAddressLine1: z.string().trim().min(1).optional(),
+        shippingStreetNumber: z.string().trim().min(1).optional(),
+        shippingPostalCode: z.string().trim().min(1).optional(),
         currentPassword: passwordSchema.optional(),
         newPassword: passwordSchema.optional(),
       })
-      .refine((value) => value.username || value.firstName || value.lastName || value.email || value.newPassword, {
+      .refine((value) => value.username || value.firstName || value.lastName || value.email || value.newPassword || value.shippingCountry || value.shippingRegion || value.shippingCity || value.shippingAddressLine1 || value.shippingStreetNumber || value.shippingPostalCode, {
         message: "Nessuna modifica richiesta",
       })
       .parse(req.body)
@@ -182,6 +206,30 @@ router.patch(
 
     if (body.lastName) {
       updates.lastName = body.lastName.trim()
+    }
+
+    if (body.shippingCountry) {
+      updates.shippingCountry = body.shippingCountry.trim()
+    }
+
+    if (body.shippingRegion) {
+      updates.shippingRegion = body.shippingRegion.trim()
+    }
+
+    if (body.shippingCity) {
+      updates.shippingCity = body.shippingCity.trim()
+    }
+
+    if (body.shippingAddressLine1) {
+      updates.shippingAddressLine1 = body.shippingAddressLine1.trim()
+    }
+
+    if (body.shippingStreetNumber) {
+      updates.shippingStreetNumber = body.shippingStreetNumber.trim()
+    }
+
+    if (body.shippingPostalCode) {
+      updates.shippingPostalCode = body.shippingPostalCode.trim()
     }
 
     if (body.email) {

@@ -225,7 +225,7 @@ export function Navbar() {
           ? (event.detail as { step?: "initial" | "login" | "register" } | undefined)
           : undefined
 
-      if (isMobileViewport && detail?.step === "register") {
+      if (detail?.step === "register") {
         setMenuOpen(false)
         setSearchOpen(false)
         setCartOpen(false)
@@ -245,7 +245,7 @@ export function Navbar() {
 
     window.addEventListener("bns:open-profile", openProfile)
     return () => window.removeEventListener("bns:open-profile", openProfile)
-  }, [isMobileViewport, navigate])
+  }, [navigate])
 
   useEffect(() => {
     if (!searchOpen || products.length) return
@@ -455,7 +455,7 @@ export function Navbar() {
   }, [products, trimmedSearch])
 
   function openProfilePanel(step: "initial" | "login" | "register" = "initial") {
-    if (isMobileViewport && step === "register") {
+    if (step === "register") {
       setMenuOpen(false)
       setSearchOpen(false)
       setCartOpen(false)
@@ -807,7 +807,6 @@ export function Navbar() {
                   {[
                     {
                       label: "Home",
-                      description: "Torna all'inizio della homepage.",
                       icon: <HomeIcon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
@@ -816,7 +815,6 @@ export function Navbar() {
                     },
                     {
                       label: "Categorie",
-                      description: "Vai alla sezione Acquista per categoria.",
                       icon: <Squares2X2Icon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
@@ -825,7 +823,6 @@ export function Navbar() {
                     },
                     {
                       label: "Collezioni",
-                      description: "Vai alla sezione Le nostre collezioni.",
                       icon: <Squares2X2Icon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
@@ -833,8 +830,7 @@ export function Navbar() {
                       },
                     },
                     {
-                      label: "Catalogo completo",
-                      description: "Vai alla preview del catalogo completo.",
+                      label: "Catalogo",
                       icon: <ShoppingBagIcon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
@@ -843,7 +839,6 @@ export function Navbar() {
                     },
                     {
                       label: "Recensioni",
-                      description: "Vai alla sezione recensioni.",
                       icon: <UserCircleIcon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
@@ -852,7 +847,6 @@ export function Navbar() {
                     },
                     {
                       label: "Ordini",
-                      description: "Consulta ordini e stato spedizione.",
                       icon: <UserIcon className="h-5 w-5" />,
                       onClick: () => {
                         if (user) {
@@ -873,10 +867,7 @@ export function Navbar() {
                       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/82">
                         {item.icon}
                       </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium text-white">{item.label}</span>
-                        <span className="mt-1 block text-xs text-white/55">{item.description}</span>
-                      </span>
+                      <span className="block text-sm font-medium text-white">{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1267,8 +1258,8 @@ export function Navbar() {
                           className="w-full"
                           onClick={() => {
                             setCartOpen(false)
-                            setProfileStep("register")
-                            setProfileOpen(true)
+                            setProfileOpen(false)
+                            navigate("/shop/account")
                           }}
                         >
                           Crea account
@@ -1691,7 +1682,14 @@ export function Navbar() {
                         <Button className="w-full" onClick={() => setProfileStep("login")}>
                           Accedi
                         </Button>
-                        <Button variant="ghost" className="w-full" onClick={() => setProfileStep("register")}>
+                        <Button
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => {
+                            setProfileOpen(false)
+                            navigate("/shop/account")
+                          }}
+                        >
                           Crea account
                         </Button>
                       </div>
