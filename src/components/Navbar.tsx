@@ -964,7 +964,7 @@ export function Navbar() {
                   : "Effettua l'accesso per visualizzare il carrello e continuare il checkout."
               }
               onClose={() => setCartOpen(false)}
-              bodyClassName={`${mobileScrollablePanelClass} space-y-4 py-6 pb-6`}
+              bodyClassName="min-h-0 flex flex-1 flex-col overflow-hidden py-6"
               footer={
                 !user ? null : (
                   <>
@@ -1097,35 +1097,39 @@ export function Navbar() {
                   </button>
                 </div>
               ) : (
-                items.map((item) => (
-                  <article
-                    key={`${item.productId}-${item.variantId || item.format || "default"}`}
-                    className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
-                  >
-                    <img
-                      src={getProductPrimaryImage(item.product)}
-                      alt={item.product.title}
-                      className="h-24 w-24 rounded-[18px] object-cover"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs uppercase tracking-[0.2em] text-white/45">{item.product.category}</p>
-                      <h3 className="mt-2 line-clamp-2 text-base font-medium text-white">{item.product.title}</h3>
-                      <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/65">
-                        <span>{item.variantLabel || item.format || "Variante"} · Qtà {item.quantity}</span>
-                        <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
-                      </div>
-                      <div className="mt-3">
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
-                          className={getButtonClassName({ variant: "cart", size: "sm" })}
-                        >
-                          Rimuovi
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  <div className={`${mobileScrollablePanelClass} h-full space-y-4 pr-1`}>
+                    {items.map((item) => (
+                      <article
+                        key={`${item.productId}-${item.variantId || item.format || "default"}`}
+                        className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
+                      >
+                        <img
+                          src={getProductPrimaryImage(item.product)}
+                          alt={item.product.title}
+                          className="h-24 w-24 rounded-[18px] object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs uppercase tracking-[0.2em] text-white/45">{item.product.category}</p>
+                          <h3 className="mt-2 line-clamp-2 text-base font-medium text-white">{item.product.title}</h3>
+                          <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/65">
+                            <span>{item.variantLabel || item.format || "Variante"} · Qtà {item.quantity}</span>
+                            <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
+                          </div>
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                              className={getButtonClassName({ variant: "cart", size: "sm" })}
+                            >
+                              Rimuovi
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
               )}
             </MobileSheet>
           ) : (
@@ -1355,9 +1359,18 @@ export function Navbar() {
                   : "Apri il tuo spazio cliente per ordini, checkout rapido e storico acquisti."
               }
               onClose={() => setProfileOpen(false)}
-              bodyClassName={`${mobileScrollablePanelClass} space-y-5 py-6 pb-6`}
+              bodyClassName={profileView === "register" ? "min-h-0 flex flex-1 flex-col overflow-hidden py-6" : `${mobileScrollablePanelClass} space-y-5 py-6 pb-6`}
               footer={
-                profileView === "logged" && user ? (
+                profileView === "register" ? (
+                  <div className="flex flex-col gap-3">
+                    <Button type="submit" form="mobile-register-form" className="w-full">
+                      {profileSubmitting ? "Creazione account..." : "Crea account"}
+                    </Button>
+                    <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
+                      Indietro
+                    </Button>
+                  </div>
+                ) : profileView === "logged" && user ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -1593,71 +1606,69 @@ export function Navbar() {
                   ) : null}
 
                   {profileView === "register" ? (
-                    <form onSubmit={submitProfileRegister} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                      <div className="space-y-4">
-                        <div>
-                          <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
+                    <div className="min-h-0 flex flex-1 flex-col overflow-hidden">
+                      <form
+                        id="mobile-register-form"
+                        onSubmit={submitProfileRegister}
+                        className="min-h-0 flex-1 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-5"
+                      >
+                        <div className={`${mobileScrollablePanelClass} h-full space-y-4 pr-1`}>
+                          <div>
+                            <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
+                            <input
+                              className="shop-input"
+                              placeholder="Username"
+                              value={registerForm.username}
+                              onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
+                            />
+                          </div>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <input
+                              className="shop-input"
+                              placeholder="Nome"
+                              value={registerForm.firstName}
+                              onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
+                              required
+                            />
+                            <input
+                              className="shop-input"
+                              placeholder="Cognome"
+                              value={registerForm.lastName}
+                              onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
+                              required
+                            />
+                          </div>
                           <input
                             className="shop-input"
-                            placeholder="Username"
-                            value={registerForm.username}
-                            onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
-                          />
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <input
-                            className="shop-input"
-                            placeholder="Nome"
-                            value={registerForm.firstName}
-                            onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
+                            type="email"
+                            placeholder="Email"
+                            value={registerForm.email}
+                            onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
                             required
                           />
                           <input
                             className="shop-input"
-                            placeholder="Cognome"
-                            value={registerForm.lastName}
-                            onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
+                            type="password"
+                            placeholder="Password"
+                            value={registerForm.password}
+                            onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
+                            minLength={8}
                             required
                           />
+                          <input
+                            className="shop-input"
+                            type="password"
+                            placeholder="Conferma password"
+                            value={registerForm.confirmPassword}
+                            onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
+                            minLength={8}
+                            required
+                          />
+                          <p className="text-xs text-white/45">Lo username viene salvato davvero nel tuo account ed è disponibile anche per il login.</p>
+                          {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
                         </div>
-                        <input
-                          className="shop-input"
-                          type="email"
-                          placeholder="Email"
-                          value={registerForm.email}
-                          onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
-                          required
-                        />
-                        <input
-                          className="shop-input"
-                          type="password"
-                          placeholder="Password"
-                          value={registerForm.password}
-                          onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
-                          minLength={8}
-                          required
-                        />
-                        <input
-                          className="shop-input"
-                          type="password"
-                          placeholder="Conferma password"
-                          value={registerForm.confirmPassword}
-                          onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
-                          minLength={8}
-                          required
-                        />
-                        <p className="text-xs text-white/45">Lo username viene salvato davvero nel tuo account ed è disponibile anche per il login.</p>
-                        {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                        <div className="flex flex-col gap-3">
-                          <Button type="submit" className="w-full">
-                            {profileSubmitting ? "Creazione account..." : "Crea account"}
-                          </Button>
-                          <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
-                            Indietro
-                          </Button>
-                        </div>
-                      </div>
-                    </form>
+                      </form>
+                    </div>
                   ) : null}
                 </>
               )}
