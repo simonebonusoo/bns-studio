@@ -12,8 +12,6 @@ import adminRoutes from "./routes/adminRoutes.mjs"
 import reviewRoutes from "./routes/reviewRoutes.mjs"
 import metricsRoutes from "./routes/metricsRoutes.mjs"
 import { env } from "./config/env.mjs"
-import { createOriginGuard } from "./middleware/origin-guard.mjs"
-import { createRateLimiter } from "./middleware/rate-limit.mjs"
 import { errorHandler } from "./middleware/error.mjs"
 import { resolveUploadsRootDir } from "./lib/uploads-storage.mjs"
 
@@ -22,12 +20,6 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const uploadsDir = resolveUploadsRootDir(env.uploadsDir)
 const allowedOrigins = new Set(env.clientOrigins)
-const adminLimiter = createRateLimiter({
-  windowMs: 60 * 1000,
-  max: 180,
-  keyPrefix: "admin",
-  message: "Troppe richieste admin. Riprova tra poco.",
-})
 
 fs.mkdirSync(path.join(uploadsDir, "products"), { recursive: true })
 
@@ -41,21 +33,13 @@ app.use(
         return
       }
 
-      callback(null, false)
+      callback(new Error("Origin non consentita dal CORS"))
     },
     credentials: true,
   })
 )
-app.use(express.json({ limit: "1mb" }))
+app.use(express.json())
 app.use(morgan("dev"))
-app.use(createOriginGuard(allowedOrigins))
-app.use((req, res, next) => {
-  res.setHeader("X-Frame-Options", "DENY")
-  res.setHeader("X-Content-Type-Options", "nosniff")
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-  next()
-})
 app.use("/uploads", express.static(uploadsDir))
 
 app.use((req, res, next) => {
@@ -67,16 +51,10 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true })
 })
 
-if (env.securityTestRoutesEnabled) {
-  app.get("/api/__security/boom", () => {
-    throw new Error("security_test_boom")
-  })
-}
-
 app.use("/api/auth", authRoutes)
 app.use("/api/store", storeRoutes)
 app.use("/api/orders", orderRoutes)
-app.use("/api/admin", adminLimiter, adminRoutes)
+app.use("/api/admin", adminRoutes)
 app.use("/api/reviews", reviewRoutes)
 app.use("/api/metrics", metricsRoutes)
 

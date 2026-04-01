@@ -1,6 +1,5 @@
 import "dotenv/config"
 import bcrypt from "bcryptjs"
-import crypto from "node:crypto"
 import { PrismaClient } from "@prisma/client"
 import { resolveDatabaseUrl } from "./resolve-database-url.mjs"
 
@@ -159,9 +158,6 @@ const seededReviews = [
 
 async function main() {
   console.log("[seed] Seeding shop data")
-  const isProduction = (process.env.NODE_ENV || "development") === "production"
-  const adminSeedPassword = process.env.SHOP_ADMIN_SEED_PASSWORD || null
-  const customerSeedPassword = process.env.SHOP_CUSTOMER_SEED_PASSWORD || null
 
   const existingState = await prisma.$transaction([
     prisma.user.count(),
@@ -198,55 +194,45 @@ async function main() {
     return
   }
 
-  if (!adminSeedPassword || (!isProduction && !customerSeedPassword)) {
-    throw new Error(
-      isProduction
-        ? "In produzione imposta SHOP_ADMIN_SEED_PASSWORD per eseguire il seed iniziale."
-        : "Imposta SHOP_ADMIN_SEED_PASSWORD e SHOP_CUSTOMER_SEED_PASSWORD per eseguire il seed iniziale in sicurezza.",
-    )
-  }
-
   await prisma.user.upsert({
     where: { email: "admin@bnsstudio.com" },
     update: {},
     create: {
       email: "admin@bnsstudio.com",
       username: "admin.bns",
-      passwordHash: await bcrypt.hash(adminSeedPassword || crypto.randomUUID(), 10),
+      passwordHash: await bcrypt.hash("admin1234", 10),
       firstName: "Admin",
       lastName: "BNS",
       role: "admin",
     },
   })
 
-  if (!isProduction) {
+  await prisma.user.upsert({
+    where: { email: "customer@bnsstudio.com" },
+    update: {},
+    create: {
+      email: "customer@bnsstudio.com",
+      username: "sample.customer",
+      passwordHash: await bcrypt.hash("customer1234", 10),
+      firstName: "Sample",
+      lastName: "Customer",
+      role: "customer",
+    },
+  })
+
+  for (const demoUser of reviewUsers) {
     await prisma.user.upsert({
-      where: { email: "customer@bnsstudio.com" },
+      where: { email: demoUser.email },
       update: {},
       create: {
-        email: "customer@bnsstudio.com",
-        username: "sample.customer",
-        passwordHash: await bcrypt.hash(customerSeedPassword || crypto.randomUUID(), 10),
-        firstName: "Sample",
-        lastName: "Customer",
+        email: demoUser.email,
+        username: demoUser.username,
+        passwordHash: await bcrypt.hash("customer1234", 10),
+        firstName: demoUser.firstName,
+        lastName: demoUser.lastName,
         role: "customer",
       },
     })
-
-    for (const demoUser of reviewUsers) {
-      await prisma.user.upsert({
-        where: { email: demoUser.email },
-        update: {},
-        create: {
-          email: demoUser.email,
-          username: demoUser.username,
-          passwordHash: await bcrypt.hash(customerSeedPassword || crypto.randomUUID(), 10),
-          firstName: demoUser.firstName,
-          lastName: demoUser.lastName,
-          role: "customer",
-        },
-      })
-    }
   }
 
   for (const product of products) {
@@ -319,29 +305,27 @@ async function main() {
     })
   }
 
-  if (!isProduction) {
-    for (const review of seededReviews) {
-      const reviewUser = await prisma.user.findUnique({
-        where: { email: review.email },
-      })
+  for (const review of seededReviews) {
+    const reviewUser = await prisma.user.findUnique({
+      where: { email: review.email },
+    })
 
-      if (!reviewUser) continue
+    if (!reviewUser) continue
 
-      await prisma.review.upsert({
-        where: { publicId: review.publicId },
-        update: {},
-        create: {
-          publicId: review.publicId,
-          userId: reviewUser.id,
-          rating: review.rating,
-          title: review.title,
-          body: review.body,
-          tag: review.tag,
-          status: "approved",
-          showOnHomepage: review.showOnHomepage,
-        },
-      })
-    }
+    await prisma.review.upsert({
+      where: { publicId: review.publicId },
+      update: {},
+      create: {
+        publicId: review.publicId,
+        userId: reviewUser.id,
+        rating: review.rating,
+        title: review.title,
+        body: review.body,
+        tag: review.tag,
+        status: "approved",
+        showOnHomepage: review.showOnHomepage,
+      },
+    })
   }
 
   const [seededUserCount, seededProductCount, seededReviewCount, categorySetting] = await Promise.all([
@@ -351,7 +335,8 @@ async function main() {
     prisma.setting.findUnique({ where: { key: "shopCategories" } }),
   ])
 
-  console.log("[seed] Seed utenti completato senza esporre credenziali nel log")
+  console.log("[seed] Admin ready: admin@bnsstudio.com / admin1234")
+  console.log("[seed] Customer ready: customer@bnsstudio.com / customer1234")
   console.log(`[seed] Users=${seededUserCount} Products=${seededProductCount} Reviews=${seededReviewCount}`)
   console.log(`[seed] Categories=${categorySetting?.value || "[]"}`)
 }

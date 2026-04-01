@@ -17,14 +17,13 @@ function parseList(value) {
     .filter(Boolean)
 }
 
-const isProductionNodeEnv = (process.env.NODE_ENV || "development") === "production"
 function parseBoolean(value, fallback = false) {
   if (value == null || value === "") return fallback
   const normalized = String(value).trim().toLowerCase()
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on"
 }
 
-const clientUrl = isProductionNodeEnv ? requireEnv("CLIENT_URL") : requireEnv("CLIENT_URL", "http://localhost:5173")
+const clientUrl = requireEnv("CLIENT_URL", "http://localhost:5173")
 const clientOrigins = Array.from(new Set([clientUrl, ...parseList(process.env.CLIENT_ORIGINS)]))
 const isRenderRuntime = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
 const hasDhlCredentials = Boolean(process.env.DHL_API_KEY && process.env.DHL_API_SECRET && process.env.DHL_ACCOUNT_NUMBER)
@@ -35,12 +34,7 @@ export const env = {
   port: Number(process.env.PORT || 4000),
   nodeEnv: process.env.NODE_ENV || "development",
   renderDiskPath: process.env.RENDER_DISK_PATH || (isRenderRuntime ? "/var/data" : ""),
-  jwtSecret: isProductionNodeEnv ? requireEnv("JWT_SECRET") : requireEnv("JWT_SECRET", "bns-shop-local-secret"),
-  authCookieName: process.env.AUTH_COOKIE_NAME || "bns_shop_session",
-  authCookieSecure: parseBoolean(process.env.AUTH_COOKIE_SECURE, isProductionNodeEnv || isRenderRuntime),
-  authCookieSameSite: process.env.AUTH_COOKIE_SAME_SITE || "lax",
-  mockDebugRoutesEnabled: parseBoolean(process.env.SHOP_ENABLE_MOCK_DEBUG_ROUTES, !isProductionNodeEnv),
-  securityTestRoutesEnabled: !isProductionNodeEnv && parseBoolean(process.env.SHOP_ENABLE_SECURITY_TEST_ROUTES, false),
+  jwtSecret: requireEnv("JWT_SECRET", "bns-shop-local-secret"),
   clientUrl,
   clientOrigins,
   uploadsDir: process.env.UPLOADS_DIR || "",

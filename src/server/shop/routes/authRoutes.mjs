@@ -1,30 +1,14 @@
 import bcrypt from "bcryptjs"
-import crypto from "node:crypto"
 import { Router } from "express"
 import { z } from "zod"
 
-import { env } from "../config/env.mjs"
-import { clearAuthCookie, createSessionState, parseRequestCookies, setAuthCookie, signToken, verifyToken } from "../lib/auth.mjs"
+import { signToken } from "../lib/auth.mjs"
 import { asyncHandler, HttpError } from "../lib/http.mjs"
-import { logInfo, logWarning } from "../lib/monitoring.mjs"
 import { prisma } from "../lib/prisma.mjs"
-import { requireAuth } from "../middleware/auth.mjs"
-import { createRateLimiter } from "../middleware/rate-limit.mjs"
 import { sanitizePlainText } from "../lib/sanitize-text.mjs"
+import { requireAuth } from "../middleware/auth.mjs"
 
 const router = Router()
-const authLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 8,
-  keyPrefix: "auth",
-  message: "Troppi tentativi. Riprova tra qualche minuto.",
-})
-const profileLimiter = createRateLimiter({
-  windowMs: 10 * 60 * 1000,
-  max: 20,
-  keyPrefix: "profile",
-  message: "Troppe modifiche profilo ravvicinate. Riprova tra poco.",
-})
 
 const passwordSchema = z.string().min(8)
 
@@ -100,7 +84,6 @@ async function serializeUser(user) {
 
 router.post(
   "/register",
-  authLimiter,
   asyncHandler(async (req, res) => {
     const body = credentialsSchema
       .extend({
@@ -123,16 +106,13 @@ router.post(
     ])
 
     if (existingEmail) {
-      logWarning("auth_register_conflict_email", { email: body.email.trim().toLowerCase() })
       throw new HttpError(409, "Email gia registrata")
     }
 
     if (existingUsername) {
-      logWarning("auth_register_conflict_username", { username: normalizedUsername })
       throw new HttpError(409, "Username gia registrato")
     }
 
-    const sessionState = createSessionState(req)
     const user = await prisma.user.create({
       data: {
         email: body.email.trim().toLowerCase(),
@@ -146,18 +126,11 @@ router.post(
         shippingAddressLine1: sanitizePlainText(body.shippingAddressLine1),
         shippingStreetNumber: sanitizePlainText(body.shippingStreetNumber),
         shippingPostalCode: sanitizePlainText(body.shippingPostalCode),
-        sessionNonce: sessionState.sessionNonce,
-        sessionFingerprintHash: sessionState.sessionFingerprintHash,
       },
     })
 
-    const token = signToken(user, sessionState.sessionNonce)
-    setAuthCookie(res, token, req)
-    logInfo("auth_register_success", {
-      userId: user.id,
-      role: user.role,
-    })
     return res.status(201).json({
+      token: signToken(user),
       user: await serializeUser(user),
     })
   })
@@ -165,7 +138,6 @@ router.post(
 
 router.post(
   "/login",
-  authLimiter,
   asyncHandler(async (req, res) => {
     const body = loginSchema.parse(req.body)
     const identifier = body.identifier.trim()
@@ -174,55 +146,14 @@ router.post(
       : await prisma.user.findUnique({ where: { username: normalizeUsername(identifier) } })
 
     if (!user || !(await bcrypt.compare(body.password, user.passwordHash))) {
-      logWarning("auth_login_failed", {
-        identifierType: identifier.includes("@") ? "email" : "username",
-      })
       throw new HttpError(401, "Credenziali non valide")
     }
 
-    const sessionState = createSessionState(req)
-    const authenticatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        sessionNonce: sessionState.sessionNonce,
-        sessionFingerprintHash: sessionState.sessionFingerprintHash,
-      },
-    })
-
-    const token = signToken(authenticatedUser, sessionState.sessionNonce)
-    setAuthCookie(res, token, req)
-    logInfo("auth_login_success", {
-      userId: authenticatedUser.id,
-      role: authenticatedUser.role,
-      identifierType: identifier.includes("@") ? "email" : "username",
-    })
     return res.status(200).json({
-      user: await serializeUser(authenticatedUser),
+      token: signToken(user),
+      user: await serializeUser(user),
     })
   })
-)
-
-router.post(
-  "/logout",
-  asyncHandler(async (req, res) => {
-    const cookies = parseRequestCookies(req.headers.cookie)
-    const token = cookies[env.authCookieName]
-
-    if (token) {
-      try {
-        const payload = verifyToken(token)
-        await prisma.user.update({
-          where: { id: Number(payload.sub) },
-          data: {
-            sessionNonce: crypto.randomUUID(),
-            sessionFingerprintHash: null,
-          },
-        })
-      } catch {}
-    }
-    clearAuthCookie(res, req)
-    return res.status(200).json({ ok: true })
-  }),
 )
 
 router.get(
@@ -238,7 +169,6 @@ router.get(
 router.patch(
   "/profile",
   requireAuth,
-  profileLimiter,
   asyncHandler(async (req, res) => {
     const body = z
       .object({
@@ -272,15 +202,14 @@ router.patch(
         body.shippingStreetNumber ||
         body.shippingPostalCode,
     )
-    let currentPasswordMatches = false
 
     if (wantsSensitiveUpdate) {
       if (!body.currentPassword?.trim()) {
         throw new HttpError(400, "Inserisci la password per confermare la modifica")
       }
 
-      currentPasswordMatches = await bcrypt.compare(body.currentPassword, req.user.passwordHash)
-      if (!currentPasswordMatches) {
+      const matches = await bcrypt.compare(body.currentPassword, req.user.passwordHash)
+      if (!matches) {
         throw new HttpError(401, "Password non corretta")
       }
     }
@@ -333,34 +262,15 @@ router.patch(
         throw new HttpError(409, "Email gia registrata")
       }
       updates.email = email
-      logInfo("profile_email_change_requested", {
-        userId: req.user.id,
-      })
     }
 
     if (body.newPassword) {
       updates.passwordHash = await bcrypt.hash(body.newPassword, 10)
-      logInfo("profile_password_change_requested", {
-        userId: req.user.id,
-      })
     }
 
-    const sessionState = createSessionState(req)
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: {
-        ...updates,
-        sessionNonce: sessionState.sessionNonce,
-        sessionFingerprintHash: sessionState.sessionFingerprintHash,
-      },
-    })
-    setAuthCookie(res, signToken(user, sessionState.sessionNonce))
-
-    logInfo("profile_updated", {
-      userId: req.user.id,
-      changedFields: Object.keys(updates)
-        .filter((key) => key !== "passwordHash")
-        .concat(body.newPassword ? ["password"] : []),
+      data: updates,
     })
 
     return res.status(200).json({
