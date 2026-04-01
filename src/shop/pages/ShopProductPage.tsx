@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { HorizontalScrollRail } from "../../components/HorizontalScrollRail"
 import { ProductCard } from "../components/ProductCard"
 import { ProductGallery } from "../components/product/ProductGallery"
 import { ProductInfoAccordions } from "../components/product/ProductInfoAccordions"
@@ -414,15 +415,19 @@ export function ShopProductPage() {
             <h3 className="text-2xl font-semibold text-white">Stavi guardando</h3>
             <p className="text-sm leading-6 text-white/62">Altri poster che hai visitato di recente.</p>
           </div>
-          <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
-            <div className="flex min-w-full gap-6">
+          <HorizontalScrollRail
+            className="-mx-4 px-4 pb-3 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+            contentClassName="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            ariaLabel="Scorri a destra i prodotti visti di recente"
+          >
+            <div className="flex min-w-full gap-6 pr-14">
               {recentlyViewedProducts.map((recentProduct) => (
                 <div key={recentProduct.slug} className="w-[18.5rem] flex-none sm:w-[20rem]">
                   <ProductCard product={recentProduct} />
                 </div>
               ))}
             </div>
-          </div>
+          </HorizontalScrollRail>
         </div>
       ) : null}
 

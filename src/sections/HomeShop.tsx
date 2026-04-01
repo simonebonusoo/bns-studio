@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "../components/Button";
 import { Container } from "../components/Container";
+import { HorizontalScrollRail } from "../components/HorizontalScrollRail";
 import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
 import { getProductPrimaryImage } from "../shop/lib/product";
@@ -521,15 +522,19 @@ export function HomeShop() {
           </div>
 
           {trendingProducts.length ? (
-            <div className="-mx-4 overflow-x-auto px-4 pb-3 pt-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
-              <div className="flex min-w-full gap-6">
+            <HorizontalScrollRail
+              className="-mx-4 px-4 pb-3 pt-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+              contentClassName="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              ariaLabel="Scorri a destra i poster di tendenza"
+            >
+              <div className="flex min-w-full gap-6 pr-14">
                 {trendingProducts.map((product) => (
                   <div key={product.id} className="w-[18.5rem] flex-none sm:w-[20rem]">
                     <ProductCard product={product} />
                   </div>
                 ))}
               </div>
-            </div>
+            </HorizontalScrollRail>
           ) : status === "loading" ? (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
               {Array.from({ length: 4 }).map((_, index) => (

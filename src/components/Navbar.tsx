@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline"
 
 import { Container } from "./Container"
+import { HorizontalScrollRail } from "./HorizontalScrollRail"
 import { Logo } from "./Logo"
 import { Button, getButtonClassName } from "./Button"
 import { MobileSheet, mobileSheetBodyClass, mobileSheetFooterClass } from "./mobile/MobileSheet"
@@ -938,27 +939,30 @@ export function Navbar() {
                           <p className="mt-2 text-sm text-white/65">Apri prodotti reali direttamente dalla ricerca.</p>
                         </div>
                       </div>
-                      <div
-                        data-testid="mobile-search-suggestions"
-                        className="flex gap-4 overflow-x-auto pb-2 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+                      <HorizontalScrollRail
+                        className="pb-2"
+                        contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
                         onWheel={forwardWheelToHorizontalScroll}
+                        ariaLabel="Scorri a destra i suggerimenti"
                       >
-                        {suggestedProducts.length ? (
-                          suggestedProducts.map((product) => {
-                            return (
-                              <SuggestionProductCard
-                                key={product.id}
-                                onClick={() => navigate(`/shop/${product.slug}`)}
-                                product={product}
-                              />
-                            )
-                          })
-                        ) : (
-                          <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
-                            Nessun prodotto suggerito disponibile.
-                          </div>
-                        )}
-                      </div>
+                        <div data-testid="mobile-search-suggestions" className="contents">
+                          {suggestedProducts.length ? (
+                            suggestedProducts.map((product) => {
+                              return (
+                                <SuggestionProductCard
+                                  key={product.id}
+                                  onClick={() => navigate(`/shop/${product.slug}`)}
+                                  product={product}
+                                />
+                              )
+                            })
+                          ) : (
+                            <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
+                              Nessun prodotto suggerito disponibile.
+                            </div>
+                          )}
+                        </div>
+                      </HorizontalScrollRail>
                     </div>
                   ) : (
                     <div className={`${mobileScrollablePanelClass} p-4 md:p-6 md:touch-auto md:overscroll-auto`}>
@@ -979,28 +983,31 @@ export function Navbar() {
                         </button>
                       </div>
 
-                      <div
-                        data-testid="mobile-search-live-results"
-                        className="flex gap-4 overflow-x-auto pb-2 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+                      <HorizontalScrollRail
+                        className="pb-2"
+                        contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
                         onWheel={forwardWheelToHorizontalScroll}
+                        ariaLabel="Scorri a destra i risultati live"
                       >
-                        {liveResults.length ? (
-                          liveResults.map((product) => {
-                            return (
-                              <SuggestionProductCard
-                                key={product.id}
-                                onClick={() => navigate(`/shop/${product.slug}`)}
-                                product={product}
-                                query={trimmedSearch}
-                              />
-                            )
-                          })
-                        ) : (
-                          <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
-                            Nessun risultato live. Premi invio per aprire il catalogo filtrato.
-                          </div>
-                        )}
-                      </div>
+                        <div data-testid="mobile-search-live-results" className="contents">
+                          {liveResults.length ? (
+                            liveResults.map((product) => {
+                              return (
+                                <SuggestionProductCard
+                                  key={product.id}
+                                  onClick={() => navigate(`/shop/${product.slug}`)}
+                                  product={product}
+                                  query={trimmedSearch}
+                                />
+                              )
+                            })
+                          ) : (
+                            <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
+                              Nessun risultato live. Premi invio per aprire il catalogo filtrato.
+                            </div>
+                          )}
+                        </div>
+                      </HorizontalScrollRail>
                     </div>
                   )}
                   </div>
