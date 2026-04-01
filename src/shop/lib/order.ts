@@ -7,12 +7,12 @@ export function getOrderStatusLabel(status: string) {
   return status
 }
 
-export function getOrderFulfillmentStatusLabel(status?: string | null) {
-  return getFulfillmentStatusLabel(status)
+export function getOrderFulfillmentStatusLabel(status?: string | null, shippingStatus?: string | null) {
+  return getFulfillmentStatusLabel(status, shippingStatus)
 }
 
-export function getOrderFulfillmentSteps(status?: string | null) {
-  return getFulfillmentStatusSteps(status)
+export function getOrderFulfillmentSteps(status?: string | null, shippingStatus?: string | null) {
+  return getFulfillmentStatusSteps(status, shippingStatus)
 }
 
 export function getOrderShippingStatusLabel(status?: string | null, fulfillmentStatus?: string | null) {

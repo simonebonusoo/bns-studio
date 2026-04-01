@@ -69,7 +69,7 @@ export function ShopProfilePage() {
           <article key={order.id} className="shop-card space-y-4 p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
+                <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus, order.shippingStatus)}</span>
                 <h2 className="mt-3 text-xl font-semibold text-white">{order.orderReference}</h2>
                 <p className="mt-1 text-sm text-white/55">{new Date(order.createdAt).toLocaleString("it-IT")}</p>
                 <p className="mt-2 text-sm text-white/62">Pagamento: {getOrderStatusLabel(order.status)}</p>

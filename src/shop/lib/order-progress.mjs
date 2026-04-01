@@ -1,19 +1,31 @@
 export const FULFILLMENT_STATUS_OPTIONS = ["processing", "accepted", "in_progress", "shipped", "completed"]
 export const SHIPPING_STATUS_OPTIONS = ["pending", "accepted", "created", "in_transit", "out_for_delivery", "shipped", "delivered", "failed", "not_created"]
 
+export function getTimelineFulfillmentStatus(fulfillmentStatus, shippingStatus) {
+  const normalizedShipping = String(shippingStatus || "").trim().toLowerCase()
+  if (normalizedShipping === "out_for_delivery") return "out_for_delivery"
+  if (normalizedShipping === "delivered") return "completed"
+  if (normalizedShipping === "shipped" || normalizedShipping === "in_transit") return "shipped"
+  if (normalizedShipping === "created") return "in_progress"
+
+  return normalizeFulfillmentStatus(fulfillmentStatus)
+}
+
 export function normalizeFulfillmentStatus(status) {
   const normalized = String(status || "").trim().toLowerCase()
   return FULFILLMENT_STATUS_OPTIONS.includes(normalized) ? normalized : "processing"
 }
 
-export function getFulfillmentStatusLabel(status) {
-  switch (normalizeFulfillmentStatus(status)) {
+export function getFulfillmentStatusLabel(status, shippingStatus) {
+  switch (getTimelineFulfillmentStatus(status, shippingStatus)) {
     case "accepted":
       return "Ordine accettato"
     case "in_progress":
       return "Spedizione creata"
     case "shipped":
       return "Ordine spedito"
+    case "out_for_delivery":
+      return "Ordine in consegna"
     case "completed":
       return "Ordine consegnato"
     case "processing":
@@ -22,13 +34,14 @@ export function getFulfillmentStatusLabel(status) {
   }
 }
 
-export function getFulfillmentStatusSteps(status) {
-  const current = normalizeFulfillmentStatus(status)
+export function getFulfillmentStatusSteps(status, shippingStatus) {
+  const current = getTimelineFulfillmentStatus(status, shippingStatus)
   const sequence = [
     { key: "processing", label: "Ordine in lavorazione" },
     { key: "accepted", label: "Ordine accettato" },
     { key: "in_progress", label: "Spedizione creata" },
     { key: "shipped", label: "Ordine spedito" },
+    { key: "out_for_delivery", label: "Ordine in consegna" },
     { key: "completed", label: "Ordine consegnato" },
   ]
   const currentIndex = sequence.findIndex((step) => step.key === current)

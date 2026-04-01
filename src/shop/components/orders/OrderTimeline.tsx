@@ -40,6 +40,11 @@ function getTimelineStepCopy(order: ShopOrder, stepKey: string) {
         description: "Il pacco e stato affidato al corriere ed e in viaggio verso la destinazione finale.",
         timestamp: null,
       }
+    case "out_for_delivery":
+      return {
+        description: "Il pacco e in consegna e dovrebbe arrivare a breve.",
+        timestamp: null,
+      }
     case "completed":
       return {
         description: "La consegna risulta completata. Speriamo che l'ordine sia arrivato perfettamente.",
@@ -62,7 +67,7 @@ function getTimelineLabelLines(label: string) {
 }
 
 export function OrderTimeline({ order }: OrderTimelineProps) {
-  const steps = getOrderFulfillmentSteps(order.fulfillmentStatus)
+  const steps = getOrderFulfillmentSteps(order.fulfillmentStatus, order.shippingStatus)
   const currentStep = steps.find((step) => step.current) || steps[0]
   const currentState = currentStep.current ? "current" : currentStep.active ? "completed" : "upcoming"
   const currentCopy = getTimelineStepCopy(order, currentStep.key)

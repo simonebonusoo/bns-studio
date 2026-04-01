@@ -127,7 +127,7 @@ export function ShopReceiptPage() {
         </section>
 
         <aside className="shop-card self-start space-y-4 p-6">
-          <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus)}</span>
+          <span className="shop-pill">{getOrderFulfillmentStatusLabel(order.fulfillmentStatus, order.shippingStatus)}</span>
           <p className="text-sm text-white/55">Pagamento: {getOrderStatusLabel(order.status)}</p>
           {isAdminView ? (
             shippingSummary.labelUrl ? (
