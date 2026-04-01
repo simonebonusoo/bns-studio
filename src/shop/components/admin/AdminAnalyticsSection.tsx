@@ -123,18 +123,23 @@ function buildSecondaryChart(points: ChartPoint[]) {
   const paddingBottom = 34
   const usableWidth = width - paddingX * 2
   const usableHeight = height - paddingTop - paddingBottom
-  const maxValue = Math.max(...points.flatMap((point) => [point.expenses, point.net]), 1)
+  const minValue = Math.min(...points.flatMap((point) => [point.expenses, point.net, 0]), 0)
+  const maxValue = Math.max(...points.flatMap((point) => [point.expenses, point.net, 0]), 1)
+  const range = Math.max(maxValue - minValue, 1)
   const stepX = points.length > 1 ? usableWidth / (points.length - 1) : usableWidth
+
+  const yFromValue = (value: number) => paddingTop + usableHeight - ((value - minValue) / range) * usableHeight
+  const zeroY = yFromValue(0)
 
   const expensePoints = points.map((point, index) => {
     const x = paddingX + stepX * index
-    const y = paddingTop + usableHeight - (point.expenses / maxValue) * usableHeight
+    const y = yFromValue(point.expenses)
     return { ...point, x, y }
   })
 
   const netPoints = points.map((point, index) => {
     const x = paddingX + stepX * index
-    const y = paddingTop + usableHeight - (point.net / maxValue) * usableHeight
+    const y = yFromValue(point.net)
     return { ...point, x, y }
   })
 
@@ -143,11 +148,24 @@ function buildSecondaryChart(points: ChartPoint[]) {
     height,
     paddingTop,
     usableHeight,
+    zeroY,
     expensePoints,
     netPoints,
     expenseLine: expensePoints.map((point) => `${point.x},${point.y}`).join(" "),
     netLine: netPoints.map((point) => `${point.x},${point.y}`).join(" "),
   }
+}
+
+function downloadChartCsv(filename: string, rows: Array<Record<string, string | number>>) {
+  const headers = Object.keys(rows[0] || {})
+  const csv = [headers.join(","), ...rows.map((row) => headers.map((header) => JSON.stringify(row[header] ?? "")).join(","))].join("\n")
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps) {
@@ -218,9 +236,27 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
                 <p className="text-xs uppercase tracking-[0.2em] text-white/45">Andamento ultimi 7 giorni</p>
                 <h2 className="mt-2 text-xl font-semibold text-white">Visualizzazioni e incassi</h2>
               </div>
-              <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-white/42">
-                <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#eef879]" /> Visualizzazioni</span>
-                <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" /> Incassi</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadChartCsv(
+                      "visualizzazioni-incassi.csv",
+                      points.map((point) => ({
+                        data: point.label,
+                        visualizzazioni: point.siteViews,
+                        incassi_euro: (point.revenue / 100).toFixed(2),
+                      })),
+                    )
+                  }
+                  className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-white/65 transition hover:border-white/20 hover:text-white"
+                >
+                  Scarica CSV
+                </button>
+                <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-white/42">
+                  <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#eef879]" /> Visualizzazioni</span>
+                  <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" /> Incassi</span>
+                </div>
               </div>
             </div>
 
@@ -320,12 +356,30 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
           <article className="shop-card space-y-5 p-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Secondo grafico</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Andamento ultimi 7 giorni</p>
                 <h2 className="mt-2 text-xl font-semibold text-white">Spese e utile netto</h2>
               </div>
-              <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-white/42">
-                <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-white/60" /> Spese</span>
-                <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#eef879]" /> Utile netto</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadChartCsv(
+                      "spese-utile-netto.csv",
+                      points.map((point) => ({
+                        data: point.label,
+                        spese_euro: (point.expenses / 100).toFixed(2),
+                        utile_netto_euro: (point.net / 100).toFixed(2),
+                      })),
+                    )
+                  }
+                  className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-white/65 transition hover:border-white/20 hover:text-white"
+                >
+                  Scarica CSV
+                </button>
+                <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-white/42">
+                  <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-white/60" /> Spese</span>
+                  <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#eef879]" /> Utile netto</span>
+                </div>
               </div>
             </div>
 
@@ -355,6 +409,14 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
                       />
                     )
                   })}
+                  <line
+                    x1="24"
+                    y1={secondaryChart.zeroY}
+                    x2={secondaryChart.width - 24}
+                    y2={secondaryChart.zeroY}
+                    stroke="rgba(255,255,255,0.24)"
+                    strokeWidth="1.5"
+                  />
                   <polyline fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={secondaryChart.expenseLine} />
                   <polyline fill="none" stroke="#eef879" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={secondaryChart.netLine} />
                   {secondaryChart.expensePoints.map((point) => (

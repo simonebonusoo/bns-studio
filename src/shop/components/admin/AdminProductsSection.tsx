@@ -83,7 +83,6 @@ type AdminProductsSectionProps = {
   onEditProduct: (product: ShopProduct) => void
   onDuplicateProduct: (product: ShopProduct) => void
   onDeleteProduct: (product: ShopProduct) => void
-  containWheel: (event: React.WheelEvent<HTMLElement>) => void
   onStartRenameCategory: (category: string) => void
   onRenamedCategoryValueChange: (value: string) => void
   onRenameCategory: (category: string) => void
@@ -130,7 +129,6 @@ export function AdminProductsSection({
   onEditProduct,
   onDuplicateProduct,
   onDeleteProduct,
-  containWheel,
   onStartRenameCategory,
   onRenamedCategoryValueChange,
   onRenameCategory,
@@ -213,7 +211,7 @@ export function AdminProductsSection({
           onCategoryChange={onProductCategoryFilterChange}
           onStatusChange={onProductStatusFilterChange}
         />
-        <div onWheelCapture={containWheel} className="min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <ProductListSection
             products={products}
             selectedIds={selectedProductIds}

@@ -71,8 +71,8 @@ export function getDangerButtonClassName({
     size,
     disabled,
     className: clsx(
-      "border-red-400/20 text-red-100",
-      !disabled && "hover:border-red-400/55 hover:text-red-100 hover:bg-red-400/12",
+      "!border-red-400/20 !text-red-100",
+      !disabled && "hover:!border-red-400/55 hover:!text-red-100 hover:!bg-red-400/12",
       className,
     ),
   })

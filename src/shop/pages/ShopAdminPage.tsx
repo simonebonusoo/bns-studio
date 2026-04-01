@@ -606,7 +606,7 @@ export function ShopAdminPage() {
   const [categories, setCategories] = useState<string[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
   const [shippingCostInput, setShippingCostInput] = useState("9")
-  const [tab, setTab] = useState<"prodotti" | "homepage" | "recensioni" | "ordini" | "utenti" | "data" | "sconti">("prodotti")
+  const [tab, setTab] = useState<"prodotti" | "homepage" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti">("prodotti")
   const [homepagePopularCategories, setHomepagePopularCategories] = useState<HomepagePopularCategory[]>(defaultHomepagePopularCategories)
   const [homepageShowcases, setHomepageShowcases] = useState<HomepageShowcase[]>(defaultHomepageShowcases)
   const [homepageFocus, setHomepageFocus] = useState<{ section: "showcases" | "popular-categories"; item: number | null }>({
@@ -1487,7 +1487,6 @@ export function ShopAdminPage() {
               setError(err instanceof Error ? err.message : "Errore durante l'eliminazione del prodotto.")
             }
           }}
-          containWheel={containWheel}
           onStartRenameCategory={(category) => {
             setRenamingCategory(category)
             setRenamedCategoryValue(category)
@@ -1608,9 +1607,9 @@ export function ShopAdminPage() {
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-semibold text-white">Recensioni eliminate</h2>
-                  <p className="mt-1 text-sm text-white/55">Le recensioni archiviate spariscono dalla sezione attiva e dalla homepage pubblica.</p>
+                  <p className="mt-1 text-sm text-white/55">Recensioni archiviate, rimosse dalla homepage pubblica e dalla sezione attiva.</p>
                 </div>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{archivedReviews.length} archiviate</span>
+                <span className="whitespace-nowrap rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{archivedReviews.length} archiviate</span>
               </div>
               <div className="space-y-3">
                 {archivedReviews.map((review) => (
@@ -1674,7 +1673,7 @@ export function ShopAdminPage() {
                   <h2 className="text-xl font-semibold text-white">Ordini eliminati</h2>
                   <p className="mt-1 text-sm text-white/55">Gli ordini archiviati spariscono dalla lista attiva ma possono essere ripristinati.</p>
                 </div>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{archivedOrders.length} archiviati</span>
+                <span className="whitespace-nowrap rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{archivedOrders.length} archiviati</span>
               </div>
               <div className="space-y-3">
                 {archivedOrders.map((order) => (
@@ -1815,7 +1814,7 @@ export function ShopAdminPage() {
               </button>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
                 <p className="text-sm text-white/55">Incassato ordine</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.grossTotal)}</p>
@@ -1834,19 +1833,16 @@ export function ShopAdminPage() {
                 <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.productCostsTotal)}</p>
               </div>
               <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-                <p className="text-sm text-white/55">Guadagno netto</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.netTotal)}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
                 <p className="text-sm text-white/55">Spedizione reale negozio</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.shippingOperationalCost)}</p>
               </div>
               <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
                 <p className="text-sm text-white/55">Spese totali ordine</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.totalExpenses)}</p>
+              </div>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                <p className="text-sm text-white/55">Guadagno netto</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.netTotal)}</p>
               </div>
             </div>
 
@@ -1859,10 +1855,6 @@ export function ShopAdminPage() {
                       <p className="mt-1 text-sm text-white/55">
                         {item.format} · {item.quantity} pz · ricavo {formatPrice(item.revenueTotal)} · costo {formatPrice(item.costTotal)}
                       </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-white/55">Netto riga</p>
-                      <p className="mt-1 text-base font-semibold text-white">{formatPrice(item.netTotal)}</p>
                     </div>
                   </div>
                 </article>
@@ -1879,7 +1871,7 @@ export function ShopAdminPage() {
                   {orderProfit.items.map((item, index) => (
                     <div key={item.id} className="flex items-center justify-between gap-4 border-b border-white/6 pb-3 text-sm text-white/65 last:border-b-0 last:pb-0">
                       <div>
-                        <p className="text-white">Spesa produzione articolo {index + 1}</p>
+                        <p className="text-white">Totale spese riga {index + 1} — {item.title}</p>
                         <p className="mt-1 text-white/45">{item.title} · {item.format} · {item.quantity} pz</p>
                       </div>
                       <p className="font-medium text-white">{formatPrice(item.costTotal)}</p>
