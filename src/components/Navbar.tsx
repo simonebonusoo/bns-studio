@@ -56,6 +56,10 @@ function forwardWheelToHorizontalScroll(event: React.WheelEvent<HTMLElement>) {
   event.preventDefault()
 }
 
+function requiresSharedProfilePassword(field: "username" | "email" | "password" | "shipping") {
+  return field === "username" || field === "email" || field === "password"
+}
+
 function scoreSearchSuggestion(product: ShopProduct, query: string) {
   const normalizedQuery = query.trim().toLowerCase()
   const title = product.title.toLowerCase()
@@ -593,8 +597,15 @@ export function Navbar() {
     try {
       setProfileSubmitting(true)
 
+      if (requiresSharedProfilePassword(field) && !profileForms.currentPassword.trim()) {
+        throw new Error("Inserisci la password per confermare la modifica")
+      }
+
       if (field === "username") {
-        await updateProfile({ username: profileForms.username })
+        await updateProfile({
+          username: profileForms.username,
+          currentPassword: profileForms.currentPassword,
+        })
       }
 
       if (field === "email") {
@@ -605,6 +616,9 @@ export function Navbar() {
       }
 
       if (field === "password") {
+        if (!profileForms.newPassword.trim()) {
+          throw new Error("Inserisci la nuova password.")
+        }
         if (profileForms.newPassword !== profileForms.confirmPassword) {
           throw new Error("La conferma password non coincide.")
         }
@@ -1606,7 +1620,6 @@ export function Navbar() {
                             onChange={(event) => setProfileForms({ ...profileForms, username: event.target.value })}
                             required
                           />
-                          {profileError && profileEditField === "username" ? <p className="text-sm text-red-300">{profileError}</p> : null}
                           <Button
                             type="submit"
                             className="w-full"
@@ -1631,15 +1644,6 @@ export function Navbar() {
                             onChange={(event) => setProfileForms({ ...profileForms, email: event.target.value })}
                             required
                           />
-                          <input
-                            className="shop-input"
-                            type="password"
-                            placeholder="Password attuale"
-                            value={profileForms.currentPassword}
-                            onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
-                            required
-                          />
-                          {profileError && profileEditField === "email" ? <p className="text-sm text-red-300">{profileError}</p> : null}
                           <Button
                             type="submit"
                             className="w-full"
@@ -1659,14 +1663,6 @@ export function Navbar() {
                           <input
                             className="shop-input"
                             type="password"
-                            placeholder="Password attuale"
-                            value={profileForms.currentPassword}
-                            onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
-                            required
-                          />
-                          <input
-                            className="shop-input"
-                            type="password"
                             placeholder="Nuova password"
                             value={profileForms.newPassword}
                             onChange={(event) => setProfileForms({ ...profileForms, newPassword: event.target.value })}
@@ -1682,7 +1678,6 @@ export function Navbar() {
                             minLength={8}
                             required
                           />
-                          {profileError && profileEditField === "password" ? <p className="text-sm text-red-300">{profileError}</p> : null}
                           <Button
                             type="submit"
                             className="w-full"
@@ -1691,6 +1686,25 @@ export function Navbar() {
                             {profileSubmitting && profileEditField === "password" ? "Salvataggio..." : "Salva password"}
                           </Button>
                         </form>
+                      </div>
+
+                      <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.2em] text-white/45">Conferma modifiche</p>
+                          <p className="mt-2 text-base font-medium text-white">Password attuale</p>
+                        </div>
+                        <div className="mt-4 space-y-3">
+                          <input
+                            className="shop-input"
+                            type="password"
+                            placeholder="Password attuale"
+                            value={profileForms.currentPassword}
+                            onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
+                          />
+                          {profileError && (profileEditField === "username" || profileEditField === "email" || profileEditField === "password") ? (
+                            <p className="text-sm text-red-300">{profileError}</p>
+                          ) : null}
+                        </div>
                       </div>
 
                       <Button
@@ -2022,7 +2036,6 @@ export function Navbar() {
                                   onChange={(event) => setProfileForms({ ...profileForms, username: event.target.value })}
                                   required
                                 />
-                                {profileError && profileEditField === "username" ? <p className="text-sm text-red-300">{profileError}</p> : null}
                                 <Button
                                   type="submit"
                                   className="w-full"
@@ -2047,15 +2060,6 @@ export function Navbar() {
                                   onChange={(event) => setProfileForms({ ...profileForms, email: event.target.value })}
                                   required
                                 />
-                                <input
-                                  className="shop-input"
-                                  type="password"
-                                  placeholder="Password attuale"
-                                  value={profileForms.currentPassword}
-                                  onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
-                                  required
-                                />
-                                {profileError && profileEditField === "email" ? <p className="text-sm text-red-300">{profileError}</p> : null}
                                 <Button
                                   type="submit"
                                   className="w-full"
@@ -2075,14 +2079,6 @@ export function Navbar() {
                                 <input
                                   className="shop-input"
                                   type="password"
-                                  placeholder="Password attuale"
-                                  value={profileForms.currentPassword}
-                                  onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
-                                  required
-                                />
-                                <input
-                                  className="shop-input"
-                                  type="password"
                                   placeholder="Nuova password"
                                   value={profileForms.newPassword}
                                   onChange={(event) => setProfileForms({ ...profileForms, newPassword: event.target.value })}
@@ -2098,7 +2094,6 @@ export function Navbar() {
                                   minLength={8}
                                   required
                                 />
-                                {profileError && profileEditField === "password" ? <p className="text-sm text-red-300">{profileError}</p> : null}
                                 <Button
                                   type="submit"
                                   className="w-full"
@@ -2166,6 +2161,25 @@ export function Navbar() {
                                   {profileSubmitting && profileEditField === "shipping" ? "Salvataggio..." : "Salva dati"}
                                 </Button>
                               </form>
+                            </div>
+
+                            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Conferma modifiche</p>
+                                <p className="mt-2 text-base font-medium text-white">Password attuale</p>
+                              </div>
+                              <div className="mt-4 space-y-3">
+                                <input
+                                  className="shop-input"
+                                  type="password"
+                                  placeholder="Password attuale"
+                                  value={profileForms.currentPassword}
+                                  onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
+                                />
+                                {profileError && (profileEditField === "username" || profileEditField === "email" || profileEditField === "password") ? (
+                                  <p className="text-sm text-red-300">{profileError}</p>
+                                ) : null}
+                              </div>
                             </div>
 
                             <Button

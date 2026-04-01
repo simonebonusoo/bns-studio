@@ -261,6 +261,19 @@ router.patch(
       .parse(req.body)
 
     const updates = {}
+    const wantsSensitiveUpdate = Boolean(body.username || body.email || body.newPassword)
+    let currentPasswordMatches = false
+
+    if (wantsSensitiveUpdate) {
+      if (!body.currentPassword?.trim()) {
+        throw new HttpError(400, "Inserisci la password per confermare la modifica")
+      }
+
+      currentPasswordMatches = await bcrypt.compare(body.currentPassword, req.user.passwordHash)
+      if (!currentPasswordMatches) {
+        throw new HttpError(401, "Password non corretta")
+      }
+    }
 
     if (body.username) {
       const username = normalizeUsername(body.username)
@@ -304,10 +317,6 @@ router.patch(
     }
 
     if (body.email) {
-      if (!body.currentPassword || !(await bcrypt.compare(body.currentPassword, req.user.passwordHash))) {
-        throw new HttpError(401, "Password attuale non valida")
-      }
-
       const email = body.email.trim().toLowerCase()
       const existingEmail = await prisma.user.findUnique({ where: { email } })
       if (existingEmail && existingEmail.id !== req.user.id) {
@@ -320,9 +329,6 @@ router.patch(
     }
 
     if (body.newPassword) {
-      if (!body.currentPassword || !(await bcrypt.compare(body.currentPassword, req.user.passwordHash))) {
-        throw new HttpError(401, "Password attuale non valida")
-      }
       updates.passwordHash = await bcrypt.hash(body.newPassword, 10)
       logInfo("profile_password_change_requested", {
         userId: req.user.id,

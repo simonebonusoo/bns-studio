@@ -29,7 +29,9 @@ export function ShopRegisterPage() {
     confirmPassword: "",
   })
   const originalEmail = user?.email || ""
+  const originalUsername = user?.username || ""
   const isChangingEmail = isEditMode && form.email.trim().toLowerCase() !== originalEmail.toLowerCase()
+  const isChangingUsername = isEditMode && form.username.trim().toLowerCase() !== originalUsername.toLowerCase()
   const isChangingPassword = isEditMode && Boolean(form.password.trim())
 
   useEffect(() => {
@@ -90,12 +92,8 @@ export function ShopRegisterPage() {
           setError("La conferma email non coincide.")
           return
         }
-        if (isChangingEmail && !form.currentPassword.trim()) {
-          setError("Inserisci la password attuale per modificare l'email.")
-          return
-        }
-        if (isChangingPassword && !form.currentPassword.trim()) {
-          setError("Inserisci la password attuale per cambiare la password.")
+        if ((isChangingUsername || isChangingEmail || isChangingPassword) && !form.currentPassword.trim()) {
+          setError("Inserisci la password per confermare la modifica")
           return
         }
         if (isChangingPassword && form.password !== form.confirmPassword) {
@@ -115,8 +113,7 @@ export function ShopRegisterPage() {
           shippingStreetNumber: form.shippingStreetNumber,
           shippingPostalCode: form.shippingPostalCode,
           ...(isChangingPassword ? { newPassword: form.password } : {}),
-          ...(isChangingEmail ? { currentPassword: form.currentPassword } : {}),
-          ...(!isChangingEmail && isChangingPassword ? { currentPassword: form.currentPassword } : {}),
+          ...(isChangingUsername || isChangingEmail || isChangingPassword ? { currentPassword: form.currentPassword } : {}),
         })
       } else {
         await login(
@@ -240,7 +237,7 @@ export function ShopRegisterPage() {
                       required
                     />
                   ) : null}
-                  {isChangingEmail || isChangingPassword ? (
+                  {isChangingUsername || isChangingEmail || isChangingPassword ? (
                     <input
                       className="shop-input py-2.5"
                       type="password"
