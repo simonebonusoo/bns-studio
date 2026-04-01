@@ -3,7 +3,6 @@ import { Link } from "react-router-dom"
 
 import { getButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
-import { OrderTimeline } from "../components/orders/OrderTimeline"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
@@ -13,10 +12,26 @@ import { ShopOrder } from "../types"
 export function ShopProfilePage() {
   const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview } = useShopAuth()
   const [orders, setOrders] = useState<ShopOrder[]>([])
+  const [trackingFeedback, setTrackingFeedback] = useState<Record<number, string>>({})
 
   useEffect(() => {
     apiFetch<ShopOrder[]>("/orders/my-orders").then(setOrders)
   }, [])
+
+  useEffect(() => {
+    if (!Object.keys(trackingFeedback).length) return undefined
+
+    const timeoutId = window.setTimeout(() => setTrackingFeedback({}), 3200)
+    return () => window.clearTimeout(timeoutId)
+  }, [trackingFeedback])
+
+  function buildOrderItemsSummary(order: ShopOrder) {
+    const previewItems = order.items.slice(0, 2).map((item) => `${item.title} x ${item.quantity}`)
+    if (order.items.length > 2) {
+      previewItems.push(`+ ${order.items.length - 2} altri articoli`)
+    }
+    return previewItems.join(" • ")
+  }
 
   return (
     <ShopLayout
@@ -65,31 +80,35 @@ export function ShopProfilePage() {
               </div>
             </div>
 
-            <div className="space-y-2 text-sm text-white/65">
+            <div className="space-y-3 text-sm text-white/65">
+              <p className="text-white/72">{buildOrderItemsSummary(order)}</p>
               <div className="flex items-center justify-between"><span>Sconti</span><span>{formatPrice(order.discountTotal)}</span></div>
               <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
             </div>
 
-            <OrderTimeline
-              order={order}
-              actions={
-                <>
-                  <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                    Visualizza ordine
-                  </Link>
-                  {order.trackingUrl ? (
-                    <a
-                      href={order.trackingUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={getButtonClassName({ variant: "cart", size: "sm" })}
-                    >
-                      Traccia spedizione
-                    </a>
-                  ) : null}
-                </>
-              }
-            />
+            <div className="flex flex-wrap gap-3">
+              <Link to={`/shop/orders/${order.orderReference}`} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                Informazioni ordine
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (order.trackingUrl) {
+                    window.open(order.trackingUrl, "_blank", "noopener,noreferrer")
+                    return
+                  }
+                  setTrackingFeedback((current) => ({
+                    ...current,
+                    [order.id]: "Tracking ancora non disponibile, riprova tra un po'.",
+                  }))
+                }}
+                className={getButtonClassName({ variant: "cart", size: "sm" })}
+              >
+                Tracking
+              </button>
+            </div>
+
+            {trackingFeedback[order.id] ? <p className="text-sm text-white/45">{trackingFeedback[order.id]}</p> : null}
           </article>
         ))}
       </div>
