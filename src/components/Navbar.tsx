@@ -57,7 +57,7 @@ function forwardWheelToHorizontalScroll(event: React.WheelEvent<HTMLElement>) {
 }
 
 function requiresSharedProfilePassword(field: "username" | "email" | "password" | "shipping") {
-  return field === "username" || field === "email" || field === "password"
+  return field === "username" || field === "email" || field === "password" || field === "shipping"
 }
 
 function scoreSearchSuggestion(product: ShopProduct, query: string) {
@@ -631,6 +631,7 @@ export function Navbar() {
 
       if (field === "shipping") {
         await updateProfile({
+          currentPassword: profileForms.currentPassword,
           shippingCountry: profileForms.shippingCountry,
           shippingRegion: profileForms.shippingRegion,
           shippingCity: profileForms.shippingCity,

@@ -261,7 +261,17 @@ router.patch(
       .parse(req.body)
 
     const updates = {}
-    const wantsSensitiveUpdate = Boolean(body.username || body.email || body.newPassword)
+    const wantsSensitiveUpdate = Boolean(
+      body.username ||
+        body.email ||
+        body.newPassword ||
+        body.shippingCountry ||
+        body.shippingRegion ||
+        body.shippingCity ||
+        body.shippingAddressLine1 ||
+        body.shippingStreetNumber ||
+        body.shippingPostalCode,
+    )
     let currentPasswordMatches = false
 
     if (wantsSensitiveUpdate) {
