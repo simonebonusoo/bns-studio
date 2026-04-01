@@ -59,6 +59,7 @@ test("store routes expose internal mock tracking and label endpoints", () => {
   assert.match(source, /\/mock-shipping\/labels\/:shipmentReference/)
   assert.match(source, /createMockTrackingResponse/)
   assert.match(source, /createMockLabelResponse/)
+  assert.match(source, /if \(!env\.mockDebugRoutesEnabled\)/)
 })
 
 test("frontend router exposes the internal mock tracking page", () => {
@@ -67,4 +68,5 @@ test("frontend router exposes the internal mock tracking page", () => {
 
   assert.match(source, /\/shop\/tracking\/mock\/:trackingNumber/)
   assert.match(source, /ShopMockTrackingPage/)
+  assert.match(source, /import\.meta\.env\.DEV/)
 })

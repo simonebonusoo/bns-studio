@@ -19,6 +19,7 @@ test("auth and admin security use cookies, server-side guards and rate limiting"
   const adminRoutes = read("src/server/shop/routes/adminRoutes.mjs")
   const orderRoutes = read("src/server/shop/routes/orderRoutes.mjs")
   const seed = read("prisma/seed.mjs")
+  const envConfig = read("src/server/shop/config/env.mjs")
 
   assert.match(api, /credentials: "include"/)
   assert.doesNotMatch(api, /Authorization: `Bearer/)
@@ -55,6 +56,10 @@ test("auth and admin security use cookies, server-side guards and rate limiting"
   assert.match(app, /app\.disable\("x-powered-by"\)/)
   assert.match(app, /adminLimiter/)
   assert.match(app, /callback\(null, false\)/)
+  assert.match(app, /X-Frame-Options/)
+  assert.match(app, /X-Content-Type-Options/)
+  assert.match(app, /Referrer-Policy/)
+  assert.match(app, /Permissions-Policy/)
 
   assert.match(adminRoutes, /router\.use\(requireAuth, requireAdmin\)/)
   assert.match(adminRoutes, /admin_mutation/)
@@ -64,4 +69,8 @@ test("auth and admin security use cookies, server-side guards and rate limiting"
   assert.doesNotMatch(seed, /Admin ready: admin@bnsstudio\.com \/ admin1234/)
   assert.match(seed, /SHOP_ADMIN_SEED_PASSWORD/)
   assert.match(seed, /SHOP_CUSTOMER_SEED_PASSWORD/)
+  assert.match(seed, /if \(!isProduction\)/)
+  assert.match(envConfig, /const clientUrl = isProductionNodeEnv \? requireEnv\("CLIENT_URL"\)/)
+  assert.match(envConfig, /mockDebugRoutesEnabled/)
+  assert.match(envConfig, /securityTestRoutesEnabled/)
 })

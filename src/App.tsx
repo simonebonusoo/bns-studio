@@ -207,7 +207,7 @@ export default function App() {
             <Route path="/shop/auth" element={<ShopAuthPage />} />
             <Route path="/shop/register" element={<ShopRegisterPage />} />
             <Route path="/shop/account" element={<ShopRegisterPage />} />
-            <Route path="/shop/tracking/mock/:trackingNumber" element={<ShopMockTrackingPage />} />
+            {import.meta.env.DEV ? <Route path="/shop/tracking/mock/:trackingNumber" element={<ShopMockTrackingPage />} /> : null}
             <Route
               path="/shop/checkout"
               element={

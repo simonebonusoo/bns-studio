@@ -17,19 +17,19 @@ function parseList(value) {
     .filter(Boolean)
 }
 
+const isProductionNodeEnv = (process.env.NODE_ENV || "development") === "production"
 function parseBoolean(value, fallback = false) {
   if (value == null || value === "") return fallback
   const normalized = String(value).trim().toLowerCase()
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on"
 }
 
-const clientUrl = requireEnv("CLIENT_URL", "http://localhost:5173")
+const clientUrl = isProductionNodeEnv ? requireEnv("CLIENT_URL") : requireEnv("CLIENT_URL", "http://localhost:5173")
 const clientOrigins = Array.from(new Set([clientUrl, ...parseList(process.env.CLIENT_ORIGINS)]))
 const isRenderRuntime = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
 const hasDhlCredentials = Boolean(process.env.DHL_API_KEY && process.env.DHL_API_SECRET && process.env.DHL_ACCOUNT_NUMBER)
 const hasInpostCredentials = Boolean(process.env.INPOST_API_KEY)
 const hasPacklinkCredentials = Boolean(process.env.PACKLINK_API_KEY)
-const isProductionNodeEnv = (process.env.NODE_ENV || "development") === "production"
 
 export const env = {
   port: Number(process.env.PORT || 4000),
@@ -39,6 +39,8 @@ export const env = {
   authCookieName: process.env.AUTH_COOKIE_NAME || "bns_shop_session",
   authCookieSecure: parseBoolean(process.env.AUTH_COOKIE_SECURE, isProductionNodeEnv || isRenderRuntime),
   authCookieSameSite: process.env.AUTH_COOKIE_SAME_SITE || "lax",
+  mockDebugRoutesEnabled: parseBoolean(process.env.SHOP_ENABLE_MOCK_DEBUG_ROUTES, !isProductionNodeEnv),
+  securityTestRoutesEnabled: !isProductionNodeEnv && parseBoolean(process.env.SHOP_ENABLE_SECURITY_TEST_ROUTES, false),
   clientUrl,
   clientOrigins,
   uploadsDir: process.env.UPLOADS_DIR || "",

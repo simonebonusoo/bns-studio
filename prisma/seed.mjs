@@ -198,10 +198,10 @@ async function main() {
     return
   }
 
-  if (!adminSeedPassword || !customerSeedPassword) {
+  if (!adminSeedPassword || (!isProduction && !customerSeedPassword)) {
     throw new Error(
       isProduction
-        ? "In produzione imposta SHOP_ADMIN_SEED_PASSWORD e SHOP_CUSTOMER_SEED_PASSWORD per eseguire il seed iniziale."
+        ? "In produzione imposta SHOP_ADMIN_SEED_PASSWORD per eseguire il seed iniziale."
         : "Imposta SHOP_ADMIN_SEED_PASSWORD e SHOP_CUSTOMER_SEED_PASSWORD per eseguire il seed iniziale in sicurezza.",
     )
   }
@@ -219,32 +219,34 @@ async function main() {
     },
   })
 
-  await prisma.user.upsert({
-    where: { email: "customer@bnsstudio.com" },
-    update: {},
-    create: {
-      email: "customer@bnsstudio.com",
-      username: "sample.customer",
-      passwordHash: await bcrypt.hash(customerSeedPassword || crypto.randomUUID(), 10),
-      firstName: "Sample",
-      lastName: "Customer",
-      role: "customer",
-    },
-  })
-
-  for (const demoUser of reviewUsers) {
+  if (!isProduction) {
     await prisma.user.upsert({
-      where: { email: demoUser.email },
+      where: { email: "customer@bnsstudio.com" },
       update: {},
       create: {
-        email: demoUser.email,
-        username: demoUser.username,
+        email: "customer@bnsstudio.com",
+        username: "sample.customer",
         passwordHash: await bcrypt.hash(customerSeedPassword || crypto.randomUUID(), 10),
-        firstName: demoUser.firstName,
-        lastName: demoUser.lastName,
+        firstName: "Sample",
+        lastName: "Customer",
         role: "customer",
       },
     })
+
+    for (const demoUser of reviewUsers) {
+      await prisma.user.upsert({
+        where: { email: demoUser.email },
+        update: {},
+        create: {
+          email: demoUser.email,
+          username: demoUser.username,
+          passwordHash: await bcrypt.hash(customerSeedPassword || crypto.randomUUID(), 10),
+          firstName: demoUser.firstName,
+          lastName: demoUser.lastName,
+          role: "customer",
+        },
+      })
+    }
   }
 
   for (const product of products) {
@@ -317,27 +319,29 @@ async function main() {
     })
   }
 
-  for (const review of seededReviews) {
-    const reviewUser = await prisma.user.findUnique({
-      where: { email: review.email },
-    })
+  if (!isProduction) {
+    for (const review of seededReviews) {
+      const reviewUser = await prisma.user.findUnique({
+        where: { email: review.email },
+      })
 
-    if (!reviewUser) continue
+      if (!reviewUser) continue
 
-    await prisma.review.upsert({
-      where: { publicId: review.publicId },
-      update: {},
-      create: {
-        publicId: review.publicId,
-        userId: reviewUser.id,
-        rating: review.rating,
-        title: review.title,
-        body: review.body,
-        tag: review.tag,
-        status: "approved",
-        showOnHomepage: review.showOnHomepage,
-      },
-    })
+      await prisma.review.upsert({
+        where: { publicId: review.publicId },
+        update: {},
+        create: {
+          publicId: review.publicId,
+          userId: reviewUser.id,
+          rating: review.rating,
+          title: review.title,
+          body: review.body,
+          tag: review.tag,
+          status: "approved",
+          showOnHomepage: review.showOnHomepage,
+        },
+      })
+    }
   }
 
   const [seededUserCount, seededProductCount, seededReviewCount, categorySetting] = await Promise.all([

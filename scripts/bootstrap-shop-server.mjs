@@ -33,9 +33,13 @@ function logConfiguration() {
   const uploadsExists = fs.existsSync(path.join(uploadsDir, "products"))
   const persistence = getPersistenceStatus()
 
+  const redactedDatabaseUrl = databaseUrl.startsWith("file:")
+    ? databaseUrl
+    : databaseUrl.replace(/:\/\/([^:@/]+)(?::[^@/]+)?@/, "://***:***@")
+
   console.log("[bootstrap] Starting BNS Studio shop backend")
   console.log(`[bootstrap] NODE_ENV=${process.env.NODE_ENV || "development"}`)
-  console.log(`[bootstrap] DATABASE_URL=${databaseUrl}`)
+  console.log(`[bootstrap] DATABASE_URL=${redactedDatabaseUrl}`)
   console.log(`[bootstrap] DATABASE_PATH=${databasePath}`)
   console.log(`[bootstrap] DATABASE_EXISTS_BEFORE_START=${databaseExists}`)
   console.log(`[bootstrap] UPLOADS_DIR=${uploadsDir}`)

@@ -446,6 +446,10 @@ router.post(
 router.get(
   "/mock-shipping/tracking/:trackingNumber",
   asyncHandler(async (req, res) => {
+    if (!env.mockDebugRoutesEnabled) {
+      return res.status(404).json({ message: "Endpoint API non trovato" })
+    }
+
     const trackingNumber = String(req.params.trackingNumber || "").trim()
 
     if (!trackingNumber) {
@@ -470,6 +474,10 @@ router.get(
 router.get(
   "/mock-shipping/labels/:shipmentReference",
   asyncHandler(async (req, res) => {
+    if (!env.mockDebugRoutesEnabled) {
+      return res.status(404).json({ message: "Endpoint API non trovato" })
+    }
+
     const shipmentReference = String(req.params.shipmentReference || "").trim()
 
     if (!shipmentReference) {
