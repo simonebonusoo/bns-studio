@@ -57,6 +57,27 @@ export function getButtonClassName({
   return clsx(base, sizeCls, variantCls, disabledCls, className)
 }
 
+export function getDangerButtonClassName({
+  size = "md",
+  className,
+  disabled = false,
+}: {
+  size?: "sm" | "md"
+  className?: string
+  disabled?: boolean
+}) {
+  return getButtonClassName({
+    variant: "profile",
+    size,
+    disabled,
+    className: clsx(
+      "border-red-400/20 text-red-100",
+      !disabled && "hover:border-red-400/55 hover:text-red-100 hover:bg-red-400/12",
+      className,
+    ),
+  })
+}
+
 export function Button({
   children,
   href,

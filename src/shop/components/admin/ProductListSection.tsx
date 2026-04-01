@@ -1,4 +1,4 @@
-import { Button } from "../../../components/Button"
+import { Button, getDangerButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 import { getAvailableFormats, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants } from "../../lib/product"
 import { ShopProduct } from "../../types"
@@ -114,7 +114,7 @@ export function ProductListSection({
                     <Button type="button" variant="ghost" size="sm" className="w-full" text="Duplica" onClick={() => void onDuplicate(product)}>
                       Duplica
                     </Button>
-                    <Button type="button" size="sm" className="w-full" text="Elimina" onClick={() => void onDelete(product)}>
+                    <Button type="button" variant="profile" size="sm" className={getDangerButtonClassName({ size: "sm", className: "w-full" })} text="Elimina" onClick={() => void onDelete(product)}>
                       Elimina
                     </Button>
                   </div>

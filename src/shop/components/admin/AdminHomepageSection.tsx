@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from "react"
 
-import { Button, getButtonClassName } from "../../../components/Button"
+import { Button, getButtonClassName, getDangerButtonClassName } from "../../../components/Button"
 
 type HomepagePopularCategory = {
   title: string
@@ -211,7 +211,7 @@ export function AdminHomepageSection({
                     <button
                       type="button"
                       onClick={() => void deleteShowcase(index)}
-                      className={getButtonClassName({ variant: "cart", size: "sm" })}
+                      className={getDangerButtonClassName({ size: "sm" })}
                     >
                       Elimina
                     </button>
@@ -372,7 +372,7 @@ export function AdminHomepageSection({
                     <button
                       type="button"
                       onClick={() => void deletePopularCategory(index)}
-                      className={getButtonClassName({ variant: "cart", size: "sm" })}
+                      className={getDangerButtonClassName({ size: "sm" })}
                     >
                       Elimina
                     </button>

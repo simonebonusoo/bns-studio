@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 
+import { getDangerButtonClassName } from "../../../components/Button"
 import { Button } from "../../../components/Button"
 import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
 import { AdminRenderGuard } from "./AdminRenderGuard"
@@ -248,7 +249,7 @@ export function AdminProductsSection({
                     <Button type="button" variant="profile" size="sm" text="Rinomina" onClick={() => onStartRenameCategory(category)}>
                       Rinomina
                     </Button>
-                    <Button type="button" variant="cart" size="sm" text="Elimina" onClick={() => onDeleteCategory(category)}>
+                    <Button type="button" variant="profile" size="sm" className={getDangerButtonClassName({ size: "sm" })} text="Elimina" onClick={() => onDeleteCategory(category)}>
                       Elimina
                     </Button>
                   </div>
@@ -330,7 +331,7 @@ export function AdminProductsSection({
                       <Button type="button" variant="profile" size="sm" text="Modifica" onClick={() => onStartEditCollection(collection)}>
                         Modifica
                       </Button>
-                      <Button type="button" variant="cart" size="sm" text="Elimina" onClick={() => onDeleteCollection(collection.id)}>
+                      <Button type="button" variant="profile" size="sm" className={getDangerButtonClassName({ size: "sm" })} text="Elimina" onClick={() => onDeleteCollection(collection.id)}>
                         Elimina
                       </Button>
                     </div>

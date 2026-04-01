@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Button } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
-import { getButtonClassName } from "../../components/Button"
+import { getButtonClassName, getDangerButtonClassName } from "../../components/Button"
 import { AdminAnalyticsSection } from "../components/admin/AdminAnalyticsSection"
 import { AdminDiscountsSection } from "../components/admin/AdminDiscountsSection"
 import { AdminHomepageSection } from "../components/admin/AdminHomepageSection"
@@ -593,7 +593,9 @@ export function ShopAdminPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [reviews, setReviews] = useState<AdminReview[]>([])
+  const [archivedReviews, setArchivedReviews] = useState<AdminReview[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
+  const [archivedOrders, setArchivedOrders] = useState<ShopOrder[]>([])
   const [users, setUsers] = useState<AdminUser[]>([])
   const [usersTotal, setUsersTotal] = useState(0)
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
@@ -732,7 +734,7 @@ export function ShopAdminPage() {
   }
 
   async function refresh() {
-    const [, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData, collectionsData] = await Promise.all([
+    const [, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData, collectionsData, archivedReviewData, archivedOrderData] = await Promise.all([
       refreshProducts(),
       apiFetch<AdminReview[]>("/admin/reviews"),
       apiFetch<ShopOrder[]>("/admin/orders"),
@@ -744,10 +746,14 @@ export function ShopAdminPage() {
       apiFetch<SettingEntry[]>("/admin/settings"),
       apiFetch<AdminRuntimeStatus>("/admin/runtime-status"),
       apiFetch<AdminCollection[]>("/admin/collections"),
+      apiFetch<AdminReview[]>("/admin/archive/reviews"),
+      apiFetch<ShopOrder[]>("/admin/archive/orders"),
     ])
 
     setReviews(reviewData)
+    setArchivedReviews(archivedReviewData)
     setOrders(orderData)
+    setArchivedOrders(archivedOrderData)
     setUsers(usersData.users)
     setUsersTotal(usersData.total)
     setAnalytics(analyticsData)
@@ -1333,8 +1339,12 @@ export function ShopAdminPage() {
     clearFeedback()
     try {
       await apiFetch(`/admin/reviews/${reviewId}`, { method: "DELETE" })
+      const archivedReview = reviews.find((review) => review.id === reviewId)
       setReviews((current) => current.filter((review) => review.id !== reviewId))
-      setMessage("Recensione eliminata.")
+      if (archivedReview) {
+        setArchivedReviews((current) => [archivedReview, ...current])
+      }
+      setMessage("Recensione archiviata.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della recensione.")
       throw err
@@ -1345,8 +1355,12 @@ export function ShopAdminPage() {
     clearFeedback()
     try {
       await apiFetch(`/admin/orders/${orderId}`, { method: "DELETE" })
+      const archivedOrder = orders.find((order) => order.id === orderId)
       setOrders((current) => current.filter((order) => order.id !== orderId))
-      setMessage("Ordine eliminato.")
+      if (archivedOrder) {
+        setArchivedOrders((current) => [archivedOrder, ...current])
+      }
+      setMessage("Ordine archiviato.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante l'eliminazione dell'ordine.")
       throw err
@@ -1404,6 +1418,7 @@ export function ShopAdminPage() {
           ["homepage", "Homepage"],
           ["recensioni", "Recensioni"],
           ["ordini", "Ordini"],
+          ["archivio", "Archivio"],
           ["utenti", "Utenti"],
           ["data", "Data"],
           ["sconti", "Sconti e coupon"],
@@ -1411,7 +1426,7 @@ export function ShopAdminPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setTab(key as "prodotti" | "homepage" | "recensioni" | "ordini" | "utenti" | "data" | "sconti")}
+            onClick={() => setTab(key as "prodotti" | "homepage" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti")}
             className={getButtonClassName({ variant: tab === key ? "cart" : "profile", size: "sm" })}
           >
             {label}
@@ -1584,6 +1599,136 @@ export function ShopAdminPage() {
           }}
           onDeleteOrder={deleteOrder}
         />
+      ) : null}
+
+      {tab === "archivio" ? (
+        <section className="space-y-6">
+          <div className="grid gap-6 xl:grid-cols-2">
+            <article className="shop-card space-y-4 p-6">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Recensioni eliminate</h2>
+                  <p className="mt-1 text-sm text-white/55">Le recensioni archiviate spariscono dalla sezione attiva e dalla homepage pubblica.</p>
+                </div>
+                <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{archivedReviews.length} archiviate</span>
+              </div>
+              <div className="space-y-3">
+                {archivedReviews.map((review) => (
+                  <div key={review.id} className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <p className="text-base font-medium text-white">{review.authorName}</p>
+                          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{review.rating}/5</span>
+                          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{new Date(review.createdAt).toLocaleDateString("it-IT")}</span>
+                        </div>
+                        <h3 className="mt-3 text-lg font-semibold text-white">{review.title}</h3>
+                        <p className="mt-2 text-sm leading-7 text-white/68">{review.body}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 md:justify-end">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            clearFeedback()
+                            try {
+                              const restored = await apiFetch<AdminReview>(`/admin/archive/reviews/${review.id}/restore`, { method: "POST" })
+                              setArchivedReviews((current) => current.filter((entry) => entry.id !== review.id))
+                              setReviews((current) => [restored, ...current])
+                              setMessage("Recensione ripristinata.")
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Errore durante il ripristino della recensione.")
+                            }
+                          }}
+                          className={getButtonClassName({ variant: "cart", size: "sm" })}
+                        >
+                          Ripristina
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm("Sei sicuro di voler eliminare definitivamente questo elemento? Questa azione è irreversibile.")) return
+                            clearFeedback()
+                            try {
+                              await apiFetch(`/admin/archive/reviews/${review.id}`, { method: "DELETE" })
+                              setArchivedReviews((current) => current.filter((entry) => entry.id !== review.id))
+                              setMessage("Recensione eliminata definitivamente.")
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione definitiva della recensione.")
+                            }
+                          }}
+                          className={getDangerButtonClassName({ size: "sm" })}
+                        >
+                          Elimina
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {!archivedReviews.length ? <div className="rounded-[22px] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/50">Nessuna recensione archiviata.</div> : null}
+              </div>
+            </article>
+
+            <article className="shop-card space-y-4 p-6">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Ordini eliminati</h2>
+                  <p className="mt-1 text-sm text-white/55">Gli ordini archiviati spariscono dalla lista attiva ma possono essere ripristinati.</p>
+                </div>
+                <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{archivedOrders.length} archiviati</span>
+              </div>
+              <div className="space-y-3">
+                {archivedOrders.map((order) => (
+                  <div key={order.id} className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="text-base font-medium text-white">{order.orderReference}</p>
+                        <p className="mt-1 text-sm text-white/60">{order.firstName} {order.lastName} · {formatPrice(order.total)}</p>
+                        <p className="mt-1 text-sm text-white/45">{new Date(order.createdAt).toLocaleString("it-IT")}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 md:justify-end">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            clearFeedback()
+                            try {
+                              const restored = await apiFetch<ShopOrder>(`/admin/archive/orders/${order.id}/restore`, { method: "POST" })
+                              setArchivedOrders((current) => current.filter((entry) => entry.id !== order.id))
+                              setOrders((current) => [restored, ...current])
+                              setMessage("Ordine ripristinato.")
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Errore durante il ripristino dell'ordine.")
+                            }
+                          }}
+                          className={getButtonClassName({ variant: "cart", size: "sm" })}
+                        >
+                          Ripristina
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm("Sei sicuro di voler eliminare definitivamente questo elemento? Questa azione è irreversibile.")) return
+                            clearFeedback()
+                            try {
+                              await apiFetch(`/admin/archive/orders/${order.id}`, { method: "DELETE" })
+                              setArchivedOrders((current) => current.filter((entry) => entry.id !== order.id))
+                              setMessage("Ordine eliminato definitivamente.")
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Errore durante l'eliminazione definitiva dell'ordine.")
+                            }
+                          }}
+                          className={getDangerButtonClassName({ size: "sm" })}
+                        >
+                          Elimina
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {!archivedOrders.length ? <div className="rounded-[22px] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/50">Nessun ordine archiviato.</div> : null}
+              </div>
+            </article>
+          </div>
+        </section>
       ) : null}
 
       {tab === "utenti" ? <AdminUsersSection users={users} usersTotal={usersTotal} containWheel={containWheel} /> : null}

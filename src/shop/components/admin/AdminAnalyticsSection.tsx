@@ -224,8 +224,17 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
               </div>
             </div>
 
-            {primaryChart ? (
-              <div className="relative rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(238,248,121,0.12),transparent_48%),rgba(255,255,255,0.03)] p-4">
+          {!showMetrics ? (
+            <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex h-[240px] items-center justify-center rounded-[20px] border border-dashed border-white/10 bg-black/20">
+                <div className="text-center">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/38">Dati nascosti</p>
+                  <p className="mt-3 text-sm text-white/55">Il grafico è censurato finché la modalità privacy resta attiva.</p>
+                </div>
+              </div>
+            </div>
+          ) : primaryChart ? (
+            <div className="relative rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(238,248,121,0.12),transparent_48%),rgba(255,255,255,0.03)] p-4">
                 {activePrimaryValue ? (
                   <div className="absolute right-4 top-4 rounded-2xl border border-white/10 bg-[#0e0e10]/95 px-4 py-3 text-right shadow-xl">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-white/42">{activePrimaryValue.title}</p>
@@ -320,7 +329,16 @@ export function AdminAnalyticsSection({ analytics }: AdminAnalyticsSectionProps)
               </div>
             </div>
 
-            {secondaryChart ? (
+            {!showMetrics ? (
+              <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex h-[220px] items-center justify-center rounded-[20px] border border-dashed border-white/10 bg-black/20">
+                  <div className="text-center">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/38">Dati nascosti</p>
+                    <p className="mt-3 text-sm text-white/55">Riattiva la visibilità per consultare spese e utile netto nel tempo.</p>
+                  </div>
+                </div>
+              </div>
+            ) : secondaryChart ? (
               <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
                 <svg viewBox={`0 0 ${secondaryChart.width} ${secondaryChart.height}`} className="h-[220px] w-full">
                   {[0, 0.5, 1].map((ratio) => {

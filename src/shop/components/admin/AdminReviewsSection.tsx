@@ -1,4 +1,4 @@
-import { getButtonClassName } from "../../../components/Button"
+import { getDangerButtonClassName } from "../../../components/Button"
 import { ShopReview } from "../../types"
 
 type AdminReview = ShopReview & {
@@ -61,7 +61,7 @@ export function AdminReviewsSection({ reviews, onToggleHomepageReview, onDeleteR
                       if (!window.confirm("Sei sicuro di voler eliminare questa recensione? Questa azione è irreversibile.")) return
                       await onDeleteReview(review.id)
                     }}
-                    className={getButtonClassName({ variant: "cart", size: "sm" })}
+                    className={getDangerButtonClassName({ size: "sm" })}
                   >
                     Elimina
                   </button>

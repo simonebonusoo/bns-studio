@@ -26,6 +26,8 @@ const uploadsDir = resolveProductUploadsDir()
 
 fs.mkdirSync(uploadsDir, { recursive: true })
 const CUSTOMER_ORDER_WHERE = { user: { role: "customer" } }
+const ACTIVE_CUSTOMER_ORDER_WHERE = { ...CUSTOMER_ORDER_WHERE, archivedAt: null }
+const ARCHIVED_CUSTOMER_ORDER_WHERE = { ...CUSTOMER_ORDER_WHERE, archivedAt: { not: null } }
 
 const localDiskStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
@@ -511,7 +513,7 @@ router.get(
   "/dashboard",
   asyncHandler(async (_req, res) => {
     const orders = await prisma.order.findMany({
-      where: CUSTOMER_ORDER_WHERE,
+      where: ACTIVE_CUSTOMER_ORDER_WHERE,
       include: { items: true },
       orderBy: { createdAt: "desc" },
     })
@@ -553,7 +555,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     const [orders, pageViews] = await Promise.all([
       prisma.order.findMany({
-        where: CUSTOMER_ORDER_WHERE,
+        where: ACTIVE_CUSTOMER_ORDER_WHERE,
         include: {
           items: {
             include: {
@@ -1103,6 +1105,7 @@ router.get(
   "/reviews",
   asyncHandler(async (_req, res) => {
     const reviews = await prisma.review.findMany({
+      where: { archivedAt: null },
       include: {
         user: {
           select: {
@@ -1138,7 +1141,7 @@ router.patch(
 
     if (body.showOnHomepage) {
       const selectedCount = await prisma.review.count({
-        where: { showOnHomepage: true, publicId: { not: req.params.id }, status: "approved" },
+        where: { showOnHomepage: true, publicId: { not: req.params.id }, status: "approved", archivedAt: null },
       })
 
       if (selectedCount >= 10) {
@@ -1179,6 +1182,85 @@ router.patch(
 router.delete(
   "/reviews/:id",
   asyncHandler(async (req, res) => {
+    await prisma.review.update({
+      where: { publicId: req.params.id },
+      data: {
+        archivedAt: new Date(),
+        showOnHomepage: false,
+      },
+    })
+
+    res.status(204).send()
+  })
+)
+
+router.get(
+  "/archive/reviews",
+  asyncHandler(async (_req, res) => {
+    const reviews = await prisma.review.findMany({
+      where: { archivedAt: { not: null } },
+      include: {
+        user: {
+          select: {
+            email: true,
+            username: true,
+            firstName: true,
+          },
+        },
+      },
+      orderBy: { archivedAt: "desc" },
+    })
+
+    res.json(
+      reviews.map((review) => ({
+        id: review.publicId,
+        rating: review.rating,
+        title: review.title,
+        body: review.body,
+        tag: review.tag,
+        status: review.status,
+        showOnHomepage: review.showOnHomepage,
+        createdAt: review.createdAt,
+        authorName: review.user.username || review.user.firstName || review.user.email.split("@")[0],
+      }))
+    )
+  })
+)
+
+router.post(
+  "/archive/reviews/:id/restore",
+  asyncHandler(async (req, res) => {
+    const review = await prisma.review.update({
+      where: { publicId: req.params.id },
+      data: { archivedAt: null },
+      include: {
+        user: {
+          select: {
+            email: true,
+            username: true,
+            firstName: true,
+          },
+        },
+      },
+    })
+
+    res.json({
+      id: review.publicId,
+      rating: review.rating,
+      title: review.title,
+      body: review.body,
+      tag: review.tag,
+      status: review.status,
+      showOnHomepage: review.showOnHomepage,
+      createdAt: review.createdAt,
+      authorName: review.user.username || review.user.firstName || review.user.email.split("@")[0],
+    })
+  })
+)
+
+router.delete(
+  "/archive/reviews/:id",
+  asyncHandler(async (req, res) => {
     await prisma.review.delete({
       where: { publicId: req.params.id },
     })
@@ -1191,7 +1273,7 @@ router.get(
   "/orders",
   asyncHandler(async (_req, res) => {
     const orders = await prisma.order.findMany({
-      where: CUSTOMER_ORDER_WHERE,
+      where: ACTIVE_CUSTOMER_ORDER_WHERE,
       include: { items: true, user: { select: { email: true, firstName: true, lastName: true } } },
       orderBy: { createdAt: "desc" },
     })
@@ -1322,6 +1404,59 @@ router.delete(
       throw new HttpError(404, "Ordine cliente non trovato")
     }
 
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { archivedAt: new Date() },
+    })
+
+    res.status(204).send()
+  })
+)
+
+router.get(
+  "/archive/orders",
+  asyncHandler(async (_req, res) => {
+    const orders = await prisma.order.findMany({
+      where: ARCHIVED_CUSTOMER_ORDER_WHERE,
+      include: { items: true, user: { select: { email: true, firstName: true, lastName: true } } },
+      orderBy: { archivedAt: "desc" },
+    })
+
+    res.json(orders.map((order) => serializeShopOrder(order)))
+  })
+)
+
+router.post(
+  "/archive/orders/:id/restore",
+  asyncHandler(async (req, res) => {
+    const orderId = Number(req.params.id)
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { user: { select: { role: true } } },
+    })
+
+    if (!existingOrder) {
+      throw new HttpError(404, "Ordine non trovato")
+    }
+
+    if (existingOrder.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
+    }
+
+    const restored = await prisma.order.update({
+      where: { id: orderId },
+      data: { archivedAt: null },
+      include: { items: true },
+    })
+
+    res.json(serializeShopOrder(restored))
+  })
+)
+
+router.delete(
+  "/archive/orders/:id",
+  asyncHandler(async (req, res) => {
+    const orderId = Number(req.params.id)
     await prisma.$transaction([
       prisma.orderItem.deleteMany({ where: { orderId } }),
       prisma.order.delete({ where: { id: orderId } }),

@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
-import { getButtonClassName } from "../../../components/Button"
+import { getButtonClassName, getDangerButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 import { downloadInvoicePdf } from "../../lib/invoice"
 import { getOrderFulfillmentStatusLabel } from "../../lib/order"
@@ -334,7 +334,7 @@ export function AdminOrdersSection({
                           setShippingActionState((current) => ({ ...current, [order.id]: null }))
                         }
                       }}
-                      className={getButtonClassName({ variant: "profile", size: "sm" })}
+                      className={getDangerButtonClassName({ size: "sm" })}
                     >
                       {shippingActionState[order.id] === "delete" ? "Eliminazione..." : "Elimina"}
                     </button>

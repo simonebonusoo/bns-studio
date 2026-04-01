@@ -1,6 +1,6 @@
 import type { FormEvent } from "react"
 
-import { Button, getButtonClassName } from "../../../components/Button"
+import { Button, getButtonClassName, getDangerButtonClassName } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 
 type Coupon = {
@@ -167,7 +167,7 @@ export function AdminDiscountsSection({
                     <button type="button" onClick={() => onEditCoupon(coupon)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                       Modifica
                     </button>
-                    <button type="button" onClick={() => onDeleteCoupon(coupon.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
+                    <button type="button" onClick={() => onDeleteCoupon(coupon.id)} className={getDangerButtonClassName({ size: "sm" })}>
                       Elimina
                     </button>
                   </div>
@@ -265,7 +265,7 @@ export function AdminDiscountsSection({
                     <button type="button" onClick={() => onEditRule(rule)} className={getButtonClassName({ variant: "profile", size: "sm" })}>
                       Modifica
                     </button>
-                    <button type="button" onClick={() => onDeleteRule(rule.id)} className={getButtonClassName({ variant: "cart", size: "sm" })}>
+                    <button type="button" onClick={() => onDeleteRule(rule.id)} className={getDangerButtonClassName({ size: "sm" })}>
                       Elimina
                     </button>
                   </div>
