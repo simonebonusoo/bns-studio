@@ -736,19 +736,19 @@ export function Navbar() {
                   </button>
                 </div>
 
-                <div className="flex-1 space-y-3 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+                <div className="flex-1 space-y-3 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] [-webkit-overflow-scrolling:touch]">
                   {[
                     {
-                      label: "Shop",
-                      description: "Torna alla home principale dello shop.",
+                      label: "Home",
+                      description: "Torna all'inizio della homepage.",
                       icon: <HomeIcon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
-                        navigate("/shop")
+                        navigate("/#top")
                       },
                     },
                     {
-                      label: "Categoria",
+                      label: "Categorie",
                       description: "Vai alla sezione Acquista per categoria.",
                       icon: <Squares2X2Icon className="h-5 w-5" />,
                       onClick: () => {
@@ -767,15 +767,6 @@ export function Navbar() {
                           return
                         }
                         openProfilePanel("login")
-                      },
-                    },
-                    {
-                      label: "Privacy / info",
-                      description: "Apri privacy policy e informazioni utili.",
-                      icon: <MagnifyingGlassIcon className="h-5 w-5" />,
-                      onClick: () => {
-                        setMenuOpen(false)
-                        navigate("/privacy")
                       },
                     },
                   ].map((item) => (
@@ -863,7 +854,8 @@ export function Navbar() {
                         </div>
                       </div>
                       <div
-                        className="flex gap-4 overflow-x-auto pb-2 overscroll-x-contain"
+                        data-testid="mobile-search-suggestions"
+                        className="flex gap-4 overflow-x-auto pb-2 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
                         onWheel={forwardWheelToHorizontalScroll}
                       >
                         {suggestedProducts.length ? (
@@ -903,7 +895,8 @@ export function Navbar() {
                       </div>
 
                       <div
-                        className="flex gap-4 overflow-x-auto pb-2 overscroll-x-contain"
+                        data-testid="mobile-search-live-results"
+                        className="flex gap-4 overflow-x-auto pb-2 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
                         onWheel={forwardWheelToHorizontalScroll}
                       >
                         {liveResults.length ? (
@@ -1010,7 +1003,7 @@ export function Navbar() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex-1 space-y-4 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] touch-pan-y">
+                    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] touch-pan-y overscroll-y-contain [-webkit-overflow-scrolling:touch]">
                       {!items.length ? (
                         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
                           <p>Il carrello e vuoto.</p>
@@ -1058,7 +1051,7 @@ export function Navbar() {
                       )}
                     </div>
 
-                    <div className="border-t border-white/10 pt-5">
+                    <div className="shrink-0 border-t border-white/10 bg-[#0b0b0c]/96 pt-5 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
                       {cartPricingError ? <p className="mb-3 text-sm text-red-300">{cartPricingError}</p> : null}
 
                       {loadingCartPricing ? (
@@ -1189,7 +1182,7 @@ export function Navbar() {
                   </button>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] touch-pan-y">
+                <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] touch-pan-y overscroll-y-contain [-webkit-overflow-scrolling:touch]">
                   {loading ? (
                     <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/60">
                       Caricamento account...
