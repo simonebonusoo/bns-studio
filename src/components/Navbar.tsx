@@ -862,9 +862,9 @@ export function Navbar() {
                       key={item.label}
                       type="button"
                       onClick={item.onClick}
-                      className="flex w-full items-center gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4 text-left transition hover:border-white/20 hover:bg-white/[0.05]"
+                      className="flex w-full items-center gap-3 px-1 py-2.5 text-left transition hover:text-white"
                     >
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/82">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/82">
                         {item.icon}
                       </span>
                       <span className="block text-sm font-medium text-white">{item.label}</span>
