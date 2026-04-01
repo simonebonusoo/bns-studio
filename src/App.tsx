@@ -5,7 +5,6 @@ import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 import { Navbar } from "./components/Navbar"
 import { BackToTop } from "./components/BackToTop"
 import { Noise } from "./components/Noise"
-import { BottomNavMobile } from "./components/BottomNavMobile"
 import { Backdrop } from "./components/Backdrop"
 
 import { Hero } from "./sections/Hero"
@@ -251,8 +250,6 @@ export default function App() {
           {location.pathname === "/" ? <Testimonials /> : null}
 
           <Footer />
-
-          <BottomNavMobile />
 
           <BackToTop />
         </div>

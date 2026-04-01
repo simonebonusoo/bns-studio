@@ -129,7 +129,7 @@ export function FloatingHelperChat() {
 
   return (
     <>
-      {/* ✅ FAB: visibile SOLO DESKTOP (mobile usa BottomNavMobile) */}
+      {/* FAB desktop */}
       <motion.button
         type="button"
         data-helper-fab="1"
