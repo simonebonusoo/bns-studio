@@ -543,7 +543,7 @@ export function HomeShop() {
           )}
         </div>
 
-        <div className="space-y-8 pt-8 sm:pt-12">
+        <div id="shop-categories" className="space-y-8 pt-8 sm:pt-12">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.32em] text-white/45">Acquista per categoria</p>
