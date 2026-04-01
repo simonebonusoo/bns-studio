@@ -15,6 +15,7 @@ import {
 import { Container } from "./Container"
 import { Logo } from "./Logo"
 import { Button, getButtonClassName } from "./Button"
+import { MobileSheet, mobileSheetBodyClass, mobileSheetFooterClass } from "./mobile/MobileSheet"
 import { useCanHover } from "../hooks/useCanHover"
 import { useIsMobileViewport } from "../hooks/useIsMobileViewport"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
@@ -81,8 +82,7 @@ function scoreSearchSuggestion(product: ShopProduct, query: string) {
 
 const overlayTransition = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const }
 const drawerTransition = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }
-const mobileScrollablePanelClass = "min-h-0 flex-1 overflow-y-auto touch-pan-y overscroll-y-contain [-webkit-overflow-scrolling:touch]"
-const mobileSheetFooterClass = "shrink-0 border-t border-white/10 bg-[#0b0b0c]/96 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+const mobileScrollablePanelClass = mobileSheetBodyClass
 
 function shuffleProducts(products: ShopProduct[]) {
   const next = [...products]
@@ -203,6 +203,7 @@ export function Navbar() {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
+  const shouldUseGlobalOverlayLock = menuOpen || searchOpen || (!isMobileViewport && (profileOpen || cartOpen))
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -262,7 +263,7 @@ export function Navbar() {
   }, [products, searchOpen])
 
   useEffect(() => {
-    if (!menuOpen && !searchOpen && !profileOpen && !cartOpen) return
+    if (!shouldUseGlobalOverlayLock) return
 
     const previousOverflow = document.body.style.overflow
     const previousHtmlOverflow = document.documentElement.style.overflow
@@ -322,7 +323,7 @@ export function Navbar() {
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("mousedown", handlePointerDown)
     }
-  }, [cartOpen, menuOpen, profileOpen, searchOpen])
+  }, [cartOpen, isMobileViewport, menuOpen, profileOpen, searchOpen, shouldUseGlobalOverlayLock])
 
   useEffect(() => {
     if (!searchOpen) return
@@ -951,239 +952,734 @@ export function Navbar() {
 
       <AnimatePresence>
         {cartOpen ? (
-          <Fragment>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={overlayTransition}
-              className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm"
-            />
-
-            <motion.aside
+          isMobileViewport ? (
+            <MobileSheet
               ref={cartRef}
-              initial={isMobileViewport ? { opacity: 0, y: 18 } : { opacity: 0, x: 18 }}
-              animate={isMobileViewport ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
-              exit={isMobileViewport ? { opacity: 0, y: 18 } : { opacity: 0, x: 18 }}
-              transition={drawerTransition}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] w-full overflow-hidden rounded-t-[30px] border border-white/10 border-b-0 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform md:inset-y-0 md:left-auto md:right-0 md:top-0 md:h-screen md:max-h-none md:max-w-lg md:rounded-none md:border md:border-b-0 md:border-l"
+              open={cartOpen}
+              eyebrow="Carrello shop"
+              title={user ? "Il tuo carrello" : "Accesso non effettuato"}
+              description={
+                user
+                  ? "Rivedi i prodotti selezionati e completa l'acquisto senza uscire dalla pagina."
+                  : "Effettua l'accesso per visualizzare il carrello e continuare il checkout."
+              }
+              onClose={() => setCartOpen(false)}
+              bodyClassName={`${mobileScrollablePanelClass} space-y-4 py-6 pb-6`}
+              footer={
+                !user ? null : (
+                  <>
+                    {cartPricingError ? <p className="mb-3 text-sm text-red-300">{cartPricingError}</p> : null}
+
+                    {loadingCartPricing ? (
+                      <p className="text-sm text-white/60">Calcolo totale in corso...</p>
+                    ) : cartPricing ? (
+                      <div className="space-y-3 text-sm text-white/70">
+                        <div className="flex items-center justify-between">
+                          <span>Subtotale</span>
+                          <span>{formatPrice(cartPricing.subtotal)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Sconti</span>
+                          <span>-{formatPrice(cartPricing.discountTotal)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Spedizione</span>
+                          <span>{formatPrice(cartPricing.shippingTotal)}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white">
+                          <span>Totale</span>
+                          <span>{formatPrice(cartPricing.total)}</span>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-5 flex flex-col gap-3">
+                      {effectiveRole === "admin" ? (
+                        <>
+                          <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+                            Gli account admin non possono completare ordini cliente o avviare il pagamento PayPal.
+                          </div>
+                          <Button
+                            onClick={() => {
+                              setCartOpen(false)
+                              navigate("/shop/admin")
+                            }}
+                            variant="profile"
+                            className="w-full"
+                          >
+                            Vai a Gestione shop
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setCartOpen(false)
+                              navigate("/shop/cart")
+                            }}
+                            variant="profile"
+                            size="sm"
+                            text="Apri il riepilogo completo"
+                            className="w-full"
+                          >
+                            Apri riepilogo completo
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={() => clearCart()}
+                            variant="ghost"
+                            size="sm"
+                            text="Svuota carrello"
+                            className="w-full"
+                          >
+                            Svuota carrello
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setCartOpen(false)
+                              navigate("/shop/checkout")
+                            }}
+                            text="Vai al checkout"
+                            className="w-full"
+                          >
+                            Vai al checkout
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )
+              }
             >
-              <div className="flex h-full min-h-0 flex-col">
-                <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">Carrello shop</p>
-                    <h2 className="mt-3 text-2xl font-semibold text-white">
-                      {user ? "Il tuo carrello" : "Accesso non effettuato"}
-                    </h2>
-                    <p className="mt-2 text-sm text-white/60">
-                      {user
-                        ? "Rivedi i prodotti selezionati e completa l'acquisto senza uscire dalla pagina."
-                        : "Effettua l'accesso per visualizzare il carrello e continuare il checkout."}
+              {!user ? (
+                <div className="flex min-h-full flex-col justify-between gap-5">
+                  <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                    <p className="text-sm text-white/65">
+                      Il carrello e disponibile solo dopo l'accesso. Entra nel tuo account per vedere prodotti salvati e procedere al checkout.
                     </p>
                   </div>
 
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      className="w-full"
+                      onClick={() => {
+                        setCartOpen(false)
+                        setProfileStep("login")
+                        setProfileOpen(true)
+                      }}
+                    >
+                      Accedi
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => {
+                        setCartOpen(false)
+                        setProfileStep("register")
+                        setProfileOpen(true)
+                      }}
+                    >
+                      Crea account
+                    </Button>
+                  </div>
+                </div>
+              ) : !items.length ? (
+                <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
+                  <p>Il carrello e vuoto.</p>
                   <button
                     type="button"
-                    onClick={() => setCartOpen(false)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/55 transition hover:border-white/20 hover:text-white"
-                    aria-label="Chiudi pannello carrello"
+                    onClick={() => {
+                      setCartOpen(false)
+                      navigate("/#shop")
+                    }}
+                    className={`mt-4 ${getButtonClassName({ variant: "profile" })}`}
                   >
-                    <XMarkIcon className="h-5 w-5" />
+                    Vai al catalogo
                   </button>
                 </div>
+              ) : (
+                items.map((item) => (
+                  <article
+                    key={`${item.productId}-${item.variantId || item.format || "default"}`}
+                    className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
+                  >
+                    <img
+                      src={getProductPrimaryImage(item.product)}
+                      alt={item.product.title}
+                      className="h-24 w-24 rounded-[18px] object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs uppercase tracking-[0.2em] text-white/45">{item.product.category}</p>
+                      <h3 className="mt-2 line-clamp-2 text-base font-medium text-white">{item.product.title}</h3>
+                      <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/65">
+                        <span>{item.variantLabel || item.format || "Variante"} · Qtà {item.quantity}</span>
+                        <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
+                      </div>
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                          className={getButtonClassName({ variant: "cart", size: "sm" })}
+                        >
+                          Rimuovi
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              )}
+            </MobileSheet>
+          ) : (
+            <Fragment>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={overlayTransition}
+                className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm"
+              />
 
-                {!user ? (
-                  <div className="flex flex-1 flex-col justify-between py-6">
-                    <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                      <p className="text-sm text-white/65">
-                        Il carrello e disponibile solo dopo l'accesso. Entra nel tuo account per vedere prodotti salvati e procedere al checkout.
+              <motion.aside
+                ref={cartRef}
+                initial={{ opacity: 0, x: 18 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 18 }}
+                transition={drawerTransition}
+                className="fixed inset-y-0 right-0 top-0 z-50 h-screen w-full max-w-lg overflow-hidden border border-white/10 border-b-0 border-l bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform"
+              >
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-white/45">Carrello shop</p>
+                      <h2 className="mt-3 text-2xl font-semibold text-white">
+                        {user ? "Il tuo carrello" : "Accesso non effettuato"}
+                      </h2>
+                      <p className="mt-2 text-sm text-white/60">
+                        {user
+                          ? "Rivedi i prodotti selezionati e completa l'acquisto senza uscire dalla pagina."
+                          : "Effettua l'accesso per visualizzare il carrello e continuare il checkout."}
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-3">
-                      <Button
-                        className="w-full"
-                        onClick={() => {
-                          setCartOpen(false)
-                          setProfileStep("login")
-                          setProfileOpen(true)
-                        }}
-                      >
-                        Accedi
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => {
-                          setCartOpen(false)
-                          setProfileStep("register")
-                          setProfileOpen(true)
-                        }}
-                      >
-                        Crea account
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div
-                      className={isMobileViewport ? `${mobileScrollablePanelClass} space-y-4 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]` : "flex-1 space-y-4 overflow-y-auto py-6"}
-                      onWheelCapture={isMobileViewport ? undefined : containWheel}
+                    <button
+                      type="button"
+                      onClick={() => setCartOpen(false)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/55 transition hover:border-white/20 hover:text-white"
+                      aria-label="Chiudi pannello carrello"
                     >
-                      {!items.length ? (
-                        <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
-                          <p>Il carrello e vuoto.</p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCartOpen(false)
-                              navigate("/#shop")
-                            }}
-                            className={`mt-4 ${getButtonClassName({ variant: "profile" })}`}
-                          >
-                            Vai al catalogo
-                          </button>
-                        </div>
-                      ) : (
-                        items.map((item) => (
-                          <article
-                            key={`${item.productId}-${item.variantId || item.format || "default"}`}
-                            className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
-                          >
-                            <img
-                              src={getProductPrimaryImage(item.product)}
-                              alt={item.product.title}
-                              className="h-24 w-24 rounded-[18px] object-cover"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">{item.product.category}</p>
-                              <h3 className="mt-2 line-clamp-2 text-base font-medium text-white">{item.product.title}</h3>
-                              <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/65">
-                                <span>{item.variantLabel || item.format || "Variante"} · Qtà {item.quantity}</span>
-                                <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
-                              </div>
-                              <div className="mt-3">
-                                <button
-                                  type="button"
-                                  onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
-                                  className={getButtonClassName({ variant: "cart", size: "sm" })}
-                                >
-                                  Rimuovi
-                                </button>
-                              </div>
-                            </div>
-                          </article>
-                        ))
-                      )}
-                    </div>
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
+                  </div>
 
-                    <div className={isMobileViewport ? `${mobileSheetFooterClass} pt-5` : "border-t border-white/10 pt-5"}>
-                      {cartPricingError ? <p className="mb-3 text-sm text-red-300">{cartPricingError}</p> : null}
+                  {!user ? (
+                    <div className="flex flex-1 flex-col justify-between py-6">
+                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                        <p className="text-sm text-white/65">
+                          Il carrello e disponibile solo dopo l'accesso. Entra nel tuo account per vedere prodotti salvati e procedere al checkout.
+                        </p>
+                      </div>
 
-                      {loadingCartPricing ? (
-                        <p className="text-sm text-white/60">Calcolo totale in corso...</p>
-                      ) : cartPricing ? (
-                        <div className="space-y-3 text-sm text-white/70">
-                          <div className="flex items-center justify-between">
-                            <span>Subtotale</span>
-                            <span>{formatPrice(cartPricing.subtotal)}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Sconti</span>
-                            <span>-{formatPrice(cartPricing.discountTotal)}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Spedizione</span>
-                            <span>{formatPrice(cartPricing.shippingTotal)}</span>
-                          </div>
-                          <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white">
-                            <span>Totale</span>
-                            <span>{formatPrice(cartPricing.total)}</span>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <div className="mt-5 flex flex-col gap-3">
-                        {effectiveRole === "admin" ? (
-                          <>
-                            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-                              Gli account admin non possono completare ordini cliente o avviare il pagamento PayPal.
-                            </div>
-                            <Button
-                              onClick={() => {
-                                setCartOpen(false)
-                                navigate("/shop/admin")
-                              }}
-                              variant="profile"
-                              className="w-full"
-                            >
-                              Vai a Gestione shop
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                setCartOpen(false)
-                                navigate("/shop/cart")
-                              }}
-                              variant="profile"
-                              size="sm"
-                              text="Apri il riepilogo completo"
-                              className="w-full"
-                            >
-                              Apri riepilogo completo
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              onClick={() => clearCart()}
-                              variant="ghost"
-                              size="sm"
-                              text="Svuota carrello"
-                              className="w-full"
-                            >
-                              Svuota carrello
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                setCartOpen(false)
-                                navigate("/shop/checkout")
-                              }}
-                              text="Vai al checkout"
-                              className="w-full"
-                            >
-                              Vai al checkout
-                            </Button>
-                          </>
-                        )}
+                      <div className="flex flex-col gap-3">
+                        <Button
+                          className="w-full"
+                          onClick={() => {
+                            setCartOpen(false)
+                            setProfileStep("login")
+                            setProfileOpen(true)
+                          }}
+                        >
+                          Accedi
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => {
+                            setCartOpen(false)
+                            setProfileStep("register")
+                            setProfileOpen(true)
+                          }}
+                        >
+                          Crea account
+                        </Button>
                       </div>
                     </div>
-                  </>
-                )}
-              </div>
-            </motion.aside>
-          </Fragment>
+                  ) : (
+                    <>
+                      <div className="flex-1 space-y-4 overflow-y-auto py-6" onWheelCapture={containWheel}>
+                        {!items.length ? (
+                          <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
+                            <p>Il carrello e vuoto.</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCartOpen(false)
+                                navigate("/#shop")
+                              }}
+                              className={`mt-4 ${getButtonClassName({ variant: "profile" })}`}
+                            >
+                              Vai al catalogo
+                            </button>
+                          </div>
+                        ) : (
+                          items.map((item) => (
+                            <article
+                              key={`${item.productId}-${item.variantId || item.format || "default"}`}
+                              className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
+                            >
+                              <img
+                                src={getProductPrimaryImage(item.product)}
+                                alt={item.product.title}
+                                className="h-24 w-24 rounded-[18px] object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">{item.product.category}</p>
+                                <h3 className="mt-2 line-clamp-2 text-base font-medium text-white">{item.product.title}</h3>
+                                <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/65">
+                                  <span>{item.variantLabel || item.format || "Variante"} · Qtà {item.quantity}</span>
+                                  <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
+                                </div>
+                                <div className="mt-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                                    className={getButtonClassName({ variant: "cart", size: "sm" })}
+                                  >
+                                    Rimuovi
+                                  </button>
+                                </div>
+                              </div>
+                            </article>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="border-t border-white/10 pt-5">
+                        {cartPricingError ? <p className="mb-3 text-sm text-red-300">{cartPricingError}</p> : null}
+
+                        {loadingCartPricing ? (
+                          <p className="text-sm text-white/60">Calcolo totale in corso...</p>
+                        ) : cartPricing ? (
+                          <div className="space-y-3 text-sm text-white/70">
+                            <div className="flex items-center justify-between">
+                              <span>Subtotale</span>
+                              <span>{formatPrice(cartPricing.subtotal)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Sconti</span>
+                              <span>-{formatPrice(cartPricing.discountTotal)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Spedizione</span>
+                              <span>{formatPrice(cartPricing.shippingTotal)}</span>
+                            </div>
+                            <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white">
+                              <span>Totale</span>
+                              <span>{formatPrice(cartPricing.total)}</span>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-5 flex flex-col gap-3">
+                          {effectiveRole === "admin" ? (
+                            <>
+                              <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+                                Gli account admin non possono completare ordini cliente o avviare il pagamento PayPal.
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  setCartOpen(false)
+                                  navigate("/shop/admin")
+                                }}
+                                variant="profile"
+                                className="w-full"
+                              >
+                                Vai a Gestione shop
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setCartOpen(false)
+                                  navigate("/shop/cart")
+                                }}
+                                variant="profile"
+                                size="sm"
+                                text="Apri il riepilogo completo"
+                                className="w-full"
+                              >
+                                Apri riepilogo completo
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                onClick={() => clearCart()}
+                                variant="ghost"
+                                size="sm"
+                                text="Svuota carrello"
+                                className="w-full"
+                              >
+                                Svuota carrello
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setCartOpen(false)
+                                  navigate("/shop/checkout")
+                                }}
+                                text="Vai al checkout"
+                                className="w-full"
+                              >
+                                Vai al checkout
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </motion.aside>
+            </Fragment>
+          )
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {profileOpen ? (
-          <Fragment>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={overlayTransition}
-              className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm"
-            />
-
-            <motion.aside
+          isMobileViewport ? (
+            <MobileSheet
               ref={profileRef}
-              initial={isMobileViewport ? { opacity: 0, y: 18 } : { opacity: 0, x: 18 }}
-              animate={isMobileViewport ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
-              exit={isMobileViewport ? { opacity: 0, y: 18 } : { opacity: 0, x: 18 }}
-              transition={drawerTransition}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[86dvh] w-full overflow-hidden rounded-t-[30px] border border-white/10 border-b-0 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform md:inset-y-0 md:left-auto md:right-0 md:top-0 md:max-h-none md:max-w-md md:rounded-none md:border md:border-b-0 md:border-l"
+              open={profileOpen}
+              eyebrow="Profilo shop"
+              title={profileView === "logged" ? `Ciao, ${displayUsername}` : "Accedi o crea un account"}
+              description={
+                profileView === "logged"
+                  ? "Gestisci i tuoi dati, aggiorna il profilo e controlla i tuoi ordini."
+                  : "Apri il tuo spazio cliente per ordini, checkout rapido e storico acquisti."
+              }
+              onClose={() => setProfileOpen(false)}
+              bodyClassName={`${mobileScrollablePanelClass} space-y-5 py-6 pb-6`}
+              footer={
+                profileView === "logged" && user ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout()
+                      setProfileOpen(false)
+                      setCartOpen(false)
+                      setSearchOpen(false)
+                      navigate("/?profile=open")
+                    }}
+                    className={getButtonClassName({ variant: "cart", className: "w-full" })}
+                  >
+                    Logout
+                  </button>
+                ) : null
+              }
             >
+              {loading ? (
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/60">
+                  Caricamento account...
+                </div>
+              ) : profileView === "logged" && user ? (
+                <>
+                  {profileLoggedStep === "overview" ? (
+                    <div className="grid gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setProfileLoggedStep("edit")}
+                        className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
+                      >
+                        Modifica profilo
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileOpen(false)
+                          navigate(effectiveRole === "admin" ? "/shop/admin" : "/shop/profile")
+                        }}
+                        className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
+                      >
+                        {effectiveRole === "admin" ? "Gestisci negozio" : "I miei ordini"}
+                      </button>
+                      {user.role === "admin" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isGuestPreview) {
+                              disableGuestPreview()
+                            } else {
+                              enableGuestPreview()
+                            }
+                            setProfileOpen(false)
+                          }}
+                          className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
+                        >
+                          {isGuestPreview ? "Torna admin" : "Vedi come ospite"}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="grid gap-3">
+                      <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.2em] text-white/45">Username</p>
+                            <p className="mt-2 text-base font-medium text-white">{displayUsername}</p>
+                          </div>
+                        </div>
+                        <form onSubmit={(event) => submitProfileUpdate("username", event)} className="mt-4 space-y-3">
+                          <input
+                            className="shop-input"
+                            placeholder="Username"
+                            value={profileForms.username}
+                            onChange={(event) => setProfileForms({ ...profileForms, username: event.target.value })}
+                            required
+                          />
+                          {profileError && profileEditField === "username" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            onClick={() => setProfileEditField("username")}
+                          >
+                            {profileSubmitting && profileEditField === "username" ? "Salvataggio..." : "Salva username"}
+                          </Button>
+                        </form>
+                      </div>
+
+                      <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.2em] text-white/45">Email</p>
+                          <p className="mt-2 text-base font-medium text-white">{user.email}</p>
+                        </div>
+                        <form onSubmit={(event) => submitProfileUpdate("email", event)} className="mt-4 space-y-3">
+                          <input
+                            className="shop-input"
+                            type="email"
+                            placeholder="Nuova email"
+                            value={profileForms.email}
+                            onChange={(event) => setProfileForms({ ...profileForms, email: event.target.value })}
+                            required
+                          />
+                          <input
+                            className="shop-input"
+                            type="password"
+                            placeholder="Password attuale"
+                            value={profileForms.currentPassword}
+                            onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
+                            required
+                          />
+                          {profileError && profileEditField === "email" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            onClick={() => setProfileEditField("email")}
+                          >
+                            {profileSubmitting && profileEditField === "email" ? "Salvataggio..." : "Salva email"}
+                          </Button>
+                        </form>
+                      </div>
+
+                      <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.2em] text-white/45">Password</p>
+                          <p className="mt-2 text-base font-medium text-white">••••••••</p>
+                        </div>
+                        <form onSubmit={(event) => submitProfileUpdate("password", event)} className="mt-4 space-y-3">
+                          <input
+                            className="shop-input"
+                            type="password"
+                            placeholder="Password attuale"
+                            value={profileForms.currentPassword}
+                            onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
+                            required
+                          />
+                          <input
+                            className="shop-input"
+                            type="password"
+                            placeholder="Nuova password"
+                            value={profileForms.newPassword}
+                            onChange={(event) => setProfileForms({ ...profileForms, newPassword: event.target.value })}
+                            minLength={8}
+                            required
+                          />
+                          <input
+                            className="shop-input"
+                            type="password"
+                            placeholder="Conferma nuova password"
+                            value={profileForms.confirmPassword}
+                            onChange={(event) => setProfileForms({ ...profileForms, confirmPassword: event.target.value })}
+                            minLength={8}
+                            required
+                          />
+                          {profileError && profileEditField === "password" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            onClick={() => setProfileEditField("password")}
+                          >
+                            {profileSubmitting && profileEditField === "password" ? "Salvataggio..." : "Salva password"}
+                          </Button>
+                        </form>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => {
+                          setProfileLoggedStep("overview")
+                          setProfileEditField(null)
+                          setProfileError("")
+                        }}
+                      >
+                        Annulla
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {profileView === "initial" ? (
+                    <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                      <p className="text-sm text-white/65">
+                        Entra nel tuo account per checkout piu rapido, storico ordini e area personale.
+                      </p>
+                      <div className="mt-5 flex flex-col gap-3">
+                        <Button className="w-full" onClick={() => setProfileStep("login")}>
+                          Accedi
+                        </Button>
+                        <Button variant="ghost" className="w-full" onClick={() => setProfileStep("register")}>
+                          Crea account
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {profileView === "login" ? (
+                    <form onSubmit={submitProfileLogin} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Email o username</label>
+                          <input
+                            className="shop-input"
+                            placeholder="Email o username"
+                            value={loginForm.identifier}
+                            onChange={(event) => setLoginForm({ ...loginForm, identifier: event.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Password</label>
+                          <input
+                            className="shop-input"
+                            type="password"
+                            placeholder="Password"
+                            value={loginForm.password}
+                            onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+                            minLength={8}
+                            required
+                          />
+                        </div>
+                        <p className="text-xs text-white/45">Puoi accedere con email o username.</p>
+                        {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                        <div className="flex flex-col gap-3">
+                          <Button type="submit" className="w-full">
+                            {profileSubmitting ? "Accesso in corso..." : "Accedi"}
+                          </Button>
+                          <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
+                            Indietro
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
+                  ) : null}
+
+                  {profileView === "register" ? (
+                    <form onSubmit={submitProfileRegister} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
+                          <input
+                            className="shop-input"
+                            placeholder="Username"
+                            value={registerForm.username}
+                            onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
+                          />
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <input
+                            className="shop-input"
+                            placeholder="Nome"
+                            value={registerForm.firstName}
+                            onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
+                            required
+                          />
+                          <input
+                            className="shop-input"
+                            placeholder="Cognome"
+                            value={registerForm.lastName}
+                            onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
+                            required
+                          />
+                        </div>
+                        <input
+                          className="shop-input"
+                          type="email"
+                          placeholder="Email"
+                          value={registerForm.email}
+                          onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
+                          required
+                        />
+                        <input
+                          className="shop-input"
+                          type="password"
+                          placeholder="Password"
+                          value={registerForm.password}
+                          onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
+                          minLength={8}
+                          required
+                        />
+                        <input
+                          className="shop-input"
+                          type="password"
+                          placeholder="Conferma password"
+                          value={registerForm.confirmPassword}
+                          onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
+                          minLength={8}
+                          required
+                        />
+                        <p className="text-xs text-white/45">Lo username viene salvato davvero nel tuo account ed è disponibile anche per il login.</p>
+                        {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                        <div className="flex flex-col gap-3">
+                          <Button type="submit" className="w-full">
+                            {profileSubmitting ? "Creazione account..." : "Crea account"}
+                          </Button>
+                          <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
+                            Indietro
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
+                  ) : null}
+                </>
+              )}
+            </MobileSheet>
+          ) : (
+            <Fragment>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={overlayTransition}
+                className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm"
+              />
+
+              <motion.aside
+                ref={profileRef}
+                initial={{ opacity: 0, x: 18 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 18 }}
+                transition={drawerTransition}
+                className="fixed inset-y-0 right-0 top-0 z-50 w-full max-w-md overflow-hidden border border-white/10 border-b-0 border-l bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform"
+              >
                 <div className="flex h-full min-h-0 flex-col">
                   <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
                     <div>
@@ -1192,34 +1688,30 @@ export function Navbar() {
                         {profileView === "logged" ? `Ciao, ${displayUsername}` : "Accedi o crea un account"}
                       </h2>
                       <p className="mt-2 text-sm text-white/60">
-                      {profileView === "logged"
+                        {profileView === "logged"
                           ? "Gestisci i tuoi dati, aggiorna il profilo e controlla i tuoi ordini."
                           : "Apri il tuo spazio cliente per ordini, checkout rapido e storico acquisti."}
                       </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setProfileOpen(false)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/55 transition hover:border-white/20 hover:text-white"
+                      aria-label="Chiudi pannello profilo"
+                    >
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setProfileOpen(false)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/55 transition hover:border-white/20 hover:text-white"
-                    aria-label="Chiudi pannello profilo"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div
-                  className={isMobileViewport ? `${mobileScrollablePanelClass} space-y-5 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]` : "min-h-0 flex-1 space-y-5 overflow-y-auto py-6"}
-                  onWheelCapture={isMobileViewport ? undefined : containWheel}
-                >
-                  {loading ? (
-                    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/60">
-                      Caricamento account...
-                    </div>
-                  ) : profileView === "logged" && user ? (
-                    <>
-                      {profileLoggedStep === "overview" ? (
-                        <>
+                  <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-6" onWheelCapture={containWheel}>
+                    {loading ? (
+                      <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/60">
+                        Caricamento account...
+                      </div>
+                    ) : profileView === "logged" && user ? (
+                      <>
+                        {profileLoggedStep === "overview" ? (
                           <div className="grid gap-3">
                             <button
                               type="button"
@@ -1256,130 +1748,128 @@ export function Navbar() {
                               </button>
                             ) : null}
                           </div>
-                        </>
-                      ) : (
-                        <div className="grid gap-3">
-                          <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
-                            <div className="flex items-start justify-between gap-4">
-                              <div>
-                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Username</p>
-                                <p className="mt-2 text-base font-medium text-white">{displayUsername}</p>
+                        ) : (
+                          <div className="grid gap-3">
+                            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <p className="text-xs uppercase tracking-[0.2em] text-white/45">Username</p>
+                                  <p className="mt-2 text-base font-medium text-white">{displayUsername}</p>
+                                </div>
                               </div>
+                              <form onSubmit={(event) => submitProfileUpdate("username", event)} className="mt-4 space-y-3">
+                                <input
+                                  className="shop-input"
+                                  placeholder="Username"
+                                  value={profileForms.username}
+                                  onChange={(event) => setProfileForms({ ...profileForms, username: event.target.value })}
+                                  required
+                                />
+                                {profileError && profileEditField === "username" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                                <Button
+                                  type="submit"
+                                  className="w-full"
+                                  onClick={() => setProfileEditField("username")}
+                                >
+                                  {profileSubmitting && profileEditField === "username" ? "Salvataggio..." : "Salva username"}
+                                </Button>
+                              </form>
                             </div>
-                            <form onSubmit={(event) => submitProfileUpdate("username", event)} className="mt-4 space-y-3">
-                              <input
-                                className="shop-input"
-                                placeholder="Username"
-                                value={profileForms.username}
-                                onChange={(event) => setProfileForms({ ...profileForms, username: event.target.value })}
-                                required
-                              />
-                              {profileError && profileEditField === "username" ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                              <Button
-                                type="submit"
-                                className="w-full"
-                                onClick={() => setProfileEditField("username")}
-                              >
-                                {profileSubmitting && profileEditField === "username" ? "Salvataggio..." : "Salva username"}
-                              </Button>
-                            </form>
-                          </div>
 
-                          <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Email</p>
-                              <p className="mt-2 text-base font-medium text-white">{user.email}</p>
+                            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Email</p>
+                                <p className="mt-2 text-base font-medium text-white">{user.email}</p>
+                              </div>
+                              <form onSubmit={(event) => submitProfileUpdate("email", event)} className="mt-4 space-y-3">
+                                <input
+                                  className="shop-input"
+                                  type="email"
+                                  placeholder="Nuova email"
+                                  value={profileForms.email}
+                                  onChange={(event) => setProfileForms({ ...profileForms, email: event.target.value })}
+                                  required
+                                />
+                                <input
+                                  className="shop-input"
+                                  type="password"
+                                  placeholder="Password attuale"
+                                  value={profileForms.currentPassword}
+                                  onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
+                                  required
+                                />
+                                {profileError && profileEditField === "email" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                                <Button
+                                  type="submit"
+                                  className="w-full"
+                                  onClick={() => setProfileEditField("email")}
+                                >
+                                  {profileSubmitting && profileEditField === "email" ? "Salvataggio..." : "Salva email"}
+                                </Button>
+                              </form>
                             </div>
-                            <form onSubmit={(event) => submitProfileUpdate("email", event)} className="mt-4 space-y-3">
-                              <input
-                                className="shop-input"
-                                type="email"
-                                placeholder="Nuova email"
-                                value={profileForms.email}
-                                onChange={(event) => setProfileForms({ ...profileForms, email: event.target.value })}
-                                required
-                              />
-                              <input
-                                className="shop-input"
-                                type="password"
-                                placeholder="Password attuale"
-                                value={profileForms.currentPassword}
-                                onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
-                                required
-                              />
-                              {profileError && profileEditField === "email" ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                              <Button
-                                type="submit"
-                                className="w-full"
-                                onClick={() => setProfileEditField("email")}
-                              >
-                                {profileSubmitting && profileEditField === "email" ? "Salvataggio..." : "Salva email"}
-                              </Button>
-                            </form>
-                          </div>
 
-                          <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Password</p>
-                              <p className="mt-2 text-base font-medium text-white">••••••••</p>
+                            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Password</p>
+                                <p className="mt-2 text-base font-medium text-white">••••••••</p>
+                              </div>
+                              <form onSubmit={(event) => submitProfileUpdate("password", event)} className="mt-4 space-y-3">
+                                <input
+                                  className="shop-input"
+                                  type="password"
+                                  placeholder="Password attuale"
+                                  value={profileForms.currentPassword}
+                                  onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
+                                  required
+                                />
+                                <input
+                                  className="shop-input"
+                                  type="password"
+                                  placeholder="Nuova password"
+                                  value={profileForms.newPassword}
+                                  onChange={(event) => setProfileForms({ ...profileForms, newPassword: event.target.value })}
+                                  minLength={8}
+                                  required
+                                />
+                                <input
+                                  className="shop-input"
+                                  type="password"
+                                  placeholder="Conferma nuova password"
+                                  value={profileForms.confirmPassword}
+                                  onChange={(event) => setProfileForms({ ...profileForms, confirmPassword: event.target.value })}
+                                  minLength={8}
+                                  required
+                                />
+                                {profileError && profileEditField === "password" ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                                <Button
+                                  type="submit"
+                                  className="w-full"
+                                  onClick={() => setProfileEditField("password")}
+                                >
+                                  {profileSubmitting && profileEditField === "password" ? "Salvataggio..." : "Salva password"}
+                                </Button>
+                              </form>
                             </div>
-                            <form onSubmit={(event) => submitProfileUpdate("password", event)} className="mt-4 space-y-3">
-                              <input
-                                className="shop-input"
-                                type="password"
-                                placeholder="Password attuale"
-                                value={profileForms.currentPassword}
-                                onChange={(event) => setProfileForms({ ...profileForms, currentPassword: event.target.value })}
-                                required
-                              />
-                              <input
-                                className="shop-input"
-                                type="password"
-                                placeholder="Nuova password"
-                                value={profileForms.newPassword}
-                                onChange={(event) => setProfileForms({ ...profileForms, newPassword: event.target.value })}
-                                minLength={8}
-                                required
-                              />
-                              <input
-                                className="shop-input"
-                                type="password"
-                                placeholder="Conferma nuova password"
-                                value={profileForms.confirmPassword}
-                                onChange={(event) => setProfileForms({ ...profileForms, confirmPassword: event.target.value })}
-                                minLength={8}
-                                required
-                              />
-                              {profileError && profileEditField === "password" ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                              <Button
-                                type="submit"
-                                className="w-full"
-                                onClick={() => setProfileEditField("password")}
-                              >
-                                {profileSubmitting && profileEditField === "password" ? "Salvataggio..." : "Salva password"}
-                              </Button>
-                            </form>
-                          </div>
 
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="w-full"
-                            onClick={() => {
-                              setProfileLoggedStep("overview")
-                              setProfileEditField(null)
-                              setProfileError("")
-                            }}
-                          >
-                            Annulla
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {profileView === "initial" ? (
-                        <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="w-full"
+                              onClick={() => {
+                                setProfileLoggedStep("overview")
+                                setProfileEditField(null)
+                                setProfileError("")
+                              }}
+                            >
+                              Annulla
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {profileView === "initial" ? (
                           <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
                             <p className="text-sm text-white/65">
                               Entra nel tuo account per checkout piu rapido, storico ordini e area personale.
@@ -1393,136 +1883,136 @@ export function Navbar() {
                               </Button>
                             </div>
                           </div>
-                        </>
-                      ) : null}
+                        ) : null}
 
-                      {profileView === "login" ? (
-                        <form onSubmit={submitProfileLogin} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                          <div className="space-y-4">
-                            <div>
-                              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Email o username</label>
+                        {profileView === "login" ? (
+                          <form onSubmit={submitProfileLogin} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                            <div className="space-y-4">
+                              <div>
+                                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Email o username</label>
+                                <input
+                                  className="shop-input"
+                                  placeholder="Email o username"
+                                  value={loginForm.identifier}
+                                  onChange={(event) => setLoginForm({ ...loginForm, identifier: event.target.value })}
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Password</label>
+                                <input
+                                  className="shop-input"
+                                  type="password"
+                                  placeholder="Password"
+                                  value={loginForm.password}
+                                  onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+                                  minLength={8}
+                                  required
+                                />
+                              </div>
+                              <p className="text-xs text-white/45">Puoi accedere con email o username.</p>
+                              {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                              <div className="flex flex-col gap-3">
+                                <Button type="submit" className="w-full">
+                                  {profileSubmitting ? "Accesso in corso..." : "Accedi"}
+                                </Button>
+                                <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
+                                  Indietro
+                                </Button>
+                              </div>
+                            </div>
+                          </form>
+                        ) : null}
+
+                        {profileView === "register" ? (
+                          <form onSubmit={submitProfileRegister} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                            <div className="space-y-4">
+                              <div>
+                                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
+                                <input
+                                  className="shop-input"
+                                  placeholder="Username"
+                                  value={registerForm.username}
+                                  onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
+                                />
+                              </div>
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                <input
+                                  className="shop-input"
+                                  placeholder="Nome"
+                                  value={registerForm.firstName}
+                                  onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
+                                  required
+                                />
+                                <input
+                                  className="shop-input"
+                                  placeholder="Cognome"
+                                  value={registerForm.lastName}
+                                  onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
+                                  required
+                                />
+                              </div>
                               <input
                                 className="shop-input"
-                                placeholder="Email o username"
-                                value={loginForm.identifier}
-                                onChange={(event) => setLoginForm({ ...loginForm, identifier: event.target.value })}
+                                type="email"
+                                placeholder="Email"
+                                value={registerForm.email}
+                                onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
+                                required
                               />
-                            </div>
-                            <div>
-                              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Password</label>
                               <input
                                 className="shop-input"
                                 type="password"
                                 placeholder="Password"
-                                value={loginForm.password}
-                                onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+                                value={registerForm.password}
+                                onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
                                 minLength={8}
                                 required
                               />
+                              <input
+                                className="shop-input"
+                                type="password"
+                                placeholder="Conferma password"
+                                value={registerForm.confirmPassword}
+                                onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
+                                minLength={8}
+                                required
+                              />
+                              <p className="text-xs text-white/45">Lo username viene salvato davvero nel tuo account ed è disponibile anche per il login.</p>
+                              {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
+                              <div className="flex flex-col gap-3">
+                                <Button type="submit" className="w-full">
+                                  {profileSubmitting ? "Creazione account..." : "Crea account"}
+                                </Button>
+                                <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
+                                  Indietro
+                                </Button>
+                              </div>
                             </div>
-                            <p className="text-xs text-white/45">Puoi accedere con email o username.</p>
-                            {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                            <div className="flex flex-col gap-3">
-                              <Button type="submit" className="w-full">
-                                {profileSubmitting ? "Accesso in corso..." : "Accedi"}
-                              </Button>
-                              <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
-                                Indietro
-                              </Button>
-                            </div>
-                          </div>
-                        </form>
-                      ) : null}
+                          </form>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
 
-                      {profileView === "register" ? (
-                        <form onSubmit={submitProfileRegister} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
-                          <div className="space-y-4">
-                            <div>
-                              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
-                              <input
-                                className="shop-input"
-                                placeholder="Username"
-                                value={registerForm.username}
-                                onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
-                              />
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                              <input
-                                className="shop-input"
-                                placeholder="Nome"
-                                value={registerForm.firstName}
-                                onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
-                                required
-                              />
-                              <input
-                                className="shop-input"
-                                placeholder="Cognome"
-                                value={registerForm.lastName}
-                                onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
-                                required
-                              />
-                            </div>
-                            <input
-                              className="shop-input"
-                              type="email"
-                              placeholder="Email"
-                              value={registerForm.email}
-                              onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
-                              required
-                            />
-                            <input
-                              className="shop-input"
-                              type="password"
-                              placeholder="Password"
-                              value={registerForm.password}
-                              onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
-                              minLength={8}
-                              required
-                            />
-                            <input
-                              className="shop-input"
-                              type="password"
-                              placeholder="Conferma password"
-                              value={registerForm.confirmPassword}
-                              onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
-                              minLength={8}
-                              required
-                            />
-                            <p className="text-xs text-white/45">Lo username viene salvato davvero nel tuo account ed è disponibile anche per il login.</p>
-                            {profileError ? <p className="text-sm text-red-300">{profileError}</p> : null}
-                            <div className="flex flex-col gap-3">
-                              <Button type="submit" className="w-full">
-                                {profileSubmitting ? "Creazione account..." : "Crea account"}
-                              </Button>
-                              <Button type="button" variant="ghost" className="w-full" onClick={() => setProfileStep("initial")}>
-                                Indietro
-                              </Button>
-                            </div>
-                          </div>
-                        </form>
-                      ) : null}
-                    </>
-                  )}
+                  {profileView === "logged" && user ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        logout()
+                        setProfileOpen(false)
+                        setCartOpen(false)
+                        setSearchOpen(false)
+                        navigate("/?profile=open")
+                      }}
+                      className={getButtonClassName({ variant: "cart", className: "w-full" })}
+                    >
+                      Logout
+                    </button>
+                  ) : null}
                 </div>
-
-                {profileView === "logged" && user ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logout()
-                      setProfileOpen(false)
-                      setCartOpen(false)
-                      setSearchOpen(false)
-                      navigate("/?profile=open")
-                    }}
-                    className={getButtonClassName({ variant: "cart", className: "w-full" })}
-                  >
-                    Logout
-                  </button>
-                ) : null}
-              </div>
-            </motion.aside>
-          </Fragment>
+              </motion.aside>
+            </Fragment>
+          )
         ) : null}
       </AnimatePresence>
 
