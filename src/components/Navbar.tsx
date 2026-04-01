@@ -155,7 +155,7 @@ export function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [profileStep, setProfileStep] = useState<"initial" | "login" | "register">("initial")
-  const [registerMobileStep, setRegisterMobileStep] = useState<1 | 2>(1)
+  const [registerMobileStep, setRegisterMobileStep] = useState<1 | 2 | 3>(1)
   const [profileLoggedStep, setProfileLoggedStep] = useState<"overview" | "edit">("overview")
   const [profileEditField, setProfileEditField] = useState<null | "username" | "email" | "password">(null)
   const [search, setSearch] = useState("")
@@ -183,6 +183,11 @@ export function Navbar() {
     email: "",
     password: "",
     confirmPassword: "",
+  })
+  const [registerAddressForm, setRegisterAddressForm] = useState({
+    country: "",
+    region: "",
+    addressLine1: "",
   })
   const [profileForms, setProfileForms] = useState({
     username: "",
@@ -365,6 +370,11 @@ export function Navbar() {
     if (!profileOpen) {
       setProfileStep("initial")
       setRegisterMobileStep(1)
+      setRegisterAddressForm({
+        country: "",
+        region: "",
+        addressLine1: "",
+      })
       setProfileLoggedStep("overview")
       setProfileEditField(null)
       setProfileError("")
@@ -526,6 +536,11 @@ export function Navbar() {
         email: "",
         password: "",
         confirmPassword: "",
+      })
+      setRegisterAddressForm({
+        country: "",
+        region: "",
+        addressLine1: "",
       })
       setRegisterMobileStep(1)
     } catch (err) {
@@ -1401,12 +1416,40 @@ export function Navbar() {
                       >
                         Avanti
                       </Button>
+                    ) : registerMobileStep === 2 ? (
+                      <>
+                        <Button
+                          type="button"
+                          className="w-full"
+                          onClick={() => {
+                            setProfileError("")
+                            if (!registerAddressForm.country.trim()) {
+                              setProfileError("Inserisci il paese.")
+                              return
+                            }
+                            if (!registerAddressForm.region.trim()) {
+                              setProfileError("Inserisci la provincia.")
+                              return
+                            }
+                            if (!registerAddressForm.addressLine1.trim()) {
+                              setProfileError("Inserisci la via.")
+                              return
+                            }
+                            setRegisterMobileStep(3)
+                          }}
+                        >
+                          Avanti
+                        </Button>
+                        <Button type="button" variant="ghost" className="w-full" onClick={() => setRegisterMobileStep(1)}>
+                          Indietro
+                        </Button>
+                      </>
                     ) : (
                       <>
                         <Button type="submit" form="mobile-register-form" className="w-full">
                           {profileSubmitting ? "Creazione account..." : "Crea account"}
                         </Button>
-                        <Button type="button" variant="ghost" className="w-full" onClick={() => setRegisterMobileStep(1)}>
+                        <Button type="button" variant="ghost" className="w-full" onClick={() => setRegisterMobileStep(2)}>
                           Indietro
                         </Button>
                       </>
@@ -1655,22 +1698,35 @@ export function Navbar() {
                         className="min-h-0 flex-1 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-5"
                       >
                         <div className={`${mobileScrollablePanelClass} h-full space-y-4 pr-1`}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                {registerMobileStep === 1 ? "Dati personali" : registerMobileStep === 2 ? "Indirizzo" : "Account"}
+                              </p>
+                              <p className="mt-2 text-sm text-white/60">
+                                {registerMobileStep === 1
+                                  ? "Inserisci i tuoi dati personali."
+                                  : registerMobileStep === 2
+                                    ? "Completa i dati di indirizzo."
+                                    : "Scegli le credenziali per il nuovo account."}
+                              </p>
+                            </div>
+                            <p className="shrink-0 text-xs uppercase tracking-[0.18em] text-[#e3f503]">
+                              Pagina {registerMobileStep} di 3
+                            </p>
+                          </div>
                           {registerMobileStep === 1 ? (
                             <>
-                              <div>
-                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Dati personali</p>
-                                <p className="mt-2 text-sm text-white/60">Inserisci le informazioni base del tuo account.</p>
-                              </div>
-                              <div className="grid gap-4">
+                              <div className="grid gap-3">
                                 <input
-                                  className="shop-input"
+                                  className="shop-input py-2.5"
                                   placeholder="Nome"
                                   value={registerForm.firstName}
                                   onChange={(event) => setRegisterForm({ ...registerForm, firstName: event.target.value })}
                                   required
                                 />
                                 <input
-                                  className="shop-input"
+                                  className="shop-input py-2.5"
                                   placeholder="Cognome"
                                   value={registerForm.lastName}
                                   onChange={(event) => setRegisterForm({ ...registerForm, lastName: event.target.value })}
@@ -1680,7 +1736,7 @@ export function Navbar() {
                               <div>
                                 <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Username</label>
                                 <input
-                                  className="shop-input"
+                                  className="shop-input py-2.5"
                                   placeholder="Username"
                                   value={registerForm.username}
                                   onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
@@ -1690,7 +1746,7 @@ export function Navbar() {
                               <div>
                                 <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Email</label>
                                 <input
-                                  className="shop-input"
+                                  className="shop-input py-2.5"
                                   type="email"
                                   placeholder="Email"
                                   value={registerForm.email}
@@ -1699,14 +1755,58 @@ export function Navbar() {
                                 />
                               </div>
                             </>
+                          ) : registerMobileStep === 2 ? (
+                            <div className="grid gap-3">
+                              <div>
+                                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Stato / Paese</label>
+                                <input
+                                  className="shop-input py-2.5"
+                                  placeholder="Stato / Paese"
+                                  value={registerAddressForm.country}
+                                  onChange={(event) => setRegisterAddressForm({ ...registerAddressForm, country: event.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Provincia</label>
+                                <input
+                                  className="shop-input py-2.5"
+                                  placeholder="Provincia"
+                                  value={registerAddressForm.region}
+                                  onChange={(event) => setRegisterAddressForm({ ...registerAddressForm, region: event.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Via</label>
+                                <input
+                                  className="shop-input py-2.5"
+                                  placeholder="Via"
+                                  value={registerAddressForm.addressLine1}
+                                  onChange={(event) => setRegisterAddressForm({ ...registerAddressForm, addressLine1: event.target.value })}
+                                  required
+                                />
+                              </div>
+                            </div>
                           ) : (
                             <>
-                              <div>
-                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">Sicurezza account</p>
-                                <p className="mt-2 text-sm text-white/60">Scegli la password e confermala per completare la registrazione.</p>
-                              </div>
                               <input
-                                className="shop-input"
+                                className="shop-input py-2.5"
+                                placeholder="Username"
+                                value={registerForm.username}
+                                onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
+                                required
+                              />
+                              <input
+                                className="shop-input py-2.5"
+                                type="email"
+                                placeholder="Email"
+                                value={registerForm.email}
+                                onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
+                                required
+                              />
+                              <input
+                                className="shop-input py-2.5"
                                 type="password"
                                 placeholder="Password"
                                 value={registerForm.password}
@@ -1715,7 +1815,7 @@ export function Navbar() {
                                 required
                               />
                               <input
-                                className="shop-input"
+                                className="shop-input py-2.5"
                                 type="password"
                                 placeholder="Conferma password"
                                 value={registerForm.confirmPassword}

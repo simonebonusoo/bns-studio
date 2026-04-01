@@ -108,22 +108,70 @@ export function ShopCartPage() {
                 <h2 className="mt-3 text-xl font-semibold text-white">{item.product.title}</h2>
                 <p className="mt-2 text-sm text-white/65">{item.variantLabel || item.format || "Variante"} · {formatPrice(getPriceForVariant(item.product, item.variantId))}</p>
               </div>
-              <div className="flex items-center gap-3">
-                <input
-                  className="shop-input w-24"
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(event) => updateItem(item.productId, Number(event.target.value), { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
-                />
-                <button
-                  type="button"
-                  onClick={() => decrementItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
-                  className={getButtonClassName({ variant: "cart", size: "sm" })}
-                >
-                  Rimuovi
-                </button>
-              </div>
+              {isMobileViewport ? (
+                <div className="space-y-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/45">Quantità</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateItem(item.productId, Math.max(1, item.quantity - 1), {
+                          variantId: item.variantId,
+                          format: item.format,
+                          variantLabel: item.variantLabel,
+                          variantSku: item.variantSku,
+                        })
+                      }
+                      className={`${getButtonClassName({ variant: "profile", size: "sm" })} min-w-11`}
+                      aria-label="Diminuisci quantità"
+                    >
+                      -
+                    </button>
+                    <div className="inline-flex min-w-[4rem] items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-medium text-white">
+                      {item.quantity}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateItem(item.productId, item.quantity + 1, {
+                          variantId: item.variantId,
+                          format: item.format,
+                          variantLabel: item.variantLabel,
+                          variantSku: item.variantSku,
+                        })
+                      }
+                      className={`${getButtonClassName({ variant: "cart", size: "sm" })} min-w-11`}
+                      aria-label="Aumenta quantità"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                    className={getButtonClassName({ variant: "cart", size: "sm" })}
+                  >
+                    Rimuovi
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <input
+                    className="shop-input w-24"
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(event) => updateItem(item.productId, Number(event.target.value), { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku })}
+                    className={getButtonClassName({ variant: "cart", size: "sm" })}
+                  >
+                    Rimuovi
+                  </button>
+                </div>
+              )}
             </article>
           ))}
         </div>
