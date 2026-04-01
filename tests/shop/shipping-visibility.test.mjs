@@ -14,6 +14,7 @@ test("checkout, receipt, profile and admin orders render the selected shipping m
   const receipt = read("src/shop/pages/ShopReceiptPage.tsx")
   const profile = read("src/shop/pages/ShopProfilePage.tsx")
   const adminOrders = read("src/shop/components/admin/AdminOrdersSection.tsx")
+  const analytics = read("src/shop/components/admin/AdminAnalyticsSection.tsx")
   const timeline = read("src/shop/components/orders/OrderTimeline.tsx")
 
   assert.match(checkout, /Scegli la spedizione/)
@@ -23,6 +24,9 @@ test("checkout, receipt, profile and admin orders render the selected shipping m
   assert.match(profile, /Informazioni ordine/)
   assert.match(profile, /Tracking ancora non disponibile/)
   assert.match(adminOrders, /buildAdminOrderShippingSummary/)
+  assert.match(analytics, /Visualizzazioni e incassi/)
+  assert.match(analytics, /EyeToggle/)
+  assert.match(analytics, /Spese totali/)
   assert.match(timeline, /Timeline ordine/)
   assert.doesNotMatch(timeline, /Traccia spedizione/)
 })

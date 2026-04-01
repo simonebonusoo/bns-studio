@@ -8,9 +8,10 @@ type AdminReview = ShopReview & {
 type AdminReviewsSectionProps = {
   reviews: AdminReview[]
   onToggleHomepageReview: (reviewId: string, checked: boolean) => void
+  onDeleteReview: (reviewId: string) => Promise<void>
 }
 
-export function AdminReviewsSection({ reviews, onToggleHomepageReview }: AdminReviewsSectionProps) {
+export function AdminReviewsSection({ reviews, onToggleHomepageReview, onDeleteReview }: AdminReviewsSectionProps) {
   return (
     <section className="shop-card space-y-5 p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -44,11 +45,22 @@ export function AdminReviewsSection({ reviews, onToggleHomepageReview }: AdminRe
                     <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{review.tag}</span>
                   </div>
                 </div>
-
-                <label className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${review.showOnHomepage ? "border-[#e3f503]/40 text-white" : "border-white/10 text-white/65"}`}>
-                  <input type="checkbox" checked={review.showOnHomepage} disabled={disableSelect} onChange={(event) => onToggleHomepageReview(review.id, event.target.checked)} />
-                  Mostra in homepage
-                </label>
+                <div className="flex flex-col items-stretch gap-3 md:items-end">
+                  <label className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${review.showOnHomepage ? "border-[#e3f503]/40 text-white" : "border-white/10 text-white/65"}`}>
+                    <input type="checkbox" checked={review.showOnHomepage} disabled={disableSelect} onChange={(event) => onToggleHomepageReview(review.id, event.target.checked)} />
+                    Mostra in homepage
+                  </label>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!window.confirm("Sei sicuro di voler eliminare questa recensione? Questa azione è irreversibile.")) return
+                      await onDeleteReview(review.id)
+                    }}
+                    className="inline-flex items-center justify-center rounded-full border border-red-400/18 bg-red-400/8 px-4 py-2 text-sm text-red-100 transition hover:border-red-400/35 hover:bg-red-400/14"
+                  >
+                    Elimina
+                  </button>
+                </div>
               </div>
             </article>
           )

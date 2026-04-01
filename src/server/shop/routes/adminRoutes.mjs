@@ -102,6 +102,11 @@ function getOrderItemCost(item) {
   }
 }
 
+function getOperationalShippingCost(order) {
+  const method = String(order.shippingMethod || "").trim().toLowerCase()
+  return method === "premium" ? 850 : 650
+}
+
 function buildOrderProfitSummary(order) {
   const items = order.items.map((item) => {
     const { unitCost, costTotal } = getOrderItemCost(item)
@@ -120,8 +125,10 @@ function buildOrderProfitSummary(order) {
   })
 
   const productCostsTotal = items.reduce((sum, item) => sum + item.costTotal, 0)
+  const shippingOperationalCost = getOperationalShippingCost(order)
+  const totalExpenses = productCostsTotal + shippingOperationalCost
   const grossTotal = order.total
-  const netTotal = grossTotal - productCostsTotal
+  const netTotal = grossTotal - totalExpenses
 
   return {
     orderId: order.id,
@@ -133,8 +140,10 @@ function buildOrderProfitSummary(order) {
     discountTotal: order.discountTotal,
     shippingTotal: order.shippingTotal,
     productCostsTotal,
+    shippingOperationalCost,
+    totalExpenses,
     netTotal,
-    shippingCostsTracked: false,
+    shippingCostsTracked: true,
     items,
   }
 }
@@ -144,11 +153,40 @@ function averageFromTotals(total, count) {
   return Math.round(total / count)
 }
 
+function buildAnalyticsChartSeries({ orders, pageViews }) {
+  const revenueByDay = new Map()
+  const viewsByDay = new Map()
+  const formatter = new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "2-digit" })
+
+  orders.forEach((order) => {
+    const key = order.createdAt.toISOString().slice(0, 10)
+    revenueByDay.set(key, (revenueByDay.get(key) || 0) + order.total)
+  })
+
+  pageViews.forEach((entry) => {
+    const key = entry.createdAt.toISOString().slice(0, 10)
+    viewsByDay.set(key, (viewsByDay.get(key) || 0) + 1)
+  })
+
+  return Array.from({ length: 7 }, (_, offset) => {
+    const date = new Date()
+    date.setHours(0, 0, 0, 0)
+    date.setDate(date.getDate() - (6 - offset))
+    const key = date.toISOString().slice(0, 10)
+    return {
+      key,
+      label: formatter.format(date),
+      siteViews: viewsByDay.get(key) || 0,
+      revenue: revenueByDay.get(key) || 0,
+    }
+  })
+}
+
 function buildAnalyticsSnapshot({ orders, pageViews }) {
   const completedOrders = orders.filter((order) => order.status === "paid" || order.status === "shipped")
   const profitRows = completedOrders.map(buildOrderProfitSummary)
   const totalRevenue = profitRows.reduce((sum, row) => sum + row.grossTotal, 0)
-  const totalExpenses = profitRows.reduce((sum, row) => sum + row.productCostsTotal, 0)
+  const totalExpenses = profitRows.reduce((sum, row) => sum + row.totalExpenses, 0)
   const totalNet = profitRows.reduce((sum, row) => sum + row.netTotal, 0)
   const totalOrders = orders.length
   const salesCount = completedOrders.length
@@ -189,7 +227,8 @@ function buildAnalyticsSnapshot({ orders, pageViews }) {
     averageDailyExpenses: averageFromTotals(totalExpenses, dayBuckets.size),
     averageMonthlyExpenses: averageFromTotals(totalExpenses, monthBuckets.size),
     bestSellingProduct,
-    shippingCostsTracked: false,
+    shippingCostsTracked: true,
+    chartSeries: buildAnalyticsChartSeries({ orders: completedOrders, pageViews }),
   }
 }
 
@@ -1130,6 +1169,17 @@ router.patch(
   })
 )
 
+router.delete(
+  "/reviews/:id",
+  asyncHandler(async (req, res) => {
+    await prisma.review.delete({
+      where: { publicId: req.params.id },
+    })
+
+    res.status(204).send()
+  })
+)
+
 router.get(
   "/orders",
   asyncHandler(async (_req, res) => {
@@ -1245,6 +1295,32 @@ router.patch(
         },
       })
     )
+  })
+)
+
+router.delete(
+  "/orders/:id",
+  asyncHandler(async (req, res) => {
+    const orderId = Number(req.params.id)
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { user: { select: { role: true } } },
+    })
+
+    if (!existingOrder) {
+      throw new HttpError(404, "Ordine non trovato")
+    }
+
+    if (existingOrder.user.role !== "customer") {
+      throw new HttpError(404, "Ordine cliente non trovato")
+    }
+
+    await prisma.$transaction([
+      prisma.orderItem.deleteMany({ where: { orderId } }),
+      prisma.order.delete({ where: { id: orderId } }),
+    ])
+
+    res.status(204).send()
   })
 )
 

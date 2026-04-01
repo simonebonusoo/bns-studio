@@ -165,6 +165,12 @@ type AdminAnalytics = {
   averageMonthlyExpenses: number
   bestSellingProduct: { productId: number; title: string; quantity: number } | null
   shippingCostsTracked: boolean
+  chartSeries?: Array<{
+    key: string
+    label: string
+    siteViews: number
+    revenue: number
+  }>
 }
 
 type AdminRuntimeStatus = {
@@ -206,6 +212,8 @@ type OrderProfitSummary = {
   discountTotal: number
   shippingTotal: number
   productCostsTotal: number
+  shippingOperationalCost: number
+  totalExpenses: number
   netTotal: number
   shippingCostsTracked: boolean
   items: Array<{
@@ -1316,6 +1324,30 @@ export function ShopAdminPage() {
     }
   }
 
+  async function deleteReview(reviewId: string) {
+    clearFeedback()
+    try {
+      await apiFetch(`/admin/reviews/${reviewId}`, { method: "DELETE" })
+      setReviews((current) => current.filter((review) => review.id !== reviewId))
+      setMessage("Recensione eliminata.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della recensione.")
+      throw err
+    }
+  }
+
+  async function deleteOrder(orderId: number) {
+    clearFeedback()
+    try {
+      await apiFetch(`/admin/orders/${orderId}`, { method: "DELETE" })
+      setOrders((current) => current.filter((order) => order.id !== orderId))
+      setMessage("Ordine eliminato.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'eliminazione dell'ordine.")
+      throw err
+    }
+  }
+
   async function saveHomepageContent(overrides?: {
     showcases?: HomepageShowcase[]
     popularCategories?: HomepagePopularCategory[]
@@ -1497,7 +1529,7 @@ export function ShopAdminPage() {
         />
       ) : null}
 
-      {tab === "recensioni" ? <AdminReviewsSection reviews={reviews} onToggleHomepageReview={toggleHomepageReview} /> : null}
+      {tab === "recensioni" ? <AdminReviewsSection reviews={reviews} onToggleHomepageReview={toggleHomepageReview} onDeleteReview={deleteReview} /> : null}
 
       {tab === "ordini" ? (
         <AdminOrdersSection
@@ -1545,6 +1577,7 @@ export function ShopAdminPage() {
               return null
             }
           }}
+          onDeleteOrder={deleteOrder}
         />
       ) : null}
 
@@ -1644,6 +1677,17 @@ export function ShopAdminPage() {
               </div>
             </div>
 
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                <p className="text-sm text-white/55">Spedizione reale negozio</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.shippingOperationalCost)}</p>
+              </div>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                <p className="text-sm text-white/55">Spese totali ordine</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.totalExpenses)}</p>
+              </div>
+            </div>
+
             <div className="mt-6 space-y-3">
               {orderProfit.items.map((item) => (
                 <article key={item.id} className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
@@ -1663,11 +1707,9 @@ export function ShopAdminPage() {
               ))}
             </div>
 
-            {!orderProfit.shippingCostsTracked ? (
-              <p className="mt-5 text-sm text-white/50">
-                I costi di spedizione operativi non sono ancora tracciati separatamente: il netto sottrae i costi reali dei prodotti salvati nell&apos;admin.
-              </p>
-            ) : null}
+            <p className="mt-5 text-sm text-white/50">
+              Il netto considera i costi reali prodotto e una sola spedizione operativa per ordine: 6,50 € per Standard, 8,50 € per Premium.
+            </p>
           </div>
         </div>
       ) : null}
