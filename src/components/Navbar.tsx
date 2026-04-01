@@ -225,6 +225,15 @@ export function Navbar() {
           ? (event.detail as { step?: "initial" | "login" | "register" } | undefined)
           : undefined
 
+      if (isMobileViewport && detail?.step === "register") {
+        setMenuOpen(false)
+        setSearchOpen(false)
+        setCartOpen(false)
+        setProfileOpen(false)
+        navigate("/shop/register")
+        return
+      }
+
       setMenuOpen(false)
       setSearchOpen(false)
       setCartOpen(false)
@@ -236,7 +245,7 @@ export function Navbar() {
 
     window.addEventListener("bns:open-profile", openProfile)
     return () => window.removeEventListener("bns:open-profile", openProfile)
-  }, [])
+  }, [isMobileViewport, navigate])
 
   useEffect(() => {
     if (!searchOpen || products.length) return
@@ -446,6 +455,14 @@ export function Navbar() {
   }, [products, trimmedSearch])
 
   function openProfilePanel(step: "initial" | "login" | "register" = "initial") {
+    if (isMobileViewport && step === "register") {
+      setMenuOpen(false)
+      setSearchOpen(false)
+      setCartOpen(false)
+      setProfileOpen(false)
+      navigate("/shop/register")
+      return
+    }
     setMenuOpen(false)
     setSearchOpen(false)
     setCartOpen(false)
@@ -1100,8 +1117,7 @@ export function Navbar() {
                       className="w-full"
                       onClick={() => {
                         setCartOpen(false)
-                        setProfileStep("register")
-                        setProfileOpen(true)
+                        navigate("/shop/register")
                       }}
                     >
                       Crea account
@@ -2050,7 +2066,14 @@ export function Navbar() {
                               <Button className="w-full" onClick={() => setProfileStep("login")}>
                                 Accedi
                               </Button>
-                              <Button variant="ghost" className="w-full" onClick={() => setProfileStep("register")}>
+                              <Button
+                                variant="ghost"
+                                className="w-full"
+                                onClick={() => {
+                                  setProfileOpen(false)
+                                  navigate("/shop/register")
+                                }}
+                              >
                                 Crea account
                               </Button>
                             </div>

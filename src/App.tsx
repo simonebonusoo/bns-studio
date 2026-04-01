@@ -24,6 +24,7 @@ import { ShopOffersPage } from "./shop/pages/ShopOffersPage"
 import { ShopProductPage } from "./shop/pages/ShopProductPage"
 import { ShopCartPage } from "./shop/pages/ShopCartPage"
 import { ShopAuthPage } from "./shop/pages/ShopAuthPage"
+import { ShopRegisterPage } from "./shop/pages/ShopRegisterPage"
 import { ShopCheckoutPage } from "./shop/pages/ShopCheckoutPage"
 import { ShopProfilePage } from "./shop/pages/ShopProfilePage"
 import { ShopReceiptPage } from "./shop/pages/ShopReceiptPage"
@@ -204,6 +205,7 @@ export default function App() {
             <Route path="/shop/:slug" element={<ShopProductPage />} />
             <Route path="/shop/cart" element={<ShopCartPage />} />
             <Route path="/shop/auth" element={<ShopAuthPage />} />
+            <Route path="/shop/register" element={<ShopRegisterPage />} />
             <Route path="/shop/tracking/mock/:trackingNumber" element={<ShopMockTrackingPage />} />
             <Route
               path="/shop/checkout"
