@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../../components/Button"
+import { useCanHover } from "../../hooks/useCanHover"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { formatPrice } from "../lib/format"
@@ -10,7 +11,10 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   const navigate = useNavigate()
   const { user } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
+  const canHover = useCanHover()
   const primaryImage = getProductPrimaryImage(product)
+  const secondaryImage = product.imageUrls?.[1] || ""
+  const hasHoverImage = Boolean(canHover && primaryImage && secondaryImage && secondaryImage !== primaryImage)
   const defaultVariant = getDefaultVariant(product)
   const availableFormats = getAvailableFormats(product)
   const purchasable = isProductPurchasable(product, defaultVariant?.id)
@@ -43,13 +47,24 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   return (
     <article className="shop-card flex h-full flex-col overflow-hidden">
       <Link to={`/shop/${product.slug}`} className="block">
-        <div className="relative h-[300px] overflow-hidden bg-white/5 sm:h-[320px]">
+        <div className="group relative h-[300px] overflow-hidden bg-white/5 sm:h-[320px]">
           {primaryImage ? (
-            <img
-              src={primaryImage}
-              alt={product.title}
-              className="absolute inset-0 h-[300px] w-full object-cover sm:h-[320px]"
-            />
+            <>
+              <img
+                src={primaryImage}
+                alt={product.title}
+                className={`absolute inset-0 h-[300px] w-full object-cover transition duration-500 sm:h-[320px] ${
+                  hasHoverImage ? "opacity-100 group-hover:opacity-0" : ""
+                }`}
+              />
+              {hasHoverImage ? (
+                <img
+                  src={secondaryImage}
+                  alt={product.title}
+                  className="absolute inset-0 h-[300px] w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100 sm:h-[320px]"
+                />
+              ) : null}
+            </>
           ) : (
             <div className="flex h-[300px] items-center justify-center text-sm text-white/45 sm:h-[320px]">
               Nessuna immagine disponibile

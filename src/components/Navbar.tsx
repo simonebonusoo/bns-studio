@@ -15,6 +15,7 @@ import {
 import { Container } from "./Container"
 import { Logo } from "./Logo"
 import { Button, getButtonClassName } from "./Button"
+import { useCanHover } from "../hooks/useCanHover"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
@@ -75,6 +76,9 @@ function scoreSearchSuggestion(product: ShopProduct, query: string) {
 
 const overlayTransition = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const }
 const drawerTransition = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }
+const mobileScrollablePanelClass =
+  "min-h-0 flex-1 overflow-y-auto touch-pan-y overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+const mobileSheetFooterClass = "shrink-0 border-t border-white/10 bg-[#0b0b0c]/96 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
 
 function shuffleProducts(products: ShopProduct[]) {
   const next = [...products]
@@ -94,7 +98,10 @@ function SuggestionProductCard({
   onClick: () => void
   query?: string
 }) {
+  const canHover = useCanHover()
   const primaryImage = getProductPrimaryImage(product)
+  const secondaryImage = product.imageUrls?.[1] || ""
+  const hasHoverImage = Boolean(canHover && primaryImage && secondaryImage && secondaryImage !== primaryImage)
 
   return (
     <button
@@ -104,11 +111,22 @@ function SuggestionProductCard({
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.04]">
         {primaryImage ? (
-          <img
-            src={primaryImage}
-            alt={product.title}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <>
+            <img
+              src={primaryImage}
+              alt={product.title}
+              className={`absolute inset-0 h-full w-full object-cover transition duration-500 ${
+                hasHoverImage ? "opacity-100 group-hover:opacity-0" : ""
+              }`}
+            />
+            {hasHoverImage ? (
+              <img
+                src={secondaryImage}
+                alt={product.title}
+                className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100"
+              />
+            ) : null}
+          </>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-white/45">
             Nessuna immagine disponibile
@@ -736,7 +754,7 @@ export function Navbar() {
                   </button>
                 </div>
 
-                <div className="flex-1 space-y-3 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] [-webkit-overflow-scrolling:touch]">
+                <div className={`${mobileScrollablePanelClass} space-y-3 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]`}>
                   {[
                     {
                       label: "Home",
@@ -846,7 +864,7 @@ export function Navbar() {
                       </div>
                     </div>
                   {!trimmedSearch ? (
-                    <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+                    <div className={`${mobileScrollablePanelClass} p-4 md:p-6 md:touch-auto md:overscroll-auto`}>
                       <div className="mb-5 flex items-center justify-between gap-4">
                         <div>
                           <p className="text-xs uppercase tracking-[0.26em] text-white/45">Suggerimenti</p>
@@ -876,7 +894,7 @@ export function Navbar() {
                       </div>
                     </div>
                   ) : (
-                    <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+                    <div className={`${mobileScrollablePanelClass} p-4 md:p-6 md:touch-auto md:overscroll-auto`}>
                       <div className="mb-5 flex items-center justify-between gap-4">
                         <div>
                           <p className="text-xs uppercase tracking-[0.26em] text-white/45">Risultati live</p>
@@ -1003,7 +1021,7 @@ export function Navbar() {
                   </div>
                 ) : (
                   <>
-                    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] touch-pan-y overscroll-y-contain [-webkit-overflow-scrolling:touch]">
+                    <div className={`${mobileScrollablePanelClass} space-y-4 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]`}>
                       {!items.length ? (
                         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
                           <p>Il carrello e vuoto.</p>
@@ -1051,7 +1069,7 @@ export function Navbar() {
                       )}
                     </div>
 
-                    <div className="shrink-0 border-t border-white/10 bg-[#0b0b0c]/96 pt-5 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+                    <div className={`${mobileSheetFooterClass} pt-5`}>
                       {cartPricingError ? <p className="mb-3 text-sm text-red-300">{cartPricingError}</p> : null}
 
                       {loadingCartPricing ? (
@@ -1182,7 +1200,7 @@ export function Navbar() {
                   </button>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] touch-pan-y overscroll-y-contain [-webkit-overflow-scrolling:touch]">
+                <div className={`${mobileScrollablePanelClass} space-y-5 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]`}>
                   {loading ? (
                     <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/60">
                       Caricamento account...
