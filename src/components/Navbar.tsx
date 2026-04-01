@@ -16,6 +16,7 @@ import { Container } from "./Container"
 import { Logo } from "./Logo"
 import { Button, getButtonClassName } from "./Button"
 import { useCanHover } from "../hooks/useCanHover"
+import { useIsMobileViewport } from "../hooks/useIsMobileViewport"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
@@ -40,6 +41,10 @@ function highlightMatch(text: string, query: string) {
       {text.slice(index + normalized.length)}
     </>
   )
+}
+
+function containWheel(event: React.WheelEvent<HTMLElement>) {
+  event.stopPropagation()
 }
 
 function forwardWheelToHorizontalScroll(event: React.WheelEvent<HTMLElement>) {
@@ -76,8 +81,7 @@ function scoreSearchSuggestion(product: ShopProduct, query: string) {
 
 const overlayTransition = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const }
 const drawerTransition = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }
-const mobileScrollablePanelClass =
-  "min-h-0 flex-1 overflow-y-auto touch-pan-y overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+const mobileScrollablePanelClass = "min-h-0 flex-1 overflow-y-auto touch-pan-y overscroll-y-contain [-webkit-overflow-scrolling:touch]"
 const mobileSheetFooterClass = "shrink-0 border-t border-white/10 bg-[#0b0b0c]/96 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
 
 function shuffleProducts(products: ShopProduct[]) {
@@ -187,6 +191,7 @@ export function Navbar() {
     confirmPassword: "",
   })
   const navH = 88
+  const isMobileViewport = useIsMobileViewport()
 
   const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview, login, updateProfile, logout, loading } = useShopAuth()
   const { items, couponCode, clearCart, removeItem } = useShopCart()
@@ -957,9 +962,9 @@ export function Navbar() {
 
             <motion.aside
               ref={cartRef}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 18 }}
+              initial={isMobileViewport ? { opacity: 0, y: 18 } : { opacity: 0, x: 18 }}
+              animate={isMobileViewport ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
+              exit={isMobileViewport ? { opacity: 0, y: 18 } : { opacity: 0, x: 18 }}
               transition={drawerTransition}
               className="fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] w-full overflow-hidden rounded-t-[30px] border border-white/10 border-b-0 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform md:inset-y-0 md:left-auto md:right-0 md:top-0 md:h-screen md:max-h-none md:max-w-lg md:rounded-none md:border md:border-b-0 md:border-l"
             >
@@ -1021,7 +1026,10 @@ export function Navbar() {
                   </div>
                 ) : (
                   <>
-                    <div className={`${mobileScrollablePanelClass} space-y-4 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]`}>
+                    <div
+                      className={isMobileViewport ? `${mobileScrollablePanelClass} space-y-4 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]` : "flex-1 space-y-4 overflow-y-auto py-6"}
+                      onWheelCapture={isMobileViewport ? undefined : containWheel}
+                    >
                       {!items.length ? (
                         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-12 text-center text-white/60">
                           <p>Il carrello e vuoto.</p>
@@ -1069,7 +1077,7 @@ export function Navbar() {
                       )}
                     </div>
 
-                    <div className={`${mobileSheetFooterClass} pt-5`}>
+                    <div className={isMobileViewport ? `${mobileSheetFooterClass} pt-5` : "border-t border-white/10 pt-5"}>
                       {cartPricingError ? <p className="mb-3 text-sm text-red-300">{cartPricingError}</p> : null}
 
                       {loadingCartPricing ? (
@@ -1170,9 +1178,9 @@ export function Navbar() {
 
             <motion.aside
               ref={profileRef}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 18 }}
+              initial={isMobileViewport ? { opacity: 0, y: 18 } : { opacity: 0, x: 18 }}
+              animate={isMobileViewport ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
+              exit={isMobileViewport ? { opacity: 0, y: 18 } : { opacity: 0, x: 18 }}
               transition={drawerTransition}
               className="fixed inset-x-0 bottom-0 z-50 max-h-[86dvh] w-full overflow-hidden rounded-t-[30px] border border-white/10 border-b-0 bg-[#0b0b0c]/96 p-5 shadow-[0_20px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl will-change-transform md:inset-y-0 md:left-auto md:right-0 md:top-0 md:max-h-none md:max-w-md md:rounded-none md:border md:border-b-0 md:border-l"
             >
@@ -1200,7 +1208,10 @@ export function Navbar() {
                   </button>
                 </div>
 
-                <div className={`${mobileScrollablePanelClass} space-y-5 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]`}>
+                <div
+                  className={isMobileViewport ? `${mobileScrollablePanelClass} space-y-5 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]` : "min-h-0 flex-1 space-y-5 overflow-y-auto py-6"}
+                  onWheelCapture={isMobileViewport ? undefined : containWheel}
+                >
                   {loading ? (
                     <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/60">
                       Caricamento account...
