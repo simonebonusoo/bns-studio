@@ -1814,76 +1814,72 @@ export function ShopAdminPage() {
               </button>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-                <p className="text-sm text-white/55">Incassato ordine</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.grossTotal)}</p>
-              </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <p className="text-sm text-white/55">Spese prodotti</p>
+            {!showOrderProfitBreakdown ? (
+              <>
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <p className="text-sm text-white/55">Incassato ordine</p>
+                    <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.grossTotal)}</p>
+                  </div>
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <p className="text-sm text-white/55">Spese prodotti</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowOrderProfitBreakdown(true)}
+                        className={getButtonClassName({ variant: "profile", size: "sm" })}
+                      >
+                        Vedi dettaglio
+                      </button>
+                    </div>
+                    <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.productCostsTotal)}</p>
+                  </div>
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <p className="text-sm text-white/55">Spese spedizione</p>
+                    <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.shippingOperationalCost)}</p>
+                  </div>
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <p className="text-sm text-white/55">Spese totali ordine</p>
+                    <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.totalExpenses)}</p>
+                  </div>
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <p className="text-sm text-white/55">Guadagno netto</p>
+                    <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.netTotal)}</p>
+                  </div>
+                </div>
+
+                <p className="mt-5 text-sm text-white/50">
+                  Il netto considera i costi reali prodotto e una sola spedizione operativa per ordine: 6,50 € per Standard, 8,50 € per Premium.
+                </p>
+              </>
+            ) : (
+              <div className="mt-6 rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.18em] text-white/45">Dettaglio spese ordine</p>
+                    <p className="mt-2 text-sm text-white/55">Breakdown completo di produzione e spedizione per questo ordine.</p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setShowOrderProfitBreakdown((current) => !current)}
+                    onClick={() => setShowOrderProfitBreakdown(false)}
                     className={getButtonClassName({ variant: "profile", size: "sm" })}
                   >
-                    {showOrderProfitBreakdown ? "Nascondi dettaglio" : "Vedi dettaglio"}
+                    Torna al riepilogo
                   </button>
                 </div>
-                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.productCostsTotal)}</p>
-              </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-                <p className="text-sm text-white/55">Spedizione reale negozio</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.shippingOperationalCost)}</p>
-              </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-                <p className="text-sm text-white/55">Spese totali ordine</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.totalExpenses)}</p>
-              </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-                <p className="text-sm text-white/55">Guadagno netto</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{formatPrice(orderProfit.netTotal)}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {orderProfit.items.map((item) => (
-                <article key={item.id} className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-base font-medium text-white">{item.title}</p>
-                      <p className="mt-1 text-sm text-white/55">
-                        {item.format} · {item.quantity} pz · ricavo {formatPrice(item.revenueTotal)} · costo {formatPrice(item.costTotal)}
-                      </p>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {showOrderProfitBreakdown ? (
-              <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-sm uppercase tracking-[0.18em] text-white/45">Dettaglio spese ordine</p>
-                  <span className="text-xs uppercase tracking-[0.16em] text-white/38">Breakdown completo</span>
-                </div>
-                <div className="mt-4 space-y-3">
+                <div className="mt-5 space-y-3">
                   {orderProfit.items.map((item, index) => (
                     <div key={item.id} className="flex items-center justify-between gap-4 border-b border-white/6 pb-3 text-sm text-white/65 last:border-b-0 last:pb-0">
                       <div>
                         <p className="text-white">Totale spese riga {index + 1} — {item.title}</p>
-                        <p className="mt-1 text-white/45">{item.title} · {item.format} · {item.quantity} pz</p>
+                        <p className="mt-1 text-white/45">{item.format} · {item.quantity} pz</p>
                       </div>
                       <p className="font-medium text-white">{formatPrice(item.costTotal)}</p>
                     </div>
                   ))}
                   <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-sm text-white/65">
-                    <p>Spesa spedizione totale</p>
+                    <p>Totale spese spedizione</p>
                     <p className="font-medium text-white">{formatPrice(orderProfit.shippingOperationalCost)}</p>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 text-sm text-white/65">
-                    <p>Totale spese prodotti</p>
-                    <p className="font-medium text-white">{formatPrice(orderProfit.productCostsTotal)}</p>
                   </div>
                   <div className="flex items-center justify-between gap-4 text-sm text-white/65">
                     <p>Totale spese ordine</p>
@@ -1891,11 +1887,7 @@ export function ShopAdminPage() {
                   </div>
                 </div>
               </div>
-            ) : null}
-
-            <p className="mt-5 text-sm text-white/50">
-              Il netto considera i costi reali prodotto e una sola spedizione operativa per ordine: 6,50 € per Standard, 8,50 € per Premium.
-            </p>
+            )}
           </div>
         </div>
       ) : null}
