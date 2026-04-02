@@ -7,6 +7,8 @@ type ConfirmActionModalProps = {
   confirmLabel?: string
   cancelLabel?: string
   loading?: boolean
+  loadingLabel?: string
+  confirmVariant?: "danger" | "cart"
   onCancel: () => void
   onConfirm: () => void | Promise<void>
 }
@@ -18,6 +20,8 @@ export function ConfirmActionModal({
   confirmLabel = "Elimina",
   cancelLabel = "Annulla",
   loading = false,
+  loadingLabel = "Eliminazione...",
+  confirmVariant = "danger",
   onCancel,
   onConfirm,
 }: ConfirmActionModalProps) {
@@ -33,8 +37,17 @@ export function ConfirmActionModal({
           <button type="button" onClick={onCancel} className={getButtonClassName({ variant: "profile", size: "sm" })}>
             {cancelLabel}
           </button>
-          <button type="button" onClick={() => void onConfirm()} className={getDangerButtonClassName({ size: "sm" })} disabled={loading}>
-            {loading ? "Eliminazione..." : confirmLabel}
+          <button
+            type="button"
+            onClick={() => void onConfirm()}
+            className={
+              confirmVariant === "cart"
+                ? getButtonClassName({ variant: "cart", size: "sm" })
+                : getDangerButtonClassName({ size: "sm" })
+            }
+            disabled={loading}
+          >
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>

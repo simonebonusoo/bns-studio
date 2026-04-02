@@ -103,6 +103,8 @@ export function AdminUsersSection({ users, usersTotal, containWheel, onToggleRol
         confirmLabel={pendingRoleChange?.nextRole === "admin" ? "Rendi admin" : "Rendi cliente"}
         cancelLabel="Annulla"
         loading={roleUpdateLoadingId === pendingRoleChange?.user.id}
+        loadingLabel="In corso..."
+        confirmVariant="cart"
         onCancel={() => setPendingRoleChange(null)}
         onConfirm={async () => {
           if (!pendingRoleChange) return
