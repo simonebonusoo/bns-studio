@@ -17,8 +17,51 @@ function buildApiUrl(providerConfig, path) {
   return `${normalizedBaseUrl}/${String(path || "").replace(/^\/+/, "")}`
 }
 
+function summarizePacklinkResponseBody(data) {
+  if (!data || typeof data !== "object") return data ? "[response]" : null
+
+  const summary = {}
+  const shipmentId = findFirstString(data, [["shipment_id"], ["shipmentId"], ["id"], ["data", "shipment_id"], ["data", "id"]])
+  const trackingNumber = findFirstString(data, [["tracking_number"], ["trackingNumber"], ["tracking", "number"], ["data", "tracking_number"]])
+  const trackingUrl = findFirstString(data, [["tracking_url"], ["trackingUrl"], ["tracking", "url"], ["data", "tracking_url"]])
+  const labelUrl = findFirstString(data, [["label_url"], ["labelUrl"], ["label", "url"], ["data", "label_url"]])
+  const carrier = findFirstString(data, [["carrier"], ["carrier_name"], ["carrierName"], ["service", "carrier_name"], ["data", "carrier"]])
+  const status = findFirstString(data, [["status"], ["shipment_status"], ["tracking_status"], ["data", "status"], ["tracking", "status"]])
+
+  if (shipmentId) summary.shipmentId = shipmentId
+  if (carrier) summary.carrier = carrier
+  if (status) summary.status = status
+  if (trackingNumber) summary.hasTrackingNumber = true
+  if (trackingUrl) summary.hasTrackingUrl = true
+  if (labelUrl) summary.hasLabelUrl = true
+
+  return Object.keys(summary).length ? summary : "[response]"
+}
+
+function redactPacklinkLogDetails(details = {}) {
+  const redacted = { ...details }
+
+  if ("payload" in redacted) {
+    redacted.payload = "[redacted]"
+  }
+  if ("body" in redacted) {
+    redacted.body = summarizePacklinkResponseBody(redacted.body)
+  }
+  if ("data" in redacted) {
+    redacted.data = summarizePacklinkResponseBody(redacted.data)
+  }
+  if ("destinationZip" in redacted && redacted.destinationZip) {
+    redacted.destinationZip = "[redacted]"
+  }
+  if ("trackingNumber" in redacted && redacted.trackingNumber) {
+    redacted.trackingNumber = "[redacted]"
+  }
+
+  return redacted
+}
+
 function logPacklink(event, details = {}) {
-  console.info("[shipping:packlink]", event, details)
+  console.info("[shipping:packlink]", event, redactPacklinkLogDetails(details))
 }
 
 async function safeJson(response) {
@@ -492,7 +535,7 @@ export function createPacklinkProvider(providerConfig) {
           body: data,
         })
         if (!response.ok) {
-          console.error("Packlink createShipment failed", { status: response.status, data })
+          console.error("Packlink createShipment failed", redactPacklinkLogDetails({ status: response.status, data }))
           return createNormalizedShipment({
             carrier: "packlink",
             carrierLabel: "Packlink",
@@ -506,7 +549,7 @@ export function createPacklinkProvider(providerConfig) {
         }
         return parsePacklinkShipmentResponse(data, orderContext)
       } catch (error) {
-        console.error("Packlink createShipment error", error)
+        console.error("Packlink createShipment error", error?.message || error)
         return createNormalizedShipment({
           carrier: "packlink",
           carrierLabel: "Packlink",
@@ -586,7 +629,7 @@ export function createPacklinkProvider(providerConfig) {
         })
         const data = await safeJson(response)
         if (!response.ok) {
-          console.error("Packlink getTracking failed", { status: response.status, data })
+          console.error("Packlink getTracking failed", redactPacklinkLogDetails({ status: response.status, data, trackingNumber }))
           return createNormalizedShipment({
             carrier: "packlink",
             carrierLabel: "Packlink",
@@ -602,7 +645,7 @@ export function createPacklinkProvider(providerConfig) {
         }
         return parsePacklinkTrackingResponse(data, trackingNumber, shipmentReference)
       } catch (error) {
-        console.error("Packlink getTracking error", error)
+        console.error("Packlink getTracking error", error?.message || error)
         return createNormalizedShipment({
           carrier: "packlink",
           carrierLabel: "Packlink",

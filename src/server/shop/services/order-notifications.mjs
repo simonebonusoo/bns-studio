@@ -99,12 +99,12 @@ export async function notifyAdminOrderCompleted({ order, user }) {
     if (result.sent) {
       logInfo("admin_order_completed_email_sent", {
         orderReference: order.orderReference,
-        recipient: email.to,
+        recipientConfigured: Boolean(email.to),
       })
     } else {
       logWarning("admin_order_completed_email_skipped", {
         orderReference: order.orderReference,
-        recipient: email.to,
+        recipientConfigured: Boolean(email.to),
         reason: result.reason,
       })
     }
@@ -113,7 +113,7 @@ export async function notifyAdminOrderCompleted({ order, user }) {
     reportError(error, {
       event: "admin_order_completed_email_failed",
       orderReference: order.orderReference,
-      recipient: email.to,
+      recipientConfigured: Boolean(email.to),
     })
     return {
       sent: false,

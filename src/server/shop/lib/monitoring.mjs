@@ -14,7 +14,7 @@ function serializeError(error) {
   return {
     name: error.name || "Error",
     message: error.message || String(error),
-    stack: error.stack || null,
+    stack: env.nodeEnv === "production" ? null : error.stack || null,
     code: error.code || null,
     status: error.status || null,
   }

@@ -25,6 +25,24 @@ function run(command, args, options = {}) {
   })
 }
 
+function redactDatabaseUrl(value) {
+  const databaseUrl = String(value || "")
+  if (!databaseUrl) return "(unset)"
+  if (databaseUrl.startsWith("file:")) return "file:[redacted]"
+
+  try {
+    const parsed = new URL(databaseUrl)
+    if (parsed.username) parsed.username = "***"
+    if (parsed.password) parsed.password = "***"
+    parsed.pathname = parsed.pathname ? "/[redacted]" : parsed.pathname
+    parsed.search = ""
+    parsed.hash = ""
+    return parsed.toString()
+  } catch {
+    return "[redacted]"
+  }
+}
+
 function logConfiguration() {
   const databaseUrl = resolveDatabaseUrl()
   const uploadsDir = process.env.UPLOADS_DIR || resolveUploadsRootDir()
@@ -35,7 +53,7 @@ function logConfiguration() {
 
   console.log("[bootstrap] Starting BNS Studio shop backend")
   console.log(`[bootstrap] NODE_ENV=${process.env.NODE_ENV || "development"}`)
-  console.log(`[bootstrap] DATABASE_URL=${databaseUrl}`)
+  console.log(`[bootstrap] DATABASE_URL=${redactDatabaseUrl(databaseUrl)}`)
   console.log(`[bootstrap] DATABASE_PATH=${databasePath}`)
   console.log(`[bootstrap] DATABASE_EXISTS_BEFORE_START=${databaseExists}`)
   console.log(`[bootstrap] UPLOADS_DIR=${uploadsDir}`)
