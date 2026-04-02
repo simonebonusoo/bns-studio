@@ -220,7 +220,7 @@ router.post(
     })
 
     const contactEmail = (contactSetting?.value || FALLBACK_CONTACT_EMAIL).trim()
-    const mailSubject = `[BNS Studio] ${body.subject}`
+    const mailSubject = `[BNS Studio] ${sanitizePlainText(body.subject)}`
     const mailBody = [
       `Nome: ${sanitizePlainText(body.name)}`,
       `Email: ${body.email.trim().toLowerCase()}`,

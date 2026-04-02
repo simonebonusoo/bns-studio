@@ -1,5 +1,8 @@
 function stripTagLikeContent(value) {
-  return String(value || "").replace(/<[^>]*>/g, " ")
+  return String(value || "")
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
 }
 
 function normalizeWhitespace(value) {
