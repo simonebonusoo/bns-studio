@@ -8,25 +8,17 @@ import { getAvailableFormats, getDefaultVariant, getProductBadges, getProductPri
 import { ShopProduct } from "../types"
 
 export function ProductCard({ product }: { product: ShopProduct }) {
-  if (!product) {
-    return (
-      <article className="shop-card flex h-full min-h-[320px] items-center justify-center overflow-hidden px-6 text-center text-sm text-white/55">
-        Prodotto non disponibile.
-      </article>
-    )
-  }
-
   const navigate = useNavigate()
   const { user } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
   const canHover = useCanHover()
   const primaryImage = getProductPrimaryImage(product)
-  const secondaryImage = product?.imageUrls?.[1] || ""
+  const secondaryImage = product.imageUrls?.[1] || ""
   const hasHoverImage = Boolean(canHover && primaryImage && secondaryImage && secondaryImage !== primaryImage)
   const defaultVariant = getDefaultVariant(product)
-  const availableFormats = getAvailableFormats(product) || []
+  const availableFormats = getAvailableFormats(product)
   const purchasable = isProductPurchasable(product, defaultVariant?.id)
-  const badges = getProductBadges(product) || []
+  const badges = getProductBadges(product)
   const stockStatus = getProductStockStatus(product)
   const stockLabel = getProductStockLabel(product)
   const pricing = getVariantPricing(product, defaultVariant?.id)
@@ -96,14 +88,14 @@ export function ProductCard({ product }: { product: ShopProduct }) {
             <span className="shop-pill">{product.category}</span>
             {product.collections?.[0] ? (
               <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/55">
-                {product?.collections?.[0]?.title}
+                {product.collections[0].title}
               </span>
             ) : null}
           </div>
             <h2 className="overflow-hidden text-xl font-semibold text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-              {product?.title || ""}
-            </h2>
-          <p className="text-xs uppercase tracking-[0.18em] text-white/45">{(availableFormats || []).join(" · ")}</p>
+            {product.title}
+          </h2>
+          <p className="text-xs uppercase tracking-[0.18em] text-white/45">{availableFormats.join(" · ")}</p>
         </div>
 
         <div className="mt-auto pt-5">

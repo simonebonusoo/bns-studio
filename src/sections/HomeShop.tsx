@@ -4,12 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Container } from "../components/Container";
 import { HorizontalScrollRail } from "../components/HorizontalScrollRail";
-import { useIsMobileViewport } from "../hooks/useIsMobileViewport";
 import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
 import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
-import { buildHomeReturnState, persistHomeReturnState } from "../shop/lib/home-return.mjs";
 import type { AdminCollection, ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
@@ -361,45 +359,13 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
 }
 
 export function HomeShop() {
-  function isValidProduct(product: unknown): product is ShopProduct {
-    return Boolean(
-      product &&
-        typeof product === "object" &&
-        "id" in product &&
-        "slug" in product &&
-        "title" in product &&
-        "price" in product,
-    );
-  }
-
-  function isValidCollection(collection: unknown): collection is AdminCollection {
-    return Boolean(collection && typeof collection === "object" && "slug" in collection && "title" in collection);
-  }
-
   const navigate = useNavigate();
-  const isMobileViewport = useIsMobileViewport();
-
-  function getHomeNavigationState() {
-    return buildHomeReturnState("/", typeof window !== "undefined" ? window.scrollY : 0);
-  }
-
-  function rememberHomePosition() {
-    persistHomeReturnState(getHomeNavigationState());
-  }
-
-  function navigateFromHome(href: string) {
-    const state = getHomeNavigationState();
-    persistHomeReturnState(state);
-    navigate(href, { state });
-  }
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [collections, setCollections] = useState<AdminCollection[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading">("idle");
-  const safeProducts = (Array.isArray(products) ? products : []).filter(isValidProduct);
-  const safeCollections = (Array.isArray(collections) ? collections : []).filter(isValidCollection);
 
   function readHomeShopCache(): HomeShopCache | null {
     if (typeof window === "undefined") return null;
@@ -411,10 +377,10 @@ export function HomeShop() {
       if (!parsed || typeof parsed !== "object") return null;
 
       return {
-        products: (Array.isArray(parsed.products) ? parsed.products : []).filter(isValidProduct),
+        products: Array.isArray(parsed.products) ? parsed.products : [],
         productTotal: Number(parsed.productTotal || 0),
         settings: parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {},
-        collections: (Array.isArray(parsed.collections) ? parsed.collections : []).filter(isValidCollection),
+        collections: Array.isArray(parsed.collections) ? parsed.collections : [],
       };
     } catch {
       return null;
@@ -452,15 +418,15 @@ export function HomeShop() {
           apiFetch<AdminCollection[]>("/store/collections"),
         ]);
         if (!cancelled) {
-          setProducts((Array.isArray(productData?.items) ? productData.items : []).filter(isValidProduct));
+          setProducts(Array.isArray(productData?.items) ? productData.items : []);
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
-          setCollections((Array.isArray(collectionsData) ? collectionsData : []).filter(isValidCollection));
+          setCollections(Array.isArray(collectionsData) ? collectionsData : []);
           writeHomeShopCache({
-            products: (Array.isArray(productData?.items) ? productData.items : []).filter(isValidProduct),
+            products: Array.isArray(productData?.items) ? productData.items : [],
             productTotal: productData.pagination.total,
             settings: settingsData,
-            collections: (Array.isArray(collectionsData) ? collectionsData : []).filter(isValidCollection),
+            collections: Array.isArray(collectionsData) ? collectionsData : [],
           });
           setStatus("idle");
         }
@@ -492,17 +458,17 @@ export function HomeShop() {
   );
 
   const showcases = useMemo(
-    () => parseHomepageShowcases(shopSettings.homepageShowcases, [], safeCollections),
-    [safeCollections, shopSettings]
+    () => parseHomepageShowcases(shopSettings.homepageShowcases, [], collections),
+    [collections, shopSettings]
   )
 
   const popularCategoryCards = useMemo(
     () =>
       popularCategories.map((category, index) => ({
         ...category,
-        imageUrl: category.imageUrl || pickProductImageByCategory(safeProducts, category.category, index),
+        imageUrl: category.imageUrl || pickProductImageByCategory(products, category.category, index),
       })),
-    [popularCategories, safeProducts],
+    [popularCategories, products],
   );
 
   const showcaseCards = useMemo(
@@ -512,28 +478,19 @@ export function HomeShop() {
         imageUrl:
           showcase.imageUrl ||
           (showcase.collectionSlug
-            ? pickProductImageByCollection(safeProducts, showcase.collectionSlug, index + 3)
-            : pickProductImage(safeProducts, showcase.query, index + 3)),
+            ? pickProductImageByCollection(products, showcase.collectionSlug, index + 3)
+            : pickProductImage(products, showcase.query, index + 3)),
       })),
-    [safeProducts, showcases],
+    [products, showcases],
   )
 
   const trendingProducts = useMemo(() => {
-    const featured = safeProducts.filter((product) => product?.featured)
-    const others = safeProducts.filter((product) => !product?.featured)
+    const featured = products.filter((product) => product.featured)
+    const others = products.filter((product) => !product.featured)
     return [...featured, ...others].slice(0, 20)
-  }, [safeProducts])
+  }, [products])
 
-  const catalogPreviewProducts = useMemo(() => {
-    const featuredProducts = safeProducts.filter((product) => product?.featured)
-    const source = featuredProducts.length ? featuredProducts : safeProducts
-
-    if (isMobileViewport) {
-      return shuffleProducts(source).slice(0, 4)
-    }
-
-    return source.slice(0, 16)
-  }, [isMobileViewport, safeProducts])
+  const catalogPreviewProducts = useMemo(() => products.filter((product) => product.featured).slice(0, 16), [products])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
@@ -605,8 +562,6 @@ export function HomeShop() {
                 <Link
                   key={category.title}
                   to={buildPopularCategoryHref(category.category, category.title, category.description)}
-                  state={getHomeNavigationState()}
-                  onClick={rememberHomePosition}
                   className="group relative flex min-h-[22rem] overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
                 >
                   <div className="absolute inset-0">
@@ -692,7 +647,7 @@ export function HomeShop() {
                           size="sm"
                           text={showcase.ctaLabel || "Esplora la collezione"}
                           onClick={() =>
-                            navigateFromHome(
+                            navigate(
                               showcase.collectionSlug
                                 ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
                                 : withCatalogContext(showcase.href, showcase.title, showcase.description),
@@ -769,7 +724,7 @@ export function HomeShop() {
           )}
 
           <div className="flex justify-center pt-2">
-            <Button variant="cart" size="sm" text="Vedi catalogo completo" onClick={() => navigateFromHome("/shop")}>
+            <Button variant="cart" size="sm" text="Vedi catalogo completo" onClick={() => navigate("/shop")}>
               Vedi catalogo completo
             </Button>
           </div>

@@ -154,16 +154,6 @@ function SuggestionProductCard({
 }
 
 export function Navbar() {
-  function isValidProduct(product: unknown): product is ShopProduct {
-    return Boolean(
-      product &&
-        typeof product === "object" &&
-        "id" in product &&
-        "slug" in product &&
-        "title" in product,
-    )
-  }
-
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -222,8 +212,6 @@ export function Navbar() {
 
   const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview, login, updateProfile, logout, loading } = useShopAuth()
   const { items, couponCode, clearCart, removeItem } = useShopCart()
-  const safeProducts = (Array.isArray(products) ? products : []).filter(isValidProduct)
-  const safeShuffledSuggestedProducts = (Array.isArray(shuffledSuggestedProducts) ? shuffledSuggestedProducts : []).filter(isValidProduct)
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
@@ -298,8 +286,8 @@ export function Navbar() {
 
   useEffect(() => {
     if (!searchOpen) return
-    setShuffledSuggestedProducts(shuffleProducts(safeProducts))
-  }, [safeProducts, searchOpen])
+    setShuffledSuggestedProducts(shuffleProducts(products))
+  }, [products, searchOpen])
 
   useEffect(() => {
     if (!shouldUseGlobalOverlayLock) return
@@ -1581,8 +1569,9 @@ export function Navbar() {
                       <button
                         type="button"
                         onClick={() => {
-                          setProfileOpen(false)
-                          navigate("/shop/account")
+                          setProfileLoggedStep("edit")
+                          setProfileEditField(null)
+                          setProfileError("")
                         }}
                         className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                       >
