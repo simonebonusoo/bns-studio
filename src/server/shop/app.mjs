@@ -40,6 +40,13 @@ app.use(
 )
 app.use(express.json())
 app.use(morgan("dev"))
+app.use((req, res, next) => {
+  res.setHeader("X-Frame-Options", "DENY")
+  res.setHeader("X-Content-Type-Options", "nosniff")
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+  next()
+})
 app.use("/uploads", express.static(uploadsDir))
 
 app.use((req, res, next) => {

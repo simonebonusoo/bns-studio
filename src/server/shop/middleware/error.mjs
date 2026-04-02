@@ -30,8 +30,10 @@ export function errorHandler(error, _req, res, _next) {
     })
   }
 
-  res.status(error.status || 500).json({
-    message: error.message || "Operazione non riuscita",
+  const status = error.status || 500
+
+  res.status(status).json({
+    message: status >= 500 ? "Errore interno del server" : error.message || "Operazione non riuscita",
     details: error.details || null,
   })
 }
