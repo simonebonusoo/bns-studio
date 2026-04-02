@@ -22,6 +22,21 @@ const SORT_OPTIONS = [
 const PAGE_SIZE = 12
 
 export function ShopPage() {
+  function isValidProduct(product: unknown): product is ShopProduct {
+    return Boolean(
+      product &&
+        typeof product === "object" &&
+        "id" in product &&
+        "slug" in product &&
+        "title" in product &&
+        "price" in product,
+    )
+  }
+
+  function isValidCollection(collection: unknown): collection is AdminCollection {
+    return Boolean(collection && typeof collection === "object" && "slug" in collection && "title" in collection)
+  }
+
   const previousPageRef = useRef<number | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
@@ -35,16 +50,8 @@ export function ShopPage() {
   const [homeReturnState, setHomeReturnState] = useState(() => resolveHomeReturnState(null))
   const isMobileViewport = useIsMobileViewport()
   const [mobileCatalogView, setMobileCatalogView] = useState<"full" | "compact">("full")
-  const safeProducts = Array.isArray(products) ? products : []
-  const safeCollections = Array.isArray(collections) ? collections : []
-
-  if (!Array.isArray(products)) {
-    console.error("DEBUG products:", products)
-  }
-
-  if (!Array.isArray(collections)) {
-    console.error("DEBUG collections:", collections)
-  }
+  const safeProducts = (Array.isArray(products) ? products : []).filter(isValidProduct)
+  const safeCollections = (Array.isArray(collections) ? collections : []).filter(isValidCollection)
 
   const filters = useMemo(
     () => {
@@ -71,11 +78,8 @@ export function ShopPage() {
 
   useEffect(() => {
     apiFetch<AdminCollection[]>("/store/collections")
-      .then((data) => setCollections(Array.isArray(data) ? data : []))
-      .catch((err) => {
-        console.error("DEBUG collections load failed:", err)
-        setCollections([])
-      })
+      .then((data) => setCollections((Array.isArray(data) ? data : []).filter(isValidCollection)))
+      .catch(() => setCollections([]))
   }, [])
 
   useEffect(() => {
@@ -116,7 +120,7 @@ export function ShopPage() {
     apiFetch<ShopProductListResponse>(`/store/products?${params.toString()}`)
       .then((data) => {
         if (cancelled) return
-        setProducts(Array.isArray(data?.items) ? data.items : [])
+        setProducts((Array.isArray(data?.items) ? data.items : []).filter(isValidProduct))
         setPagination({
           page: Number.isFinite(data?.pagination?.page) ? data.pagination.page : 1,
           pageSize: Number.isFinite(data?.pagination?.pageSize) ? data.pagination.pageSize : PAGE_SIZE,
@@ -126,7 +130,6 @@ export function ShopPage() {
       })
       .catch((err) => {
         if (cancelled) return
-        console.error("DEBUG catalog load failed:", err)
         setProducts([])
         setPagination({ page: filters.page, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
         setCatalogError(err instanceof Error ? err.message : "Alcuni contenuti non sono disponibili al momento.")

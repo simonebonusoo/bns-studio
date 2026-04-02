@@ -154,6 +154,16 @@ function SuggestionProductCard({
 }
 
 export function Navbar() {
+  function isValidProduct(product: unknown): product is ShopProduct {
+    return Boolean(
+      product &&
+        typeof product === "object" &&
+        "id" in product &&
+        "slug" in product &&
+        "title" in product,
+    )
+  }
+
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -212,16 +222,8 @@ export function Navbar() {
 
   const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview, login, updateProfile, logout, loading } = useShopAuth()
   const { items, couponCode, clearCart, removeItem } = useShopCart()
-  const safeProducts = Array.isArray(products) ? products : []
-  const safeShuffledSuggestedProducts = Array.isArray(shuffledSuggestedProducts) ? shuffledSuggestedProducts : []
-
-  if (!Array.isArray(products)) {
-    console.error("DEBUG navbar products:", products)
-  }
-
-  if (!Array.isArray(shuffledSuggestedProducts)) {
-    console.error("DEBUG navbar shuffledSuggestedProducts:", shuffledSuggestedProducts)
-  }
+  const safeProducts = (Array.isArray(products) ? products : []).filter(isValidProduct)
+  const safeShuffledSuggestedProducts = (Array.isArray(shuffledSuggestedProducts) ? shuffledSuggestedProducts : []).filter(isValidProduct)
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const overlayRef = useRef<HTMLDivElement | null>(null)
@@ -291,10 +293,6 @@ export function Navbar() {
         setProducts([firstItems, ...nextPages.map((page) => page.items || [])].flat())
       })
       .catch(() => setProducts([]))
-      .catch((err) => {
-        console.error("DEBUG navbar products load failed:", err)
-        setProducts([])
-      })
       .finally(() => setLoadingProducts(false))
   }, [products.length, searchOpen])
 

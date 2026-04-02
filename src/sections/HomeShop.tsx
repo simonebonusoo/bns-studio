@@ -361,6 +361,21 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
 }
 
 export function HomeShop() {
+  function isValidProduct(product: unknown): product is ShopProduct {
+    return Boolean(
+      product &&
+        typeof product === "object" &&
+        "id" in product &&
+        "slug" in product &&
+        "title" in product &&
+        "price" in product,
+    );
+  }
+
+  function isValidCollection(collection: unknown): collection is AdminCollection {
+    return Boolean(collection && typeof collection === "object" && "slug" in collection && "title" in collection);
+  }
+
   const navigate = useNavigate();
   const isMobileViewport = useIsMobileViewport();
 
@@ -383,16 +398,8 @@ export function HomeShop() {
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading">("idle");
-  const safeProducts = Array.isArray(products) ? products : [];
-  const safeCollections = Array.isArray(collections) ? collections : [];
-
-  if (!Array.isArray(products)) {
-    console.error("DEBUG home products:", products);
-  }
-
-  if (!Array.isArray(collections)) {
-    console.error("DEBUG home collections:", collections);
-  }
+  const safeProducts = (Array.isArray(products) ? products : []).filter(isValidProduct);
+  const safeCollections = (Array.isArray(collections) ? collections : []).filter(isValidCollection);
 
   function readHomeShopCache(): HomeShopCache | null {
     if (typeof window === "undefined") return null;
@@ -404,10 +411,10 @@ export function HomeShop() {
       if (!parsed || typeof parsed !== "object") return null;
 
       return {
-        products: Array.isArray(parsed.products) ? parsed.products : [],
+        products: (Array.isArray(parsed.products) ? parsed.products : []).filter(isValidProduct),
         productTotal: Number(parsed.productTotal || 0),
         settings: parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {},
-        collections: Array.isArray(parsed.collections) ? parsed.collections : [],
+        collections: (Array.isArray(parsed.collections) ? parsed.collections : []).filter(isValidCollection),
       };
     } catch {
       return null;
@@ -445,20 +452,19 @@ export function HomeShop() {
           apiFetch<AdminCollection[]>("/store/collections"),
         ]);
         if (!cancelled) {
-          setProducts(Array.isArray(productData?.items) ? productData.items : []);
+          setProducts((Array.isArray(productData?.items) ? productData.items : []).filter(isValidProduct));
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
-          setCollections(Array.isArray(collectionsData) ? collectionsData : []);
+          setCollections((Array.isArray(collectionsData) ? collectionsData : []).filter(isValidCollection));
           writeHomeShopCache({
-            products: Array.isArray(productData?.items) ? productData.items : [],
+            products: (Array.isArray(productData?.items) ? productData.items : []).filter(isValidProduct),
             productTotal: productData.pagination.total,
             settings: settingsData,
-            collections: Array.isArray(collectionsData) ? collectionsData : [],
+            collections: (Array.isArray(collectionsData) ? collectionsData : []).filter(isValidCollection),
           });
           setStatus("idle");
         }
-      } catch (err) {
-        console.error("DEBUG home data load failed:", err);
+      } catch {
         if (!cancelled) {
           if (!cachedContent) {
             setProducts([]);
@@ -486,8 +492,8 @@ export function HomeShop() {
   );
 
   const showcases = useMemo(
-    () => parseHomepageShowcases(shopSettings.homepageShowcases, [], collections),
-    [collections, shopSettings]
+    () => parseHomepageShowcases(shopSettings.homepageShowcases, [], safeCollections),
+    [safeCollections, shopSettings]
   )
 
   const popularCategoryCards = useMemo(

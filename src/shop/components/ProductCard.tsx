@@ -9,8 +9,11 @@ import { ShopProduct } from "../types"
 
 export function ProductCard({ product }: { product: ShopProduct }) {
   if (!product) {
-    console.error("DEBUG ProductCard missing product:", product)
-    return <div className="min-h-screen bg-black" />
+    return (
+      <article className="shop-card flex h-full min-h-[320px] items-center justify-center overflow-hidden px-6 text-center text-sm text-white/55">
+        Prodotto non disponibile.
+      </article>
+    )
   }
 
   const navigate = useNavigate()
