@@ -348,7 +348,6 @@ export function ShopPage() {
             <Link
               key={product.id}
               to={`/shop/${product.slug}`}
-              state={location.state}
               className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03] transition hover:border-white/18"
             >
               <div className="aspect-[3/4] overflow-hidden bg-white/[0.04]">
