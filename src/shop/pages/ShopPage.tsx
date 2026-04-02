@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 
 import { Button, getButtonClassName } from "../../components/Button"
 import { useIsMobileViewport } from "../../hooks/useIsMobileViewport"
-import { ShoppingBagIcon } from "@heroicons/react/24/outline"
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
@@ -437,21 +436,11 @@ export function ShopPage() {
                 )}
                 <button
                   type="button"
-                  onClick={(event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    const defaultVariant = getDefaultVariant(product)
-                    addItem(product, 1, {
-                      variantId: defaultVariant?.id ?? null,
-                      format: defaultVariant?.title || null,
-                      variantLabel: defaultVariant?.title || null,
-                      variantSku: defaultVariant?.sku || null,
-                    })
-                  }}
-                  className="absolute bottom-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white/88 backdrop-blur transition hover:border-white/25 hover:text-white"
+                  onClick={(event) => handleMobileQuickAdd(event, product)}
+                  className="absolute bottom-2 right-2 inline-flex h-9 min-w-9 items-center justify-center rounded-full border border-white/15 bg-black/60 px-3 text-sm font-medium text-white/92 backdrop-blur transition hover:border-white/25 hover:text-white"
                   aria-label={`Aggiungi ${product.title} al carrello`}
                 >
-                  <ShoppingBagIcon className="h-4 w-4" />
+                  {mobileQuickAddFeedback[product.id] ?? "+"}
                 </button>
               </div>
               <div className="space-y-1 p-3">
@@ -464,17 +453,7 @@ export function ShopPage() {
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
           {(products ?? []).map((product) => (
-            <div key={product.id} onClickCapture={rememberCatalogPosition} className="relative">
-              {isMobileViewport ? (
-                <button
-                  type="button"
-                  onClick={(event) => handleMobileQuickAdd(event, product)}
-                  className="absolute right-3 top-3 z-10 inline-flex h-9 min-w-9 items-center justify-center rounded-full border border-white/15 bg-black/65 px-3 text-sm font-medium text-white/92 backdrop-blur transition hover:border-white/25 hover:text-white"
-                  aria-label={`Aggiungi ${product.title} al carrello`}
-                >
-                  {mobileQuickAddFeedback[product.id] ?? "+"}
-                </button>
-              ) : null}
+            <div key={product.id} onClickCapture={rememberCatalogPosition}>
               <ProductCard product={product} />
             </div>
           ))}
