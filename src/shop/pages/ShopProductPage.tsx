@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Button } from "../../components/Button"
+import { useIsMobileViewport } from "../../hooks/useIsMobileViewport"
 import { HorizontalScrollRail } from "../../components/HorizontalScrollRail"
 import { ProductCard } from "../components/ProductCard"
 import { ProductGallery } from "../components/product/ProductGallery"
@@ -25,6 +26,7 @@ const RELATED_PAGE_SIZE = 8
 export function ShopProductPage() {
   const navigate = useNavigate()
   const { slug = "" } = useParams()
+  const isMobileViewport = useIsMobileViewport()
   const { user, effectiveRole } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
   const [product, setProduct] = useState<ShopProduct | null>(null)
@@ -114,43 +116,48 @@ export function ShopProductPage() {
     notifyInterest,
   })
   const infoSections = useMemo(
-    () => [
-      {
-        key: "details" as const,
-        title: "Dettagli prodotto",
-        content: (
-          <div className="grid gap-2">
-            <p>Prodotto disponibile nelle varianti {availableFormats.join(" / ")} con badge, collezioni e stock sincronizzati lato catalogo.</p>
-            {product?.tags?.length ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {product.tags.map((tag) => (
-                  <span key={tag.slug} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
-                    #{tag.name}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ),
-      },
-      {
-        key: "shipping" as const,
-        title: "Spedizione e acquisto",
-        content:
-          "Il checkout conserva variante selezionata, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.",
-      },
-      {
-        key: "delivery" as const,
-        title: "Consegna",
-        content: (
-          <div className="grid gap-2">
-            <p>Consegna in 3-5 giorni lavorativi.</p>
-            <p>Spedizione {shippingCostValue > 0 ? `da ${shippingCostLabel}` : shippingCostLabel}.</p>
-          </div>
-        ),
-      },
-    ],
-    [availableFormats, product?.tags, shippingCostLabel, shippingCostValue]
+    () =>
+      [
+        {
+          key: "details" as const,
+          title: "Dettagli prodotto",
+          content: (
+            <div className="grid gap-3">
+              {product?.description ? <p>{product.description}</p> : null}
+              {availableFormats.length ? <p>Prodotto disponibile nelle varianti {availableFormats.join(" / ")}.</p> : null}
+              {product?.tags?.length ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {product.tags.map((tag) => (
+                    <span key={tag.slug} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+                      #{tag.name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ),
+          visible: Boolean(product?.description || availableFormats.length || product?.tags?.length),
+        },
+        {
+          key: "shipping" as const,
+          title: "Spedizione",
+          content:
+            "Il checkout conserva variante selezionata, prezzo applicato e disponibilità verificata lato server prima della conferma ordine.",
+          visible: true,
+        },
+        {
+          key: "delivery" as const,
+          title: "Consegna",
+          content: (
+            <div className="grid gap-2">
+              <p>Consegna in 3-5 giorni lavorativi.</p>
+              <p>Spedizione {shippingCostValue > 0 ? `da ${shippingCostLabel}` : shippingCostLabel}.</p>
+            </div>
+          ),
+          visible: true,
+        },
+      ].filter((section) => section.visible),
+    [availableFormats, product?.description, product?.tags, shippingCostLabel, shippingCostValue]
   )
   const relatedPageState = useMemo(
     () => getRelatedProductsPageState(relatedProducts, visibleRelatedCount, RELATED_PAGE_SIZE),
@@ -350,7 +357,7 @@ export function ShopProductPage() {
         ) : undefined
       }
       title={product.title}
-      intro={product.description}
+      intro={isMobileViewport ? "" : product.description}
       actions={
         <Button
           variant="profile"
@@ -426,11 +433,14 @@ export function ShopProductPage() {
           />
         </div>
 
-        <ProductInfoAccordions
-          openSection={openInfoSection}
-          onToggle={(section) => setOpenInfoSection((current) => (current === section ? null : section))}
-          sections={infoSections}
-        />
+        {infoSections.length ? (
+          <ProductInfoAccordions
+            openSection={openInfoSection}
+            onToggle={(section) => setOpenInfoSection((current) => (current === section ? null : section))}
+            sections={infoSections}
+            mobileOnly={isMobileViewport}
+          />
+        ) : null}
       </div>
 
       {relatedProducts.length ? (

@@ -10,6 +10,7 @@ type ProductInfoAccordionsProps = {
   openSection: AccordionSection["key"] | null
   onToggle: (key: AccordionSection["key"]) => void
   sections: AccordionSection[]
+  mobileOnly?: boolean
 }
 
 function ProductInfoAccordion({
@@ -42,9 +43,10 @@ export function ProductInfoAccordions({
   openSection,
   onToggle,
   sections,
+  mobileOnly = false,
 }: ProductInfoAccordionsProps) {
   return (
-    <div className="grid w-full items-start gap-3 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
+    <div className={`grid w-full items-start gap-3 ${mobileOnly ? "" : "lg:grid-cols-[repeat(3,minmax(0,1fr))]"}`}>
       {sections.map((section) => (
         <ProductInfoAccordion
           key={section.key}
