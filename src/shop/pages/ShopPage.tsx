@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Button, getButtonClassName } from "../../components/Button"
 import { useIsMobileViewport } from "../../hooks/useIsMobileViewport"
+import { ShoppingBagIcon } from "@heroicons/react/24/outline"
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
 import { scrollCatalogSectionToTop } from "../lib/catalog-navigation.mjs"
+import { buildCatalogReturnState, clearCatalogReturnState, readCatalogReturnState, persistCatalogReturnState } from "../lib/catalog-return.mjs"
 import { formatPrice } from "../lib/format"
 import { readHomeReturnState } from "../lib/home-return.mjs"
+import { getDefaultVariant } from "../lib/product"
+import { useShopCart } from "../context/ShopCartProvider"
 import { AdminCollection, ShopProduct, ShopProductListResponse } from "../types"
 
 const SORT_OPTIONS = [
@@ -23,7 +27,9 @@ const PAGE_SIZE = 12
 
 export function ShopPage() {
   const previousPageRef = useRef<number | null>(null)
+  const location = useLocation()
   const navigate = useNavigate()
+  const { addItem } = useShopCart()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
@@ -196,6 +202,13 @@ export function ShopPage() {
       : null,
   ].filter(Boolean)
 
+  function rememberCatalogPosition() {
+    const pathnameSearch = `${location.pathname}${location.search || ""}`
+    persistCatalogReturnState(
+      buildCatalogReturnState(pathnameSearch, typeof window !== "undefined" ? window.scrollY : 0, mobileCatalogView),
+    )
+  }
+
   function handleBackNavigation() {
     const storedHomeReturn = readHomeReturnState()
     if (storedHomeReturn) {
@@ -215,6 +228,29 @@ export function ShopPage() {
 
     navigate("/")
   }
+
+  useEffect(() => {
+    const state = location.state as { restoreCatalogFromProduct?: boolean; restoreCatalogScrollY?: number; restoreCatalogView?: "full" | "compact" } | null
+    const stored = readCatalogReturnState()
+    const nextY = Number.isFinite(state?.restoreCatalogScrollY) ? Number(state?.restoreCatalogScrollY) : stored?.scrollY
+    const nextView = state?.restoreCatalogView === "compact" ? "compact" : state?.restoreCatalogView === "full" ? "full" : stored?.view
+    const storedIsFresh = Boolean(stored?.savedAt && Date.now() - stored.savedAt < 15000)
+    const shouldRestore = Boolean(state?.restoreCatalogFromProduct) || (storedIsFresh && location.pathname + location.search === stored?.pathnameSearch)
+
+    if (!shouldRestore) return
+
+    if (nextView) {
+      setMobileCatalogView(nextView)
+    }
+
+    if (!Number.isFinite(nextY)) return
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, nextY)
+      window.__lenis?.scrollTo(nextY, { immediate: true } as any)
+      clearCatalogReturnState()
+    })
+  }, [location.key, location.pathname, location.search, location.state])
 
   return (
     <ShopLayout
@@ -345,14 +381,33 @@ export function ShopPage() {
             <Link
               key={product.id}
               to={`/shop/${product.slug}`}
+              onClick={rememberCatalogPosition}
               className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03] transition hover:border-white/18"
             >
-              <div className="aspect-[3/4] overflow-hidden bg-white/[0.04]">
+              <div className="relative aspect-[3/4] overflow-hidden bg-white/[0.04]">
                 {product.imageUrls?.[0] ? (
                   <img src={product.imageUrls[0]} alt={product.title} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-xs text-white/45">Nessuna immagine</div>
                 )}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const defaultVariant = getDefaultVariant(product)
+                    addItem(product, 1, {
+                      variantId: defaultVariant?.id ?? null,
+                      format: defaultVariant?.title || null,
+                      variantLabel: defaultVariant?.title || null,
+                      variantSku: defaultVariant?.sku || null,
+                    })
+                  }}
+                  className="absolute bottom-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white/88 backdrop-blur transition hover:border-white/25 hover:text-white"
+                  aria-label={`Aggiungi ${product.title} al carrello`}
+                >
+                  <ShoppingBagIcon className="h-4 w-4" />
+                </button>
               </div>
               <div className="space-y-1 p-3">
                 <h2 className="line-clamp-2 text-sm font-medium text-white">{product.title}</h2>
@@ -364,7 +419,9 @@ export function ShopPage() {
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
           {(products ?? []).map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <div key={product.id} onClickCapture={rememberCatalogPosition}>
+              <ProductCard product={product} />
+            </div>
           ))}
         </div>
       )}

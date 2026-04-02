@@ -11,6 +11,7 @@ import { getProductPurchaseState } from "../components/product/purchaseState"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
+import { readCatalogReturnState } from "../lib/catalog-return.mjs"
 import { readHomeReturnState } from "../lib/home-return.mjs"
 import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { getRelatedProductsPageState, getRecentlyViewedProducts, upsertRecentlyViewedProduct } from "../lib/product-page-discovery.mjs"
@@ -208,6 +209,18 @@ export function ShopProductPage() {
   }
 
   function handleBackNavigation() {
+    const storedCatalogReturn = readCatalogReturnState()
+    if (storedCatalogReturn) {
+      navigate(storedCatalogReturn.pathnameSearch || "/shop", {
+        state: {
+          restoreCatalogFromProduct: true,
+          restoreCatalogScrollY: storedCatalogReturn.scrollY,
+          restoreCatalogView: storedCatalogReturn.view,
+        },
+      })
+      return
+    }
+
     const storedHomeReturn = readHomeReturnState()
     if (storedHomeReturn) {
       navigate(storedHomeReturn.homePathname || "/", {
