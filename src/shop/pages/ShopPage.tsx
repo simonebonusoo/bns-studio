@@ -27,9 +27,10 @@ const PAGE_SIZE = 12
 
 export function ShopPage() {
   const previousPageRef = useRef<number | null>(null)
+  const cartFeedbackTimeoutsRef = useRef<Record<number, number>>({})
   const location = useLocation()
   const navigate = useNavigate()
-  const { addItem } = useShopCart()
+  const { addItem, items } = useShopCart()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
@@ -39,6 +40,7 @@ export function ShopPage() {
   const previousEditorialContext = useRef("")
   const isMobileViewport = useIsMobileViewport()
   const [mobileCatalogView, setMobileCatalogView] = useState<"full" | "compact">("full")
+  const [mobileQuickAddFeedback, setMobileQuickAddFeedback] = useState<Record<number, number>>({})
 
   const filters = useMemo(
     () => {
@@ -67,6 +69,12 @@ export function ShopPage() {
     apiFetch<AdminCollection[]>("/store/collections")
       .then((data) => setCollections(Array.isArray(data) ? data : []))
       .catch(() => setCollections([]))
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      Object.values(cartFeedbackTimeoutsRef.current).forEach((timeoutId) => window.clearTimeout(timeoutId))
+    }
   }, [])
 
   useEffect(() => {
@@ -201,6 +209,43 @@ export function ShopPage() {
       ? `Ordina: ${SORT_OPTIONS.find((option) => option.value === effectiveSort)?.label || effectiveSort}`
       : null,
   ].filter(Boolean)
+
+  function getProductCartQuantity(productId: number) {
+    return (items ?? []).reduce((sum, item) => (item.productId === productId ? sum + item.quantity : sum), 0)
+  }
+
+  function handleMobileQuickAdd(event: React.MouseEvent<HTMLButtonElement>, product: ShopProduct) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const defaultVariant = getDefaultVariant(product)
+    const nextQuantity = getProductCartQuantity(product.id) + 1
+
+    addItem(product, 1, {
+      variantId: defaultVariant?.id ?? null,
+      format: defaultVariant?.title || null,
+      variantLabel: defaultVariant?.title || null,
+      variantSku: defaultVariant?.sku || null,
+    })
+
+    setMobileQuickAddFeedback((current) => ({
+      ...current,
+      [product.id]: nextQuantity,
+    }))
+
+    if (cartFeedbackTimeoutsRef.current[product.id]) {
+      window.clearTimeout(cartFeedbackTimeoutsRef.current[product.id])
+    }
+
+    cartFeedbackTimeoutsRef.current[product.id] = window.setTimeout(() => {
+      setMobileQuickAddFeedback((current) => {
+        const next = { ...current }
+        delete next[product.id]
+        return next
+      })
+      delete cartFeedbackTimeoutsRef.current[product.id]
+    }, 1000)
+  }
 
   function rememberCatalogPosition() {
     const pathnameSearch = `${location.pathname}${location.search || ""}`
@@ -419,7 +464,17 @@ export function ShopPage() {
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
           {(products ?? []).map((product) => (
-            <div key={product.id} onClickCapture={rememberCatalogPosition}>
+            <div key={product.id} onClickCapture={rememberCatalogPosition} className="relative">
+              {isMobileViewport ? (
+                <button
+                  type="button"
+                  onClick={(event) => handleMobileQuickAdd(event, product)}
+                  className="absolute right-3 top-3 z-10 inline-flex h-9 min-w-9 items-center justify-center rounded-full border border-white/15 bg-black/65 px-3 text-sm font-medium text-white/92 backdrop-blur transition hover:border-white/25 hover:text-white"
+                  aria-label={`Aggiungi ${product.title} al carrello`}
+                >
+                  {mobileQuickAddFeedback[product.id] ?? "+"}
+                </button>
+              ) : null}
               <ProductCard product={product} />
             </div>
           ))}
