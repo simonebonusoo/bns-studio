@@ -570,6 +570,62 @@ router.get(
   })
 )
 
+router.patch(
+  "/users/:id/role",
+  asyncHandler(async (req, res) => {
+    const userId = Number(req.params.id)
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new HttpError(400, "Utente non valido")
+    }
+
+    const body = z
+      .object({
+        role: z.enum(["admin", "customer"]),
+      })
+      .parse(req.body)
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        createdAt: true,
+      },
+    })
+
+    if (!existingUser) {
+      throw new HttpError(404, "Utente non trovato")
+    }
+
+    if (existingUser.role === body.role) {
+      return res.json(existingUser)
+    }
+
+    if (existingUser.role === "admin" && body.role === "customer") {
+      const adminCount = await prisma.user.count({ where: { role: "admin" } })
+      if (adminCount <= 1) {
+        throw new HttpError(400, "Impossibile rimuovere l'ultimo admin")
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { role: body.role },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        createdAt: true,
+      },
+    })
+
+    res.json(updatedUser)
+  })
+)
+
 router.get(
   "/analytics",
   asyncHandler(async (_req, res) => {

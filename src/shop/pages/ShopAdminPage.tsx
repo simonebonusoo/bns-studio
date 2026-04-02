@@ -599,6 +599,7 @@ export function ShopAdminPage() {
   const [archivedOrders, setArchivedOrders] = useState<ShopOrder[]>([])
   const [users, setUsers] = useState<AdminUser[]>([])
   const [usersTotal, setUsersTotal] = useState(0)
+  const [roleUpdateLoadingId, setRoleUpdateLoadingId] = useState<number | null>(null)
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
   const [showOrderProfitBreakdown, setShowOrderProfitBreakdown] = useState(false)
   const [runtimeStatus, setRuntimeStatus] = useState<AdminRuntimeStatus | null>(null)
@@ -778,6 +779,25 @@ export function ShopAdminPage() {
 
   function mergeUpdatedOrder(nextOrder: ShopOrder) {
     setOrders((current) => current.map((order) => (order.id === nextOrder.id ? nextOrder : order)))
+  }
+
+  async function updateUserRole(user: AdminUser, nextRole: "admin" | "customer") {
+    clearFeedback()
+    try {
+      setRoleUpdateLoadingId(user.id)
+      const updatedUser = await apiFetch<AdminUser>(`/admin/users/${user.id}/role`, {
+        method: "PATCH",
+        body: JSON.stringify({ role: nextRole }),
+      })
+
+      setUsers((current) => current.map((entry) => (entry.id === updatedUser.id ? updatedUser : entry)))
+      setMessage(nextRole === "admin" ? "Utente promosso ad admin." : "Utente impostato come cliente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento del ruolo utente.")
+      throw err
+    } finally {
+      setRoleUpdateLoadingId(null)
+    }
   }
 
   function resetProductForm() {
@@ -1716,7 +1736,15 @@ export function ShopAdminPage() {
         </section>
       ) : null}
 
-      {tab === "utenti" ? <AdminUsersSection users={users} usersTotal={usersTotal} containWheel={containWheel} /> : null}
+      {tab === "utenti" ? (
+        <AdminUsersSection
+          users={users}
+          usersTotal={usersTotal}
+          containWheel={containWheel}
+          onToggleRole={updateUserRole}
+          roleUpdateLoadingId={roleUpdateLoadingId}
+        />
+      ) : null}
 
       {tab === "data" ? <AdminAnalyticsSection analytics={analytics} /> : null}
 
