@@ -53,8 +53,7 @@ npm run dev
 
 ## Demo accounts
 
-- Admin: `admin@bnsstudio.com` / `admin1234`
-- Customer: `customer@bnsstudio.com` / `customer1234`
+- Admin: `bnsstudio26@gmail.com` / `admin1234`
 
 ## Build commands
 

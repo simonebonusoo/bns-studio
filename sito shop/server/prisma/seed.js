@@ -58,29 +58,16 @@ const productSeeds = [
 
 async function main() {
   const adminPassword = await bcrypt.hash("admin1234", 10);
-  const userPassword = await bcrypt.hash("customer1234", 10);
 
   await prisma.user.upsert({
-    where: { email: "admin@bnsstudio.com" },
+    where: { email: "bnsstudio26@gmail.com" },
     update: {},
     create: {
-      email: "admin@bnsstudio.com",
+      email: "bnsstudio26@gmail.com",
       passwordHash: adminPassword,
       firstName: "Admin",
       lastName: "Studio",
       role: "admin"
-    }
-  });
-
-  await prisma.user.upsert({
-    where: { email: "customer@bnsstudio.com" },
-    update: {},
-    create: {
-      email: "customer@bnsstudio.com",
-      passwordHash: userPassword,
-      firstName: "Sample",
-      lastName: "Customer",
-      role: "customer"
     }
   });
 

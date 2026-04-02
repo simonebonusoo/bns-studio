@@ -195,28 +195,15 @@ async function main() {
   }
 
   await prisma.user.upsert({
-    where: { email: "admin@bnsstudio.com" },
+    where: { email: "bnsstudio26@gmail.com" },
     update: {},
     create: {
-      email: "admin@bnsstudio.com",
+      email: "bnsstudio26@gmail.com",
       username: "admin.bns",
       passwordHash: await bcrypt.hash("admin1234", 10),
       firstName: "Admin",
       lastName: "BNS",
       role: "admin",
-    },
-  })
-
-  await prisma.user.upsert({
-    where: { email: "customer@bnsstudio.com" },
-    update: {},
-    create: {
-      email: "customer@bnsstudio.com",
-      username: "sample.customer",
-      passwordHash: await bcrypt.hash("customer1234", 10),
-      firstName: "Sample",
-      lastName: "Customer",
-      role: "customer",
     },
   })
 
@@ -335,8 +322,7 @@ async function main() {
     prisma.setting.findUnique({ where: { key: "shopCategories" } }),
   ])
 
-  console.log("[seed] Admin ready: admin@bnsstudio.com / admin1234")
-  console.log("[seed] Customer ready: customer@bnsstudio.com / customer1234")
+  console.log("[seed] Admin ready: bnsstudio26@gmail.com / admin1234")
   console.log(`[seed] Users=${seededUserCount} Products=${seededProductCount} Reviews=${seededReviewCount}`)
   console.log(`[seed] Categories=${categorySetting?.value || "[]"}`)
 }
