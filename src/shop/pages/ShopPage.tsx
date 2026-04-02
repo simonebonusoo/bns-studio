@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useSearchParams } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Button, getButtonClassName } from "../../components/Button"
+import { useIsMobileViewport } from "../../hooks/useIsMobileViewport"
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
 import { apiFetch } from "../lib/api"
 import { scrollCatalogSectionToTop } from "../lib/catalog-navigation.mjs"
+import { formatPrice } from "../lib/format"
+import { readHomeReturnState } from "../lib/home-return.mjs"
 import { AdminCollection, ShopProduct, ShopProductListResponse } from "../types"
 
 const SORT_OPTIONS = [
@@ -20,6 +23,7 @@ const PAGE_SIZE = 12
 
 export function ShopPage() {
   const previousPageRef = useRef<number | null>(null)
+  const navigate = useNavigate()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
@@ -27,6 +31,8 @@ export function ShopPage() {
   const [catalogError, setCatalogError] = useState("")
   const [searchParams, setSearchParams] = useSearchParams()
   const previousEditorialContext = useRef("")
+  const isMobileViewport = useIsMobileViewport()
+  const [mobileCatalogView, setMobileCatalogView] = useState<"full" | "compact">("full")
 
   const filters = useMemo(
     () => {
@@ -190,11 +196,46 @@ export function ShopPage() {
       : null,
   ].filter(Boolean)
 
+  function handleBackNavigation() {
+    const storedHomeReturn = readHomeReturnState()
+    if (storedHomeReturn) {
+      navigate(storedHomeReturn.homePathname || "/", {
+        state: {
+          restoreHomeFromShop: true,
+          restoreHomeScrollY: storedHomeReturn.homeScrollY,
+        },
+      })
+      return
+    }
+
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+
+    navigate("/")
+  }
+
   return (
     <ShopLayout
       eyebrow=""
       title={pageContextLabel}
       intro=""
+      actions={
+        <Button
+          variant="profile"
+          size="sm"
+          onClick={handleBackNavigation}
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+              <path d="M18 12H6" />
+              <path d="m11 17-5-5 5-5" />
+            </svg>
+          }
+        >
+          Torna indietro
+        </Button>
+      }
     >
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
         <div className="border-b border-white/10 pb-4">
@@ -236,6 +277,35 @@ export function ShopPage() {
           </select>
         </div>
 
+        {isMobileViewport ? (
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setMobileCatalogView((current) => (current === "full" ? "compact" : "full"))}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/72 transition hover:border-white/20 hover:text-white"
+              aria-label={mobileCatalogView === "full" ? "Attiva vista compatta catalogo" : "Torna alla vista completa del catalogo"}
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+                {mobileCatalogView === "full" ? (
+                  <>
+                    <path d="M4.5 5.25h6.75v6.75H4.5z" />
+                    <path d="M12.75 5.25h6.75v6.75h-6.75z" />
+                    <path d="M4.5 12.75h6.75v6.75H4.5z" />
+                    <path d="M12.75 12.75h6.75v6.75h-6.75z" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M4.5 6.75h15" />
+                    <path d="M4.5 12h15" />
+                    <path d="M4.5 17.25h15" />
+                  </>
+                )}
+              </svg>
+              {mobileCatalogView === "full" ? "Vista compatta" : "Vista completa"}
+            </button>
+          </div>
+        ) : null}
+
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -269,11 +339,35 @@ export function ShopPage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+      {isMobileViewport && mobileCatalogView === "compact" ? (
+        <div className="grid grid-cols-2 gap-3">
+          {(products ?? []).map((product) => (
+            <Link
+              key={product.id}
+              to={`/shop/${product.slug}`}
+              className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03] transition hover:border-white/18"
+            >
+              <div className="aspect-[3/4] overflow-hidden bg-white/[0.04]">
+                {product.imageUrls?.[0] ? (
+                  <img src={product.imageUrls[0]} alt={product.title} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-white/45">Nessuna immagine</div>
+                )}
+              </div>
+              <div className="space-y-1 p-3">
+                <h2 className="line-clamp-2 text-sm font-medium text-white">{product.title}</h2>
+                <p className="text-sm font-medium text-[#e3f503]">{formatPrice(product.price)}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
+          {(products ?? []).map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
 
       {pagination.totalPages > 1 ? (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4">

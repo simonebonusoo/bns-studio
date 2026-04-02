@@ -1569,6 +1569,12 @@ export function Navbar() {
                       <button
                         type="button"
                         onClick={() => {
+                          if (isMobileViewport) {
+                            setProfileOpen(false)
+                            navigate("/shop/account")
+                            return
+                          }
+
                           setProfileLoggedStep("edit")
                           setProfileEditField(null)
                           setProfileError("")

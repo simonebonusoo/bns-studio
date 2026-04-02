@@ -4,10 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Container } from "../components/Container";
 import { HorizontalScrollRail } from "../components/HorizontalScrollRail";
+import { useIsMobileViewport } from "../hooks/useIsMobileViewport";
 import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
 import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
+import { buildHomeReturnState, persistHomeReturnState } from "../shop/lib/home-return.mjs";
 import type { AdminCollection, ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
@@ -36,6 +38,15 @@ type HomeShopCache = {
 };
 
 const HOME_SHOP_CACHE_KEY = "bns-shop-home-cache-v1";
+
+function shuffleProducts(products: ShopProduct[]) {
+  const next = [...products]
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1))
+    ;[next[index], next[randomIndex]] = [next[randomIndex], next[index]]
+  }
+  return next
+}
 
 const defaultPopularCategories: DiscoveryCard[] = [
   {
@@ -360,12 +371,17 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
 
 export function HomeShop() {
   const navigate = useNavigate();
+  const isMobileViewport = useIsMobileViewport()
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [collections, setCollections] = useState<AdminCollection[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading">("idle");
+
+  function rememberHomePosition() {
+    persistHomeReturnState(buildHomeReturnState("/", typeof window !== "undefined" ? window.scrollY : 0))
+  }
 
   function readHomeShopCache(): HomeShopCache | null {
     if (typeof window === "undefined") return null;
@@ -490,7 +506,16 @@ export function HomeShop() {
     return [...featured, ...others].slice(0, 20)
   }, [products])
 
-  const catalogPreviewProducts = useMemo(() => products.filter((product) => product.featured).slice(0, 16), [products])
+  const catalogPreviewProducts = useMemo(() => {
+    const featuredProducts = products.filter((product) => product.featured)
+    const source = featuredProducts.length ? featuredProducts : products
+
+    if (isMobileViewport) {
+      return shuffleProducts(source).slice(0, 4)
+    }
+
+    return source.slice(0, 16)
+  }, [isMobileViewport, products])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
@@ -514,7 +539,7 @@ export function HomeShop() {
             >
               <div className="flex min-w-full gap-6 pr-14">
                 {trendingProducts.map((product) => (
-                  <div key={product.id} className="w-[18.5rem] flex-none sm:w-[20rem]">
+                  <div key={product.id} className="w-[18.5rem] flex-none sm:w-[20rem]" onClickCapture={rememberHomePosition}>
                     <ProductCard product={product} />
                   </div>
                 ))}
@@ -562,6 +587,7 @@ export function HomeShop() {
                 <Link
                   key={category.title}
                   to={buildPopularCategoryHref(category.category, category.title, category.description)}
+                  onClick={rememberHomePosition}
                   className="group relative flex min-h-[22rem] overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 transition-transform duration-300 ease-out hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
                 >
                   <div className="absolute inset-0">
@@ -646,13 +672,14 @@ export function HomeShop() {
                           variant="cart"
                           size="sm"
                           text={showcase.ctaLabel || "Esplora la collezione"}
-                          onClick={() =>
+                          onClick={() => {
+                            rememberHomePosition()
                             navigate(
                               showcase.collectionSlug
                                 ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
                                 : withCatalogContext(showcase.href, showcase.title, showcase.description),
                             )
-                          }
+                          }}
                         >
                           {showcase.ctaLabel || "Esplora la collezione"}
                         </Button>
@@ -714,7 +741,9 @@ export function HomeShop() {
           {catalogPreviewProducts.length ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {(catalogPreviewProducts || []).map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <div key={product.id} onClickCapture={rememberHomePosition}>
+                  <ProductCard product={product} />
+                </div>
               ))}
             </div>
           ) : (
@@ -724,7 +753,15 @@ export function HomeShop() {
           )}
 
           <div className="flex justify-center pt-2">
-            <Button variant="cart" size="sm" text="Vedi catalogo completo" onClick={() => navigate("/shop")}>
+            <Button
+              variant="cart"
+              size="sm"
+              text="Vedi catalogo completo"
+              onClick={() => {
+                rememberHomePosition()
+                navigate("/shop")
+              }}
+            >
               Vedi catalogo completo
             </Button>
           </div>

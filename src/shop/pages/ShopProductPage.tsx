@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { Button } from "../../components/Button"
 import { HorizontalScrollRail } from "../../components/HorizontalScrollRail"
 import { ProductCard } from "../components/ProductCard"
 import { ProductGallery } from "../components/product/ProductGallery"
@@ -10,6 +11,7 @@ import { getProductPurchaseState } from "../components/product/purchaseState"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
+import { readHomeReturnState } from "../lib/home-return.mjs"
 import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { getRelatedProductsPageState, getRecentlyViewedProducts, upsertRecentlyViewedProduct } from "../lib/product-page-discovery.mjs"
 import { ShopLayout } from "../components/ShopLayout"
@@ -205,6 +207,26 @@ export function ShopProductPage() {
     navigate(`/shop/admin?editProduct=${product.id}`)
   }
 
+  function handleBackNavigation() {
+    const storedHomeReturn = readHomeReturnState()
+    if (storedHomeReturn) {
+      navigate(storedHomeReturn.homePathname || "/", {
+        state: {
+          restoreHomeFromShop: true,
+          restoreHomeScrollY: storedHomeReturn.homeScrollY,
+        },
+      })
+      return
+    }
+
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+
+    navigate("/")
+  }
+
   async function handleNotifyInterest() {
     if (!product) return
 
@@ -316,6 +338,21 @@ export function ShopProductPage() {
       }
       title={product.title}
       intro={product.description}
+      actions={
+        <Button
+          variant="profile"
+          size="sm"
+          onClick={handleBackNavigation}
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+              <path d="M18 12H6" />
+              <path d="m11 17-5-5 5-5" />
+            </svg>
+          }
+        >
+          Torna indietro
+        </Button>
+      }
     >
       <div className="mx-auto w-full max-w-[1380px] space-y-8">
         <div className="grid w-full items-stretch gap-7 lg:grid-cols-[minmax(0,0.98fr)_minmax(0,0.94fr)] xl:gap-8">
