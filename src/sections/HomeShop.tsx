@@ -383,6 +383,16 @@ export function HomeShop() {
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading">("idle");
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCollections = Array.isArray(collections) ? collections : [];
+
+  if (!Array.isArray(products)) {
+    console.error("DEBUG home products:", products);
+  }
+
+  if (!Array.isArray(collections)) {
+    console.error("DEBUG home collections:", collections);
+  }
 
   function readHomeShopCache(): HomeShopCache | null {
     if (typeof window === "undefined") return null;
@@ -435,19 +445,20 @@ export function HomeShop() {
           apiFetch<AdminCollection[]>("/store/collections"),
         ]);
         if (!cancelled) {
-          setProducts(productData.items);
+          setProducts(Array.isArray(productData?.items) ? productData.items : []);
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
-          setCollections(collectionsData);
+          setCollections(Array.isArray(collectionsData) ? collectionsData : []);
           writeHomeShopCache({
-            products: productData.items,
+            products: Array.isArray(productData?.items) ? productData.items : [],
             productTotal: productData.pagination.total,
             settings: settingsData,
-            collections: collectionsData,
+            collections: Array.isArray(collectionsData) ? collectionsData : [],
           });
           setStatus("idle");
         }
-      } catch {
+      } catch (err) {
+        console.error("DEBUG home data load failed:", err);
         if (!cancelled) {
           if (!cachedContent) {
             setProducts([]);
@@ -483,9 +494,9 @@ export function HomeShop() {
     () =>
       popularCategories.map((category, index) => ({
         ...category,
-        imageUrl: category.imageUrl || pickProductImageByCategory(products, category.category, index),
+        imageUrl: category.imageUrl || pickProductImageByCategory(safeProducts, category.category, index),
       })),
-    [products, popularCategories],
+    [popularCategories, safeProducts],
   );
 
   const showcaseCards = useMemo(
@@ -495,28 +506,28 @@ export function HomeShop() {
         imageUrl:
           showcase.imageUrl ||
           (showcase.collectionSlug
-            ? pickProductImageByCollection(products, showcase.collectionSlug, index + 3)
-            : pickProductImage(products, showcase.query, index + 3)),
+            ? pickProductImageByCollection(safeProducts, showcase.collectionSlug, index + 3)
+            : pickProductImage(safeProducts, showcase.query, index + 3)),
       })),
-    [products, showcases],
+    [safeProducts, showcases],
   )
 
   const trendingProducts = useMemo(() => {
-    const featured = products.filter((product) => product.featured)
-    const others = products.filter((product) => !product.featured)
+    const featured = safeProducts.filter((product) => product?.featured)
+    const others = safeProducts.filter((product) => !product?.featured)
     return [...featured, ...others].slice(0, 20)
-  }, [products])
+  }, [safeProducts])
 
   const catalogPreviewProducts = useMemo(() => {
-    const featuredProducts = products.filter((product) => product.featured)
-    const source = featuredProducts.length ? featuredProducts : products
+    const featuredProducts = safeProducts.filter((product) => product?.featured)
+    const source = featuredProducts.length ? featuredProducts : safeProducts
 
     if (isMobileViewport) {
       return shuffleProducts(source).slice(0, 4)
     }
 
     return source.slice(0, 16)
-  }, [isMobileViewport, products])
+  }, [isMobileViewport, safeProducts])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
@@ -584,7 +595,7 @@ export function HomeShop() {
 
           {popularCategoryCards.length ? (
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {popularCategoryCards.map((category) => (
+              {(popularCategoryCards || []).map((category) => (
                 <Link
                   key={category.title}
                   to={buildPopularCategoryHref(category.category, category.title, category.description)}
@@ -649,7 +660,7 @@ export function HomeShop() {
 
           {showcaseCards.length ? (
             <div className="space-y-6">
-              {showcaseCards.map((showcase, index) => (
+              {(showcaseCards || []).map((showcase, index) => (
                 <article
                   key={showcase.title}
                   className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03]"
@@ -741,7 +752,7 @@ export function HomeShop() {
 
           {catalogPreviewProducts.length ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {catalogPreviewProducts.map((product) => (
+              {(catalogPreviewProducts || []).map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
@@ -770,7 +781,7 @@ export function HomeShop() {
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {trustItems.map((item) => (
+            {(trustItems || []).map((item) => (
               <div
                 key={item.title}
                 className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-5"

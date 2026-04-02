@@ -35,6 +35,16 @@ export function ShopPage() {
   const [homeReturnState, setHomeReturnState] = useState(() => resolveHomeReturnState(null))
   const isMobileViewport = useIsMobileViewport()
   const [mobileCatalogView, setMobileCatalogView] = useState<"full" | "compact">("full")
+  const safeProducts = Array.isArray(products) ? products : []
+  const safeCollections = Array.isArray(collections) ? collections : []
+
+  if (!Array.isArray(products)) {
+    console.error("DEBUG products:", products)
+  }
+
+  if (!Array.isArray(collections)) {
+    console.error("DEBUG collections:", collections)
+  }
 
   const filters = useMemo(
     () => {
@@ -60,7 +70,12 @@ export function ShopPage() {
   )
 
   useEffect(() => {
-    apiFetch<AdminCollection[]>("/store/collections").then(setCollections).catch(() => setCollections([]))
+    apiFetch<AdminCollection[]>("/store/collections")
+      .then((data) => setCollections(Array.isArray(data) ? data : []))
+      .catch((err) => {
+        console.error("DEBUG collections load failed:", err)
+        setCollections([])
+      })
   }, [])
 
   useEffect(() => {
@@ -111,6 +126,7 @@ export function ShopPage() {
       })
       .catch((err) => {
         if (cancelled) return
+        console.error("DEBUG catalog load failed:", err)
         setProducts([])
         setPagination({ page: filters.page, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
         setCatalogError(err instanceof Error ? err.message : "Alcuni contenuti non sono disponibili al momento.")
@@ -146,7 +162,7 @@ export function ShopPage() {
       .replace(/\b\w/g, (char) => char.toUpperCase())
   }
 
-  const collectionTitle = collections.find((collection) => collection.slug === filters.collectionSlug)?.title || ""
+  const collectionTitle = safeCollections.find((collection) => collection?.slug === filters.collectionSlug)?.title || ""
   const pageContextLabel =
     filters.title.trim() ||
     filters.category.trim() ||
@@ -313,9 +329,9 @@ export function ShopPage() {
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-3">
-          {activeFilters.length ? (
+          {(activeFilters || []).length ? (
             <>
-              {activeFilters.map((filter) => (
+              {(activeFilters || []).map((filter) => (
                 <span key={filter} className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75">
                   {filter}
                 </span>
@@ -336,7 +352,7 @@ export function ShopPage() {
         </div>
       ) : null}
 
-      {!catalogError && !products.length ? (
+      {!catalogError && !safeProducts.length ? (
         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">
           Nessun prodotto trovato con i criteri attuali.
         </div>
@@ -344,7 +360,7 @@ export function ShopPage() {
 
       {isMobileViewport && mobileCatalogView === "compact" ? (
         <div className="grid grid-cols-2 gap-3">
-          {products.map((product) => (
+          {(safeProducts || []).map((product) => (
             <Link
               key={product.id}
               to={`/shop/${product.slug}`}
@@ -366,7 +382,7 @@ export function ShopPage() {
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
-          {products.map((product) => (
+          {(safeProducts || []).map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
