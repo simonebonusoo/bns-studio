@@ -51,9 +51,9 @@ npm run dev
 - Storefront: `http://localhost:5173`
 - API: `http://localhost:4000/api`
 
-## Demo accounts
+## Admin account
 
-- Admin: `bnsstudio26@gmail.com` / `admin1234`
+- Admin email: `bnsstudio26@gmail.com`
 
 ## Build commands
 

@@ -322,7 +322,7 @@ async function main() {
     prisma.setting.findUnique({ where: { key: "shopCategories" } }),
   ])
 
-  console.log("[seed] Admin ready: bnsstudio26@gmail.com / admin1234")
+  console.log("[seed] Admin ready: bnsstudio26@gmail.com")
   console.log(`[seed] Users=${seededUserCount} Products=${seededProductCount} Reviews=${seededReviewCount}`)
   console.log(`[seed] Categories=${categorySetting?.value || "[]"}`)
 }

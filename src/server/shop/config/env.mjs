@@ -23,7 +23,9 @@ function parseBoolean(value, fallback = false) {
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on"
 }
 
-const clientUrl = requireEnv("CLIENT_URL", "http://localhost:5173")
+const nodeEnv = process.env.NODE_ENV || "development"
+const isProduction = nodeEnv === "production"
+const clientUrl = isProduction ? requireEnv("CLIENT_URL") : requireEnv("CLIENT_URL", "http://localhost:5173")
 const clientOrigins = Array.from(new Set([clientUrl, ...parseList(process.env.CLIENT_ORIGINS)]))
 const isRenderRuntime = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL)
 const hasDhlCredentials = Boolean(process.env.DHL_API_KEY && process.env.DHL_API_SECRET && process.env.DHL_ACCOUNT_NUMBER)
@@ -32,9 +34,9 @@ const hasPacklinkCredentials = Boolean(process.env.PACKLINK_API_KEY)
 
 export const env = {
   port: Number(process.env.PORT || 4000),
-  nodeEnv: process.env.NODE_ENV || "development",
+  nodeEnv,
   renderDiskPath: process.env.RENDER_DISK_PATH || (isRenderRuntime ? "/var/data" : ""),
-  jwtSecret: requireEnv("JWT_SECRET", "bns-shop-local-secret"),
+  jwtSecret: isProduction ? requireEnv("JWT_SECRET") : requireEnv("JWT_SECRET", "bns-shop-local-secret"),
   clientUrl,
   clientOrigins,
   uploadsDir: process.env.UPLOADS_DIR || "",
