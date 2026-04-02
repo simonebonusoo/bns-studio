@@ -1,14 +1,16 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "../../components/Button"
 import { useCanHover } from "../../hooks/useCanHover"
 import { useShopCart } from "../context/ShopCartProvider"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { formatPrice } from "../lib/format"
+import { buildHomeReturnState, persistHomeReturnState } from "../lib/home-return.mjs"
 import { getAvailableFormats, getDefaultVariant, getProductBadges, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getVariantPricing, isProductPurchasable } from "../lib/product"
 import { ShopProduct } from "../types"
 
 export function ProductCard({ product }: { product: ShopProduct }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useShopAuth()
   const { addItem, beginCheckout } = useShopCart()
   const canHover = useCanHover()
@@ -25,6 +27,17 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   const hasDiscount = pricing.hasDiscount
   const currentPriceLabel = availableFormats.length > 1 ? `da ${formatPrice(pricing.currentPrice)}` : formatPrice(pricing.currentPrice)
   const originalPriceLabel = availableFormats.length > 1 ? `da ${formatPrice(pricing.originalPrice)}` : formatPrice(pricing.originalPrice)
+  const productLocationState =
+    location.state && typeof location.state === "object" && "fromHomeShop" in (location.state as Record<string, unknown>)
+      ? location.state
+      : location.pathname === "/"
+        ? buildHomeReturnState("/", typeof window !== "undefined" ? window.scrollY : 0)
+        : undefined
+
+  function rememberHomeOrigin() {
+    if (!productLocationState || typeof productLocationState !== "object" || !("fromHomeShop" in productLocationState)) return
+    persistHomeReturnState(productLocationState)
+  }
 
   function handleBuyNow() {
     if (!purchasable) return
@@ -46,7 +59,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
 
   return (
     <article className="shop-card flex h-full flex-col overflow-hidden">
-      <Link to={`/shop/${product.slug}`} className="block">
+      <Link to={`/shop/${product.slug}`} state={productLocationState} onClick={rememberHomeOrigin} className="block">
         <div className="group relative h-[300px] overflow-hidden bg-white/5 sm:h-[320px]">
           {primaryImage ? (
             <>

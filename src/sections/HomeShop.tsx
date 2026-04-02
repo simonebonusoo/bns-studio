@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Container } from "../components/Container";
 import { HorizontalScrollRail } from "../components/HorizontalScrollRail";
+import { useIsMobileViewport } from "../hooks/useIsMobileViewport";
 import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
 import { getProductPrimaryImage } from "../shop/lib/product";
@@ -361,6 +362,7 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
 
 export function HomeShop() {
   const navigate = useNavigate();
+  const isMobileViewport = useIsMobileViewport();
 
   function getHomeNavigationState() {
     return buildHomeReturnState("/", typeof window !== "undefined" ? window.scrollY : 0);
@@ -505,7 +507,16 @@ export function HomeShop() {
     return [...featured, ...others].slice(0, 20)
   }, [products])
 
-  const catalogPreviewProducts = useMemo(() => products.filter((product) => product.featured).slice(0, 16), [products])
+  const catalogPreviewProducts = useMemo(() => {
+    const featuredProducts = products.filter((product) => product.featured)
+    const source = featuredProducts.length ? featuredProducts : products
+
+    if (isMobileViewport) {
+      return shuffleProducts(source).slice(0, 4)
+    }
+
+    return source.slice(0, 16)
+  }, [isMobileViewport, products])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">

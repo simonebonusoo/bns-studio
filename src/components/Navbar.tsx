@@ -1568,9 +1568,8 @@ export function Navbar() {
                       <button
                         type="button"
                         onClick={() => {
-                          setProfileLoggedStep("edit")
-                          setProfileEditField(null)
-                          setProfileError("")
+                          setProfileOpen(false)
+                          navigate("/shop/account")
                         }}
                         className={getButtonClassName({ variant: "profile", className: "w-full justify-start rounded-[22px] bg-white/[0.03] px-5" })}
                       >
