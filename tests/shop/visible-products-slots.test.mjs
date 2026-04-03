@@ -57,6 +57,8 @@ test("public visible products follow the explicit slot order", () => {
 test("admin products section exposes the dedicated visible products slot manager", () => {
   const adminProductsSection = read("src/shop/components/admin/AdminProductsSection.tsx")
   const adminVisibleProductsSection = read("src/shop/components/admin/AdminVisibleProductsSection.tsx")
+  const productListSection = read("src/shop/components/admin/ProductListSection.tsx")
+  const productFormCard = read("src/shop/components/admin/ProductFormCard.tsx")
   const homeShop = read("src/sections/HomeShop.tsx")
 
   assert.match(adminVisibleProductsSection, /Prodotti visibili/)
@@ -66,7 +68,13 @@ test("admin products section exposes the dedicated visible products slot manager
   assert.match(adminVisibleProductsSection, /Ultimo aggiunto/)
   assert.match(adminVisibleProductsSection, /Primo aggiunto/)
   assert.match(adminVisibleProductsSection, /Ordine alfabetico/)
+  assert.match(adminVisibleProductsSection, /overflow-y-auto/)
+  assert.match(adminVisibleProductsSection, /maxHeight: "70vh"/)
+  assert.match(adminVisibleProductsSection, /Selezionato nello slot corrente/)
+  assert.match(adminVisibleProductsSection, /Già nello slot/)
   assert.match(adminProductsSection, /AdminVisibleProductsSection/)
   assert.match(homeShop, /homepageVisibleProductSlots/)
+  assert.doesNotMatch(productListSection, /Mostra nella home/)
+  assert.doesNotMatch(productListSection, /Homepage/)
+  assert.doesNotMatch(productFormCard, /Mostra nella home/)
 })
-

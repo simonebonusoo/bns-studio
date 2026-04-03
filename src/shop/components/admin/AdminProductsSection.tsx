@@ -54,7 +54,6 @@ type CollectionFormState = {
 
 type AdminProductsSectionProps = {
   editingProductId: number | null
-  updatingHomeProductId: number | null
   selectedProductIds: number[]
   isMultiEdit: boolean
   hasTouchedFields: boolean
@@ -83,7 +82,6 @@ type AdminProductsSectionProps = {
   onProductCategoryFilterChange: (value: string) => void
   onProductStatusFilterChange: (value: "all" | ProductStatus) => void
   onToggleSelected: (productId: number, checked: boolean) => void
-  onToggleHomeVisibility: (product: ShopProduct, checked: boolean) => Promise<void> | void
   setVisibleProductSlots: Dispatch<SetStateAction<Array<number | null>>>
   onSaveVisibleProducts: () => Promise<void> | void
   onEditProduct: (product: ShopProduct) => void
@@ -104,7 +102,6 @@ type AdminProductsSectionProps = {
 
 export function AdminProductsSection({
   editingProductId,
-  updatingHomeProductId,
   selectedProductIds,
   isMultiEdit,
   hasTouchedFields,
@@ -133,7 +130,6 @@ export function AdminProductsSection({
   onProductCategoryFilterChange,
   onProductStatusFilterChange,
   onToggleSelected,
-  onToggleHomeVisibility,
   setVisibleProductSlots,
   onSaveVisibleProducts,
   onEditProduct,
@@ -230,9 +226,7 @@ export function AdminProductsSection({
           <ProductListSection
             products={products}
             selectedIds={selectedProductIds}
-            updatingHomeProductId={updatingHomeProductId}
             onToggleSelected={onToggleSelected}
-            onToggleHomeVisibility={onToggleHomeVisibility}
             onEdit={onEditProduct}
             onDuplicate={onDuplicateProduct}
             onDelete={onDeleteProduct}

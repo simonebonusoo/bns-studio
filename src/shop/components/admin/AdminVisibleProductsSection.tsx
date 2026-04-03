@@ -60,6 +60,8 @@ export function AdminVisibleProductsSection({
     return next
   }, [products, search, sortBy])
 
+  const currentSlotProductId = pickerOpenForSlot !== null ? normalizedSlots[pickerOpenForSlot] : null
+
   function setSlotProduct(slotIndex, productId) {
     setVisibleProductSlots((current) => assignProductToVisibleSlot(current, slotIndex, productId))
   }
@@ -163,49 +165,60 @@ export function AdminVisibleProductsSection({
       {pickerOpenForSlot !== null ? (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/72 px-4 py-6 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border border-white/12 bg-[#080808] shadow-[0_30px_120px_rgba(0,0,0,0.55)]">
-            <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
-              <div>
-                <h3 className="text-xl font-semibold text-white">Seleziona prodotto per slot {pickerOpenForSlot + 1}</h3>
-                <p className="mt-1 text-sm text-white/55">Scegli un poster da assegnare allo slot. Un prodotto non può occupare due slot diversi.</p>
+            <div className="shrink-0 border-b border-white/10 bg-[#080808] px-6 py-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Seleziona prodotto per slot {pickerOpenForSlot + 1}</h3>
+                  <p className="mt-1 text-sm text-white/55">Scegli un poster da assegnare allo slot. Un prodotto non può occupare due slot diversi.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPickerOpenForSlot(null)}
+                  className={getButtonClassName({ variant: "profile", size: "sm" })}
+                >
+                  Chiudi
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setPickerOpenForSlot(null)}
-                className={getButtonClassName({ variant: "profile", size: "sm" })}
-              >
-                Chiudi
-              </button>
             </div>
 
-            <div className="grid gap-4 border-b border-white/10 px-6 py-4 md:grid-cols-[minmax(0,1fr)_240px]">
-              <input
-                className="shop-input"
-                placeholder="Cerca poster"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-              <select className="shop-select" value={sortBy} onChange={(event) => setSortBy(event.target.value as "newest" | "oldest" | "title_asc")}>
-                <option value="newest">Ultimo aggiunto</option>
-                <option value="oldest">Primo aggiunto</option>
-                <option value="title_asc">Ordine alfabetico</option>
-              </select>
+            <div className="shrink-0 border-b border-white/10 bg-[#080808] px-6 py-4">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+                <input
+                  className="shop-input"
+                  placeholder="Cerca poster"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                <select className="shop-select" value={sortBy} onChange={(event) => setSortBy(event.target.value as "newest" | "oldest" | "title_asc")}>
+                  <option value="newest">Ultimo aggiunto</option>
+                  <option value="oldest">Primo aggiunto</option>
+                  <option value="title_asc">Ordine alfabetico</option>
+                </select>
+              </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5" style={{ maxHeight: "70vh" }}>
               {pickerProducts.length ? (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {pickerProducts.map((product) => {
                     const assignedSlotIndex = normalizedSlots.findIndex((id) => id === product.id)
+                    const isCurrentSlotProduct = currentSlotProductId === product.id
+                    const isUsedInOtherSlot = assignedSlotIndex >= 0 && !isCurrentSlotProduct
                     return (
                       <button
                         key={product.id}
                         type="button"
+                        disabled={isUsedInOtherSlot}
                         onClick={() => {
                           setSlotProduct(pickerOpenForSlot, product.id)
                           setPickerOpenForSlot(null)
                         }}
                         className={`overflow-hidden rounded-[22px] border text-left transition ${
-                          assignedSlotIndex >= 0 ? "border-[#e3f503]/35 bg-[#e3f503]/8" : "border-white/10 bg-white/[0.03] hover:border-white/22"
+                          isCurrentSlotProduct
+                            ? "border-[#e3f503]/45 bg-[#e3f503]/12"
+                            : isUsedInOtherSlot
+                              ? "cursor-not-allowed border-amber-300/25 bg-amber-300/8 opacity-75"
+                              : "border-white/10 bg-white/[0.03] hover:border-white/22"
                         }`}
                       >
                         <div className="h-44 overflow-hidden bg-black/10">
@@ -214,8 +227,13 @@ export function AdminVisibleProductsSection({
                         <div className="space-y-2 p-4">
                           <p className="text-base font-semibold text-white">{product.title}</p>
                           <p className="text-sm text-white/55">{formatPrice(getPriceForVariant(product))}</p>
-                          {assignedSlotIndex >= 0 ? (
+                          {isCurrentSlotProduct ? (
                             <span className="inline-flex rounded-full border border-[#e3f503]/30 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#eef879]">
+                              Selezionato nello slot corrente
+                            </span>
+                          ) : null}
+                          {isUsedInOtherSlot ? (
+                            <span className="inline-flex rounded-full border border-amber-300/30 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-100">
                               Già nello slot {assignedSlotIndex + 1}
                             </span>
                           ) : null}
@@ -236,4 +254,3 @@ export function AdminVisibleProductsSection({
     </section>
   )
 }
-

@@ -631,7 +631,6 @@ export function ShopAdminPage() {
   const [allProductsForTrending, setAllProductsForTrending] = useState<ShopProduct[]>([])
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([])
   const [productTouchedFields, setProductTouchedFields] = useState<ProductTouchedState>({})
-  const [updatingHomeProductId, setUpdatingHomeProductId] = useState<number | null>(null)
   const [newCategoryName, setNewCategoryName] = useState("")
   const [renamingCategory, setRenamingCategory] = useState<string | null>(null)
   const [renamedCategoryValue, setRenamedCategoryValue] = useState("")
@@ -852,30 +851,6 @@ export function ShopAdminPage() {
       return nextTouched
     })
     setProductForm(next)
-  }
-
-  async function toggleProductHomeVisibility(product: ShopProduct, nextFeatured: boolean) {
-    clearFeedback()
-
-    try {
-      setUpdatingHomeProductId(product.id)
-      const savedProduct = await apiFetch<ShopProduct>(`/admin/products/${product.id}/home-visibility`, {
-        method: "PATCH",
-        body: JSON.stringify({ featured: nextFeatured }),
-      })
-
-      setProducts((current) => current.map((entry) => (entry.id === savedProduct.id ? savedProduct : entry)))
-
-      if (editingProductId === savedProduct.id) {
-        setProductForm(normalizeProductFormStateForEdit(savedProduct))
-      }
-
-      setMessage(nextFeatured ? "Prodotto aggiunto a Tutti i poster in homepage." : "Prodotto rimosso da Tutti i poster in homepage.")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento della visibilita in homepage.")
-    } finally {
-      setUpdatingHomeProductId(null)
-    }
   }
 
   const selectedProducts = useMemo(
@@ -1515,7 +1490,6 @@ export function ShopAdminPage() {
       {tab === "prodotti" ? (
         <AdminProductsSection
           editingProductId={editingProductId}
-          updatingHomeProductId={updatingHomeProductId}
           selectedProductIds={selectedProductIds}
           isMultiEdit={isMultiEdit}
           hasTouchedFields={hasTouchedFields}
@@ -1548,7 +1522,6 @@ export function ShopAdminPage() {
               checked ? Array.from(new Set([...current, productId])) : current.filter((id) => id !== productId),
             )
           }
-          onToggleHomeVisibility={toggleProductHomeVisibility}
           setVisibleProductSlots={setVisibleProductSlots}
           onSaveVisibleProducts={saveVisibleProducts}
           onEditProduct={(product) => {

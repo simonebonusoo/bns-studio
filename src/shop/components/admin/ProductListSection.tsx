@@ -22,9 +22,7 @@ function statusLabel(status: ShopProduct["status"]) {
 type ProductListSectionProps = {
   products: ShopProduct[]
   selectedIds: number[]
-  updatingHomeProductId: number | null
   onToggleSelected: (productId: number, checked: boolean) => void
-  onToggleHomeVisibility: (product: ShopProduct, checked: boolean) => Promise<void> | void
   onEdit: (product: ShopProduct) => void
   onDuplicate: (product: ShopProduct) => Promise<void> | void
   onDelete: (product: ShopProduct) => Promise<void> | void
@@ -33,9 +31,7 @@ type ProductListSectionProps = {
 export function ProductListSection({
   products,
   selectedIds,
-  updatingHomeProductId,
   onToggleSelected,
-  onToggleHomeVisibility,
   onEdit,
   onDuplicate,
   onDelete,
@@ -68,7 +64,6 @@ export function ProductListSection({
         const prices = variants.map((variant) => variant.price)
         const minPrice = prices.length ? Math.min(...prices) : product.price
         const maxPrice = prices.length ? Math.max(...prices) : product.price
-        const isUpdatingHomeVisibility = updatingHomeProductId === product.id
 
         return (
           <article key={product.id} className="shop-card overflow-hidden">
@@ -101,13 +96,8 @@ export function ProductListSection({
                       ? "Esaurito"
                       : getProductStockStatus(product) === "low_stock"
                         ? "Low stock"
-                        : "Disponibile"}
+                      : "Disponibile"}
                   </span>
-                  {product.featured ? (
-                    <span className="rounded-full border border-[#e3f503]/30 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
-                      Home attiva
-                    </span>
-                  ) : null}
                   </div>
                 </div>
                 <p className="text-sm text-white/60">
@@ -135,31 +125,6 @@ export function ProductListSection({
                     <Button type="button" variant="profile" size="sm" className={getDangerButtonClassName({ size: "sm", className: "w-full" })} text="Elimina" onClick={() => setPendingDelete(product)}>
                       Elimina
                     </Button>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-white/48">Homepage</p>
-                        <p className="text-sm text-white/78">Mostra nella home</p>
-                      </div>
-                      <button
-                        type="button"
-                        aria-pressed={product.featured}
-                        disabled={isUpdatingHomeVisibility}
-                        onClick={() => void onToggleHomeVisibility(product, !product.featured)}
-                        className={`relative inline-flex h-7 w-12 flex-none items-center rounded-full border transition ${
-                          product.featured
-                            ? "border-[#e3f503]/55 bg-[#e3f503]/20"
-                            : "border-white/14 bg-white/[0.06]"
-                        } ${isUpdatingHomeVisibility ? "cursor-wait opacity-70" : "cursor-pointer"}`}
-                      >
-                        <span
-                          className={`absolute h-5 w-5 rounded-full transition ${
-                            product.featured ? "translate-x-[1.4rem] bg-[#eef879]" : "translate-x-1 bg-white/85"
-                          }`}
-                        />
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
