@@ -2,6 +2,7 @@ const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000
 const DEFAULT_TOP_TARGET = new Date(Date.now() + TWELVE_HOURS_MS).toISOString()
 const DEFAULT_TOP_COLOR = "#d32f2f"
 const DEFAULT_MID_COLOR = "#000000"
+const DEFAULT_TEXT_COLOR = "#ffffff"
 
 function parseJsonArray(value) {
   if (typeof value !== "string" || !value.trim()) return null
@@ -39,6 +40,7 @@ export function parseTopBannerSettings(settings = {}) {
     title: String(settings.bannerTopTitle || "SAVE 40% OFF"),
     subtitle: String(settings.bannerTopSubtitle || "Sale ends in:"),
     backgroundColor: parseColor(settings.bannerTopBackgroundColor, DEFAULT_TOP_COLOR),
+    textColor: parseColor(settings.bannerTopTextColor, DEFAULT_TEXT_COLOR),
     countdownEnabled: parseBoolean(settings.bannerTopCountdownEnabled, true),
     countdownTarget: parseTarget(settings.bannerTopCountdownTarget),
   }
@@ -55,9 +57,6 @@ export function parseMidBannerSettings(settings = {}) {
     text: String(settings.bannerMidText || normalizedMessages[0] || "3-5 DAYS FREE SHIPPING WORLDWIDE"),
     messages: normalizedMessages.length ? normalizedMessages : ["3-5 DAYS FREE SHIPPING WORLDWIDE"],
     backgroundColor: parseColor(settings.bannerMidBackgroundColor, DEFAULT_MID_COLOR),
+    textColor: parseColor(settings.bannerMidTextColor, DEFAULT_TEXT_COLOR),
   }
-}
-
-export function getTopBarsOffset(topBanner, midBanner) {
-  return `${(topBanner?.enabled ? 44 : 0) + (midBanner?.enabled ? 36 : 0)}px`
 }

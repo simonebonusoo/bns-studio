@@ -36,7 +36,7 @@ import { ShopPaypalReturnPage } from "./shop/pages/ShopPaypalReturnPage"
 import { ShopMockTrackingPage } from "./shop/pages/ShopMockTrackingPage"
 import { ShopAdminRoute, ShopCustomerRoute, ShopProtectedRoute } from "./shop/components/ShopProtectedRoute"
 import { apiFetch } from "./shop/lib/api"
-import { getTopBarsOffset, parseMidBannerSettings, parseTopBannerSettings } from "./shop/lib/banner-settings.mjs"
+import { parseMidBannerSettings, parseTopBannerSettings } from "./shop/lib/banner-settings.mjs"
 import { clearHomeReturnState, readHomeReturnState } from "./shop/lib/home-return.mjs"
 
 declare global {
@@ -228,7 +228,6 @@ export default function App() {
       <ShopCartProvider>
         <div
           className="min-h-screen overflow-x-hidden bg-ink text-white"
-          style={{ ["--global-top-bars-h" as any]: getTopBarsOffset(topBanner, midBanner) } as any}
         >
           <Backdrop />
           <Noise />
@@ -237,6 +236,7 @@ export default function App() {
             title={topBanner.title}
             subtitle={topBanner.subtitle}
             backgroundColor={topBanner.backgroundColor}
+            textColor={topBanner.textColor}
             countdownEnabled={topBanner.countdownEnabled}
             countdownTarget={topBanner.countdownTarget}
           />
@@ -245,6 +245,7 @@ export default function App() {
             text={midBanner.text}
             messages={midBanner.messages}
             backgroundColor={midBanner.backgroundColor}
+            textColor={midBanner.textColor}
           />
           <Navbar />
 

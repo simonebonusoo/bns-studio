@@ -7,11 +7,13 @@ export function ShippingBar({
   text = "3-5 DAYS FREE SHIPPING WORLDWIDE",
   messages = [],
   backgroundColor = "#000000",
+  textColor = "#ffffff",
 }: {
   enabled?: boolean
   text?: string
   messages?: string[]
   backgroundColor?: string
+  textColor?: string
 }) {
   const safeMessages = (messages ?? []).map((entry) => entry?.trim()).filter(Boolean)
   const resolvedMessages = safeMessages.length ? safeMessages : [text]
@@ -29,8 +31,8 @@ export function ShippingBar({
 
   return (
     <div
-      className="flex min-h-9 items-center px-4 py-2 text-white transition-colors duration-300 ease-out"
-      style={{ backgroundColor }}
+      className="flex min-h-9 items-center px-4 py-2"
+      style={{ backgroundColor, color: textColor }}
     >
       <div className="mx-auto grid w-full max-w-7xl grid-cols-[32px_minmax(0,1fr)_32px] items-center gap-2">
         <button
@@ -38,8 +40,8 @@ export function ShippingBar({
           aria-label="Messaggio precedente"
           disabled={!hasMultipleMessages}
           onClick={() => setActiveIndex((current) => (current - 1 + resolvedMessages.length) % resolvedMessages.length)}
-          className={`inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/15 transition ${
-            hasMultipleMessages ? "text-white/88 hover:border-white/30 hover:text-white" : "cursor-default text-white/30"
+          className={`inline-flex h-7 w-7 items-center justify-center transition ${
+            hasMultipleMessages ? "opacity-85 hover:opacity-100" : "cursor-default opacity-30"
           }`}
         >
           <ChevronLeftIcon className="h-4 w-4" />
@@ -64,8 +66,8 @@ export function ShippingBar({
           aria-label="Messaggio successivo"
           disabled={!hasMultipleMessages}
           onClick={() => setActiveIndex((current) => (current + 1) % resolvedMessages.length)}
-          className={`inline-flex h-7 w-7 items-center justify-center justify-self-end rounded-full border border-white/15 transition ${
-            hasMultipleMessages ? "text-white/88 hover:border-white/30 hover:text-white" : "cursor-default text-white/30"
+          className={`inline-flex h-7 w-7 items-center justify-center justify-self-end transition ${
+            hasMultipleMessages ? "opacity-85 hover:opacity-100" : "cursor-default opacity-30"
           }`}
         >
           <ChevronRightIcon className="h-4 w-4" />

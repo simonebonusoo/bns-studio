@@ -5,6 +5,7 @@ type TopBannerState = {
   title: string
   subtitle: string
   backgroundColor: string
+  textColor: string
   countdownEnabled: boolean
   countdownTarget: string
 }
@@ -14,6 +15,7 @@ type MidBannerState = {
   text: string
   messages: string[]
   backgroundColor: string
+  textColor: string
 }
 
 type AdminBannerSectionProps = {
@@ -72,6 +74,22 @@ export function AdminBannerSection({
               />
             </div>
           </label>
+          <label className="space-y-2">
+            <span className="text-sm text-white/70">Colore testo</span>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 px-3 py-2">
+              <input
+                type="color"
+                value={topBanner.textColor}
+                onChange={(event) => onTopBannerChange({ ...topBanner, textColor: event.target.value })}
+                className="h-10 w-14 cursor-pointer rounded border border-white/10 bg-transparent"
+              />
+              <input
+                className="shop-input"
+                value={topBanner.textColor}
+                onChange={(event) => onTopBannerChange({ ...topBanner, textColor: event.target.value })}
+              />
+            </div>
+          </label>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/75">
@@ -123,6 +141,22 @@ export function AdminBannerSection({
               className="shop-input"
               value={midBanner.backgroundColor}
               onChange={(event) => onMidBannerChange({ ...midBanner, backgroundColor: event.target.value })}
+            />
+          </div>
+        </label>
+        <label className="space-y-2">
+          <span className="text-sm text-white/70">Colore testo</span>
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 px-3 py-2">
+            <input
+              type="color"
+              value={midBanner.textColor}
+              onChange={(event) => onMidBannerChange({ ...midBanner, textColor: event.target.value })}
+              className="h-10 w-14 cursor-pointer rounded border border-white/10 bg-transparent"
+            />
+            <input
+              className="shop-input"
+              value={midBanner.textColor}
+              onChange={(event) => onMidBannerChange({ ...midBanner, textColor: event.target.value })}
             />
           </div>
         </label>

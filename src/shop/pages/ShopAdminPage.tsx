@@ -214,6 +214,7 @@ type TopBannerState = {
   title: string
   subtitle: string
   backgroundColor: string
+  textColor: string
   countdownEnabled: boolean
   countdownTarget: string
 }
@@ -223,6 +224,7 @@ type MidBannerState = {
   text: string
   messages: string[]
   backgroundColor: string
+  textColor: string
 }
 
 type OrderProfitSummary = {
@@ -1480,6 +1482,7 @@ export function ShopAdminPage() {
           { key: "bannerTopTitle", value: topBanner.title },
           { key: "bannerTopSubtitle", value: topBanner.subtitle },
           { key: "bannerTopBackgroundColor", value: topBanner.backgroundColor },
+          { key: "bannerTopTextColor", value: topBanner.textColor },
           { key: "bannerTopCountdownEnabled", value: String(topBanner.countdownEnabled) },
           { key: "bannerTopCountdownTarget", value: topBanner.countdownTarget || "" },
         ]),
@@ -1500,6 +1503,7 @@ export function ShopAdminPage() {
         body: JSON.stringify([
           { key: "bannerMidEnabled", value: String(midBanner.enabled) },
           { key: "bannerMidBackgroundColor", value: midBanner.backgroundColor },
+          { key: "bannerMidTextColor", value: midBanner.textColor },
           { key: "bannerMidText", value: midBanner.text },
           { key: "bannerMidMessages", value: JSON.stringify(midBanner.messages.filter((entry) => entry.trim())) },
         ]),
