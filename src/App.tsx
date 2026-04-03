@@ -6,6 +6,9 @@ import { Navbar } from "./components/Navbar"
 import { BackToTop } from "./components/BackToTop"
 import { Noise } from "./components/Noise"
 import { Backdrop } from "./components/Backdrop"
+import { TopPromoBar } from "./components/TopPromoBar"
+import { ShippingBar } from "./components/ShippingBar"
+import { CookieBanner } from "./components/CookieBanner"
 
 import { Hero } from "./sections/Hero"
 import { HomeShop } from "./sections/HomeShop"
@@ -192,6 +195,8 @@ export default function App() {
         <div className="min-h-screen bg-ink text-white overflow-x-hidden">
           <Backdrop />
           <Noise />
+          <TopPromoBar />
+          <ShippingBar />
           <Navbar />
 
           <Routes>
@@ -255,6 +260,7 @@ export default function App() {
           <Footer />
 
           <BackToTop />
+          <CookieBanner />
         </div>
       </ShopCartProvider>
     </ShopAuthProvider>
