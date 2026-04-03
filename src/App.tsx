@@ -192,7 +192,10 @@ export default function App() {
   return (
     <ShopAuthProvider>
       <ShopCartProvider>
-        <div className="min-h-screen bg-ink text-white overflow-x-hidden">
+        <div
+          className="min-h-screen overflow-x-hidden bg-ink text-white"
+          style={{ ["--global-top-bars-h" as any]: "80px" } as any}
+        >
           <Backdrop />
           <Noise />
           <TopPromoBar />
