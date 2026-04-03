@@ -14,6 +14,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { readCatalogReturnState } from "../lib/catalog-return.mjs"
 import { readHomeReturnState } from "../lib/home-return.mjs"
+import { popProductReturnEntry, pushProductReturnEntry } from "../lib/product-return-stack.mjs"
 import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { getRelatedProductsPageState, getRecentlyViewedProducts, upsertRecentlyViewedProduct } from "../lib/product-page-discovery.mjs"
 import { ShopLayout } from "../components/ShopLayout"
@@ -120,7 +121,7 @@ export function ShopProductPage() {
       [
         {
           key: "details" as const,
-          title: "Dettagli prodotto",
+          title: "Descrizione",
           content: (
             <div className="grid gap-3">
               {product?.description ? <p>{product.description}</p> : null}
@@ -216,6 +217,12 @@ export function ShopProductPage() {
   }
 
   function handleBackNavigation() {
+    const previousProduct = popProductReturnEntry()
+    if (previousProduct?.pathname && previousProduct.pathname !== `/shop/${slug}`) {
+      navigate(previousProduct.pathname)
+      return
+    }
+
     const storedCatalogReturn = readCatalogReturnState()
     if (storedCatalogReturn) {
       navigate(storedCatalogReturn.pathnameSearch || "/shop", {
@@ -350,29 +357,29 @@ export function ShopProductPage() {
       compact
       eyebrowMode="raw"
       eyebrow={
-        heroBadge ? (
-          <span className="inline-flex rounded-full border border-[#e3f503]/30 bg-[#e3f503]/12 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
-            {heroBadge.label}
-          </span>
-        ) : undefined
+        <div className="flex flex-col items-start gap-3">
+          <Button
+            variant="profile"
+            size="sm"
+            onClick={handleBackNavigation}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+                <path d="M18 12H6" />
+                <path d="m11 17-5-5 5-5" />
+              </svg>
+            }
+          >
+            Torna indietro
+          </Button>
+          {heroBadge ? (
+            <span className="inline-flex rounded-full border border-[#e3f503]/30 bg-[#e3f503]/12 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
+              {heroBadge.label}
+            </span>
+          ) : null}
+        </div>
       }
       title={product.title}
-      intro={isMobileViewport ? "" : product.description}
-      actions={
-        <Button
-          variant="profile"
-          size="sm"
-          onClick={handleBackNavigation}
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
-              <path d="M18 12H6" />
-              <path d="m11 17-5-5 5-5" />
-            </svg>
-          }
-        >
-          Torna indietro
-        </Button>
-      }
+      intro=""
     >
       <div className="mx-auto w-full max-w-[1380px] space-y-8">
         <div className="grid w-full items-stretch gap-7 lg:grid-cols-[minmax(0,0.98fr)_minmax(0,0.94fr)] xl:gap-8">
@@ -451,7 +458,14 @@ export function ShopProductPage() {
           </div>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
             {relatedPageState.visibleItems.map((related) => (
-              <ProductCard key={related.id} product={related} />
+              <div
+                key={related.id}
+                onClickCapture={() => {
+                  pushProductReturnEntry({ pathname: `/shop/${slug}` })
+                }}
+              >
+                <ProductCard product={related} />
+              </div>
             ))}
           </div>
           {relatedPageState.canLoadMore ? (
