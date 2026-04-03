@@ -11,6 +11,7 @@ import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
 import { buildHomeReturnState, persistHomeReturnState } from "../shop/lib/home-return.mjs";
 import { orderTrendingProducts, resolveTrendingProductIds } from "../shop/lib/trending-products.mjs";
+import { orderVisibleProducts, parseVisibleProductSlotsSetting, resolveVisibleProductSlots } from "../shop/lib/visible-products-slots.mjs";
 import type { AdminCollection, ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
@@ -506,6 +507,13 @@ export function HomeShop() {
   }, [products, shopSettings.homepageTrendingProductIds])
 
   const catalogPreviewProducts = useMemo(() => {
+    const configuredVisibleSlots = parseVisibleProductSlotsSetting(shopSettings.homepageVisibleProductSlots)
+    const configuredProducts = orderVisibleProducts(products, resolveVisibleProductSlots(shopSettings.homepageVisibleProductSlots, products))
+
+    if (configuredVisibleSlots) {
+      return configuredProducts
+    }
+
     const featuredProducts = products.filter((product) => product.featured)
     const source = featuredProducts.length ? featuredProducts : products
 
@@ -514,7 +522,7 @@ export function HomeShop() {
     }
 
     return source.slice(0, 16)
-  }, [isMobileViewport, products])
+  }, [isMobileViewport, products, shopSettings.homepageVisibleProductSlots])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">

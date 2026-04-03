@@ -18,6 +18,7 @@ import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { normalizeProductFormStateForEdit } from "../lib/admin-product-edit.mjs"
 import { resolveTrendingProductIds } from "../lib/trending-products.mjs"
+import { resolveVisibleProductSlots } from "../lib/visible-products-slots.mjs"
 import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
@@ -614,6 +615,7 @@ export function ShopAdminPage() {
   const [homepagePopularCategories, setHomepagePopularCategories] = useState<HomepagePopularCategory[]>(defaultHomepagePopularCategories)
   const [homepageShowcases, setHomepageShowcases] = useState<HomepageShowcase[]>(defaultHomepageShowcases)
   const [trendingProductIds, setTrendingProductIds] = useState<number[]>([])
+  const [visibleProductSlots, setVisibleProductSlots] = useState<Array<number | null>>([])
   const [homepageFocus, setHomepageFocus] = useState<{ section: "showcases" | "popular-categories"; item: number | null }>({
     section: "showcases",
     item: null,
@@ -743,6 +745,7 @@ export function ShopAdminPage() {
     setHomepagePopularCategories(parseHomepagePopularCategoriesSetting(settingValue("homepagePopularCategories"), defaultHomepagePopularCategories))
     setHomepageShowcases(parseHomepageShowcasesSetting(settingValue("homepageShowcases"), defaultHomepageShowcases, collections))
     setTrendingProductIds(resolveTrendingProductIds(settingValue("homepageTrendingProductIds"), allProductsForTrending))
+    setVisibleProductSlots(resolveVisibleProductSlots(settingValue("homepageVisibleProductSlots"), allProductsForTrending))
   }, [allProductsForTrending, collections, settings])
 
   async function refreshProducts() {
@@ -1447,6 +1450,20 @@ export function ShopAdminPage() {
     }
   }
 
+  async function saveVisibleProducts() {
+    clearFeedback()
+    try {
+      const data = await apiFetch<SettingEntry[]>("/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify([{ key: "homepageVisibleProductSlots", value: JSON.stringify(visibleProductSlots) }]),
+      })
+      setSettings(data)
+      setMessage("Prodotti visibili aggiornati correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il salvataggio dei prodotti visibili.")
+    }
+  }
+
   return (
     <ShopLayout
       eyebrow="Admin"
@@ -1510,6 +1527,8 @@ export function ShopAdminPage() {
           productCategoryFilter={productCategoryFilter}
           productStatusFilter={productStatusFilter}
           products={products}
+          allProducts={allProductsForTrending}
+          visibleProductSlots={visibleProductSlots}
           newCategoryName={newCategoryName}
           renamingCategory={renamingCategory}
           renamedCategoryValue={renamedCategoryValue}
@@ -1530,6 +1549,8 @@ export function ShopAdminPage() {
             )
           }
           onToggleHomeVisibility={toggleProductHomeVisibility}
+          setVisibleProductSlots={setVisibleProductSlots}
+          onSaveVisibleProducts={saveVisibleProducts}
           onEditProduct={(product) => {
             setSelectedProductIds([product.id])
             startEditProduct(product)
