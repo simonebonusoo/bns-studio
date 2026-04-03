@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import Lenis from "lenis"
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 
@@ -48,12 +48,30 @@ declare global {
 function Home() {
   const location = useLocation()
 
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return
+
+    const navigationEntry =
+      typeof performance !== "undefined" && typeof performance.getEntriesByType === "function"
+        ? performance.getEntriesByType("navigation")[0]
+        : null
+    const isReload =
+      navigationEntry && "type" in navigationEntry ? navigationEntry.type === "reload" : false
+
+    if (isReload && !location.state && !location.hash) {
+      clearHomeReturnState()
+      window.scrollTo(0, 0)
+      window.__lenis?.scrollTo(0, { immediate: true } as any)
+    }
+  }, [location.hash, location.state])
+
   useEffect(() => {
     const state = location.state as { restoreHomeFromShop?: boolean; restoreHomeScrollY?: number } | null
     const stored = readHomeReturnState()
+    const hasExplicitRestore = Boolean(state?.restoreHomeFromShop)
     const nextY = Number.isFinite(state?.restoreHomeScrollY) ? Number(state?.restoreHomeScrollY) : stored?.homeScrollY
     const storedIsFresh = Boolean(stored?.savedAt && Date.now() - stored.savedAt < 15000)
-    const shouldRestore = Boolean(state?.restoreHomeFromShop) || (storedIsFresh && Number.isFinite(nextY))
+    const shouldRestore = hasExplicitRestore || (storedIsFresh && Number.isFinite(nextY))
 
     if (!shouldRestore || !Number.isFinite(nextY)) {
       return
@@ -88,6 +106,17 @@ export default function App() {
   }, [location.pathname])
 
   const OFFSET = -92
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.history) return
+
+    const previous = window.history.scrollRestoration
+    window.history.scrollRestoration = "manual"
+
+    return () => {
+      window.history.scrollRestoration = previous
+    }
+  }, [])
 
   useEffect(() => {
     const lenis = new Lenis({

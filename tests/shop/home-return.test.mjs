@@ -1,7 +1,15 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import fs from "node:fs"
+import path from "node:path"
 
 import { buildHomeReturnState, resolveHomeReturnState } from "../../src/shop/lib/home-return.mjs"
+
+const root = process.cwd()
+
+function read(file) {
+  return fs.readFileSync(path.join(root, file), "utf8")
+}
 
 function createStorage() {
   const map = new Map()
@@ -34,4 +42,13 @@ test("resolveHomeReturnState persists and reloads the saved home return context"
   assert.equal(resolved.homePathname, "/")
   assert.equal(resolved.homeScrollY, 640)
   assert.equal(resolveHomeReturnState(null, storage).homeScrollY, 640)
+})
+
+test("App disables browser scroll restoration and resets home to top on reload", () => {
+  const app = read("src/App.tsx")
+
+  assert.match(app, /window\.history\.scrollRestoration = "manual"/)
+  assert.match(app, /navigationEntry\.type === "reload"/)
+  assert.match(app, /window\.scrollTo\(0, 0\)/)
+  assert.match(app, /clearHomeReturnState\(\)/)
 })
