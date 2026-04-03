@@ -8,6 +8,7 @@ import { getButtonClassName, getDangerButtonClassName } from "../../components/B
 import { AdminAnalyticsSection } from "../components/admin/AdminAnalyticsSection"
 import { ConfirmActionModal } from "../components/admin/ConfirmActionModal"
 import { AdminDiscountsSection } from "../components/admin/AdminDiscountsSection"
+import { AdminBannerSection } from "../components/admin/AdminBannerSection"
 import { AdminHomepageSection } from "../components/admin/AdminHomepageSection"
 import { AdminOrdersSection } from "../components/admin/AdminOrdersSection"
 import { AdminProductsSection } from "../components/admin/AdminProductsSection"
@@ -17,6 +18,7 @@ import { AdminUsersSection } from "../components/admin/AdminUsersSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { normalizeProductFormStateForEdit } from "../lib/admin-product-edit.mjs"
+import { parseMidBannerSettings, parseTopBannerSettings } from "../lib/banner-settings.mjs"
 import { resolveTrendingProductIds } from "../lib/trending-products.mjs"
 import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
 
@@ -205,6 +207,19 @@ type AdminRuntimeStatus = {
     }
   }
   warnings: string[]
+}
+
+type TopBannerState = {
+  enabled: boolean
+  title: string
+  subtitle: string
+  countdownEnabled: boolean
+  countdownTarget: string
+}
+
+type MidBannerState = {
+  enabled: boolean
+  text: string
 }
 
 type OrderProfitSummary = {
@@ -610,10 +625,15 @@ export function ShopAdminPage() {
   const [categories, setCategories] = useState<string[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
   const [shippingCostInput, setShippingCostInput] = useState("9")
-  const [tab, setTab] = useState<"prodotti" | "homepage" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti">("prodotti")
+  const [tab, setTab] = useState<"prodotti" | "homepage" | "banner" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti">("prodotti")
   const [homepagePopularCategories, setHomepagePopularCategories] = useState<HomepagePopularCategory[]>(defaultHomepagePopularCategories)
   const [homepageShowcases, setHomepageShowcases] = useState<HomepageShowcase[]>(defaultHomepageShowcases)
   const [trendingProductIds, setTrendingProductIds] = useState<number[]>([])
+  const [topBanner, setTopBanner] = useState<TopBannerState>(() => {
+    const parsed = parseTopBannerSettings()
+    return { ...parsed, countdownTarget: toDatetimeLocal(parsed.countdownTarget) }
+  })
+  const [midBanner, setMidBanner] = useState<MidBannerState>(parseMidBannerSettings())
   const [homepageFocus, setHomepageFocus] = useState<{ section: "showcases" | "popular-categories"; item: number | null }>({
     section: "showcases",
     item: null,
@@ -743,6 +763,11 @@ export function ShopAdminPage() {
     setHomepagePopularCategories(parseHomepagePopularCategoriesSetting(settingValue("homepagePopularCategories"), defaultHomepagePopularCategories))
     setHomepageShowcases(parseHomepageShowcasesSetting(settingValue("homepageShowcases"), defaultHomepageShowcases, collections))
     setTrendingProductIds(resolveTrendingProductIds(settingValue("homepageTrendingProductIds"), allProductsForTrending))
+    {
+      const parsedTopBanner = parseTopBannerSettings(shopSettings)
+      setTopBanner({ ...parsedTopBanner, countdownTarget: toDatetimeLocal(parsedTopBanner.countdownTarget) })
+    }
+    setMidBanner(parseMidBannerSettings(shopSettings))
   }, [allProductsForTrending, collections, settings])
 
   async function refreshProducts() {
@@ -1442,6 +1467,45 @@ export function ShopAdminPage() {
     }
   }
 
+  async function saveTopBanner() {
+    clearFeedback()
+    try {
+      const data = await apiFetch<SettingEntry[]>("/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify([
+          { key: "bannerTopEnabled", value: String(topBanner.enabled) },
+          { key: "bannerTopTitle", value: topBanner.title },
+          { key: "bannerTopSubtitle", value: topBanner.subtitle },
+          { key: "bannerTopCountdownEnabled", value: String(topBanner.countdownEnabled) },
+          { key: "bannerTopCountdownTarget", value: topBanner.countdownTarget || "" },
+        ]),
+      })
+      setSettings(data)
+      window.dispatchEvent(new Event("bns:settings-updated"))
+      setMessage("Banner top aggiornato correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il salvataggio del banner top.")
+    }
+  }
+
+  async function saveMidBanner() {
+    clearFeedback()
+    try {
+      const data = await apiFetch<SettingEntry[]>("/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify([
+          { key: "bannerMidEnabled", value: String(midBanner.enabled) },
+          { key: "bannerMidText", value: midBanner.text },
+        ]),
+      })
+      setSettings(data)
+      window.dispatchEvent(new Event("bns:settings-updated"))
+      setMessage("Banner mid aggiornato correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il salvataggio del banner mid.")
+    }
+  }
+
   return (
     <ShopLayout
       eyebrow="Admin"
@@ -1468,6 +1532,7 @@ export function ShopAdminPage() {
         {[
           ["prodotti", "Prodotti"],
           ["homepage", "Homepage"],
+          ["banner", "Banner"],
           ["tendenza", "Tendenza"],
           ["recensioni", "Recensioni"],
           ["ordini", "Ordini"],
@@ -1479,7 +1544,7 @@ export function ShopAdminPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setTab(key as "prodotti" | "homepage" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti")}
+            onClick={() => setTab(key as "prodotti" | "homepage" | "banner" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti")}
             className={getButtonClassName({ variant: tab === key ? "cart" : "profile", size: "sm" })}
           >
             {label}
@@ -1598,6 +1663,17 @@ export function ShopAdminPage() {
               setError(err instanceof Error ? err.message : "Errore durante l'upload dell'immagine categoria.")
             }
           }}
+        />
+      ) : null}
+
+      {tab === "banner" ? (
+        <AdminBannerSection
+          topBanner={topBanner}
+          midBanner={midBanner}
+          onTopBannerChange={setTopBanner}
+          onMidBannerChange={setMidBanner}
+          onSaveTopBanner={saveTopBanner}
+          onSaveMidBanner={saveMidBanner}
         />
       ) : null}
 

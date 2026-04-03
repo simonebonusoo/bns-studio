@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Lenis from "lenis"
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom"
 
@@ -36,6 +36,7 @@ import { ShopPaypalReturnPage } from "./shop/pages/ShopPaypalReturnPage"
 import { ShopMockTrackingPage } from "./shop/pages/ShopMockTrackingPage"
 import { ShopAdminRoute, ShopCustomerRoute, ShopProtectedRoute } from "./shop/components/ShopProtectedRoute"
 import { apiFetch } from "./shop/lib/api"
+import { getTopBarsOffset, parseMidBannerSettings, parseTopBannerSettings } from "./shop/lib/banner-settings.mjs"
 import { clearHomeReturnState, readHomeReturnState } from "./shop/lib/home-return.mjs"
 
 declare global {
@@ -79,6 +80,7 @@ export default function App() {
 
   const lenisRef = useRef<Lenis | null>(null)
   const rafRef = useRef<number>(0)
+  const [globalSettings, setGlobalSettings] = useState<Record<string, string>>({})
 
   const pathnameRef = useRef(location.pathname)
   useEffect(() => {
@@ -189,17 +191,55 @@ export default function App() {
     }).catch(() => undefined)
   }, [location.pathname])
 
+  useEffect(() => {
+    let cancelled = false
+
+    const loadGlobalSettings = async () => {
+      try {
+        const data = await apiFetch<Record<string, string>>("/store/settings")
+        if (!cancelled) {
+          setGlobalSettings(data || {})
+        }
+      } catch {
+        if (!cancelled) {
+          setGlobalSettings({})
+        }
+      }
+    }
+
+    void loadGlobalSettings()
+
+    const refreshHandler = () => {
+      void loadGlobalSettings()
+    }
+
+    window.addEventListener("bns:settings-updated", refreshHandler)
+    return () => {
+      cancelled = true
+      window.removeEventListener("bns:settings-updated", refreshHandler)
+    }
+  }, [location.pathname])
+
+  const topBanner = useMemo(() => parseTopBannerSettings(globalSettings), [globalSettings])
+  const midBanner = useMemo(() => parseMidBannerSettings(globalSettings), [globalSettings])
+
   return (
     <ShopAuthProvider>
       <ShopCartProvider>
         <div
           className="min-h-screen overflow-x-hidden bg-ink text-white"
-          style={{ ["--global-top-bars-h" as any]: "80px" } as any}
+          style={{ ["--global-top-bars-h" as any]: getTopBarsOffset(topBanner, midBanner) } as any}
         >
           <Backdrop />
           <Noise />
-          <TopPromoBar />
-          <ShippingBar />
+          <TopPromoBar
+            enabled={topBanner.enabled}
+            title={topBanner.title}
+            subtitle={topBanner.subtitle}
+            countdownEnabled={topBanner.countdownEnabled}
+            countdownTarget={topBanner.countdownTarget}
+          />
+          <ShippingBar enabled={midBanner.enabled} text={midBanner.text} />
           <Navbar />
 
           <Routes>

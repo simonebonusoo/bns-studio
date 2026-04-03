@@ -660,7 +660,7 @@ export function Navbar() {
     <>
       <header
         className="fixed left-0 right-0 z-50"
-        style={{ ["--nav-h" as any]: `${navH}px`, top: "var(--global-top-bars-h, 0px)" } as any}
+        style={{ ["--nav-h" as any]: `${navH}px`, top: scrolled ? "0px" : "var(--global-top-bars-h, 0px)" } as any}
       >
         <div className="relative">
           <motion.div
