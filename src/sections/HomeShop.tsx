@@ -4,14 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Container } from "../components/Container";
 import { HorizontalScrollRail } from "../components/HorizontalScrollRail";
-import { useIsMobileViewport } from "../hooks/useIsMobileViewport";
 import { ProductCard } from "../shop/components/ProductCard";
 import { useShopAuth } from "../shop/context/ShopAuthProvider";
 import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
 import { buildHomeReturnState, persistHomeReturnState } from "../shop/lib/home-return.mjs";
 import { orderTrendingProducts, resolveTrendingProductIds } from "../shop/lib/trending-products.mjs";
-import { orderVisibleProducts, parseVisibleProductSlotsSetting, resolveVisibleProductSlots } from "../shop/lib/visible-products-slots.mjs";
 import type { AdminCollection, ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
@@ -373,7 +371,6 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
 
 export function HomeShop() {
   const navigate = useNavigate();
-  const isMobileViewport = useIsMobileViewport()
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [collections, setCollections] = useState<AdminCollection[]>([]);
@@ -507,22 +504,12 @@ export function HomeShop() {
   }, [products, shopSettings.homepageTrendingProductIds])
 
   const catalogPreviewProducts = useMemo(() => {
-    const configuredVisibleSlots = parseVisibleProductSlotsSetting(shopSettings.homepageVisibleProductSlots)
-    const configuredProducts = orderVisibleProducts(products, resolveVisibleProductSlots(shopSettings.homepageVisibleProductSlots, products))
-
-    if (configuredVisibleSlots) {
-      return configuredProducts
+    const featuredProducts = (products ?? []).filter((product) => Boolean(product?.featured))
+    if (!featuredProducts.length) {
+      return []
     }
-
-    const featuredProducts = products.filter((product) => product.featured)
-    const source = featuredProducts.length ? featuredProducts : products
-
-    if (isMobileViewport) {
-      return shuffleProducts(source).slice(0, 4)
-    }
-
-    return source.slice(0, 16)
-  }, [isMobileViewport, products, shopSettings.homepageVisibleProductSlots])
+    return shuffleProducts(featuredProducts).slice(0, 8)
+  }, [products])
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">

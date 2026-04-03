@@ -22,7 +22,9 @@ function statusLabel(status: ShopProduct["status"]) {
 type ProductListSectionProps = {
   products: ShopProduct[]
   selectedIds: number[]
+  updatingHomeProductId: number | null
   onToggleSelected: (productId: number, checked: boolean) => void
+  onToggleHomeVisibility: (product: ShopProduct, nextValue: boolean) => Promise<void> | void
   onEdit: (product: ShopProduct) => void
   onDuplicate: (product: ShopProduct) => Promise<void> | void
   onDelete: (product: ShopProduct) => Promise<void> | void
@@ -31,7 +33,9 @@ type ProductListSectionProps = {
 export function ProductListSection({
   products,
   selectedIds,
+  updatingHomeProductId,
   onToggleSelected,
+  onToggleHomeVisibility,
   onEdit,
   onDuplicate,
   onDelete,
@@ -112,6 +116,15 @@ export function ProductListSection({
                   {product.tags?.length ? `Tag: ${product.tags.map((tag) => tag.name).join(", ")}` : "Nessun tag"}
                   {getProductBadges(product).length ? ` · Badge: ${getProductBadges(product).map((badge) => badge.label).join(", ")}` : ""}
                 </p>
+                <label className="flex items-center gap-3 pt-1 text-sm text-white/70">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(product.featured)}
+                    disabled={updatingHomeProductId === product.id}
+                    onChange={(event) => void onToggleHomeVisibility(product, event.target.checked)}
+                  />
+                  <span>{updatingHomeProductId === product.id ? "Aggiornamento..." : "Visibile in home"}</span>
+                </label>
               </div>
               <div className="flex h-full min-w-0 flex-col justify-end">
                 <div className="space-y-2.5">

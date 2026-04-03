@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 
 import { getDangerButtonClassName } from "../../../components/Button"
 import { Button } from "../../../components/Button"
@@ -8,7 +8,6 @@ import { ConfirmActionModal } from "./ConfirmActionModal"
 import { ProductFiltersBar } from "./ProductFiltersBar"
 import { ProductFormCard } from "./ProductFormCard"
 import { ProductListSection } from "./ProductListSection"
-import { AdminVisibleProductsSection } from "./AdminVisibleProductsSection"
 
 type ProductFormState = {
   title: string
@@ -65,8 +64,7 @@ type AdminProductsSectionProps = {
   productCategoryFilter: string
   productStatusFilter: "all" | ProductStatus
   products: ShopProduct[]
-  allProducts: ShopProduct[]
-  visibleProductSlots: Array<number | null>
+  updatingHomeProductId: number | null
   newCategoryName: string
   renamingCategory: string | null
   renamedCategoryValue: string
@@ -82,8 +80,7 @@ type AdminProductsSectionProps = {
   onProductCategoryFilterChange: (value: string) => void
   onProductStatusFilterChange: (value: "all" | ProductStatus) => void
   onToggleSelected: (productId: number, checked: boolean) => void
-  setVisibleProductSlots: Dispatch<SetStateAction<Array<number | null>>>
-  onSaveVisibleProducts: () => Promise<void> | void
+  onToggleHomeVisibility: (product: ShopProduct, nextValue: boolean) => Promise<void> | void
   onEditProduct: (product: ShopProduct) => void
   onDuplicateProduct: (product: ShopProduct) => void
   onDeleteProduct: (product: ShopProduct) => void
@@ -113,8 +110,7 @@ export function AdminProductsSection({
   productCategoryFilter,
   productStatusFilter,
   products,
-  allProducts,
-  visibleProductSlots,
+  updatingHomeProductId,
   newCategoryName,
   renamingCategory,
   renamedCategoryValue,
@@ -130,8 +126,7 @@ export function AdminProductsSection({
   onProductCategoryFilterChange,
   onProductStatusFilterChange,
   onToggleSelected,
-  setVisibleProductSlots,
-  onSaveVisibleProducts,
+  onToggleHomeVisibility,
   onEditProduct,
   onDuplicateProduct,
   onDeleteProduct,
@@ -226,7 +221,9 @@ export function AdminProductsSection({
           <ProductListSection
             products={products}
             selectedIds={selectedProductIds}
+            updatingHomeProductId={updatingHomeProductId}
             onToggleSelected={onToggleSelected}
+            onToggleHomeVisibility={onToggleHomeVisibility}
             onEdit={onEditProduct}
             onDuplicate={onDuplicateProduct}
             onDelete={onDeleteProduct}
@@ -364,13 +361,6 @@ export function AdminProductsSection({
           </div>
         </div>
       </section>
-
-      <AdminVisibleProductsSection
-        products={allProducts}
-        visibleProductSlots={visibleProductSlots}
-        setVisibleProductSlots={setVisibleProductSlots}
-        onSave={onSaveVisibleProducts}
-      />
 
       <ConfirmActionModal
         open={Boolean(pendingDelete)}

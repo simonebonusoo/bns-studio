@@ -18,7 +18,6 @@ import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { normalizeProductFormStateForEdit } from "../lib/admin-product-edit.mjs"
 import { resolveTrendingProductIds } from "../lib/trending-products.mjs"
-import { resolveVisibleProductSlots } from "../lib/visible-products-slots.mjs"
 import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
@@ -615,7 +614,6 @@ export function ShopAdminPage() {
   const [homepagePopularCategories, setHomepagePopularCategories] = useState<HomepagePopularCategory[]>(defaultHomepagePopularCategories)
   const [homepageShowcases, setHomepageShowcases] = useState<HomepageShowcase[]>(defaultHomepageShowcases)
   const [trendingProductIds, setTrendingProductIds] = useState<number[]>([])
-  const [visibleProductSlots, setVisibleProductSlots] = useState<Array<number | null>>([])
   const [homepageFocus, setHomepageFocus] = useState<{ section: "showcases" | "popular-categories"; item: number | null }>({
     section: "showcases",
     item: null,
@@ -629,6 +627,7 @@ export function ShopAdminPage() {
   const [productCategoryFilter, setProductCategoryFilter] = useState("")
   const [productStatusFilter, setProductStatusFilter] = useState<"all" | ProductStatus>("all")
   const [allProductsForTrending, setAllProductsForTrending] = useState<ShopProduct[]>([])
+  const [updatingHomeProductId, setUpdatingHomeProductId] = useState<number | null>(null)
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([])
   const [productTouchedFields, setProductTouchedFields] = useState<ProductTouchedState>({})
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -744,7 +743,6 @@ export function ShopAdminPage() {
     setHomepagePopularCategories(parseHomepagePopularCategoriesSetting(settingValue("homepagePopularCategories"), defaultHomepagePopularCategories))
     setHomepageShowcases(parseHomepageShowcasesSetting(settingValue("homepageShowcases"), defaultHomepageShowcases, collections))
     setTrendingProductIds(resolveTrendingProductIds(settingValue("homepageTrendingProductIds"), allProductsForTrending))
-    setVisibleProductSlots(resolveVisibleProductSlots(settingValue("homepageVisibleProductSlots"), allProductsForTrending))
   }, [allProductsForTrending, collections, settings])
 
   async function refreshProducts() {
@@ -1194,6 +1192,25 @@ export function ShopAdminPage() {
     }
   }
 
+  async function toggleProductHomeVisibility(product: ShopProduct, nextValue: boolean) {
+    clearFeedback()
+    try {
+      setUpdatingHomeProductId(product.id)
+      const updated = await apiFetch<ShopProduct>(`/admin/products/${product.id}/home-visibility`, {
+        method: "PATCH",
+        body: JSON.stringify({ featured: nextValue }),
+      })
+
+      setProducts((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+      setAllProductsForTrending((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+      setMessage(nextValue ? "Prodotto incluso nei poster home." : "Prodotto rimosso dai poster home.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento della visibilità home.")
+    } finally {
+      setUpdatingHomeProductId(null)
+    }
+  }
+
   function startEditCoupon(coupon: Coupon) {
     clearFeedback()
     setEditingCouponId(coupon.id)
@@ -1425,20 +1442,6 @@ export function ShopAdminPage() {
     }
   }
 
-  async function saveVisibleProducts() {
-    clearFeedback()
-    try {
-      const data = await apiFetch<SettingEntry[]>("/admin/settings", {
-        method: "PUT",
-        body: JSON.stringify([{ key: "homepageVisibleProductSlots", value: JSON.stringify(visibleProductSlots) }]),
-      })
-      setSettings(data)
-      setMessage("Prodotti visibili aggiornati correttamente.")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante il salvataggio dei prodotti visibili.")
-    }
-  }
-
   return (
     <ShopLayout
       eyebrow="Admin"
@@ -1501,8 +1504,7 @@ export function ShopAdminPage() {
           productCategoryFilter={productCategoryFilter}
           productStatusFilter={productStatusFilter}
           products={products}
-          allProducts={allProductsForTrending}
-          visibleProductSlots={visibleProductSlots}
+          updatingHomeProductId={updatingHomeProductId}
           newCategoryName={newCategoryName}
           renamingCategory={renamingCategory}
           renamedCategoryValue={renamedCategoryValue}
@@ -1522,8 +1524,7 @@ export function ShopAdminPage() {
               checked ? Array.from(new Set([...current, productId])) : current.filter((id) => id !== productId),
             )
           }
-          setVisibleProductSlots={setVisibleProductSlots}
-          onSaveVisibleProducts={saveVisibleProducts}
+          onToggleHomeVisibility={toggleProductHomeVisibility}
           onEditProduct={(product) => {
             setSelectedProductIds([product.id])
             startEditProduct(product)
