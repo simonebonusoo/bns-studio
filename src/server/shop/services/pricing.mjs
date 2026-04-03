@@ -22,6 +22,31 @@ function buildStaticShippingRatesFallback() {
     }))
 }
 
+function getValidDiscountUnitPrice(price, discountPrice) {
+  if (!Number.isFinite(price) || price < 0) return null
+  if (!Number.isFinite(discountPrice) || discountPrice < 0) return null
+  return discountPrice < price ? discountPrice : null
+}
+
+export function buildPricingBreakdown(items, automaticDiscount = 0, couponDiscount = 0, shippingTotal = 0) {
+  const subtotal = items.reduce((sum, item) => sum + item.lineSubtotal, 0)
+  const discountedSubtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
+  const productDiscountTotal = Math.max(0, subtotal - discountedSubtotal)
+  const additionalDiscountTotal = Math.min(discountedSubtotal, Math.max(0, automaticDiscount) + Math.max(0, couponDiscount))
+  const discountTotal = Math.min(subtotal, productDiscountTotal + additionalDiscountTotal)
+  const total = Math.max(0, subtotal - discountTotal + (shippingTotal ?? 0))
+
+  return {
+    subtotal,
+    discountedSubtotal,
+    productDiscountTotal,
+    automaticDiscount: Math.max(0, automaticDiscount),
+    couponDiscount: Math.max(0, couponDiscount),
+    discountTotal,
+    total,
+  }
+}
+
 export async function calculatePricing(cartItems, couponCode, options = {}) {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
     throw new HttpError(400, "Il carrello è vuoto")
@@ -76,7 +101,9 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     }
 
     const format = selectedVariant.title || normalizeProductFormat(product, item.format)
-    const unitPrice = selectedVariant.price ?? getProductPriceForFormat(product, format)
+    const originalUnitPrice = selectedVariant.price ?? getProductPriceForFormat(product, format)
+    const discountedUnitPrice =
+      getValidDiscountUnitPrice(originalUnitPrice, selectedVariant.discountPrice) ?? originalUnitPrice
     const unitCost = selectedVariant.costPrice ?? getProductCostForFormat(product, format)
 
     return {
@@ -88,16 +115,18 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
       title: product.title,
       imageUrl: imageUrls[0] || "",
       format,
-      unitPrice,
+      unitPrice: discountedUnitPrice,
+      unitOriginalPrice: originalUnitPrice,
       unitCost,
       quantity,
-      lineTotal: unitPrice * quantity,
+      lineSubtotal: originalUnitPrice * quantity,
+      lineTotal: discountedUnitPrice * quantity,
       costTotal: unitCost * quantity,
     }
   })
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
-  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
+  const discountedSubtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
 
   let automaticDiscount = 0
   let shippingPricing
@@ -131,13 +160,13 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     if (!withinStart || !withinEnd) continue
 
     if (rule.ruleType === "quantity_percentage" && itemCount >= rule.threshold && rule.discountType === "percentage") {
-      const amount = Math.round(subtotal * (rule.amount / 100))
+      const amount = Math.round(discountedSubtotal * (rule.amount / 100))
       automaticDiscount += amount
       appliedRules.push({ type: "automatic", label: rule.name, amount })
     }
 
-    if (rule.ruleType === "subtotal_fixed" && subtotal >= rule.threshold && rule.discountType === "fixed") {
-      const amount = Math.min(subtotal, rule.amount)
+    if (rule.ruleType === "subtotal_fixed" && discountedSubtotal >= rule.threshold && rule.discountType === "fixed") {
+      const amount = Math.min(discountedSubtotal, rule.amount)
       automaticDiscount += amount
       appliedRules.push({ type: "automatic", label: rule.name, amount })
     }
@@ -177,15 +206,14 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
 
     couponDiscount =
       coupon.type === "percentage"
-        ? Math.round(subtotal * (coupon.amount / 100))
-        : Math.min(subtotal, coupon.amount)
+        ? Math.round(discountedSubtotal * (coupon.amount / 100))
+        : Math.min(discountedSubtotal, coupon.amount)
 
     appliedCoupon = coupon.code
     appliedRules.push({ type: "coupon", label: coupon.code, amount: couponDiscount })
   }
 
-  const discountTotal = Math.min(subtotal, automaticDiscount + couponDiscount)
-  const total = Math.max(0, subtotal - discountTotal + (shippingTotal ?? 0))
+  const breakdown = buildPricingBreakdown(items, automaticDiscount, couponDiscount, shippingTotal ?? 0)
 
   return {
     items,
@@ -193,13 +221,13 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     shippingCarrier: shippingPricing.selectedRate?.carrier || null,
     shippingLabel: shippingPricing.selectedRate?.label || null,
     shippingCost: typeof shippingPricing.selectedRate?.cost === "number" ? shippingPricing.selectedRate.cost : null,
-    subtotal,
+    subtotal: breakdown.subtotal,
     shippingBase: typeof shippingPricing.selectedRate?.cost === "number" ? shippingPricing.selectedRate.cost : null,
     shippingTotal,
-    automaticDiscount,
-    couponDiscount,
-    discountTotal,
-    total,
+    automaticDiscount: breakdown.automaticDiscount,
+    couponDiscount: breakdown.couponDiscount,
+    discountTotal: breakdown.discountTotal,
+    total: breakdown.total,
     appliedCoupon,
     appliedRules,
     isShippingPending: !shippingPricing.selectedRate,
