@@ -357,29 +357,29 @@ export function ShopProductPage() {
       compact
       eyebrowMode="raw"
       eyebrow={
-        <div className="flex flex-col items-start gap-3">
-          <Button
-            variant="profile"
-            size="sm"
-            onClick={handleBackNavigation}
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
-                <path d="M18 12H6" />
-                <path d="m11 17-5-5 5-5" />
-              </svg>
-            }
-          >
-            Torna indietro
-          </Button>
-          {heroBadge ? (
-            <span className="inline-flex rounded-full border border-[#e3f503]/30 bg-[#e3f503]/12 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
-              {heroBadge.label}
-            </span>
-          ) : null}
-        </div>
+        heroBadge ? (
+          <span className="inline-flex rounded-full border border-[#e3f503]/30 bg-[#e3f503]/12 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#eef879]">
+            {heroBadge.label}
+          </span>
+        ) : undefined
       }
       title={product.title}
       intro=""
+      actions={
+        <Button
+          variant="profile"
+          size="sm"
+          onClick={handleBackNavigation}
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+              <path d="M18 12H6" />
+              <path d="m11 17-5-5 5-5" />
+            </svg>
+          }
+        >
+          Torna indietro
+        </Button>
+      }
     >
       <div className="mx-auto w-full max-w-[1380px] space-y-8">
         <div className="grid w-full items-stretch gap-7 lg:grid-cols-[minmax(0,0.98fr)_minmax(0,0.94fr)] xl:gap-8">
