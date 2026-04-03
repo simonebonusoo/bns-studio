@@ -14,7 +14,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { readCatalogReturnState } from "../lib/catalog-return.mjs"
 import { readHomeReturnState } from "../lib/home-return.mjs"
-import { popProductReturnEntry, pushProductReturnEntry } from "../lib/product-return-stack.mjs"
+import { consumePreviousProductReturnEntry, pushProductReturnEntry } from "../lib/product-return-stack.mjs"
 import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { getRelatedProductsPageState, getRecentlyViewedProducts, upsertRecentlyViewedProduct } from "../lib/product-page-discovery.mjs"
 import { ShopLayout } from "../components/ShopLayout"
@@ -217,7 +217,7 @@ export function ShopProductPage() {
   }
 
   function handleBackNavigation() {
-    const previousProduct = popProductReturnEntry()
+    const previousProduct = consumePreviousProductReturnEntry(`/shop/${slug}`)
     if (previousProduct?.pathname && previousProduct.pathname !== `/shop/${slug}`) {
       navigate(previousProduct.pathname)
       return

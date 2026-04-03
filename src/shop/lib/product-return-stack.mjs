@@ -41,12 +41,22 @@ export function pushProductReturnEntry(entry, storage = typeof sessionStorage !=
   writeRawStack([...stack, normalized], storage)
 }
 
-export function popProductReturnEntry(storage = typeof sessionStorage !== "undefined" ? sessionStorage : null) {
+export function consumePreviousProductReturnEntry(currentPathname, storage = typeof sessionStorage !== "undefined" ? sessionStorage : null) {
   const stack = readRawStack(storage)
   if (!stack.length) return null
 
+  const normalizedCurrentPathname = String(currentPathname || "")
   const next = [...stack]
-  const entry = next.pop() || null
+
+  while (next.length && normalizedCurrentPathname && next[next.length - 1]?.pathname === normalizedCurrentPathname) {
+    next.pop()
+  }
+
+  let entry = next.pop() || null
+  while (entry?.pathname && normalizedCurrentPathname && entry.pathname === normalizedCurrentPathname) {
+    entry = next.pop() || null
+  }
+
   writeRawStack(next, storage)
   return entry
 }
