@@ -213,6 +213,7 @@ type TopBannerState = {
   enabled: boolean
   title: string
   subtitle: string
+  backgroundColor: string
   countdownEnabled: boolean
   countdownTarget: string
 }
@@ -220,6 +221,8 @@ type TopBannerState = {
 type MidBannerState = {
   enabled: boolean
   text: string
+  messages: string[]
+  backgroundColor: string
 }
 
 type OrderProfitSummary = {
@@ -1476,6 +1479,7 @@ export function ShopAdminPage() {
           { key: "bannerTopEnabled", value: String(topBanner.enabled) },
           { key: "bannerTopTitle", value: topBanner.title },
           { key: "bannerTopSubtitle", value: topBanner.subtitle },
+          { key: "bannerTopBackgroundColor", value: topBanner.backgroundColor },
           { key: "bannerTopCountdownEnabled", value: String(topBanner.countdownEnabled) },
           { key: "bannerTopCountdownTarget", value: topBanner.countdownTarget || "" },
         ]),
@@ -1495,7 +1499,9 @@ export function ShopAdminPage() {
         method: "PUT",
         body: JSON.stringify([
           { key: "bannerMidEnabled", value: String(midBanner.enabled) },
+          { key: "bannerMidBackgroundColor", value: midBanner.backgroundColor },
           { key: "bannerMidText", value: midBanner.text },
+          { key: "bannerMidMessages", value: JSON.stringify(midBanner.messages.filter((entry) => entry.trim())) },
         ]),
       })
       setSettings(data)

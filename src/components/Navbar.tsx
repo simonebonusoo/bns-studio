@@ -659,7 +659,7 @@ export function Navbar() {
   return (
     <>
       <header
-        className="fixed left-0 right-0 z-50"
+        className="fixed left-0 right-0 z-50 transition-[top] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
         style={{ ["--nav-h" as any]: `${navH}px`, top: scrolled ? "0px" : "var(--global-top-bars-h, 0px)" } as any}
       >
         <div className="relative">
@@ -668,7 +668,7 @@ export function Navbar() {
             className="pointer-events-none absolute inset-0 z-0"
             initial={false}
             animate={scrolled || searchOpen ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="absolute inset-0 bg-black/30 backdrop-blur-2xl" />
             <div className="absolute inset-0 backdrop-saturate-125" />
@@ -689,12 +689,7 @@ export function Navbar() {
 
           <div className={scrolled || searchOpen ? "bg-transparent" : "bg-black/15 backdrop-blur-sm"}>
             <Container>
-              <motion.div
-                initial={{ y: -12, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="relative z-20"
-              >
+              <motion.div initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} className="relative z-20">
                 <div className="flex min-h-[68px] items-center justify-between gap-3 py-3 md:hidden">
                   <div className="flex items-center gap-2">
                     <button

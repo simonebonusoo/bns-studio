@@ -1,5 +1,23 @@
 const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000
 const DEFAULT_TOP_TARGET = new Date(Date.now() + TWELVE_HOURS_MS).toISOString()
+const DEFAULT_TOP_COLOR = "#d32f2f"
+const DEFAULT_MID_COLOR = "#000000"
+
+function parseJsonArray(value) {
+  if (typeof value !== "string" || !value.trim()) return null
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function parseColor(value, fallback) {
+  if (typeof value !== "string") return fallback
+  const normalized = value.trim()
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized) ? normalized : fallback
+}
 
 function parseBoolean(value, fallback) {
   if (typeof value !== "string") return fallback
@@ -20,15 +38,23 @@ export function parseTopBannerSettings(settings = {}) {
     enabled: parseBoolean(settings.bannerTopEnabled, true),
     title: String(settings.bannerTopTitle || "SAVE 40% OFF"),
     subtitle: String(settings.bannerTopSubtitle || "Sale ends in:"),
+    backgroundColor: parseColor(settings.bannerTopBackgroundColor, DEFAULT_TOP_COLOR),
     countdownEnabled: parseBoolean(settings.bannerTopCountdownEnabled, true),
     countdownTarget: parseTarget(settings.bannerTopCountdownTarget),
   }
 }
 
 export function parseMidBannerSettings(settings = {}) {
+  const parsedMessages = parseJsonArray(settings.bannerMidMessages)
+  const normalizedMessages = (parsedMessages || [settings.bannerMidText || "3-5 DAYS FREE SHIPPING WORLDWIDE"])
+    .map((entry) => String(entry || "").trim())
+    .filter(Boolean)
+
   return {
     enabled: parseBoolean(settings.bannerMidEnabled, true),
-    text: String(settings.bannerMidText || "3-5 DAYS FREE SHIPPING WORLDWIDE"),
+    text: String(settings.bannerMidText || normalizedMessages[0] || "3-5 DAYS FREE SHIPPING WORLDWIDE"),
+    messages: normalizedMessages.length ? normalizedMessages : ["3-5 DAYS FREE SHIPPING WORLDWIDE"],
+    backgroundColor: parseColor(settings.bannerMidBackgroundColor, DEFAULT_MID_COLOR),
   }
 }
 

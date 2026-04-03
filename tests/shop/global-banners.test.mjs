@@ -17,25 +17,34 @@ test("banner settings parse defaults and custom values safely", () => {
 
   assert.equal(defaultsTop.enabled, true)
   assert.equal(defaultsTop.countdownEnabled, true)
+  assert.equal(defaultsTop.backgroundColor, "#d32f2f")
   assert.equal(defaultsMid.enabled, true)
+  assert.deepEqual(defaultsMid.messages, ["3-5 DAYS FREE SHIPPING WORLDWIDE"])
+  assert.equal(defaultsMid.backgroundColor, "#000000")
 
   const top = parseTopBannerSettings({
     bannerTopEnabled: "false",
     bannerTopTitle: "FLASH SALE",
     bannerTopSubtitle: "Ends soon",
+    bannerTopBackgroundColor: "#112233",
     bannerTopCountdownEnabled: "false",
     bannerTopCountdownTarget: "2026-04-10T12:00:00.000Z",
   })
   const mid = parseMidBannerSettings({
     bannerMidEnabled: "false",
     bannerMidText: "CUSTOM SHIPPING",
+    bannerMidBackgroundColor: "#445566",
+    bannerMidMessages: JSON.stringify(["FIRST", "SECOND"]),
   })
 
   assert.equal(top.enabled, false)
   assert.equal(top.title, "FLASH SALE")
+  assert.equal(top.backgroundColor, "#112233")
   assert.equal(top.countdownEnabled, false)
   assert.equal(mid.enabled, false)
   assert.equal(mid.text, "CUSTOM SHIPPING")
+  assert.deepEqual(mid.messages, ["FIRST", "SECOND"])
+  assert.equal(mid.backgroundColor, "#445566")
 })
 
 test("top bars offset reflects which banners are enabled", () => {
@@ -59,4 +68,10 @@ test("app, navbar and admin expose the new banner management flow", () => {
   assert.match(adminBannerSection, /Banner top/)
   assert.match(adminBannerSection, /Banner mid/)
   assert.match(adminBannerSection, /Countdown attivo/)
+  assert.match(adminBannerSection, /Aggiungi messaggio/)
+  assert.match(adminBannerSection, /type="color"/)
+  assert.match(app, /backgroundColor=\{topBanner\.backgroundColor\}/)
+  assert.match(app, /messages=\{midBanner\.messages\}/)
+  assert.match(read("src/components/TopPromoBar.tsx"), /G/)
+  assert.match(read("src/components/ShippingBar.tsx"), /ChevronLeftIcon/)
 })

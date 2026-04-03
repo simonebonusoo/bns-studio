@@ -4,6 +4,7 @@ type TopBannerState = {
   enabled: boolean
   title: string
   subtitle: string
+  backgroundColor: string
   countdownEnabled: boolean
   countdownTarget: string
 }
@@ -11,6 +12,8 @@ type TopBannerState = {
 type MidBannerState = {
   enabled: boolean
   text: string
+  messages: string[]
+  backgroundColor: string
 }
 
 type AdminBannerSectionProps = {
@@ -30,6 +33,13 @@ export function AdminBannerSection({
   onSaveTopBanner,
   onSaveMidBanner,
 }: AdminBannerSectionProps) {
+  function updateMidMessage(index: number, value: string) {
+    onMidBannerChange({
+      ...midBanner,
+      messages: midBanner.messages.map((entry, itemIndex) => (itemIndex === index ? value : entry)),
+    })
+  }
+
   return (
     <section className="space-y-6">
       <article className="shop-card space-y-5 p-6">
@@ -45,6 +55,22 @@ export function AdminBannerSection({
           <label className="space-y-2">
             <span className="text-sm text-white/70">Testo secondario</span>
             <input className="shop-input" value={topBanner.subtitle} onChange={(event) => onTopBannerChange({ ...topBanner, subtitle: event.target.value })} />
+          </label>
+          <label className="space-y-2">
+            <span className="text-sm text-white/70">Colore banner</span>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 px-3 py-2">
+              <input
+                type="color"
+                value={topBanner.backgroundColor}
+                onChange={(event) => onTopBannerChange({ ...topBanner, backgroundColor: event.target.value })}
+                className="h-10 w-14 cursor-pointer rounded border border-white/10 bg-transparent"
+              />
+              <input
+                className="shop-input"
+                value={topBanner.backgroundColor}
+                onChange={(event) => onTopBannerChange({ ...topBanner, backgroundColor: event.target.value })}
+              />
+            </div>
           </label>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -85,9 +111,53 @@ export function AdminBannerSection({
           <p className="mt-1 text-sm text-white/55">Gestisce la seconda barra testuale globale sotto al banner promo.</p>
         </div>
         <label className="space-y-2">
-          <span className="text-sm text-white/70">Testo banner</span>
-          <input className="shop-input" value={midBanner.text} onChange={(event) => onMidBannerChange({ ...midBanner, text: event.target.value })} />
+          <span className="text-sm text-white/70">Colore banner</span>
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 px-3 py-2">
+            <input
+              type="color"
+              value={midBanner.backgroundColor}
+              onChange={(event) => onMidBannerChange({ ...midBanner, backgroundColor: event.target.value })}
+              className="h-10 w-14 cursor-pointer rounded border border-white/10 bg-transparent"
+            />
+            <input
+              className="shop-input"
+              value={midBanner.backgroundColor}
+              onChange={(event) => onMidBannerChange({ ...midBanner, backgroundColor: event.target.value })}
+            />
+          </div>
         </label>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-white/70">Messaggi banner</span>
+            <Button
+              type="button"
+              variant="profile"
+              size="sm"
+              onClick={() => onMidBannerChange({ ...midBanner, messages: [...midBanner.messages, "Nuovo messaggio"] })}
+            >
+              Aggiungi messaggio
+            </Button>
+          </div>
+          {(midBanner.messages || []).map((message, index) => (
+            <div key={`banner-mid-${index}`} className="flex items-center gap-3">
+              <input className="shop-input" value={message} onChange={(event) => updateMidMessage(index, event.target.value)} />
+              <Button
+                type="button"
+                variant="profile"
+                size="sm"
+                disabled={midBanner.messages.length <= 1}
+                onClick={() =>
+                  onMidBannerChange({
+                    ...midBanner,
+                    messages: midBanner.messages.filter((_, itemIndex) => itemIndex !== index),
+                  })
+                }
+              >
+                Rimuovi
+              </Button>
+            </div>
+          ))}
+        </div>
         <label className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/75">
           <input type="checkbox" checked={midBanner.enabled} onChange={(event) => onMidBannerChange({ ...midBanner, enabled: event.target.checked })} />
           Banner attivo

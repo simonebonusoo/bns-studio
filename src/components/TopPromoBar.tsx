@@ -8,12 +8,14 @@ export function TopPromoBar({
   enabled = true,
   title = "SAVE 40% OFF",
   subtitle = "Sale ends in:",
+  backgroundColor = "#d32f2f",
   countdownEnabled = true,
   countdownTarget,
 }: {
   enabled?: boolean
   title?: string
   subtitle?: string
+  backgroundColor?: string
   countdownEnabled?: boolean
   countdownTarget?: string
 }) {
@@ -56,16 +58,16 @@ export function TopPromoBar({
   }, [remainingSeconds])
 
   return (
-    <div className="flex min-h-11 items-center bg-[#d32f2f] px-4 py-2 text-white">
+    <div className="flex min-h-11 items-center px-4 py-2 text-white transition-colors duration-300 ease-out" style={{ backgroundColor }}>
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-1 text-center sm:flex-row sm:gap-3">
         <span className="text-sm font-bold tracking-[0.18em] sm:text-base">{title}</span>
         {subtitle ? <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/85 sm:text-xs">{subtitle}</span> : null}
         {countdownEnabled ? (
           <div className="flex items-center gap-2 text-sm font-bold sm:text-base">
-            <span>{countdown.days}d</span>
-            <span>{countdown.hours}h</span>
-            <span>{countdown.minutes}m</span>
-            <span>{countdown.seconds}s</span>
+            <span>{countdown.days}G</span>
+            <span>{countdown.hours}H</span>
+            <span>{countdown.minutes}M</span>
+            <span>{countdown.seconds}S</span>
           </div>
         ) : null}
       </div>

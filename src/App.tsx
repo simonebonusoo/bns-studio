@@ -236,10 +236,16 @@ export default function App() {
             enabled={topBanner.enabled}
             title={topBanner.title}
             subtitle={topBanner.subtitle}
+            backgroundColor={topBanner.backgroundColor}
             countdownEnabled={topBanner.countdownEnabled}
             countdownTarget={topBanner.countdownTarget}
           />
-          <ShippingBar enabled={midBanner.enabled} text={midBanner.text} />
+          <ShippingBar
+            enabled={midBanner.enabled}
+            text={midBanner.text}
+            messages={midBanner.messages}
+            backgroundColor={midBanner.backgroundColor}
+          />
           <Navbar />
 
           <Routes>
