@@ -10,6 +10,7 @@ import { useShopAuth } from "../shop/context/ShopAuthProvider";
 import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
 import { buildHomeReturnState, persistHomeReturnState } from "../shop/lib/home-return.mjs";
+import { orderTrendingProducts, resolveTrendingProductIds } from "../shop/lib/trending-products.mjs";
 import type { AdminCollection, ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
@@ -501,10 +502,8 @@ export function HomeShop() {
   )
 
   const trendingProducts = useMemo(() => {
-    const featured = products.filter((product) => product.featured)
-    const others = products.filter((product) => !product.featured)
-    return [...featured, ...others].slice(0, 20)
-  }, [products])
+    return orderTrendingProducts(products, resolveTrendingProductIds(shopSettings.homepageTrendingProductIds, products))
+  }, [products, shopSettings.homepageTrendingProductIds])
 
   const catalogPreviewProducts = useMemo(() => {
     const featuredProducts = products.filter((product) => product.featured)
@@ -521,14 +520,26 @@ export function HomeShop() {
     <section id="shop" className="py-24 text-white sm:py-28">
       <Container className="space-y-20">
         <div className="space-y-8">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.32em] text-white/45">Poster di tendenza</p>
-            <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Poster di tendenza
-            </h2>
-            <p className="max-w-3xl text-sm leading-6 text-white/62 sm:text-base">
-              Scorri per scoprire le nostre tendenze e i pezzi che stanno guidando il catalogo in questo momento.
-            </p>
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.32em] text-white/45">Poster di tendenza</p>
+              <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Poster di tendenza
+              </h2>
+              <p className="max-w-3xl text-sm leading-6 text-white/62 sm:text-base">
+                Scorri per scoprire le nostre tendenze e i pezzi che stanno guidando il catalogo in questo momento.
+              </p>
+            </div>
+            {effectiveRole === "admin" ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="self-start md:self-auto"
+                onClick={() => navigate("/shop/admin?tab=tendenza")}
+              >
+                Modifica
+              </Button>
+            ) : null}
           </div>
 
           {trendingProducts.length ? (

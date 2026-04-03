@@ -12,10 +12,12 @@ import { AdminHomepageSection } from "../components/admin/AdminHomepageSection"
 import { AdminOrdersSection } from "../components/admin/AdminOrdersSection"
 import { AdminProductsSection } from "../components/admin/AdminProductsSection"
 import { AdminReviewsSection } from "../components/admin/AdminReviewsSection"
+import { AdminTrendingSection } from "../components/admin/AdminTrendingSection"
 import { AdminUsersSection } from "../components/admin/AdminUsersSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { normalizeProductFormStateForEdit } from "../lib/admin-product-edit.mjs"
+import { resolveTrendingProductIds } from "../lib/trending-products.mjs"
 import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
@@ -608,9 +610,10 @@ export function ShopAdminPage() {
   const [categories, setCategories] = useState<string[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
   const [shippingCostInput, setShippingCostInput] = useState("9")
-  const [tab, setTab] = useState<"prodotti" | "homepage" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti">("prodotti")
+  const [tab, setTab] = useState<"prodotti" | "homepage" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti">("prodotti")
   const [homepagePopularCategories, setHomepagePopularCategories] = useState<HomepagePopularCategory[]>(defaultHomepagePopularCategories)
   const [homepageShowcases, setHomepageShowcases] = useState<HomepageShowcase[]>(defaultHomepageShowcases)
+  const [trendingProductIds, setTrendingProductIds] = useState<number[]>([])
   const [homepageFocus, setHomepageFocus] = useState<{ section: "showcases" | "popular-categories"; item: number | null }>({
     section: "showcases",
     item: null,
@@ -623,6 +626,7 @@ export function ShopAdminPage() {
   const [productSearch, setProductSearch] = useState("")
   const [productCategoryFilter, setProductCategoryFilter] = useState("")
   const [productStatusFilter, setProductStatusFilter] = useState<"all" | ProductStatus>("all")
+  const [allProductsForTrending, setAllProductsForTrending] = useState<ShopProduct[]>([])
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([])
   const [productTouchedFields, setProductTouchedFields] = useState<ProductTouchedState>({})
   const [updatingHomeProductId, setUpdatingHomeProductId] = useState<number | null>(null)
@@ -683,8 +687,18 @@ export function ShopAdminPage() {
 
   useEffect(() => {
     const nextTab = searchParams.get("tab")
-    if (nextTab === "homepage") {
-      setTab("homepage")
+    if (
+      nextTab === "homepage" ||
+      nextTab === "tendenza" ||
+      nextTab === "prodotti" ||
+      nextTab === "recensioni" ||
+      nextTab === "ordini" ||
+      nextTab === "archivio" ||
+      nextTab === "utenti" ||
+      nextTab === "data" ||
+      nextTab === "sconti"
+    ) {
+      setTab(nextTab)
     }
 
     const section = searchParams.get("section")
@@ -728,7 +742,8 @@ export function ShopAdminPage() {
   useEffect(() => {
     setHomepagePopularCategories(parseHomepagePopularCategoriesSetting(settingValue("homepagePopularCategories"), defaultHomepagePopularCategories))
     setHomepageShowcases(parseHomepageShowcasesSetting(settingValue("homepageShowcases"), defaultHomepageShowcases, collections))
-  }, [collections, settings])
+    setTrendingProductIds(resolveTrendingProductIds(settingValue("homepageTrendingProductIds"), allProductsForTrending))
+  }, [allProductsForTrending, collections, settings])
 
   async function refreshProducts() {
     const params = new URLSearchParams()
@@ -741,8 +756,9 @@ export function ShopAdminPage() {
   }
 
   async function refresh() {
-    const [, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData, collectionsData, archivedReviewData, archivedOrderData] = await Promise.all([
+    const [, allProductsData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData, collectionsData, archivedReviewData, archivedOrderData] = await Promise.all([
       refreshProducts(),
+      apiFetch<ShopProduct[]>("/admin/products"),
       apiFetch<AdminReview[]>("/admin/reviews"),
       apiFetch<ShopOrder[]>("/admin/orders"),
       apiFetch<AdminUsersResponse>("/admin/users"),
@@ -757,6 +773,7 @@ export function ShopAdminPage() {
       apiFetch<ShopOrder[]>("/admin/archive/orders"),
     ])
 
+    setAllProductsForTrending(allProductsData)
     setReviews(reviewData)
     setArchivedReviews(archivedReviewData)
     setOrders(orderData)
@@ -1416,6 +1433,20 @@ export function ShopAdminPage() {
     }
   }
 
+  async function saveTrendingProducts() {
+    clearFeedback()
+    try {
+      const data = await apiFetch<SettingEntry[]>("/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify([{ key: "homepageTrendingProductIds", value: JSON.stringify(trendingProductIds) }]),
+      })
+      setSettings(data)
+      setMessage("Poster di tendenza aggiornati correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il salvataggio della sezione Tendenza.")
+    }
+  }
+
   return (
     <ShopLayout
       eyebrow="Admin"
@@ -1442,6 +1473,7 @@ export function ShopAdminPage() {
         {[
           ["prodotti", "Prodotti"],
           ["homepage", "Homepage"],
+          ["tendenza", "Tendenza"],
           ["recensioni", "Recensioni"],
           ["ordini", "Ordini"],
           ["archivio", "Archivio"],
@@ -1452,7 +1484,7 @@ export function ShopAdminPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setTab(key as "prodotti" | "homepage" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti")}
+            onClick={() => setTab(key as "prodotti" | "homepage" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti")}
             className={getButtonClassName({ variant: tab === key ? "cart" : "profile", size: "sm" })}
           >
             {label}
@@ -1571,6 +1603,15 @@ export function ShopAdminPage() {
               setError(err instanceof Error ? err.message : "Errore durante l'upload dell'immagine categoria.")
             }
           }}
+        />
+      ) : null}
+
+      {tab === "tendenza" ? (
+        <AdminTrendingSection
+          products={allProductsForTrending}
+          trendingProductIds={trendingProductIds}
+          setTrendingProductIds={setTrendingProductIds}
+          onSave={saveTrendingProducts}
         />
       ) : null}
 
