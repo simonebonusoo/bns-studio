@@ -20,6 +20,8 @@ export function AdminTrendingSection({
   onSave,
 }: AdminTrendingSectionProps) {
   const [draggedProductId, setDraggedProductId] = useState<number | null>(null)
+  const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title_asc">("newest")
 
   const selectedProducts = useMemo(() => {
     const productMap = new Map((products ?? []).map((product) => [product.id, product]))
@@ -27,6 +29,33 @@ export function AdminTrendingSection({
       .map((id) => productMap.get(id))
       .filter((product): product is ShopProduct => Boolean(product))
   }, [products, trendingProductIds])
+
+  const visibleProducts = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+    const filtered = (products ?? []).filter((product) => {
+      if (!normalizedSearch) return true
+      const haystack = [product.title, product.slug, product.sku || ""].join(" ").toLowerCase()
+      return haystack.includes(normalizedSearch)
+    })
+
+    const next = [...filtered]
+    next.sort((left, right) => {
+      if (sortBy === "title_asc") {
+        return left.title.localeCompare(right.title, "it", { sensitivity: "base" })
+      }
+
+      const leftDate = new Date(left.createdAt || 0).getTime()
+      const rightDate = new Date(right.createdAt || 0).getTime()
+
+      if (sortBy === "oldest") {
+        return leftDate - rightDate
+      }
+
+      return rightDate - leftDate
+    })
+
+    return next
+  }, [products, search, sortBy])
 
   function toggleProduct(productId, checked) {
     setTrendingProductIds((current) => {
@@ -114,8 +143,22 @@ export function AdminTrendingSection({
           <p className="mt-1 text-sm text-white/55">Attiva o disattiva i poster che devono comparire nella sezione pubblica.</p>
         </div>
 
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+          <input
+            className="shop-input"
+            placeholder="Cerca poster"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <select className="shop-select" value={sortBy} onChange={(event) => setSortBy(event.target.value as "newest" | "oldest" | "title_asc")}>
+            <option value="newest">Ultimo aggiunto</option>
+            <option value="oldest">Primo aggiunto</option>
+            <option value="title_asc">Ordine alfabetico</option>
+          </select>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {(products ?? []).map((product) => {
+          {visibleProducts.map((product) => {
             const isSelected = (trendingProductIds ?? []).includes(product.id)
             return (
               <article key={product.id} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
@@ -152,6 +195,11 @@ export function AdminTrendingSection({
             )
           })}
         </div>
+        {!visibleProducts.length ? (
+          <div className="rounded-[22px] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-white/50">
+            Nessun poster trovato con i filtri attuali.
+          </div>
+        ) : null}
       </article>
     </section>
   )

@@ -60,5 +60,8 @@ test("homepage and admin expose the dedicated trending controls", () => {
   assert.match(adminTrendingSection, /Salva tendenza/)
   assert.match(adminTrendingSection, /draggable/)
   assert.match(adminTrendingSection, /Tick/)
+  assert.match(adminTrendingSection, /Cerca poster/)
+  assert.match(adminTrendingSection, /Ultimo aggiunto/)
+  assert.match(adminTrendingSection, /Primo aggiunto/)
+  assert.match(adminTrendingSection, /Ordine alfabetico/)
 })
-
