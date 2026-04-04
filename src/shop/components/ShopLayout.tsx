@@ -18,7 +18,7 @@ export function ShopLayout({
   compact?: boolean
 }) {
   return (
-    <main className={`pb-24 ${compact ? "pt-3 md:pt-4" : "pt-6 md:pt-10"}`}>
+    <main className="pb-24">
       <Container>
         <section className={`px-0 ${compact ? "py-5 md:py-6" : "py-8 md:py-12"}`}>
           <div className="flex flex-col gap-8">
