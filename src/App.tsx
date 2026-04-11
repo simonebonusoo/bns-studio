@@ -267,9 +267,7 @@ export default function App() {
   return (
     <ShopAuthProvider>
       <ShopCartProvider>
-        <div
-          className="min-h-screen overflow-x-clip bg-ink text-white"
-        >
+        <div className="min-h-screen bg-ink text-white">
           <Backdrop />
           <Noise />
           <TopPromoBar

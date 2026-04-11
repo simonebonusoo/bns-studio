@@ -53,7 +53,7 @@ test("App disables browser scroll restoration and resets home to top on reload",
   assert.match(app, /clearHomeReturnState\(\)/)
   assert.match(app, /resetHomeTop/)
   assert.match(app, /window\.dispatchEvent\(new Event\("scroll"\)\)/)
-  assert.match(app, /overflow-x-clip/)
+  assert.doesNotMatch(app, /min-h-screen overflow-x-clip bg-ink/)
   assert.doesNotMatch(app, /min-h-screen overflow-x-hidden bg-ink/)
 })
 
@@ -69,4 +69,5 @@ test("Navbar logo forces a home-top reset instead of using generic anchor restor
   assert.doesNotMatch(navbar, /window\.addEventListener\("scroll"/)
   assert.doesNotMatch(navbar, /h-\[76px\] md:h-\[92px\]/)
   assert.match(styles, /overflow-x: clip/)
+  assert.doesNotMatch(styles, /overflow-y: auto/)
 })
