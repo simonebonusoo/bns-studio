@@ -217,7 +217,7 @@ section {
 
 /* Overflow e altezza pagina (override della regola sopra html, body { height:100% }) */
 html, body {
-  overflow-x: hidden; /* Niente scroll orizzontale */
+  overflow-x: clip;   /* Niente scroll orizzontale senza interferire con sticky */
   overflow-y: auto;   /* Scroll verticale */
   height: auto;       /* Override: altezza automatica */
 }

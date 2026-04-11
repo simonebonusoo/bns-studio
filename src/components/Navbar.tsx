@@ -2371,8 +2371,6 @@ export function Navbar() {
           )
         ) : null}
       </AnimatePresence>
-
-      <div className="h-[76px] md:h-[92px]" />
     </>
   )
 }

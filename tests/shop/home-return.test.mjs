@@ -59,6 +59,7 @@ test("App disables browser scroll restoration and resets home to top on reload",
 
 test("Navbar logo forces a home-top reset instead of using generic anchor restore", () => {
   const navbar = read("src/components/Navbar.tsx")
+  const styles = read("src/styles.css")
 
   assert.match(navbar, /function handleLogoClick/)
   assert.match(navbar, /navigate\("\/", \{ state: \{ resetHomeTop: true \} \}\)/)
@@ -66,4 +67,6 @@ test("Navbar logo forces a home-top reset instead of using generic anchor restor
   assert.match(navbar, /function resetHeaderState/)
   assert.doesNotMatch(navbar, /setScrolled/)
   assert.doesNotMatch(navbar, /window\.addEventListener\("scroll"/)
+  assert.doesNotMatch(navbar, /h-\[76px\] md:h-\[92px\]/)
+  assert.match(styles, /overflow-x: clip/)
 })
