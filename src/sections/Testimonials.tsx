@@ -36,6 +36,48 @@ function RatingDots({ rating }: { rating: number }) {
   )
 }
 
+function StarRatingInput({
+  value,
+  hoverValue,
+  onChange,
+  onHover,
+}: {
+  value: number
+  hoverValue: number
+  onChange: (value: number) => void
+  onHover: (value: number) => void
+}) {
+  const previewValue = hoverValue || value
+
+  return (
+    <div className="flex items-center gap-2" onMouseLeave={() => onHover(0)}>
+      {Array.from({ length: 5 }).map((_, index) => {
+        const ratingValue = index + 1
+        const active = ratingValue <= previewValue
+
+        return (
+          <button
+            key={ratingValue}
+            type="button"
+            onClick={() => onChange(ratingValue)}
+            onMouseEnter={() => onHover(ratingValue)}
+            className={`rounded-full p-1 transition focus:outline-none focus:ring-2 focus:ring-[#e3f503]/50 ${
+              active ? "text-[#e3f503]" : "text-white/24 hover:text-white/70"
+            }`}
+            aria-label={`Seleziona ${ratingValue} stelle`}
+            aria-pressed={value === ratingValue}
+          >
+            <svg viewBox="0 0 24 24" className="h-8 w-8" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+              <path d="m12 3.8 2.45 4.96 5.48.8-3.96 3.86.93 5.46L12 16.3l-4.9 2.58.93-5.46-3.96-3.86 5.48-.8L12 3.8Z" />
+            </svg>
+          </button>
+        )
+      })}
+      <span className="ml-2 text-sm text-white/55">{value}/5</span>
+    </div>
+  )
+}
+
 function formatReviewDate(value: string) {
   return new Intl.DateTimeFormat("it-IT", {
     month: "short",
@@ -50,6 +92,7 @@ export function Testimonials() {
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState("")
   const [error, setError] = useState("")
+  const [hoverRating, setHoverRating] = useState(0)
   const [form, setForm] = useState({
     rating: 5,
     title: "",
@@ -125,44 +168,21 @@ export function Testimonials() {
         >
           <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 md:p-7">
             <div className="max-w-none">
-              <p className="text-xs uppercase tracking-[0.24em] text-white/45">Lascia una recensione</p>
-              <h3 className="mt-3 text-2xl font-semibold text-white">Racconta la tua esperienza con BNS Studio.</h3>
-              <p className="mt-3 text-sm leading-7 text-white/65">
+              <h3 className="text-2xl font-semibold text-white">Racconta la tua esperienza con BNS Studio.</h3>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-white/65">
                 Puoi compilare il form subito. Ti chiederemo l&apos;accesso solo al momento della pubblicazione.
               </p>
             </div>
 
-              <form onSubmit={submitReview} className="mt-6 grid gap-4">
-                <div className="grid gap-4 lg:grid-cols-[150px_180px_minmax(0,1fr)]">
-                  <div>
-                    <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Valutazione</label>
-                    <select
-                      className="shop-select"
-                      value={form.rating}
-                      onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-                    >
-                      {[5, 4, 3, 2, 1].map((value) => (
-                        <option key={value} value={value}>
-                          {value} / 5
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/45">Tag recensione</label>
-                    <select
-                      className="shop-select"
-                      value={form.tag}
-                      onChange={(event) => setForm((current) => ({ ...current, tag: event.target.value as (typeof reviewTagOptions)[number] }))}
-                    >
-                      {reviewTagOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <form onSubmit={submitReview} className="mt-7 grid gap-5">
+                <div>
+                  <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-white/45">Stelle</label>
+                  <StarRatingInput
+                    value={form.rating}
+                    hoverValue={hoverRating}
+                    onChange={(rating) => setForm((current) => ({ ...current, rating }))}
+                    onHover={setHoverRating}
+                  />
                 </div>
 
                 <div>
@@ -171,7 +191,7 @@ export function Testimonials() {
                     className="shop-input"
                     value={form.title}
                     onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                    placeholder="Titolo breve e chiaro"
+                    placeholder="Titolo della tua esperienza"
                     minLength={3}
                     maxLength={80}
                     required
@@ -184,7 +204,7 @@ export function Testimonials() {
                     className="shop-textarea min-h-24 resize-none"
                     value={form.body}
                     onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
-                    placeholder="Racconta com'è andato l'acquisto, il prodotto e l'esperienza complessiva."
+                    placeholder="Scrivi la tua esperienza con BNS Studio..."
                     minLength={20}
                     maxLength={600}
                     required
