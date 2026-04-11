@@ -29,26 +29,46 @@ export const ABOUT_PAGE_SETTINGS_KEY = "staticPage.about"
 export const PRIVACY_PAGE_SETTINGS_KEY = "staticPage.privacy"
 
 export const defaultAboutContent: AboutPageContent = {
-  eyebrow: "Chi siamo",
+  eyebrow: "MISSION",
   title: "Chi siamo",
   intro:
-    "BNS Studio nasce per mettere insieme direzione creativa, contenuti digitali e strumenti operativi. Costruiamo identita visive, pagine editoriali e sistemi shop con un approccio concreto: ogni scelta deve rendere il brand piu chiaro, riconoscibile e facile da gestire.",
+    "BNS Studio nasce per trasformare idee in realta concrete, unendo creativita, design e intelligenza artificiale. Siamo uno studio creativo indipendente che lavora all'intersezione tra identita, contenuti, esperienze digitali e prodotti. Non offriamo semplici servizi: costruiamo ecosistemi di brand pensati per durare, distinguersi e diventare operativi nel mondo reale.",
   introImageUrl: "",
   sections: [
     {
-      title: "Un sistema, non una vetrina",
+      title: "Cosa facciamo",
       body:
-        "Ogni progetto viene trattato come un sistema: struttura dei contenuti, gerarchia visiva, immagini, microcopy, catalogo e strumenti admin devono parlare la stessa lingua. Il risultato deve funzionare per chi guarda e per chi lo aggiorna ogni giorno.",
+        "Aiutiamo brand, aziende e creator a trasformare idee iniziali in identita visive, contenuti, prodotti e sistemi digitali pronti per il mercato. Dall'impostazione strategica alla realizzazione concreta, costruiamo ogni elemento necessario per dare forma a un brand completo, riconoscibile e contemporaneo.",
     },
     {
-      title: "Dal visual alla gestione",
+      title: "Brand & Identity",
       body:
-        "Seguiamo identita, landing page, contenuti editoriali, cataloghi, prodotti digitali e shop integrati. La parte estetica resta collegata alla parte operativa: vendita, profilo cliente, ordini, contenuti e dashboard devono rimanere coerenti.",
+        "Progettiamo brand identity complete, logo design, visual systems e direzione artistica. Il lavoro non si ferma al segno grafico: definiamo coerenza tra visual, linguaggio, struttura, presenza online e materiali operativi, cosi che il brand possa essere riconosciuto e usato con continuita.",
     },
     {
-      title: "Metodo pulito",
+      title: "AI Visual Production",
       body:
-        "Preferiamo soluzioni essenziali, leggibili e mantenibili. Prima si chiarisce il messaggio, poi si costruisce il layout, poi si rifinisce l'esperienza. Niente decorazione gratuita: solo elementi che aiutano identita, conversione o gestione.",
+        "Usiamo contenuti generati e assistiti con AI per shooting fotografici, campagne pubblicitarie, concept avanzati e visual production. L'AI non sostituisce la direzione creativa: la rende piu rapida, piu flessibile e piu precisa quando serve costruire immagini, mood e contenuti ad alto impatto.",
+    },
+    {
+      title: "Web & Digital",
+      body:
+        "Progettiamo e sviluppiamo siti web, e-commerce, landing page strategiche e interfacce UX/UI. Ogni pagina viene pensata per tenere insieme design, contenuti, conversione e operativita: non solo bella da guardare, ma chiara da usare e sostenibile da gestire.",
+    },
+    {
+      title: "Strategy",
+      body:
+        "Lavoriamo su brand positioning, direzione creativa, strategie di comunicazione e sviluppo concept. Prima di costruire una pagina, un visual o una campagna, definiamo il punto di vista: cosa deve dire il brand, a chi parla e perche dovrebbe essere ricordato.",
+    },
+    {
+      title: "Products & Shop",
+      body:
+        "Il nostro shop e parte del progetto BNS Studio: un catalogo editoriale e visivo dove vendiamo poster originali, prodotti creativi e merchandising. Realizziamo anche poster personalizzati, collezioni creative e sistemi e-commerce pensati per collegare prodotto, immagine e identita.",
+    },
+    {
+      title: "Software & AI Tools",
+      body:
+        "Sviluppiamo tool interni, automazioni AI e software creativi per semplificare processi, produzione contenuti e gestione operativa. Quando serve, il progetto non si limita al visual: diventa uno strumento concreto che aiuta il brand a lavorare meglio.",
     },
   ],
   staffTitle: "Il nostro staff",
@@ -62,8 +82,7 @@ export const defaultAboutContent: AboutPageContent = {
       imageUrl: "",
     },
   ],
-  closing:
-    "BNS Studio lavora su progetti digitali che devono essere belli da vedere, semplici da usare e concreti da mantenere nel tempo.",
+  closing: "",
 }
 
 export const defaultPrivacyContent: StaticPageContent = {
@@ -187,6 +206,7 @@ export function parseAboutPageContent(rawValue: string | undefined, fallback: Ab
       staffTitle: String(parsed.staffTitle || fallback.staffTitle).trim(),
       staffIntro: String(parsed.staffIntro || fallback.staffIntro).trim(),
       staff: staff.length ? staff : fallback.staff,
+      closing: "",
     }
   } catch {
     return fallback

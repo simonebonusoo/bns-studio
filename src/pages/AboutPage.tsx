@@ -15,7 +15,8 @@ import {
 function withDefaultImages(content: AboutPageContent): AboutPageContent {
   return {
     ...content,
-    introImageUrl: content.introImageUrl || founderImageUrl,
+    introImageUrl: "",
+    closing: "",
     staff: content.staff.map((member) => ({
       ...member,
       imageUrl: member.imageUrl || (member.id === "simone-bonuse" ? founderImageUrl : ""),
@@ -80,6 +81,40 @@ export function AboutPage() {
     }))
   }
 
+  function addSection() {
+    setDraft((current) => ({
+      ...current,
+      sections: [
+        ...current.sections,
+        {
+          title: "Nuova sezione",
+          body: "Scrivi qui il testo della nuova sezione editoriale.",
+        },
+      ],
+    }))
+  }
+
+  function removeSection(index: number) {
+    setDraft((current) => ({
+      ...current,
+      sections: current.sections.filter((_, itemIndex) => itemIndex !== index),
+    }))
+  }
+
+  function moveSection(index: number, direction: -1 | 1) {
+    setDraft((current) => {
+      const targetIndex = index + direction
+      if (targetIndex < 0 || targetIndex >= current.sections.length) return current
+      const nextSections = [...current.sections]
+      const [moved] = nextSections.splice(index, 1)
+      nextSections.splice(targetIndex, 0, moved)
+      return {
+        ...current,
+        sections: nextSections,
+      }
+    })
+  }
+
   function updateStaff(index: number, key: "name" | "role" | "imageUrl", value: string) {
     setDraft((current) => ({
       ...current,
@@ -95,18 +130,6 @@ export function AboutPage() {
       body: formData,
     })
     return data.files?.[0]?.url || ""
-  }
-
-  async function uploadIntroImage(files: FileList | null) {
-    const file = files?.[0]
-    if (!file) return
-    setError("")
-    try {
-      const imageUrl = await uploadImage(file)
-      if (imageUrl) updateDraft("introImageUrl", imageUrl)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante il caricamento dell'immagine.")
-    }
   }
 
   async function uploadStaffImage(index: number, files: FileList | null) {
@@ -146,7 +169,7 @@ export function AboutPage() {
   async function saveContent() {
     setError("")
     setMessage("")
-    const nextContent = withDefaultImages(parseAboutPageContent(JSON.stringify(draft), fallbackContent))
+    const nextContent = withDefaultImages(parseAboutPageContent(JSON.stringify({ ...draft, closing: "" }), fallbackContent))
 
     try {
       setSaving(true)
@@ -178,8 +201,8 @@ export function AboutPage() {
     <main className="pb-24 pt-14 md:pt-18">
       <Container>
         <div className="mx-auto w-full max-w-7xl space-y-16">
-          <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.68fr)]">
-            <div className="space-y-6">
+          <section className="rounded-[38px] border border-white/10 bg-white/[0.025] px-5 py-8 md:px-10 md:py-12">
+            <div className="space-y-7">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-4">
                   {editing ? (
@@ -235,48 +258,37 @@ export function AboutPage() {
                 ) : null}
               </div>
 
-              {editing ? (
-                <textarea
-                  className="shop-input min-h-56 text-base leading-8"
-                  value={draft.intro}
-                  onChange={(event) => updateDraft("intro", event.target.value)}
-                  aria-label="Testo introduttivo Chi siamo"
-                />
-              ) : (
-                <p className="max-w-4xl text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
-              )}
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(220px,0.22fr)]">
+                {editing ? (
+                  <textarea
+                    className="shop-input min-h-64 text-base leading-8"
+                    value={draft.intro}
+                    onChange={(event) => updateDraft("intro", event.target.value)}
+                    aria-label="Testo introduttivo Chi siamo"
+                  />
+                ) : (
+                  <p className="max-w-5xl text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
+                )}
+
+                <div className="rounded-[28px] border border-white/10 bg-black/20 p-5 text-sm leading-7 text-white/58">
+                  Non ci limitiamo a progettare: costruiamo ciò che serve perché un'idea diventi un brand reale.
+                </div>
+              </div>
 
               {loading ? <p className="text-sm text-white/45">Caricamento contenuti...</p> : null}
               {message ? <p className="text-sm text-emerald-200/80">{message}</p> : null}
               {error ? <p className="text-sm text-red-200/80">{error}</p> : null}
             </div>
-
-            <div className="space-y-3">
-              <div className="overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.035] shadow-[0_24px_80px_rgba(0,0,0,.22)]">
-                {displayContent.introImageUrl ? (
-                  <img src={displayContent.introImageUrl} alt="BNS Studio" className="aspect-[4/5] w-full object-cover" />
-                ) : (
-                  <div className="flex aspect-[4/5] items-center justify-center text-sm text-white/45">Nessuna immagine</div>
-                )}
-              </div>
-              {editing ? (
-                <label className="inline-flex cursor-pointer rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white">
-                  Sostituisci immagine intro
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(event) => {
-                      void uploadIntroImage(event.target.files)
-                      event.currentTarget.value = ""
-                    }}
-                  />
-                </label>
-              ) : null}
-            </div>
           </section>
 
           <section className="space-y-10">
+            {editing ? (
+              <div className="flex justify-end">
+                <button type="button" onClick={addSection} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                  Aggiungi sezione
+                </button>
+              </div>
+            ) : null}
             {displayContent.sections.map((section, index) => (
               <article
                 key={`${section.title}-${index}`}
@@ -284,14 +296,27 @@ export function AboutPage() {
               >
                 {editing ? (
                   <>
-                    <input
-                      className="shop-input text-2xl font-semibold"
-                      value={draft.sections[index]?.title || ""}
-                      onChange={(event) => updateSection(index, "title", event.target.value)}
-                      aria-label={`Titolo blocco editoriale ${index + 1}`}
-                    />
+                    <div className="space-y-3">
+                      <input
+                        className="shop-input text-2xl font-semibold"
+                        value={draft.sections[index]?.title || ""}
+                        onChange={(event) => updateSection(index, "title", event.target.value)}
+                        aria-label={`Titolo blocco editoriale ${index + 1}`}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => moveSection(index, -1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                          Su
+                        </button>
+                        <button type="button" onClick={() => moveSection(index, 1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                          Giu
+                        </button>
+                        <button type="button" onClick={() => removeSection(index)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                          Rimuovi
+                        </button>
+                      </div>
+                    </div>
                     <textarea
-                      className="shop-input min-h-36 text-base leading-8"
+                      className="shop-input min-h-44 text-base leading-8"
                       value={draft.sections[index]?.body || ""}
                       onChange={(event) => updateSection(index, "body", event.target.value)}
                       aria-label={`Testo blocco editoriale ${index + 1}`}
@@ -340,17 +365,17 @@ export function AboutPage() {
               ) : null}
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {displayContent.staff.map((member, index) => (
-                <article key={member.id} className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.03]">
-                  <div className="aspect-[4/5] bg-white/[0.04]">
+                <article key={member.id} className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03]">
+                  <div className="aspect-square bg-white/[0.04]">
                     {member.imageUrl ? (
                       <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-sm text-white/45">Foto staff</div>
                     )}
                   </div>
-                  <div className="space-y-3 p-5">
+                  <div className="space-y-3 p-4">
                     {editing ? (
                       <>
                         <input
@@ -389,8 +414,8 @@ export function AboutPage() {
                       </>
                     ) : (
                       <>
-                        <h3 className="text-xl font-semibold text-white">{member.name}</h3>
-                        <p className="text-sm uppercase tracking-[0.18em] text-white/50">{member.role}</p>
+                        <h3 className="text-base font-semibold text-white">{member.name}</h3>
+                        <p className="text-xs uppercase tracking-[0.18em] text-white/50">{member.role}</p>
                       </>
                     )}
                   </div>
@@ -399,20 +424,6 @@ export function AboutPage() {
             </div>
           </section>
 
-          {(editing || displayContent.closing) ? (
-            <section className="border-t border-white/10 pt-10">
-              {editing ? (
-                <textarea
-                  className="shop-input min-h-28 text-base leading-8"
-                  value={draft.closing || ""}
-                  onChange={(event) => updateDraft("closing", event.target.value)}
-                  aria-label="Chiusura Chi siamo"
-                />
-              ) : (
-                <p className="max-w-5xl text-xl leading-9 text-white/76">{displayContent.closing}</p>
-              )}
-            </section>
-          ) : null}
         </div>
       </Container>
     </main>
