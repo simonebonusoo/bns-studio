@@ -69,6 +69,29 @@ export function EditableStaticPage({ settingsKey, fallbackContent }: EditableSta
     }))
   }
 
+  function addSection() {
+    setDraft((current) => ({
+      ...current,
+      sections: [
+        ...current.sections,
+        {
+          title: "Nuova sezione",
+          body: "Scrivi qui il testo della nuova sezione.",
+        },
+      ],
+    }))
+  }
+
+  function removeSection(index: number) {
+    const confirmed = window.confirm("Eliminare questa sezione?")
+    if (!confirmed) return
+
+    setDraft((current) => ({
+      ...current,
+      sections: current.sections.filter((_, itemIndex) => itemIndex !== index),
+    }))
+  }
+
   async function saveContent() {
     setError("")
     setMessage("")
@@ -176,17 +199,34 @@ export function EditableStaticPage({ settingsKey, fallbackContent }: EditableSta
             {error ? <p className="mt-6 text-sm text-red-200/80">{error}</p> : null}
           </div>
 
+          {editing ? (
+            <div className="flex justify-end">
+              <button type="button" onClick={addSection} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                Aggiungi sezione
+              </button>
+            </div>
+          ) : null}
+
           <section className="grid gap-5 lg:grid-cols-2">
             {displayContent.sections.map((section, index) => (
               <article key={`${section.title}-${index}`} className="rounded-[30px] border border-white/10 bg-white/[0.03] p-6 md:p-7">
                 {editing ? (
                   <div className="space-y-4">
-                    <input
-                      className="shop-input text-xl font-semibold"
-                      value={draft.sections[index]?.title || ""}
-                      onChange={(event) => updateSection(index, "title", event.target.value)}
-                      aria-label={`Titolo sezione ${index + 1}`}
-                    />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <input
+                        className="shop-input text-xl font-semibold"
+                        value={draft.sections[index]?.title || ""}
+                        onChange={(event) => updateSection(index, "title", event.target.value)}
+                        aria-label={`Titolo sezione ${index + 1}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSection(index)}
+                        className="rounded-full border border-red-200/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-red-100/75 transition hover:border-red-200/40 hover:text-red-50"
+                      >
+                        Elimina
+                      </button>
+                    </div>
                     <textarea
                       className="shop-input min-h-44 text-sm leading-7"
                       value={draft.sections[index]?.body || ""}
