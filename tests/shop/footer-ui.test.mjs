@@ -13,7 +13,8 @@ test("footer keeps clean PayPal mark and removes LinkedIn social icon", () => {
   const footer = read("src/sections/Footer.tsx")
 
   assert.match(footer, /function PayPalMark/)
-  assert.match(footer, /Pagamento sicuro/)
+  assert.match(footer, /h-7/)
+  assert.doesNotMatch(footer, /Pagamento sicuro/)
   assert.match(footer, /text-\[#003087\]/)
   assert.match(footer, /text-\[#009cde\]/)
   assert.doesNotMatch(footer, /SiLinkedin/)

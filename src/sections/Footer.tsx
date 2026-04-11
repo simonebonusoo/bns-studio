@@ -9,7 +9,7 @@ function PayPalMark() {
   return (
     <span
       aria-hidden
-      className="inline-flex h-6 items-center rounded-md bg-white px-2 text-[13px] font-bold tracking-[-0.03em] text-[#003087]"
+      className="inline-flex h-7 items-center rounded-md bg-white px-2.5 text-[15px] font-bold tracking-[-0.03em] text-[#003087]"
     >
       Pay<span className="text-[#009cde]">Pal</span>
     </span>
@@ -81,9 +81,8 @@ export function Footer() {
             className="flex flex-col items-center gap-3"
           >
             <div className="text-[11px] uppercase tracking-[0.24em] text-white/45">Pagamenti accettati</div>
-            <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+            <div className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
               <PayPalMark />
-              <span className="text-sm text-white/75">Pagamento sicuro</span>
             </div>
           </motion.div>
 
