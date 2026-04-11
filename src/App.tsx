@@ -45,6 +45,22 @@ declare global {
   }
 }
 
+const GLOBAL_SETTINGS_CACHE_KEY = "bns-shop-global-settings-v1"
+
+function readCachedGlobalSettings() {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.localStorage.getItem(GLOBAL_SETTINGS_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, string>)
+      : null
+  } catch {
+    return null
+  }
+}
+
 function Home() {
   const location = useLocation()
 
@@ -110,7 +126,8 @@ export default function App() {
 
   const lenisRef = useRef<Lenis | null>(null)
   const rafRef = useRef<number>(0)
-  const [globalSettings, setGlobalSettings] = useState<Record<string, string>>({})
+  const [globalSettings, setGlobalSettings] = useState<Record<string, string>>(() => readCachedGlobalSettings() || {})
+  const [globalSettingsLoaded, setGlobalSettingsLoaded] = useState(() => Boolean(readCachedGlobalSettings()))
 
   const pathnameRef = useRef(location.pathname)
   useEffect(() => {
@@ -239,11 +256,14 @@ export default function App() {
       try {
         const data = await apiFetch<Record<string, string>>("/store/settings")
         if (!cancelled) {
-          setGlobalSettings(data || {})
+          const nextSettings = data || {}
+          setGlobalSettings(nextSettings)
+          setGlobalSettingsLoaded(true)
+          window.localStorage.setItem(GLOBAL_SETTINGS_CACHE_KEY, JSON.stringify(nextSettings))
         }
       } catch {
         if (!cancelled) {
-          setGlobalSettings({})
+          setGlobalSettingsLoaded(true)
         }
       }
     }
@@ -271,7 +291,7 @@ export default function App() {
           <Backdrop />
           <Noise />
           <TopPromoBar
-            enabled={topBanner.enabled}
+            enabled={globalSettingsLoaded && topBanner.enabled}
             title={topBanner.title}
             subtitle={topBanner.subtitle}
             backgroundColor={topBanner.backgroundColor}
@@ -280,7 +300,7 @@ export default function App() {
             countdownTarget={topBanner.countdownTarget}
           />
           <ShippingBar
-            enabled={midBanner.enabled}
+            enabled={globalSettingsLoaded && midBanner.enabled}
             text={midBanner.text}
             messages={midBanner.messages}
             backgroundColor={midBanner.backgroundColor}

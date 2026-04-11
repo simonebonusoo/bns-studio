@@ -5,12 +5,12 @@ function formatUnit(value: number) {
 }
 
 export function TopPromoBar({
-  enabled = true,
-  title = "SAVE 40% OFF",
-  subtitle = "Sale ends in:",
+  enabled = false,
+  title = "",
+  subtitle = "",
   backgroundColor = "#d32f2f",
   textColor = "#ffffff",
-  countdownEnabled = true,
+  countdownEnabled = false,
   countdownTarget,
 }: {
   enabled?: boolean
@@ -41,7 +41,11 @@ export function TopPromoBar({
     return () => window.clearInterval(timer)
   }, [countdownEnabled, countdownTarget])
 
-  if (!enabled) {
+  const safeTitle = title?.trim() || ""
+  const safeSubtitle = subtitle?.trim() || ""
+  const hasText = Boolean(safeTitle || safeSubtitle)
+
+  if (!enabled || !hasText) {
     return null
   }
 
@@ -62,8 +66,8 @@ export function TopPromoBar({
   return (
     <div className="flex min-h-11 items-center px-4 py-2" style={{ backgroundColor, color: textColor }}>
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-1 text-center sm:flex-row sm:gap-3">
-        <span className="text-sm font-bold tracking-[0.18em] sm:text-base">{title}</span>
-        {subtitle ? <span className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-85 sm:text-xs">{subtitle}</span> : null}
+        {safeTitle ? <span className="text-sm font-bold tracking-[0.18em] sm:text-base">{safeTitle}</span> : null}
+        {safeSubtitle ? <span className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-85 sm:text-xs">{safeSubtitle}</span> : null}
         {countdownEnabled ? (
           <div className="flex items-center gap-2 text-sm font-bold sm:text-base">
             <span>{countdown.days}G</span>
