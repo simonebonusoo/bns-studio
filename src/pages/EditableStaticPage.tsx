@@ -103,10 +103,10 @@ export function EditableStaticPage({ settingsKey, fallbackContent }: EditableSta
   return (
     <main className="pb-24 pt-14 md:pt-18">
       <Container>
-        <div className="mx-auto w-full max-w-7xl space-y-8">
-          <div className="rounded-[36px] border border-white/10 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,.22)] md:p-10">
+        <div className="w-full space-y-8">
+          <div className="w-full rounded-[36px] border border-white/10 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,.22)] md:p-10">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="max-w-5xl space-y-4">
+              <div className="w-full space-y-4">
                 {editing ? (
                   <input
                     className="shop-input max-w-sm text-xs uppercase tracking-[0.28em]"
@@ -137,7 +137,7 @@ export function EditableStaticPage({ settingsKey, fallbackContent }: EditableSta
                     aria-label="Introduzione pagina"
                   />
                 ) : (
-                  <p className="max-w-4xl text-base leading-8 text-white/70 md:text-lg">{displayContent.intro}</p>
+                  <p className="w-full text-base leading-8 text-white/70 md:text-lg">{displayContent.intro}</p>
                 )}
               </div>
 
@@ -214,7 +214,7 @@ export function EditableStaticPage({ settingsKey, fallbackContent }: EditableSta
                   aria-label="Chiusura pagina"
                 />
               ) : (
-                <p className="max-w-5xl text-base leading-8 text-white/75 md:text-lg">{displayContent.closing}</p>
+                <p className="w-full text-base leading-8 text-white/75 md:text-lg">{displayContent.closing}</p>
               )}
             </section>
           ) : null}
