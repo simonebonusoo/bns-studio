@@ -268,7 +268,7 @@ export default function App() {
     <ShopAuthProvider>
       <ShopCartProvider>
         <div
-          className="min-h-screen overflow-x-hidden bg-ink text-white"
+          className="min-h-screen overflow-x-clip bg-ink text-white"
         >
           <Backdrop />
           <Noise />
