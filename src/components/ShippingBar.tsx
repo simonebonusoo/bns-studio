@@ -3,8 +3,8 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline"
 import { AnimatePresence, motion } from "framer-motion"
 
 export function ShippingBar({
-  enabled = true,
-  text = "3-5 DAYS FREE SHIPPING WORLDWIDE",
+  enabled = false,
+  text = "",
   messages = [],
   backgroundColor = "#000000",
   textColor = "#ffffff",
@@ -16,14 +16,15 @@ export function ShippingBar({
   textColor?: string
 }) {
   const safeMessages = (messages ?? []).map((entry) => entry?.trim()).filter(Boolean)
-  const resolvedMessages = safeMessages.length ? safeMessages : [text]
+  const safeText = text?.trim() || ""
+  const resolvedMessages = safeMessages.length ? safeMessages : safeText ? [safeText] : []
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
     setActiveIndex((current) => Math.min(current, Math.max(resolvedMessages.length - 1, 0)))
   }, [resolvedMessages.length])
 
-  if (!enabled) {
+  if (!enabled || !resolvedMessages.length) {
     return null
   }
 

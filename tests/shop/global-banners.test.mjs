@@ -17,10 +17,13 @@ test("banner settings parse defaults and custom values safely", () => {
 
   assert.equal(defaultsTop.enabled, true)
   assert.equal(defaultsTop.countdownEnabled, true)
+  assert.equal(defaultsTop.title, "")
+  assert.equal(defaultsTop.subtitle, "")
   assert.equal(defaultsTop.backgroundColor, "#d32f2f")
   assert.equal(defaultsTop.textColor, "#ffffff")
   assert.equal(defaultsMid.enabled, true)
-  assert.deepEqual(defaultsMid.messages, ["3-5 DAYS FREE SHIPPING WORLDWIDE"])
+  assert.equal(defaultsMid.text, "")
+  assert.deepEqual(defaultsMid.messages, [])
   assert.equal(defaultsMid.backgroundColor, "#000000")
   assert.equal(defaultsMid.textColor, "#ffffff")
 
@@ -77,4 +80,7 @@ test("app, navbar and admin expose the new banner management flow", () => {
   assert.match(read("src/components/ShippingBar.tsx"), /ChevronLeftIcon/)
   assert.match(read("src/components/ShippingBar.tsx"), /inline-flex h-7 w-7 items-center justify-center transition/)
   assert.match(navbar, /className="sticky top-0 z-50"/)
+  assert.doesNotMatch(read("src/components/TopPromoBar.tsx"), /SAVE 40% OFF|Sale ends in:/)
+  assert.doesNotMatch(read("src/components/ShippingBar.tsx"), /3-5 DAYS FREE SHIPPING WORLDWIDE/)
+  assert.doesNotMatch(read("src/shop/lib/banner-settings.mjs"), /SAVE 40% OFF|Sale ends in:|3-5 DAYS FREE SHIPPING WORLDWIDE/)
 })
