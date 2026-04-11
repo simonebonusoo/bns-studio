@@ -204,9 +204,54 @@ export function AboutPage() {
     <main className="pb-24 pt-14 md:pt-18">
       <Container>
         <div className="mx-auto w-full max-w-7xl space-y-16">
-          <section className="rounded-[38px] border border-white/10 bg-white/[0.025] px-5 py-8 md:px-10 md:py-12">
-            <div className="space-y-7">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <section className="space-y-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.32em] text-white/40">01 / Chi siamo</p>
+                {editing ? (
+                  <input
+                    className="shop-input mt-3 text-4xl font-semibold md:text-6xl"
+                    value={draft.title}
+                    onChange={(event) => updateDraft("title", event.target.value)}
+                    aria-label="Titolo Chi siamo"
+                  />
+                ) : (
+                  <h1 className="mt-3 text-5xl font-semibold tracking-tight text-white md:text-7xl">{displayContent.title}</h1>
+                )}
+              </div>
+
+              {isAdmin ? (
+                <div className="flex flex-wrap gap-3 md:justify-end">
+                  {editing ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={saveContent}
+                        disabled={saving}
+                        className={getButtonClassName({ variant: "cart", size: "sm", disabled: saving })}
+                      >
+                        {saving ? "Salvataggio..." : "Salva"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        disabled={saving}
+                        className={getButtonClassName({ variant: "profile", size: "sm", disabled: saving })}
+                      >
+                        Annulla
+                      </button>
+                    </>
+                  ) : (
+                    <Button type="button" variant="cart" size="sm" onClick={() => setEditing(true)}>
+                      Modifica
+                    </Button>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-[38px] border border-white/10 bg-white/[0.025] px-5 py-8 md:px-10 md:py-12">
+              <div className="space-y-8">
                 <div className="space-y-4">
                   {editing ? (
                     <input
@@ -220,102 +265,57 @@ export function AboutPage() {
                   )}
 
                   {editing ? (
-                    <input
-                      className="shop-input text-4xl font-semibold md:text-6xl"
-                      value={draft.title}
-                      onChange={(event) => updateDraft("title", event.target.value)}
-                      aria-label="Titolo Chi siamo"
+                    <textarea
+                      className="shop-input min-h-44 text-base leading-8"
+                      value={draft.intro}
+                      onChange={(event) => updateDraft("intro", event.target.value)}
+                      aria-label="Testo mission Chi siamo"
                     />
                   ) : (
-                    <h1 className="text-5xl font-semibold tracking-tight text-white md:text-7xl">{displayContent.title}</h1>
+                    <p className="max-w-5xl text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
                   )}
                 </div>
 
-                {isAdmin ? (
-                  <div className="flex flex-wrap gap-3 sm:justify-end">
-                    {editing ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={saveContent}
-                          disabled={saving}
-                          className={getButtonClassName({ variant: "cart", size: "sm", disabled: saving })}
-                        >
-                          {saving ? "Salvataggio..." : "Salva"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={cancelEdit}
-                          disabled={saving}
-                          className={getButtonClassName({ variant: "profile", size: "sm", disabled: saving })}
-                        >
-                          Annulla
-                        </button>
-                      </>
-                    ) : (
-                      <Button type="button" variant="cart" size="sm" onClick={() => setEditing(true)}>
-                        Modifica
-                      </Button>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-
-              <div>
-                {editing ? (
-                  <textarea
-                    className="shop-input min-h-64 text-base leading-8"
-                    value={draft.intro}
-                    onChange={(event) => updateDraft("intro", event.target.value)}
-                    aria-label="Testo introduttivo Chi siamo"
-                  />
-                ) : (
-                  <p className="max-w-5xl text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
-                )}
-              </div>
-
-              <div className="space-y-6 border-t border-white/10 pt-8">
-                {storySections.map((section, index) => (
-                  <article
-                    key={`${section.title}-${index}`}
-                    className="grid gap-5 lg:grid-cols-[minmax(180px,0.26fr)_minmax(0,1fr)]"
-                  >
-                    {editing ? (
-                      <>
-                        <div className="space-y-3">
-                          <input
-                            className="shop-input text-2xl font-semibold"
-                            value={draft.sections[index]?.title || ""}
-                            onChange={(event) => updateSection(index, "title", event.target.value)}
-                            aria-label={`Titolo blocco editoriale ${index + 1}`}
-                          />
-                          <div className="flex flex-wrap gap-2">
-                            <button type="button" onClick={() => moveSection(index, -1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                              Su
-                            </button>
-                            <button type="button" onClick={() => moveSection(index, 1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                              Giu
-                            </button>
-                            <button type="button" onClick={() => removeSection(index)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                              Rimuovi
-                            </button>
+                <div className="space-y-6 border-t border-white/10 pt-8">
+                  {storySections.map((section, index) => (
+                    <article
+                      key={`${section.title}-${index}`}
+                      className={editing ? "grid gap-5 lg:grid-cols-[minmax(180px,0.26fr)_minmax(0,1fr)]" : ""}
+                    >
+                      {editing ? (
+                        <>
+                          <div className="space-y-3">
+                            <input
+                              className="shop-input text-2xl font-semibold"
+                              value={draft.sections[index]?.title || ""}
+                              onChange={(event) => updateSection(index, "title", event.target.value)}
+                              aria-label={`Titolo blocco editoriale ${index + 1}`}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <button type="button" onClick={() => moveSection(index, -1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                                Su
+                              </button>
+                              <button type="button" onClick={() => moveSection(index, 1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                                Giu
+                              </button>
+                              <button type="button" onClick={() => removeSection(index)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                                Rimuovi
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                        <textarea
-                          className="shop-input min-h-40 text-base leading-8"
-                          value={draft.sections[index]?.body || ""}
-                          onChange={(event) => updateSection(index, "body", event.target.value)}
-                          aria-label={`Testo blocco editoriale ${index + 1}`}
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <h2 className="text-2xl font-semibold text-white md:text-3xl">{section.title}</h2>
-                        <p className="max-w-4xl whitespace-pre-line text-base leading-8 text-white/66 md:text-lg">{section.body}</p>
-                      </>
-                    )}
-                  </article>
-                ))}
+                          <textarea
+                            className="shop-input min-h-40 text-base leading-8"
+                            value={draft.sections[index]?.body || ""}
+                            onChange={(event) => updateSection(index, "body", event.target.value)}
+                            aria-label={`Testo blocco editoriale ${index + 1}`}
+                          />
+                        </>
+                      ) : (
+                        <p className="max-w-5xl whitespace-pre-line text-base leading-8 text-white/66 md:text-lg">{section.body}</p>
+                      )}
+                    </article>
+                  ))}
+                </div>
               </div>
 
               {loading ? <p className="text-sm text-white/45">Caricamento contenuti...</p> : null}
