@@ -9,6 +9,7 @@ import { Backdrop } from "./components/Backdrop"
 import { TopPromoBar } from "./components/TopPromoBar"
 import { ShippingBar } from "./components/ShippingBar"
 import { CookieBanner } from "./components/CookieBanner"
+import { RegisterPromoPopup } from "./components/RegisterPromoPopup"
 
 import { Hero } from "./sections/Hero"
 import { HomeShop } from "./sections/HomeShop"
@@ -370,6 +371,7 @@ export default function App() {
 
           <BackToTop />
           <CookieBanner />
+          <RegisterPromoPopup />
         </div>
       </ShopCartProvider>
     </ShopAuthProvider>

@@ -205,7 +205,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     }
 
     couponDiscount =
-      coupon.type === "percentage"
+      coupon.type === "percentage" || coupon.type === "first_registration"
         ? Math.round(discountedSubtotal * (coupon.amount / 100))
         : Math.min(discountedSubtotal, coupon.amount)
 

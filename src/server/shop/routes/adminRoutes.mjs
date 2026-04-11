@@ -472,7 +472,7 @@ const reviewAdminSchema = z.object({
 
 const couponSchema = z.object({
   code: z.string().min(2),
-  type: z.enum(["percentage", "fixed"]),
+  type: z.enum(["percentage", "fixed", "first_registration"]),
   amount: z.number().min(1),
   expiresAt: z.string().optional().nullable(),
   usageLimit: z.number().int().min(1).optional().nullable(),

@@ -8,6 +8,7 @@ type AuthContextValue = {
   effectiveRole: string | null
   isGuestPreview: boolean
   login: (payload: Record<string, string>, mode?: "login" | "register") => Promise<ShopUser>
+  registerFromPromo: (payload: Record<string, string>) => Promise<{ user: ShopUser; couponCode: string | null; couponAmount: number | null }>
   updateProfile: (payload: Record<string, string>) => Promise<ShopUser>
   logout: () => Promise<void>
   enableGuestPreview: () => void
@@ -57,6 +58,17 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
     return data.user
   }
 
+  async function registerFromPromo(payload: Record<string, string>) {
+    const data = await apiFetch<{ token: string; user: ShopUser; firstRegistrationCoupon?: { code: string; amount: number } | null }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ ...payload, source: "promo_popup" }),
+    })
+
+    localStorage.setItem("bns_shop_token", data.token)
+    setUser(data.user)
+    return { user: data.user, couponCode: data.firstRegistrationCoupon?.code || null, couponAmount: data.firstRegistrationCoupon?.amount ?? null }
+  }
+
   async function updateProfile(payload: Record<string, string>) {
     const data = await apiFetch<{ user: ShopUser }>("/auth/profile", {
       method: "PATCH",
@@ -89,7 +101,7 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, effectiveRole, isGuestPreview, login, updateProfile, logout, enableGuestPreview, disableGuestPreview }}
+      value={{ user, loading, effectiveRole, isGuestPreview, login, registerFromPromo, updateProfile, logout, enableGuestPreview, disableGuestPreview }}
     >
       {children}
     </AuthContext.Provider>

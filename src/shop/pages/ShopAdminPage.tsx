@@ -25,7 +25,7 @@ import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProduc
 type Coupon = {
   id: number
   code: string
-  type: "percentage" | "fixed"
+  type: "percentage" | "fixed" | "first_registration"
   amount: number
   active: boolean
   usageLimit?: number | null
@@ -121,7 +121,7 @@ type AdminReview = ShopReview & {
 
 type CouponFormState = {
   code: string
-  type: "percentage" | "fixed"
+  type: "percentage" | "fixed" | "first_registration"
   amount: string
   expiresAt: string
   usageLimit: string
@@ -597,6 +597,7 @@ function parseHomepageShowcasesSetting(value: string | undefined, fallback: Home
 }
 
 function getCouponAmountLabel(type: CouponFormState["type"]) {
+  if (type === "first_registration") return "Sconto prima registrazione (%)"
   return type === "percentage" ? "Valore sconto (%)" : "Valore sconto (€)"
 }
 
@@ -1247,7 +1248,7 @@ export function ShopAdminPage() {
     setCouponForm({
       code: coupon.code,
       type: coupon.type,
-      amount: coupon.type === "percentage" ? String(coupon.amount) : formatEuroInput(coupon.amount),
+      amount: coupon.type === "percentage" || coupon.type === "first_registration" ? String(coupon.amount) : formatEuroInput(coupon.amount),
       expiresAt: coupon.expiresAt ? coupon.expiresAt.slice(0, 10) : "",
       usageLimit: coupon.usageLimit ? String(coupon.usageLimit) : "",
       active: coupon.active,
@@ -1261,7 +1262,7 @@ export function ShopAdminPage() {
       const payload = {
         code: couponForm.code,
         type: couponForm.type,
-        amount: couponForm.type === "percentage" ? Number(couponForm.amount) : parseEuroToCents(couponForm.amount),
+        amount: couponForm.type === "percentage" || couponForm.type === "first_registration" ? Number(couponForm.amount) : parseEuroToCents(couponForm.amount),
         expiresAt: couponForm.expiresAt || null,
         usageLimit: couponForm.usageLimit ? Number(couponForm.usageLimit) : null,
         active: couponForm.active,

@@ -11,7 +11,7 @@ function PayPalMark() {
       viewBox="0 0 124 33"
       role="img"
       aria-label="PayPal"
-      className="block h-6 w-auto"
+      className="block h-5 w-auto"
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
@@ -119,7 +119,7 @@ export function Footer() {
             className="flex flex-col items-center gap-2"
           >
             <div className="text-[11px] uppercase tracking-[0.24em] text-white/45">Pagamenti accettati</div>
-            <div className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white px-4 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.25)]">
+            <div className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white px-3.5 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.25)]">
               <PayPalMark />
             </div>
           </motion.div>

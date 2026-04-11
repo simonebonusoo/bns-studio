@@ -7,7 +7,7 @@ import { ConfirmActionModal } from "./ConfirmActionModal"
 type Coupon = {
   id: number
   code: string
-  type: "percentage" | "fixed"
+  type: "percentage" | "fixed" | "first_registration"
   amount: number
   active: boolean
   usageLimit?: number | null
@@ -30,7 +30,7 @@ type DiscountRule = {
 
 type CouponFormState = {
   code: string
-  type: "percentage" | "fixed"
+  type: "percentage" | "fixed" | "first_registration"
   amount: string
   expiresAt: string
   usageLimit: string
@@ -132,6 +132,7 @@ export function AdminDiscountsSection({
               <select className="shop-select" value={couponForm.type} onChange={(event) => onCouponFormChange({ ...couponForm, type: event.target.value as CouponFormState["type"] })}>
                 <option value="percentage">Percentuale</option>
                 <option value="fixed">Importo fisso</option>
+                <option value="first_registration">Prima registrazione</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -167,7 +168,8 @@ export function AdminDiscountsSection({
                   <div>
                     <p className="text-sm font-medium text-white">{coupon.code}</p>
                     <p className="mt-1 text-sm text-white/60">
-                      {coupon.type === "percentage" ? `${coupon.amount}%` : formatPrice(coupon.amount)} · {coupon.active ? "Attivo" : "Disattivato"}
+                      {coupon.type === "first_registration" ? "Prima registrazione · " : ""}
+                      {coupon.type === "percentage" || coupon.type === "first_registration" ? `${coupon.amount}%` : formatPrice(coupon.amount)} · {coupon.active ? "Attivo" : "Disattivato"}
                     </p>
                     {coupon.expiresAt ? <p className="mt-1 text-xs text-white/45">Valido fino al {new Date(coupon.expiresAt).toLocaleDateString("it-IT")}</p> : null}
                   </div>

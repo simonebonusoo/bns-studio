@@ -33,6 +33,21 @@ function normalizeUsername(value) {
   return value.trim().toLowerCase()
 }
 
+async function findFirstRegistrationCoupon() {
+  const now = new Date()
+  const candidates = await prisma.coupon.findMany({
+    where: {
+      type: "first_registration",
+      active: true,
+      OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
+    },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  })
+
+  return candidates.find((coupon) => !coupon.usageLimit || coupon.usageCount < coupon.usageLimit) || null
+}
+
 function slugifyUsernameSeed(value) {
   return value
     .toLowerCase()
@@ -96,6 +111,7 @@ router.post(
         shippingAddressLine1: z.string().trim().min(1),
         shippingStreetNumber: z.string().trim().min(1),
         shippingPostalCode: z.string().trim().min(1),
+        source: z.enum(["promo_popup"]).optional(),
       })
       .parse(req.body)
 
@@ -129,9 +145,12 @@ router.post(
       },
     })
 
+    const firstRegistrationCoupon = body.source === "promo_popup" ? await findFirstRegistrationCoupon() : null
+
     return res.status(201).json({
       token: signToken(user),
       user: await serializeUser(user),
+      firstRegistrationCoupon: firstRegistrationCoupon ? { code: firstRegistrationCoupon.code, amount: firstRegistrationCoupon.amount } : null,
     })
   })
 )
