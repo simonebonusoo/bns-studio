@@ -203,7 +203,7 @@ export function AboutPage() {
   return (
     <main className="pb-24 pt-14 md:pt-18">
       <Container>
-        <div className="mx-auto w-full max-w-7xl space-y-16">
+        <div className="w-full space-y-16">
           <section className="space-y-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
@@ -250,7 +250,7 @@ export function AboutPage() {
               ) : null}
             </div>
 
-            <div className="space-y-8 rounded-[38px] border border-white/10 bg-white/[0.025] px-5 py-8 md:px-10 md:py-12">
+            <div className="w-full space-y-8 rounded-[38px] border border-white/10 bg-white/[0.025] px-5 py-8 md:px-10 md:py-12">
               <article className="grid gap-4 md:grid-cols-[minmax(170px,0.22fr)_minmax(0,1fr)]">
                 {editing ? (
                   <>
