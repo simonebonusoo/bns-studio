@@ -197,7 +197,8 @@ export function AboutPage() {
 
   const displayContent = editing ? draft : content
   const storySections = displayContent.sections.slice(0, 2)
-  const serviceSections = displayContent.sections.slice(2)
+  const serviceSectionOffset = 3
+  const serviceSections = displayContent.sections.slice(serviceSectionOffset)
 
   return (
     <main className="pb-24 pt-14 md:pt-18">
@@ -260,7 +261,7 @@ export function AboutPage() {
                 ) : null}
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(220px,0.22fr)]">
+              <div>
                 {editing ? (
                   <textarea
                     className="shop-input min-h-64 text-base leading-8"
@@ -271,10 +272,50 @@ export function AboutPage() {
                 ) : (
                   <p className="max-w-5xl text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
                 )}
+              </div>
 
-                <div className="rounded-[28px] border border-white/10 bg-black/20 p-5 text-sm leading-7 text-white/58">
-                  Non ci limitiamo a progettare: costruiamo ciò che serve perché un'idea diventi un brand reale.
-                </div>
+              <div className="space-y-6 border-t border-white/10 pt-8">
+                {storySections.map((section, index) => (
+                  <article
+                    key={`${section.title}-${index}`}
+                    className="grid gap-5 lg:grid-cols-[minmax(180px,0.26fr)_minmax(0,1fr)]"
+                  >
+                    {editing ? (
+                      <>
+                        <div className="space-y-3">
+                          <input
+                            className="shop-input text-2xl font-semibold"
+                            value={draft.sections[index]?.title || ""}
+                            onChange={(event) => updateSection(index, "title", event.target.value)}
+                            aria-label={`Titolo blocco editoriale ${index + 1}`}
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={() => moveSection(index, -1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                              Su
+                            </button>
+                            <button type="button" onClick={() => moveSection(index, 1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                              Giu
+                            </button>
+                            <button type="button" onClick={() => removeSection(index)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                              Rimuovi
+                            </button>
+                          </div>
+                        </div>
+                        <textarea
+                          className="shop-input min-h-40 text-base leading-8"
+                          value={draft.sections[index]?.body || ""}
+                          onChange={(event) => updateSection(index, "body", event.target.value)}
+                          aria-label={`Testo blocco editoriale ${index + 1}`}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-2xl font-semibold text-white md:text-3xl">{section.title}</h2>
+                        <p className="max-w-4xl whitespace-pre-line text-base leading-8 text-white/66 md:text-lg">{section.body}</p>
+                      </>
+                    )}
+                  </article>
+                ))}
               </div>
 
               {loading ? <p className="text-sm text-white/45">Caricamento contenuti...</p> : null}
@@ -286,84 +327,24 @@ export function AboutPage() {
           <section className="space-y-8 border-t border-white/10 pt-14">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.32em] text-white/40">01 / Editoriale</p>
-                <h2 className="mt-3 text-3xl font-semibold text-white md:text-5xl">Chi siamo</h2>
-              </div>
-              <p className="max-w-2xl text-sm leading-7 text-white/55">
-                Missione, identita e modo di costruire progetti: questa parte racconta il perche prima dell'offerta.
-              </p>
-            </div>
-
-            {storySections.map((section, index) => (
-              <article
-                key={`${section.title}-${index}`}
-                className="grid gap-5 border-t border-white/10 pt-8 lg:grid-cols-[minmax(220px,0.32fr)_minmax(0,1fr)]"
-              >
-                {editing ? (
-                  <>
-                    <div className="space-y-3">
-                      <input
-                        className="shop-input text-2xl font-semibold"
-                        value={draft.sections[index]?.title || ""}
-                        onChange={(event) => updateSection(index, "title", event.target.value)}
-                        aria-label={`Titolo blocco editoriale ${index + 1}`}
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => moveSection(index, -1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                          Su
-                        </button>
-                        <button type="button" onClick={() => moveSection(index, 1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                          Giu
-                        </button>
-                        <button type="button" onClick={() => removeSection(index)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                          Rimuovi
-                        </button>
-                      </div>
-                    </div>
-                    <textarea
-                      className="shop-input min-h-44 text-base leading-8"
-                      value={draft.sections[index]?.body || ""}
-                      onChange={(event) => updateSection(index, "body", event.target.value)}
-                      aria-label={`Testo blocco editoriale ${index + 1}`}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <h2 className="text-2xl font-semibold text-white md:text-3xl">{section.title}</h2>
-                    <p className="max-w-4xl whitespace-pre-line text-base leading-8 text-white/66 md:text-lg">{section.body}</p>
-                  </>
-                )}
-              </article>
-            ))}
-          </section>
-
-          <section className="space-y-8 border-t border-white/10 pt-14">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
                 <p className="text-xs uppercase tracking-[0.32em] text-white/40">02 / Offerta</p>
                 <h2 className="mt-3 text-3xl font-semibold text-white md:text-5xl">Servizi</h2>
               </div>
-              <div className="flex max-w-2xl flex-col gap-4 md:items-end">
-                <p className="text-sm leading-7 text-white/55 md:text-right">
-                  Qui la pagina passa dalla narrazione alla parte concreta: cosa BNS Studio progetta, produce e gestisce.
-                </p>
-                {editing ? (
-                  <button type="button" onClick={addSection} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                    Aggiungi sezione
-                  </button>
-                ) : null}
-              </div>
+              {editing ? (
+                <button type="button" onClick={addSection} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                  Aggiungi sezione
+                </button>
+              ) : null}
             </div>
 
             <div className="grid gap-5 lg:grid-cols-2">
               {serviceSections.map((section, serviceIndex) => {
-                const index = serviceIndex + storySections.length
-                const isIntro = section.title === "Servizi"
+                const index = serviceIndex + serviceSectionOffset
 
                 return (
                   <article
                     key={`${section.title}-${index}`}
-                    className={`${isIntro ? "lg:col-span-2" : ""} rounded-[28px] border border-white/10 bg-white/[0.03] p-5 md:p-6`}
+                    className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 md:p-6"
                   >
                     {editing ? (
                       <div className="space-y-4">
