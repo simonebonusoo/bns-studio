@@ -28,14 +28,14 @@ export type AboutPageContent = StaticPageContent & {
 
 export const ABOUT_PAGE_SETTINGS_KEY = "staticPage.about"
 export const PRIVACY_PAGE_SETTINGS_KEY = "staticPage.privacy"
-export const ABOUT_PAGE_CONTENT_VERSION = "2026-04-11-about-unified-intro"
+export const ABOUT_PAGE_CONTENT_VERSION = "2026-04-11-about-editorial-subsections"
 
 export const defaultAboutContent: AboutPageContent = {
   version: ABOUT_PAGE_CONTENT_VERSION,
-  eyebrow: "MISSION",
+  eyebrow: "Mission",
   title: "Chi siamo",
   intro:
-    "BNS Studio nasce per trasformare idee in realta concrete, unendo creativita, design e intelligenza artificiale. Crediamo che oggi un brand non sia solo immagine, ma un sistema completo fatto di identita, contenuti, esperienze e prodotti. Per questo progettiamo e costruiamo tutto cio che serve per far emergere un brand in modo autentico, riconoscibile e contemporaneo.\n\nSiamo uno studio creativo indipendente che lavora all'intersezione tra design, tecnologia e AI. Non offriamo semplici servizi: costruiamo ecosistemi di brand pensati per durare e distinguersi.\n\nAiutiamo brand, aziende e creator a trasformare le loro idee in identita visive, contenuti, prodotti e sistemi digitali pronti per il mercato. Dall'idea iniziale alla realizzazione concreta, costruiamo ogni elemento necessario per dare forma a un brand completo.",
+    "BNS Studio nasce per trasformare idee in realta concrete, unendo creativita, design e intelligenza artificiale. Crediamo che oggi un brand non sia solo immagine, ma un sistema completo fatto di identita, contenuti, esperienze e prodotti. Per questo progettiamo e costruiamo tutto cio che serve per far emergere un brand in modo autentico, riconoscibile e contemporaneo.",
   introImageUrl: "",
   sections: [
     {

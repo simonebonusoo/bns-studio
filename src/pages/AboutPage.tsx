@@ -196,6 +196,7 @@ export function AboutPage() {
   }
 
   const displayContent = editing ? draft : content
+  const aboutDetailSections = displayContent.sections.slice(0, 2)
   const serviceSectionOffset = 3
   const serviceSections = displayContent.sections.slice(serviceSectionOffset)
 
@@ -249,17 +250,59 @@ export function AboutPage() {
               ) : null}
             </div>
 
-            <div className="rounded-[38px] border border-white/10 bg-white/[0.025] px-5 py-8 md:px-10 md:py-12">
-              {editing ? (
-                <textarea
-                  className="shop-input min-h-72 text-base leading-8"
-                  value={draft.intro}
-                  onChange={(event) => updateDraft("intro", event.target.value)}
-                  aria-label="Testo Chi siamo"
-                />
-              ) : (
-                <p className="max-w-5xl whitespace-pre-line text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
-              )}
+            <div className="space-y-8 rounded-[38px] border border-white/10 bg-white/[0.025] px-5 py-8 md:px-10 md:py-12">
+              <article className="grid gap-4 md:grid-cols-[minmax(170px,0.22fr)_minmax(0,1fr)]">
+                {editing ? (
+                  <>
+                    <input
+                      className="shop-input text-xl font-semibold"
+                      value={draft.eyebrow}
+                      onChange={(event) => updateDraft("eyebrow", event.target.value)}
+                      aria-label="Sottotitolo mission"
+                    />
+                    <textarea
+                      className="shop-input min-h-40 text-base leading-8"
+                      value={draft.intro}
+                      onChange={(event) => updateDraft("intro", event.target.value)}
+                      aria-label="Testo mission"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-xl font-semibold text-white md:text-2xl">{displayContent.eyebrow}</h2>
+                    <p className="w-full whitespace-pre-line text-base leading-8 text-white/70 md:text-lg">{displayContent.intro}</p>
+                  </>
+                )}
+              </article>
+
+              {aboutDetailSections.map((section, index) => (
+                <article
+                  key={`${section.title}-${index}`}
+                  className="grid gap-4 border-t border-white/10 pt-8 md:grid-cols-[minmax(170px,0.22fr)_minmax(0,1fr)]"
+                >
+                  {editing ? (
+                    <>
+                      <input
+                        className="shop-input text-xl font-semibold"
+                        value={draft.sections[index]?.title || ""}
+                        onChange={(event) => updateSection(index, "title", event.target.value)}
+                        aria-label={`Sottotitolo Chi siamo ${index + 1}`}
+                      />
+                      <textarea
+                        className="shop-input min-h-36 text-base leading-8"
+                        value={draft.sections[index]?.body || ""}
+                        onChange={(event) => updateSection(index, "body", event.target.value)}
+                        aria-label={`Testo Chi siamo ${index + 1}`}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-xl font-semibold text-white md:text-2xl">{section.title}</h2>
+                      <p className="w-full whitespace-pre-line text-base leading-8 text-white/70 md:text-lg">{section.body}</p>
+                    </>
+                  )}
+                </article>
+              ))}
 
               {loading ? <p className="text-sm text-white/45">Caricamento contenuti...</p> : null}
               {message ? <p className="text-sm text-emerald-200/80">{message}</p> : null}
