@@ -51,9 +51,11 @@ function containWheel(event: React.WheelEvent<HTMLElement>) {
 
 function forwardWheelToHorizontalScroll(event: React.WheelEvent<HTMLElement>) {
   const target = event.currentTarget
-  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
-  target.scrollLeft += event.deltaY
+  const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX
+  if (!delta) return
   event.preventDefault()
+  event.stopPropagation()
+  target.scrollLeft += delta
 }
 
 function requiresSharedProfilePassword(field: "username" | "email" | "password" | "shipping") {

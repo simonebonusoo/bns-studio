@@ -50,7 +50,7 @@ export function HorizontalScrollRail({
 
   return (
     <div className={`relative ${className}`.trim()}>
-      <div ref={scrollRef} className={contentClassName} onWheel={onWheel}>
+      <div ref={scrollRef} className={contentClassName} onWheelCapture={onWheel}>
         {children}
       </div>
 
