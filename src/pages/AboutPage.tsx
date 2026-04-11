@@ -196,6 +196,8 @@ export function AboutPage() {
   }
 
   const displayContent = editing ? draft : content
+  const storySections = displayContent.sections.slice(0, 2)
+  const serviceSections = displayContent.sections.slice(2)
 
   return (
     <main className="pb-24 pt-14 md:pt-18">
@@ -281,18 +283,21 @@ export function AboutPage() {
             </div>
           </section>
 
-          <section className="space-y-10">
-            {editing ? (
-              <div className="flex justify-end">
-                <button type="button" onClick={addSection} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                  Aggiungi sezione
-                </button>
+          <section className="space-y-8 border-t border-white/10 pt-14">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.32em] text-white/40">01 / Editoriale</p>
+                <h2 className="mt-3 text-3xl font-semibold text-white md:text-5xl">Chi siamo</h2>
               </div>
-            ) : null}
-            {displayContent.sections.map((section, index) => (
+              <p className="max-w-2xl text-sm leading-7 text-white/55">
+                Missione, identita e modo di costruire progetti: questa parte racconta il perche prima dell'offerta.
+              </p>
+            </div>
+
+            {storySections.map((section, index) => (
               <article
                 key={`${section.title}-${index}`}
-                className="grid gap-5 border-t border-white/10 pt-10 lg:grid-cols-[minmax(220px,0.32fr)_minmax(0,1fr)]"
+                className="grid gap-5 border-t border-white/10 pt-8 lg:grid-cols-[minmax(220px,0.32fr)_minmax(0,1fr)]"
               >
                 {editing ? (
                   <>
@@ -332,11 +337,78 @@ export function AboutPage() {
             ))}
           </section>
 
-          <section className="space-y-8 border-t border-white/10 pt-12">
+          <section className="space-y-8 border-t border-white/10 pt-14">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.32em] text-white/40">02 / Offerta</p>
+                <h2 className="mt-3 text-3xl font-semibold text-white md:text-5xl">Servizi</h2>
+              </div>
+              <div className="flex max-w-2xl flex-col gap-4 md:items-end">
+                <p className="text-sm leading-7 text-white/55 md:text-right">
+                  Qui la pagina passa dalla narrazione alla parte concreta: cosa BNS Studio progetta, produce e gestisce.
+                </p>
+                {editing ? (
+                  <button type="button" onClick={addSection} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                    Aggiungi sezione
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              {serviceSections.map((section, serviceIndex) => {
+                const index = serviceIndex + storySections.length
+                const isIntro = section.title === "Servizi"
+
+                return (
+                  <article
+                    key={`${section.title}-${index}`}
+                    className={`${isIntro ? "lg:col-span-2" : ""} rounded-[28px] border border-white/10 bg-white/[0.03] p-5 md:p-6`}
+                  >
+                    {editing ? (
+                      <div className="space-y-4">
+                        <input
+                          className="shop-input text-xl font-semibold"
+                          value={draft.sections[index]?.title || ""}
+                          onChange={(event) => updateSection(index, "title", event.target.value)}
+                          aria-label={`Titolo servizio ${serviceIndex + 1}`}
+                        />
+                        <textarea
+                          className="shop-input min-h-36 text-sm leading-7"
+                          value={draft.sections[index]?.body || ""}
+                          onChange={(event) => updateSection(index, "body", event.target.value)}
+                          aria-label={`Testo servizio ${serviceIndex + 1}`}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" onClick={() => moveSection(index, -1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                            Su
+                          </button>
+                          <button type="button" onClick={() => moveSection(index, 1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                            Giu
+                          </button>
+                          <button type="button" onClick={() => removeSection(index)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
+                            Rimuovi
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="text-xl font-semibold text-white md:text-2xl">{section.title}</h3>
+                        <p className="mt-4 whitespace-pre-line text-sm leading-7 text-white/64 md:text-base">{section.body}</p>
+                      </>
+                    )}
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+
+          <section className="space-y-8 border-t border-white/10 pt-14">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div className="max-w-3xl space-y-3">
                 {editing ? (
                   <>
+                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">03 / Persone</p>
                     <input
                       className="shop-input text-3xl font-semibold"
                       value={draft.staffTitle}
@@ -352,6 +424,7 @@ export function AboutPage() {
                   </>
                 ) : (
                   <>
+                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">03 / Persone</p>
                     <h2 className="text-3xl font-semibold text-white md:text-5xl">{displayContent.staffTitle}</h2>
                     <p className="text-base leading-8 text-white/65">{displayContent.staffIntro}</p>
                   </>
