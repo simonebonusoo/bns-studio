@@ -1,6 +1,420 @@
-import { EditableStaticPage } from "./EditableStaticPage"
-import { ABOUT_PAGE_SETTINGS_KEY, defaultAboutContent } from "./static-page-content"
+import { useEffect, useState } from "react"
+
+import founderImageUrl from "../assets/founder/simone-centrale.jpeg"
+import { Button, getButtonClassName } from "../components/Button"
+import { Container } from "../components/Container"
+import { useShopAuth } from "../shop/context/ShopAuthProvider"
+import { apiFetch } from "../shop/lib/api"
+import {
+  ABOUT_PAGE_SETTINGS_KEY,
+  AboutPageContent,
+  defaultAboutContent,
+  parseAboutPageContent,
+} from "./static-page-content"
+
+function withDefaultImages(content: AboutPageContent): AboutPageContent {
+  return {
+    ...content,
+    introImageUrl: content.introImageUrl || founderImageUrl,
+    staff: content.staff.map((member) => ({
+      ...member,
+      imageUrl: member.imageUrl || (member.id === "simone-bonuse" ? founderImageUrl : ""),
+    })),
+  }
+}
+
+function cloneContent(content: AboutPageContent): AboutPageContent {
+  return {
+    ...content,
+    sections: content.sections.map((section) => ({ ...section })),
+    staff: content.staff.map((member) => ({ ...member })),
+  }
+}
 
 export function AboutPage() {
-  return <EditableStaticPage settingsKey={ABOUT_PAGE_SETTINGS_KEY} fallbackContent={defaultAboutContent} />
+  const { user } = useShopAuth()
+  const isAdmin = user?.role === "admin"
+  const fallbackContent = withDefaultImages(defaultAboutContent)
+  const [content, setContent] = useState<AboutPageContent>(fallbackContent)
+  const [draft, setDraft] = useState<AboutPageContent>(fallbackContent)
+  const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+
+    apiFetch<Record<string, string>>("/store/settings")
+      .then((settings) => {
+        if (cancelled) return
+        const nextContent = withDefaultImages(parseAboutPageContent(settings?.[ABOUT_PAGE_SETTINGS_KEY], fallbackContent))
+        setContent(nextContent)
+        setDraft(cloneContent(nextContent))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setContent(fallbackContent)
+        setDraft(cloneContent(fallbackContent))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function updateDraft(key: keyof AboutPageContent, value: string) {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function updateSection(index: number, key: "title" | "body", value: string) {
+    setDraft((current) => ({
+      ...current,
+      sections: current.sections.map((section, itemIndex) =>
+        itemIndex === index ? { ...section, [key]: value } : section,
+      ),
+    }))
+  }
+
+  function updateStaff(index: number, key: "name" | "role" | "imageUrl", value: string) {
+    setDraft((current) => ({
+      ...current,
+      staff: current.staff.map((member, itemIndex) => (itemIndex === index ? { ...member, [key]: value } : member)),
+    }))
+  }
+
+  async function uploadImage(file: File) {
+    const formData = new FormData()
+    formData.append("images", file)
+    const data = await apiFetch<{ files: { url: string }[] }>("/admin/uploads", {
+      method: "POST",
+      body: formData,
+    })
+    return data.files?.[0]?.url || ""
+  }
+
+  async function uploadIntroImage(files: FileList | null) {
+    const file = files?.[0]
+    if (!file) return
+    setError("")
+    try {
+      const imageUrl = await uploadImage(file)
+      if (imageUrl) updateDraft("introImageUrl", imageUrl)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il caricamento dell'immagine.")
+    }
+  }
+
+  async function uploadStaffImage(index: number, files: FileList | null) {
+    const file = files?.[0]
+    if (!file) return
+    setError("")
+    try {
+      const imageUrl = await uploadImage(file)
+      if (imageUrl) updateStaff(index, "imageUrl", imageUrl)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il caricamento della foto staff.")
+    }
+  }
+
+  function addStaffMember() {
+    setDraft((current) => ({
+      ...current,
+      staff: [
+        ...current.staff,
+        {
+          id: `staff-${Date.now()}`,
+          name: "Nuovo membro",
+          role: "Ruolo",
+          imageUrl: "",
+        },
+      ],
+    }))
+  }
+
+  function removeStaffMember(index: number) {
+    setDraft((current) => ({
+      ...current,
+      staff: current.staff.filter((_, itemIndex) => itemIndex !== index),
+    }))
+  }
+
+  async function saveContent() {
+    setError("")
+    setMessage("")
+    const nextContent = withDefaultImages(parseAboutPageContent(JSON.stringify(draft), fallbackContent))
+
+    try {
+      setSaving(true)
+      await apiFetch("/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify([{ key: ABOUT_PAGE_SETTINGS_KEY, value: JSON.stringify(nextContent) }]),
+      })
+      setContent(nextContent)
+      setDraft(cloneContent(nextContent))
+      setEditing(false)
+      setMessage("Pagina Chi siamo salvata correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il salvataggio della pagina Chi siamo.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function cancelEdit() {
+    setDraft(cloneContent(content))
+    setEditing(false)
+    setError("")
+    setMessage("")
+  }
+
+  const displayContent = editing ? draft : content
+
+  return (
+    <main className="pb-24 pt-14 md:pt-18">
+      <Container>
+        <div className="mx-auto w-full max-w-7xl space-y-16">
+          <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.68fr)]">
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-4">
+                  {editing ? (
+                    <input
+                      className="shop-input max-w-xs text-xs uppercase tracking-[0.28em]"
+                      value={draft.eyebrow}
+                      onChange={(event) => updateDraft("eyebrow", event.target.value)}
+                      aria-label="Eyebrow Chi siamo"
+                    />
+                  ) : (
+                    <p className="text-xs uppercase tracking-[0.32em] text-white/45">{displayContent.eyebrow}</p>
+                  )}
+
+                  {editing ? (
+                    <input
+                      className="shop-input text-4xl font-semibold md:text-6xl"
+                      value={draft.title}
+                      onChange={(event) => updateDraft("title", event.target.value)}
+                      aria-label="Titolo Chi siamo"
+                    />
+                  ) : (
+                    <h1 className="text-5xl font-semibold tracking-tight text-white md:text-7xl">{displayContent.title}</h1>
+                  )}
+                </div>
+
+                {isAdmin ? (
+                  <div className="flex flex-wrap gap-3 sm:justify-end">
+                    {editing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={saveContent}
+                          disabled={saving}
+                          className={getButtonClassName({ variant: "cart", size: "sm", disabled: saving })}
+                        >
+                          {saving ? "Salvataggio..." : "Salva"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          disabled={saving}
+                          className={getButtonClassName({ variant: "profile", size: "sm", disabled: saving })}
+                        >
+                          Annulla
+                        </button>
+                      </>
+                    ) : (
+                      <Button type="button" variant="cart" size="sm" onClick={() => setEditing(true)}>
+                        Modifica
+                      </Button>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {editing ? (
+                <textarea
+                  className="shop-input min-h-56 text-base leading-8"
+                  value={draft.intro}
+                  onChange={(event) => updateDraft("intro", event.target.value)}
+                  aria-label="Testo introduttivo Chi siamo"
+                />
+              ) : (
+                <p className="max-w-4xl text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
+              )}
+
+              {loading ? <p className="text-sm text-white/45">Caricamento contenuti...</p> : null}
+              {message ? <p className="text-sm text-emerald-200/80">{message}</p> : null}
+              {error ? <p className="text-sm text-red-200/80">{error}</p> : null}
+            </div>
+
+            <div className="space-y-3">
+              <div className="overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.035] shadow-[0_24px_80px_rgba(0,0,0,.22)]">
+                {displayContent.introImageUrl ? (
+                  <img src={displayContent.introImageUrl} alt="BNS Studio" className="aspect-[4/5] w-full object-cover" />
+                ) : (
+                  <div className="flex aspect-[4/5] items-center justify-center text-sm text-white/45">Nessuna immagine</div>
+                )}
+              </div>
+              {editing ? (
+                <label className="inline-flex cursor-pointer rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white">
+                  Sostituisci immagine intro
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      void uploadIntroImage(event.target.files)
+                      event.currentTarget.value = ""
+                    }}
+                  />
+                </label>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="space-y-10">
+            {displayContent.sections.map((section, index) => (
+              <article
+                key={`${section.title}-${index}`}
+                className="grid gap-5 border-t border-white/10 pt-10 lg:grid-cols-[minmax(220px,0.32fr)_minmax(0,1fr)]"
+              >
+                {editing ? (
+                  <>
+                    <input
+                      className="shop-input text-2xl font-semibold"
+                      value={draft.sections[index]?.title || ""}
+                      onChange={(event) => updateSection(index, "title", event.target.value)}
+                      aria-label={`Titolo blocco editoriale ${index + 1}`}
+                    />
+                    <textarea
+                      className="shop-input min-h-36 text-base leading-8"
+                      value={draft.sections[index]?.body || ""}
+                      onChange={(event) => updateSection(index, "body", event.target.value)}
+                      aria-label={`Testo blocco editoriale ${index + 1}`}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-semibold text-white md:text-3xl">{section.title}</h2>
+                    <p className="max-w-4xl whitespace-pre-line text-base leading-8 text-white/66 md:text-lg">{section.body}</p>
+                  </>
+                )}
+              </article>
+            ))}
+          </section>
+
+          <section className="space-y-8 border-t border-white/10 pt-12">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-3xl space-y-3">
+                {editing ? (
+                  <>
+                    <input
+                      className="shop-input text-3xl font-semibold"
+                      value={draft.staffTitle}
+                      onChange={(event) => updateDraft("staffTitle", event.target.value)}
+                      aria-label="Titolo staff"
+                    />
+                    <textarea
+                      className="shop-input min-h-24 text-sm leading-7"
+                      value={draft.staffIntro}
+                      onChange={(event) => updateDraft("staffIntro", event.target.value)}
+                      aria-label="Introduzione staff"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-3xl font-semibold text-white md:text-5xl">{displayContent.staffTitle}</h2>
+                    <p className="text-base leading-8 text-white/65">{displayContent.staffIntro}</p>
+                  </>
+                )}
+              </div>
+
+              {editing ? (
+                <button type="button" onClick={addStaffMember} className={getButtonClassName({ variant: "profile", size: "sm" })}>
+                  Aggiungi
+                </button>
+              ) : null}
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {displayContent.staff.map((member, index) => (
+                <article key={member.id} className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.03]">
+                  <div className="aspect-[4/5] bg-white/[0.04]">
+                    {member.imageUrl ? (
+                      <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-white/45">Foto staff</div>
+                    )}
+                  </div>
+                  <div className="space-y-3 p-5">
+                    {editing ? (
+                      <>
+                        <input
+                          className="shop-input"
+                          value={draft.staff[index]?.name || ""}
+                          onChange={(event) => updateStaff(index, "name", event.target.value)}
+                          aria-label={`Nome staff ${index + 1}`}
+                        />
+                        <input
+                          className="shop-input"
+                          value={draft.staff[index]?.role || ""}
+                          onChange={(event) => updateStaff(index, "role", event.target.value)}
+                          aria-label={`Ruolo staff ${index + 1}`}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <label className="inline-flex cursor-pointer rounded-full border border-white/10 px-3 py-2 text-xs text-white/72 transition hover:border-white/20 hover:text-white">
+                            Carica foto
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(event) => {
+                                void uploadStaffImage(index, event.target.files)
+                                event.currentTarget.value = ""
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => removeStaffMember(index)}
+                            className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/55 transition hover:border-white/20 hover:text-white"
+                          >
+                            Rimuovi
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-xl font-semibold text-white">{member.name}</h3>
+                        <p className="text-sm uppercase tracking-[0.18em] text-white/50">{member.role}</p>
+                      </>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {(editing || displayContent.closing) ? (
+            <section className="border-t border-white/10 pt-10">
+              {editing ? (
+                <textarea
+                  className="shop-input min-h-28 text-base leading-8"
+                  value={draft.closing || ""}
+                  onChange={(event) => updateDraft("closing", event.target.value)}
+                  aria-label="Chiusura Chi siamo"
+                />
+              ) : (
+                <p className="max-w-5xl text-xl leading-9 text-white/76">{displayContent.closing}</p>
+              )}
+            </section>
+          ) : null}
+        </div>
+      </Container>
+    </main>
+  )
 }

@@ -11,48 +11,59 @@ export type StaticPageContent = {
   closing?: string
 }
 
+export type AboutStaffMember = {
+  id: string
+  name: string
+  role: string
+  imageUrl: string
+}
+
+export type AboutPageContent = StaticPageContent & {
+  introImageUrl: string
+  staffTitle: string
+  staffIntro: string
+  staff: AboutStaffMember[]
+}
+
 export const ABOUT_PAGE_SETTINGS_KEY = "staticPage.about"
 export const PRIVACY_PAGE_SETTINGS_KEY = "staticPage.privacy"
 
-export const defaultAboutContent: StaticPageContent = {
+export const defaultAboutContent: AboutPageContent = {
   eyebrow: "Chi siamo",
-  title: "BNS Studio",
+  title: "Chi siamo",
   intro:
-    "BNS Studio costruisce identita visive, pagine editoriali, prodotti digitali e sistemi shop con una direzione chiara: dare forma a contenuti, brand e strumenti operativi che restano coerenti anche quando crescono.",
+    "BNS Studio nasce per mettere insieme direzione creativa, contenuti digitali e strumenti operativi. Costruiamo identita visive, pagine editoriali e sistemi shop con un approccio concreto: ogni scelta deve rendere il brand piu chiaro, riconoscibile e facile da gestire.",
+  introImageUrl: "",
   sections: [
     {
-      title: "Come lavoriamo",
+      title: "Un sistema, non una vetrina",
       body:
-        "Partiamo da struttura, priorita e tono. Prima definiamo cosa deve comunicare il progetto, poi costruiamo layout, immagini, testi e flussi pratici. L'obiettivo e creare un sistema leggibile, aggiornabile e utile nel lavoro quotidiano.",
+        "Ogni progetto viene trattato come un sistema: struttura dei contenuti, gerarchia visiva, immagini, microcopy, catalogo e strumenti admin devono parlare la stessa lingua. Il risultato deve funzionare per chi guarda e per chi lo aggiorna ogni giorno.",
     },
     {
-      title: "Cosa facciamo",
+      title: "Dal visual alla gestione",
       body:
-        "Seguiamo siti vetrina, landing page, contenuti editoriali, identita coordinate, cataloghi e shop integrati. Ogni parte viene pensata insieme: esperienza pubblica, gestione contenuti, vendita, amministrazione e continuita visiva.",
+        "Seguiamo identita, landing page, contenuti editoriali, cataloghi, prodotti digitali e shop integrati. La parte estetica resta collegata alla parte operativa: vendita, profilo cliente, ordini, contenuti e dashboard devono rimanere coerenti.",
     },
     {
-      title: "Direzione creativa",
+      title: "Metodo pulito",
       body:
-        "La direzione visiva tiene insieme ritmo, gerarchia, fotografia, tipografia e microcopy. Il risultato non deve sembrare decorazione applicata, ma un linguaggio riconoscibile e sostenibile nel tempo.",
+        "Preferiamo soluzioni essenziali, leggibili e mantenibili. Prima si chiarisce il messaggio, poi si costruisce il layout, poi si rifinisce l'esperienza. Niente decorazione gratuita: solo elementi che aiutano identita, conversione o gestione.",
     },
+  ],
+  staffTitle: "Il nostro staff",
+  staffIntro:
+    "Una struttura compatta, con ruoli chiari e responsabilita diretta sul risultato creativo, tecnico e operativo.",
+  staff: [
     {
-      title: "Sistema shop",
-      body:
-        "Lo shop integrato e progettato per unire catalogo, carrello, checkout, profilo cliente, ordini e dashboard admin in un flusso unico. La parte estetica e quella operativa lavorano insieme.",
-    },
-    {
-      title: "Metodo",
-      body:
-        "Preferiamo soluzioni pulite, misurabili e facili da mantenere. Ogni scelta deve avere un motivo: migliorare chiarezza, conversione, gestione interna o percezione del brand.",
-    },
-    {
-      title: "Team e ruoli",
-      body:
-        "La struttura e organizzata per competenze: direzione creativa, sviluppo del sistema shop, produzione contenuti e cura visuale. I ruoli possono cambiare in base al progetto, mantenendo una responsabilita chiara sul risultato finale.",
+      id: "simone-bonuse",
+      name: "Simone Bonuse",
+      role: "CEO & Founder",
+      imageUrl: "",
     },
   ],
   closing:
-    "BNS Studio lavora su progetti digitali che devono essere belli da vedere, semplici da usare e concreti da gestire.",
+    "BNS Studio lavora su progetti digitali che devono essere belli da vedere, semplici da usare e concreti da mantenere nel tempo.",
 }
 
 export const defaultPrivacyContent: StaticPageContent = {
@@ -143,6 +154,39 @@ export function parseStaticPageContent(rawValue: string | undefined, fallback: S
       intro: String(parsed.intro || fallback.intro).trim(),
       sections: sections.length ? sections : fallback.sections,
       closing: String(parsed.closing || fallback.closing || "").trim(),
+    }
+  } catch {
+    return fallback
+  }
+}
+
+export function parseAboutPageContent(rawValue: string | undefined, fallback: AboutPageContent) {
+  const base = parseStaticPageContent(rawValue, fallback)
+  if (!rawValue?.trim()) return fallback
+
+  try {
+    const parsed = JSON.parse(rawValue)
+    if (!parsed || typeof parsed !== "object") {
+      return fallback
+    }
+
+    const staff = Array.isArray(parsed.staff)
+      ? parsed.staff
+          .map((member: Partial<AboutStaffMember>, index: number) => ({
+            id: String(member?.id || `staff-${index + 1}`).trim(),
+            name: String(member?.name || "").trim(),
+            role: String(member?.role || "").trim(),
+            imageUrl: String(member?.imageUrl || "").trim(),
+          }))
+          .filter((member: AboutStaffMember) => member.name && member.role)
+      : fallback.staff
+
+    return {
+      ...base,
+      introImageUrl: String(parsed.introImageUrl || fallback.introImageUrl || "").trim(),
+      staffTitle: String(parsed.staffTitle || fallback.staffTitle).trim(),
+      staffIntro: String(parsed.staffIntro || fallback.staffIntro).trim(),
+      staff: staff.length ? staff : fallback.staff,
     }
   } catch {
     return fallback
