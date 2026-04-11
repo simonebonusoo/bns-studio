@@ -244,20 +244,6 @@ export function EditableStaticPage({ settingsKey, fallbackContent }: EditableSta
             ))}
           </section>
 
-          {(editing || displayContent.closing) ? (
-            <section className="rounded-[32px] border border-white/10 bg-[#e3f503]/[0.06] p-6 md:p-8">
-              {editing ? (
-                <textarea
-                  className="shop-input min-h-28 text-base leading-7"
-                  value={draft.closing || ""}
-                  onChange={(event) => updateDraft("closing", event.target.value)}
-                  aria-label="Chiusura pagina"
-                />
-              ) : (
-                <p className="w-full text-base leading-8 text-white/75 md:text-lg">{displayContent.closing}</p>
-              )}
-            </section>
-          ) : null}
         </div>
       </Container>
     </main>
