@@ -45,10 +45,6 @@ export function TopPromoBar({
   const safeSubtitle = subtitle?.trim() || ""
   const hasText = Boolean(safeTitle || safeSubtitle)
 
-  if (!enabled || !hasText) {
-    return null
-  }
-
   const countdown = useMemo(() => {
     const days = Math.floor(remainingSeconds / 86400)
     const hours = Math.floor((remainingSeconds % 86400) / 3600)
@@ -62,6 +58,10 @@ export function TopPromoBar({
       seconds: formatUnit(seconds),
     }
   }, [remainingSeconds])
+
+  if (!enabled || !hasText) {
+    return null
+  }
 
   return (
     <div className="flex min-h-11 items-center px-4 py-2" style={{ backgroundColor, color: textColor }}>

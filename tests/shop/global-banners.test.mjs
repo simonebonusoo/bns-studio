@@ -81,6 +81,10 @@ test("app, navbar and admin expose the new banner management flow", () => {
   assert.match(app, /messages=\{midBanner\.messages\}/)
   assert.match(app, /textColor=\{midBanner\.textColor\}/)
   assert.match(read("src/components/TopPromoBar.tsx"), /G/)
+  assert.ok(
+    read("src/components/TopPromoBar.tsx").indexOf("const countdown = useMemo") <
+      read("src/components/TopPromoBar.tsx").indexOf("if (!enabled || !hasText)"),
+  )
   assert.match(read("src/components/ShippingBar.tsx"), /ChevronLeftIcon/)
   assert.match(read("src/components/ShippingBar.tsx"), /inline-flex h-7 w-7 items-center justify-center transition/)
   assert.match(navbar, /className="sticky top-0 z-50"/)
