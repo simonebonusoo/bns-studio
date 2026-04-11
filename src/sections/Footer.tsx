@@ -1,17 +1,18 @@
 import { Container } from "../components/Container"
 import { Logo } from "../components/Logo"
 
-import { SiInstagram, SiWhatsapp, SiLinkedin } from "react-icons/si"
+import { SiInstagram, SiWhatsapp } from "react-icons/si"
 import { FiMail, FiPhone } from "react-icons/fi"
 import { motion } from "framer-motion"
 
 function PayPalMark() {
   return (
-    <svg viewBox="0 0 48 32" aria-hidden className="h-5 w-auto">
-      <path fill="#253B80" d="M19.2 6.1c.2-1.1 0-1.9-.5-2.5-.7-.8-2-1.2-3.8-1.2H9.8c-.4 0-.7.3-.8.7L6.2 20.7c-.1.4.2.8.6.8h3.1l.8-5.1-.1.2c.1-.4.4-.7.8-.7h1.7c3.4 0 6.1-1.4 6.9-5.4.3-1.7.1-3-.8-3.9z" />
-      <path fill="#179BD7" d="M39.3 12.5c-.2 0-.4.2-.4.4l-.1.9-.2-.3c-.6-.9-1.9-1.2-3.2-1.2-3 0-5.6 2.3-6.1 5.5-.3 1.6.1 3.1.9 4.1.8 1 2 1.4 3.5 1.4 2.5 0 3.9-1.6 3.9-1.6l-.1.9c0 .3.2.5.4.5h2.8c.4 0 .7-.3.8-.6l1.7-10c.1-.2-.2-.4-.5-.4h-3.4z" />
-      <path fill="#222D65" d="M23.7 12.7c-.5 3.2-3.1 5.5-6.1 5.5h-1.7c-.4 0-.7.3-.8.7l-1 6.3-.3 1.8c-.1.4.2.8.6.8h2.9c.3 0 .6-.2.7-.5v-.1l.5-3.3v-.2c.1-.3.4-.5.7-.5h.5c2.8 0 4.9-1.1 5.6-4.4.3-1.4.1-2.6-.6-3.4-.3-.3-.6-.6-1-.7z" />
-    </svg>
+    <span
+      aria-hidden
+      className="inline-flex h-6 items-center rounded-md bg-white px-2 text-[13px] font-bold tracking-[-0.03em] text-[#003087]"
+    >
+      Pay<span className="text-[#009cde]">Pal</span>
+    </span>
   )
 }
 
@@ -65,11 +66,6 @@ export function Footer() {
             <SocialButton href="tel:+393913170206" label="Telefono">
               <FiPhone className="h-5 w-5" />
             </SocialButton>
-
-            {/* se vuoi anche LinkedIn */}
-            <SocialButton href="https://www.linkedin.com" label="LinkedIn">
-              <SiLinkedin className="h-5 w-5" />
-            </SocialButton>
           </div>
 
           {/* LOGO */}
@@ -87,7 +83,7 @@ export function Footer() {
             <div className="text-[11px] uppercase tracking-[0.24em] text-white/45">Pagamenti accettati</div>
             <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
               <PayPalMark />
-              <span className="text-sm text-white/75">PayPal</span>
+              <span className="text-sm text-white/75">Pagamento sicuro</span>
             </div>
           </motion.div>
 
