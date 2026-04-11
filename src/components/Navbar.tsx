@@ -154,7 +154,6 @@ function SuggestionProductCard({
 }
 
 export function Navbar() {
-  const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -222,13 +221,6 @@ export function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const shouldUseGlobalOverlayLock = menuOpen || searchOpen || (!isMobileViewport && (profileOpen || cartOpen))
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12)
-    onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
 
   useEffect(() => {
     const openProfile = (event: Event) => {
@@ -512,7 +504,6 @@ export function Navbar() {
   }
 
   function resetHeaderState() {
-    setScrolled(false)
     setMenuOpen(false)
     setSearchOpen(false)
     setProfileOpen(false)
@@ -690,15 +681,10 @@ export function Navbar() {
         style={{ ["--nav-h" as any]: `${navH}px` } as any}
       >
         <div className="relative">
-          <motion.div
+          <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 z-0"
-            initial={false}
-            animate={scrolled || searchOpen ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="pointer-events-none absolute inset-0 z-0 bg-black/30 backdrop-blur-2xl backdrop-saturate-125"
           >
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-2xl" />
-            <div className="absolute inset-0 backdrop-saturate-125" />
             <div className="absolute inset-x-0 bottom-0 h-px bg-white/12" />
             <div className="absolute inset-x-0 top-0 h-px bg-white/8" />
 
@@ -712,11 +698,11 @@ export function Navbar() {
               animate={{ x: ["-20%", "120%"] }}
               transition={{ duration: 4.6, ease: "linear", repeat: Infinity }}
             />
-          </motion.div>
+          </div>
 
-          <div className={scrolled || searchOpen ? "bg-transparent" : "bg-black/15 backdrop-blur-sm"}>
+          <div className="bg-transparent">
             <Container>
-              <motion.div initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} className="relative z-20">
+              <div className="relative z-20">
                 <div className="flex min-h-[68px] items-center justify-between gap-3 py-3 md:hidden">
                   <div className="flex items-center gap-2">
                     <button
@@ -831,7 +817,7 @@ export function Navbar() {
                     </Button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </Container>
           </div>
         </div>

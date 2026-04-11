@@ -61,5 +61,7 @@ test("Navbar logo forces a home-top reset instead of using generic anchor restor
   assert.match(navbar, /function handleLogoClick/)
   assert.match(navbar, /navigate\("\/", \{ state: \{ resetHomeTop: true \} \}\)/)
   assert.match(navbar, /onClick=\{handleLogoClick\}/)
-  assert.match(navbar, /setScrolled\(false\)/)
+  assert.match(navbar, /function resetHeaderState/)
+  assert.doesNotMatch(navbar, /setScrolled/)
+  assert.doesNotMatch(navbar, /window\.addEventListener\("scroll"/)
 })
