@@ -283,6 +283,32 @@ export function Navbar() {
   }, [products, searchOpen])
 
   useEffect(() => {
+    if (!searchOpen || isMobileViewport) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSearchOpen(false)
+      }
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (searchRootRef.current?.contains(target) || overlayRef.current?.contains(target)) {
+        return
+      }
+      setSearchOpen(false)
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("mousedown", handlePointerDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("mousedown", handlePointerDown)
+    }
+  }, [isMobileViewport, searchOpen])
+
+  useEffect(() => {
     if (!shouldUseGlobalOverlayLock) return
 
     const previousOverflow = document.body.style.overflow
