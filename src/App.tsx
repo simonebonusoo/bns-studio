@@ -50,6 +50,11 @@ function Home() {
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return
+    const state = location.state as {
+      restoreHomeFromShop?: boolean
+      restoreHomeScrollY?: number
+      resetHomeTop?: boolean
+    } | null
 
     const navigationEntry =
       typeof performance !== "undefined" && typeof performance.getEntriesByType === "function"
@@ -58,15 +63,22 @@ function Home() {
     const isReload =
       navigationEntry && "type" in navigationEntry ? navigationEntry.type === "reload" : false
 
-    if (isReload && !location.state && !location.hash) {
+    if (state?.resetHomeTop || (isReload && !location.state && !location.hash)) {
       clearHomeReturnState()
       window.scrollTo(0, 0)
       window.__lenis?.scrollTo(0, { immediate: true } as any)
+      window.dispatchEvent(new Event("scroll"))
     }
   }, [location.hash, location.state])
 
   useEffect(() => {
-    const state = location.state as { restoreHomeFromShop?: boolean; restoreHomeScrollY?: number } | null
+    const state = location.state as {
+      restoreHomeFromShop?: boolean
+      restoreHomeScrollY?: number
+      resetHomeTop?: boolean
+    } | null
+    if (state?.resetHomeTop) return
+
     const stored = readHomeReturnState()
     const hasExplicitRestore = Boolean(state?.restoreHomeFromShop)
     const nextY = Number.isFinite(state?.restoreHomeScrollY) ? Number(state?.restoreHomeScrollY) : stored?.homeScrollY

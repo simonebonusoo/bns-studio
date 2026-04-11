@@ -511,6 +511,33 @@ export function Navbar() {
     setCartOpen(true)
   }
 
+  function resetHeaderState() {
+    setScrolled(false)
+    setMenuOpen(false)
+    setSearchOpen(false)
+    setProfileOpen(false)
+    setCartOpen(false)
+  }
+
+  function scrollHomeToTop() {
+    window.scrollTo(0, 0)
+    window.__lenis?.scrollTo(0, { immediate: true } as any)
+    window.dispatchEvent(new Event("scroll"))
+  }
+
+  function handleLogoClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault()
+    resetHeaderState()
+
+    if (location.pathname !== "/" || location.search || location.hash) {
+      navigate("/", { state: { resetHomeTop: true } })
+      requestAnimationFrame(scrollHomeToTop)
+      return
+    }
+
+    scrollHomeToTop()
+  }
+
   function submitSearch(nextSearch = trimmedSearch) {
     const value = nextSearch.trim()
     navigate(value ? `/shop?search=${encodeURIComponent(value)}` : "/shop")
@@ -720,7 +747,7 @@ export function Navbar() {
                     </button>
                   </div>
 
-                  <a href="#top" aria-label="Vai all'inizio" className="flex flex-1 items-center justify-center no-underline">
+                  <a href="#top" onClick={handleLogoClick} aria-label="Vai all'inizio" className="flex flex-1 items-center justify-center no-underline">
                     <Logo className="h-7" />
                   </a>
 
@@ -752,7 +779,7 @@ export function Navbar() {
                 </div>
 
                 <div className="hidden min-h-[88px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-6 py-4 md:grid">
-                  <a href="#top" aria-label="Vai all'inizio" className="flex items-center no-underline">
+                  <a href="#top" onClick={handleLogoClick} aria-label="Vai all'inizio" className="flex items-center no-underline">
                     <Logo className="h-9" />
                   </a>
 
