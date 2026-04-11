@@ -4,6 +4,7 @@ export type StaticPageSection = {
 }
 
 export type StaticPageContent = {
+  version?: string
   eyebrow: string
   title: string
   intro: string
@@ -27,48 +28,60 @@ export type AboutPageContent = StaticPageContent & {
 
 export const ABOUT_PAGE_SETTINGS_KEY = "staticPage.about"
 export const PRIVACY_PAGE_SETTINGS_KEY = "staticPage.privacy"
+export const ABOUT_PAGE_CONTENT_VERSION = "2026-04-11-services-structure"
 
 export const defaultAboutContent: AboutPageContent = {
+  version: ABOUT_PAGE_CONTENT_VERSION,
   eyebrow: "MISSION",
   title: "Chi siamo",
   intro:
-    "BNS Studio nasce per trasformare idee in realta concrete, unendo creativita, design e intelligenza artificiale. Siamo uno studio creativo indipendente che lavora all'intersezione tra identita, contenuti, esperienze digitali e prodotti. Non offriamo semplici servizi: costruiamo ecosistemi di brand pensati per durare, distinguersi e diventare operativi nel mondo reale.",
+    "BNS Studio nasce per trasformare idee in realta concrete, unendo creativita, design e intelligenza artificiale. Crediamo che oggi un brand non sia solo immagine, ma un sistema completo fatto di identita, contenuti, esperienze e prodotti. Per questo progettiamo e costruiamo tutto cio che serve per far emergere un brand in modo autentico, riconoscibile e contemporaneo.",
   introImageUrl: "",
   sections: [
     {
+      title: "Chi siamo",
+      body:
+        "Siamo uno studio creativo indipendente che lavora all'intersezione tra design, tecnologia e AI. Non offriamo semplici servizi: costruiamo ecosistemi di brand pensati per durare e distinguersi.",
+    },
+    {
       title: "Cosa facciamo",
       body:
-        "Aiutiamo brand, aziende e creator a trasformare idee iniziali in identita visive, contenuti, prodotti e sistemi digitali pronti per il mercato. Dall'impostazione strategica alla realizzazione concreta, costruiamo ogni elemento necessario per dare forma a un brand completo, riconoscibile e contemporaneo.",
+        "Aiutiamo brand, aziende e creator a trasformare le loro idee in identita visive, contenuti, prodotti e sistemi digitali pronti per il mercato. Dall'idea iniziale alla realizzazione concreta, costruiamo ogni elemento necessario per dare forma a un brand completo.",
+    },
+    {
+      title: "Servizi",
+      body:
+        "Le nostre aree di lavoro coprono identita, produzione visuale, web, strategia, prodotti e strumenti AI. Ogni servizio puo vivere da solo, ma il valore piu forte nasce quando diventa parte di un sistema coordinato: brand, contenuti, piattaforme e prodotti che lavorano insieme.",
     },
     {
       title: "Brand & Identity",
       body:
-        "Progettiamo brand identity complete, logo design, visual systems e direzione artistica. Il lavoro non si ferma al segno grafico: definiamo coerenza tra visual, linguaggio, struttura, presenza online e materiali operativi, cosi che il brand possa essere riconosciuto e usato con continuita.",
+        "Brand identity completa, logo design, visual systems e art direction. Costruiamo sistemi visivi capaci di dare coerenza a linguaggio, presenza online, contenuti e materiali operativi.",
     },
     {
       title: "AI Visual Production",
       body:
-        "Usiamo contenuti generati e assistiti con AI per shooting fotografici, campagne pubblicitarie, concept avanzati e visual production. L'AI non sostituisce la direzione creativa: la rende piu rapida, piu flessibile e piu precisa quando serve costruire immagini, mood e contenuti ad alto impatto.",
+        "Shooting fotografici con AI, campagne pubblicitarie AI-driven, content creation per social, advertising e visual, generazione immagini e concept avanzati. L'AI diventa uno strumento di produzione, ma resta guidata da direzione creativa e intenzione visiva.",
     },
     {
       title: "Web & Digital",
       body:
-        "Progettiamo e sviluppiamo siti web, e-commerce, landing page strategiche e interfacce UX/UI. Ogni pagina viene pensata per tenere insieme design, contenuti, conversione e operativita: non solo bella da guardare, ma chiara da usare e sostenibile da gestire.",
+        "Siti web, design e sviluppo, e-commerce, UX/UI design e landing page strategiche. Progettiamo esperienze digitali che tengono insieme struttura, estetica, contenuti, conversione e gestione operativa.",
     },
     {
       title: "Strategy",
       body:
-        "Lavoriamo su brand positioning, direzione creativa, strategie di comunicazione e sviluppo concept. Prima di costruire una pagina, un visual o una campagna, definiamo il punto di vista: cosa deve dire il brand, a chi parla e perche dovrebbe essere ricordato.",
+        "Brand positioning, direzione creativa, strategie di comunicazione e sviluppo concept. Definiamo il punto di vista del brand prima di costruire immagini, pagine o campagne: cosa deve dire, a chi parla e perche dovrebbe essere ricordato.",
     },
     {
       title: "Products & Shop",
       body:
-        "Il nostro shop e parte del progetto BNS Studio: un catalogo editoriale e visivo dove vendiamo poster originali, prodotti creativi e merchandising. Realizziamo anche poster personalizzati, collezioni creative e sistemi e-commerce pensati per collegare prodotto, immagine e identita.",
+        "Design e vendita di poster originali, poster personalizzati su richiesta, sviluppo collezioni creative, direzione creativa per merchandising e progettazione e gestione e-commerce. Il nostro shop e il nostro catalogo editoriale e visivo: un luogo dove prodotti, immagini e identita si incontrano.",
     },
     {
       title: "Software & AI Tools",
       body:
-        "Sviluppiamo tool interni, automazioni AI e software creativi per semplificare processi, produzione contenuti e gestione operativa. Quando serve, il progetto non si limita al visual: diventa uno strumento concreto che aiuta il brand a lavorare meglio.",
+        "Sviluppo tool interni, automazioni AI e software creativi per brand. Quando serve, il progetto non si limita al visual: diventa uno strumento concreto per produrre, organizzare e far crescere il sistema.",
     },
   ],
   staffTitle: "Il nostro staff",
@@ -168,6 +181,7 @@ export function parseStaticPageContent(rawValue: string | undefined, fallback: S
       : fallback.sections
 
     return {
+      version: String(parsed.version || fallback.version || "").trim(),
       eyebrow: String(parsed.eyebrow || fallback.eyebrow).trim(),
       title: String(parsed.title || fallback.title).trim(),
       intro: String(parsed.intro || fallback.intro).trim(),
@@ -189,6 +203,10 @@ export function parseAboutPageContent(rawValue: string | undefined, fallback: Ab
       return fallback
     }
 
+    if (parsed.version !== ABOUT_PAGE_CONTENT_VERSION) {
+      return fallback
+    }
+
     const staff = Array.isArray(parsed.staff)
       ? parsed.staff
           .map((member: Partial<AboutStaffMember>, index: number) => ({
@@ -202,6 +220,7 @@ export function parseAboutPageContent(rawValue: string | undefined, fallback: Ab
 
     return {
       ...base,
+      version: ABOUT_PAGE_CONTENT_VERSION,
       introImageUrl: String(parsed.introImageUrl || fallback.introImageUrl || "").trim(),
       staffTitle: String(parsed.staffTitle || fallback.staffTitle).trim(),
       staffIntro: String(parsed.staffIntro || fallback.staffIntro).trim(),
