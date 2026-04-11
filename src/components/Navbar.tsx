@@ -218,9 +218,10 @@ export function Navbar() {
   const profileRef = useRef<HTMLDivElement | null>(null)
   const cartRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const searchRootRef = useRef<HTMLDivElement | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
-  const shouldUseGlobalOverlayLock = menuOpen || searchOpen || (!isMobileViewport && (profileOpen || cartOpen))
+  const shouldUseGlobalOverlayLock = menuOpen || (isMobileViewport && searchOpen) || (!isMobileViewport && (profileOpen || cartOpen))
 
   useEffect(() => {
     const openProfile = (event: Event) => {
@@ -317,7 +318,7 @@ export function Navbar() {
           setMenuOpen(false)
         }
 
-        if (searchOpen && !overlayRef.current?.contains(target) && !inputRef.current?.contains(target)) {
+        if (searchOpen && !searchRootRef.current?.contains(target) && !overlayRef.current?.contains(target) && !inputRef.current?.contains(target)) {
           setSearchOpen(false)
         }
 
@@ -534,6 +535,11 @@ export function Navbar() {
     navigate(value ? `/shop?search=${encodeURIComponent(value)}` : "/shop")
     setMenuOpen(false)
     setSearchOpen(false)
+  }
+
+  function openSearchProduct(slug: string) {
+    setSearchOpen(false)
+    navigate(`/shop/${slug}`)
   }
 
   const suggestedProducts = shuffledSuggestedProducts
@@ -769,42 +775,131 @@ export function Navbar() {
                     <Logo className="h-9" />
                   </a>
 
-                  <div
-                    className={[
-                      "flex h-[50px] w-full items-center gap-3 rounded-full border bg-white/[0.04] px-5 backdrop-blur-xl transition",
-                      searchOpen ? "border-white/20 text-white" : "border-white/10 text-white/55 hover:border-white/20 hover:text-white",
-                    ].join(" ")}
-                  >
-                    <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
-                    <input
-                      ref={inputRef}
-                      value={search}
-                      onFocus={() => setSearchOpen(true)}
-                      onChange={(event) => {
-                        setSearch(event.target.value)
-                        if (!searchOpen) setSearchOpen(true)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          submitSearch(search)
-                        }
-                      }}
-                      placeholder="Cerca prodotti, nomi, artisti..."
-                      className="w-full bg-transparent text-base text-white placeholder:text-white/35 outline-none"
-                    />
-                    {search || searchOpen ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearch("")
-                          setSearchOpen(false)
+                  <div ref={searchRootRef} className="relative min-w-0">
+                    <div
+                      className={[
+                        "flex h-[50px] w-full items-center gap-3 rounded-full border bg-white/[0.04] px-5 backdrop-blur-xl transition",
+                        searchOpen ? "border-white/20 text-white" : "border-white/10 text-white/55 hover:border-white/20 hover:text-white",
+                      ].join(" ")}
+                    >
+                      <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
+                      <input
+                        ref={inputRef}
+                        value={search}
+                        onFocus={() => setSearchOpen(true)}
+                        onChange={(event) => {
+                          setSearch(event.target.value)
+                          if (!searchOpen) setSearchOpen(true)
                         }}
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
-                        aria-label="Chiudi ricerca"
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
-                    ) : null}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            submitSearch(search)
+                          }
+                        }}
+                        placeholder="Cerca prodotti, nomi, artisti..."
+                        className="w-full bg-transparent text-base text-white placeholder:text-white/35 outline-none"
+                      />
+                      {search || searchOpen ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearch("")
+                            setSearchOpen(false)
+                          }}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
+                          aria-label="Chiudi ricerca"
+                        >
+                          <XMarkIcon className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <AnimatePresence>
+                      {searchOpen && !isMobileViewport ? (
+                        <motion.div
+                          ref={overlayRef}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 8 }}
+                          transition={drawerTransition}
+                          className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-[70] overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_28px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
+                        >
+                          {!trimmedSearch ? (
+                            <div className="p-5">
+                              <div className="mb-4">
+                                <p className="text-xs uppercase tracking-[0.26em] text-white/45">Suggerimenti</p>
+                                <p className="mt-2 text-sm text-white/65">Apri prodotti reali direttamente dalla ricerca.</p>
+                              </div>
+                              <HorizontalScrollRail
+                                className="pb-1"
+                                contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+                                onWheel={forwardWheelToHorizontalScroll}
+                                ariaLabel="Scorri a destra i suggerimenti"
+                              >
+                                <div data-testid="desktop-search-suggestions" className="contents">
+                                  {suggestedProducts.length ? (
+                                    suggestedProducts.map((product) => (
+                                      <SuggestionProductCard
+                                        key={product.id}
+                                        onClick={() => openSearchProduct(product.slug)}
+                                        product={product}
+                                      />
+                                    ))
+                                  ) : (
+                                    <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
+                                      Nessun prodotto suggerito disponibile.
+                                    </div>
+                                  )}
+                                </div>
+                              </HorizontalScrollRail>
+                            </div>
+                          ) : (
+                            <div className="p-5">
+                              <div className="mb-4 flex items-center justify-between gap-4">
+                                <div>
+                                  <p className="text-xs uppercase tracking-[0.26em] text-white/45">Risultati live</p>
+                                  <p className="mt-2 text-sm text-white/65">
+                                    {loadingProducts ? "Aggiornamento risultati..." : `${liveResults.length} prodotti trovati per "${trimmedSearch}"`}
+                                  </p>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => submitSearch()}
+                                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white"
+                                >
+                                  Vedi tutti i risultati
+                                </button>
+                              </div>
+
+                              <HorizontalScrollRail
+                                className="pb-1"
+                                contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+                                onWheel={forwardWheelToHorizontalScroll}
+                                ariaLabel="Scorri a destra i risultati live"
+                              >
+                                <div data-testid="desktop-search-live-results" className="contents">
+                                  {liveResults.length ? (
+                                    liveResults.map((product) => (
+                                      <SuggestionProductCard
+                                        key={product.id}
+                                        onClick={() => openSearchProduct(product.slug)}
+                                        product={product}
+                                        query={trimmedSearch}
+                                      />
+                                    ))
+                                  ) : (
+                                    <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
+                                      Nessun risultato live. Premi invio per aprire il catalogo filtrato.
+                                    </div>
+                                  )}
+                                </div>
+                              </HorizontalScrollRail>
+                            </div>
+                          )}
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
                   </div>
 
                   <div className="flex items-center justify-end gap-3">
@@ -935,7 +1030,7 @@ export function Navbar() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {searchOpen ? (
+        {searchOpen && isMobileViewport ? (
           <Fragment>
             <motion.div
               initial={{ opacity: 0 }}
@@ -1007,7 +1102,7 @@ export function Navbar() {
                               return (
                                 <SuggestionProductCard
                                   key={product.id}
-                                  onClick={() => navigate(`/shop/${product.slug}`)}
+                                  onClick={() => openSearchProduct(product.slug)}
                                   product={product}
                                 />
                               )
@@ -1051,7 +1146,7 @@ export function Navbar() {
                               return (
                                 <SuggestionProductCard
                                   key={product.id}
-                                  onClick={() => navigate(`/shop/${product.slug}`)}
+                                  onClick={() => openSearchProduct(product.slug)}
                                   product={product}
                                   query={trimmedSearch}
                                 />
