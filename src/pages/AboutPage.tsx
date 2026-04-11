@@ -196,7 +196,6 @@ export function AboutPage() {
   }
 
   const displayContent = editing ? draft : content
-  const storySections = displayContent.sections.slice(0, 2)
   const serviceSectionOffset = 3
   const serviceSections = displayContent.sections.slice(serviceSectionOffset)
 
@@ -251,72 +250,16 @@ export function AboutPage() {
             </div>
 
             <div className="rounded-[38px] border border-white/10 bg-white/[0.025] px-5 py-8 md:px-10 md:py-12">
-              <div className="space-y-8">
-                <div className="space-y-4">
-                  {editing ? (
-                    <input
-                      className="shop-input max-w-xs text-xs uppercase tracking-[0.28em]"
-                      value={draft.eyebrow}
-                      onChange={(event) => updateDraft("eyebrow", event.target.value)}
-                      aria-label="Eyebrow Chi siamo"
-                    />
-                  ) : (
-                    <p className="text-xs uppercase tracking-[0.32em] text-white/45">{displayContent.eyebrow}</p>
-                  )}
-
-                  {editing ? (
-                    <textarea
-                      className="shop-input min-h-44 text-base leading-8"
-                      value={draft.intro}
-                      onChange={(event) => updateDraft("intro", event.target.value)}
-                      aria-label="Testo mission Chi siamo"
-                    />
-                  ) : (
-                    <p className="max-w-5xl text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
-                  )}
-                </div>
-
-                <div className="space-y-6 border-t border-white/10 pt-8">
-                  {storySections.map((section, index) => (
-                    <article
-                      key={`${section.title}-${index}`}
-                      className={editing ? "grid gap-5 lg:grid-cols-[minmax(180px,0.26fr)_minmax(0,1fr)]" : ""}
-                    >
-                      {editing ? (
-                        <>
-                          <div className="space-y-3">
-                            <input
-                              className="shop-input text-2xl font-semibold"
-                              value={draft.sections[index]?.title || ""}
-                              onChange={(event) => updateSection(index, "title", event.target.value)}
-                              aria-label={`Titolo blocco editoriale ${index + 1}`}
-                            />
-                            <div className="flex flex-wrap gap-2">
-                              <button type="button" onClick={() => moveSection(index, -1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                                Su
-                              </button>
-                              <button type="button" onClick={() => moveSection(index, 1)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                                Giu
-                              </button>
-                              <button type="button" onClick={() => removeSection(index)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition hover:border-white/20 hover:text-white">
-                                Rimuovi
-                              </button>
-                            </div>
-                          </div>
-                          <textarea
-                            className="shop-input min-h-40 text-base leading-8"
-                            value={draft.sections[index]?.body || ""}
-                            onChange={(event) => updateSection(index, "body", event.target.value)}
-                            aria-label={`Testo blocco editoriale ${index + 1}`}
-                          />
-                        </>
-                      ) : (
-                        <p className="max-w-5xl whitespace-pre-line text-base leading-8 text-white/66 md:text-lg">{section.body}</p>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              </div>
+              {editing ? (
+                <textarea
+                  className="shop-input min-h-72 text-base leading-8"
+                  value={draft.intro}
+                  onChange={(event) => updateDraft("intro", event.target.value)}
+                  aria-label="Testo Chi siamo"
+                />
+              ) : (
+                <p className="max-w-5xl whitespace-pre-line text-lg leading-9 text-white/72 md:text-xl">{displayContent.intro}</p>
+              )}
 
               {loading ? <p className="text-sm text-white/45">Caricamento contenuti...</p> : null}
               {message ? <p className="text-sm text-emerald-200/80">{message}</p> : null}
