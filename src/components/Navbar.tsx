@@ -770,12 +770,13 @@ export function Navbar() {
                   </div>
                 </div>
 
-                <div className="hidden min-h-[88px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-6 py-4 md:grid">
+                <div className="relative hidden md:block">
+                  <div className="grid min-h-[88px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-6 py-4">
                   <a href="#top" onClick={handleLogoClick} aria-label="Vai all'inizio" className="flex items-center no-underline">
                     <Logo className="h-9" />
                   </a>
 
-                  <div ref={searchRootRef} className="relative min-w-0">
+                  <div ref={searchRootRef} className="min-w-0">
                     <div
                       className={[
                         "flex h-[50px] w-full items-center gap-3 rounded-full border bg-white/[0.04] px-5 backdrop-blur-xl transition",
@@ -813,93 +814,6 @@ export function Navbar() {
                         </button>
                       ) : null}
                     </div>
-
-                    <AnimatePresence>
-                      {searchOpen && !isMobileViewport ? (
-                        <motion.div
-                          ref={overlayRef}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={drawerTransition}
-                          className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-[70] overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_28px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
-                        >
-                          {!trimmedSearch ? (
-                            <div className="p-5">
-                              <div className="mb-4">
-                                <p className="text-xs uppercase tracking-[0.26em] text-white/45">Suggerimenti</p>
-                                <p className="mt-2 text-sm text-white/65">Apri prodotti reali direttamente dalla ricerca.</p>
-                              </div>
-                              <HorizontalScrollRail
-                                className="pb-1"
-                                contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                                onWheel={forwardWheelToHorizontalScroll}
-                                ariaLabel="Scorri a destra i suggerimenti"
-                              >
-                                <div data-testid="desktop-search-suggestions" className="contents">
-                                  {suggestedProducts.length ? (
-                                    suggestedProducts.map((product) => (
-                                      <SuggestionProductCard
-                                        key={product.id}
-                                        onClick={() => openSearchProduct(product.slug)}
-                                        product={product}
-                                      />
-                                    ))
-                                  ) : (
-                                    <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
-                                      Nessun prodotto suggerito disponibile.
-                                    </div>
-                                  )}
-                                </div>
-                              </HorizontalScrollRail>
-                            </div>
-                          ) : (
-                            <div className="p-5">
-                              <div className="mb-4 flex items-center justify-between gap-4">
-                                <div>
-                                  <p className="text-xs uppercase tracking-[0.26em] text-white/45">Risultati live</p>
-                                  <p className="mt-2 text-sm text-white/65">
-                                    {loadingProducts ? "Aggiornamento risultati..." : `${liveResults.length} prodotti trovati per "${trimmedSearch}"`}
-                                  </p>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => submitSearch()}
-                                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white"
-                                >
-                                  Vedi tutti i risultati
-                                </button>
-                              </div>
-
-                              <HorizontalScrollRail
-                                className="pb-1"
-                                contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                                onWheel={forwardWheelToHorizontalScroll}
-                                ariaLabel="Scorri a destra i risultati live"
-                              >
-                                <div data-testid="desktop-search-live-results" className="contents">
-                                  {liveResults.length ? (
-                                    liveResults.map((product) => (
-                                      <SuggestionProductCard
-                                        key={product.id}
-                                        onClick={() => openSearchProduct(product.slug)}
-                                        product={product}
-                                        query={trimmedSearch}
-                                      />
-                                    ))
-                                  ) : (
-                                    <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
-                                      Nessun risultato live. Premi invio per aprire il catalogo filtrato.
-                                    </div>
-                                  )}
-                                </div>
-                              </HorizontalScrollRail>
-                            </div>
-                          )}
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
                   </div>
 
                   <div className="flex items-center justify-end gap-3">
@@ -912,6 +826,94 @@ export function Navbar() {
                     </Button>
                   </div>
                 </div>
+
+                  <AnimatePresence>
+                    {searchOpen && !isMobileViewport ? (
+                      <motion.div
+                        ref={overlayRef}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        transition={drawerTransition}
+                        className="absolute left-0 right-0 top-full z-[70] overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b0b]/95 shadow-[0_28px_80px_rgba(0,0,0,.45)] backdrop-blur-2xl"
+                      >
+                        {!trimmedSearch ? (
+                          <div className="p-5">
+                            <div className="mb-4">
+                              <p className="text-xs uppercase tracking-[0.26em] text-white/45">Suggerimenti</p>
+                              <p className="mt-2 text-sm text-white/65">Apri prodotti reali direttamente dalla ricerca.</p>
+                            </div>
+                            <HorizontalScrollRail
+                              className="pb-1"
+                              contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+                              onWheel={forwardWheelToHorizontalScroll}
+                              ariaLabel="Scorri a destra i suggerimenti"
+                            >
+                              <div data-testid="desktop-search-suggestions" className="contents">
+                                {suggestedProducts.length ? (
+                                  suggestedProducts.map((product) => (
+                                    <SuggestionProductCard
+                                      key={product.id}
+                                      onClick={() => openSearchProduct(product.slug)}
+                                      product={product}
+                                    />
+                                  ))
+                                ) : (
+                                  <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
+                                    Nessun prodotto suggerito disponibile.
+                                  </div>
+                                )}
+                              </div>
+                            </HorizontalScrollRail>
+                          </div>
+                        ) : (
+                          <div className="p-5">
+                            <div className="mb-4 flex items-center justify-between gap-4">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.26em] text-white/45">Risultati live</p>
+                                <p className="mt-2 text-sm text-white/65">
+                                  {loadingProducts ? "Aggiornamento risultati..." : `${liveResults.length} prodotti trovati per "${trimmedSearch}"`}
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => submitSearch()}
+                                className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75 transition hover:border-white/20 hover:text-white"
+                              >
+                                Vedi tutti i risultati
+                              </button>
+                            </div>
+
+                            <HorizontalScrollRail
+                              className="pb-1"
+                              contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+                              onWheel={forwardWheelToHorizontalScroll}
+                              ariaLabel="Scorri a destra i risultati live"
+                            >
+                              <div data-testid="desktop-search-live-results" className="contents">
+                                {liveResults.length ? (
+                                  liveResults.map((product) => (
+                                    <SuggestionProductCard
+                                      key={product.id}
+                                      onClick={() => openSearchProduct(product.slug)}
+                                      product={product}
+                                      query={trimmedSearch}
+                                    />
+                                  ))
+                                ) : (
+                                  <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-10 text-center text-white/55">
+                                    Nessun risultato live. Premi invio per aprire il catalogo filtrato.
+                                  </div>
+                                )}
+                              </div>
+                            </HorizontalScrollRail>
+                          </div>
+                        )}
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+              </div>
               </div>
             </Container>
           </div>
