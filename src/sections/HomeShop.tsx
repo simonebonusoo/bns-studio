@@ -120,38 +120,61 @@ const defaultShowcases: ShowcaseCard[] = [
 
 type TrustIcon = "truck" | "package" | "delivery" | "paypal" | "receipt" | "spark";
 
-const trustItems = [
+type TrustCard = {
+  icon: TrustIcon;
+  title: string;
+  description: string;
+};
+
+type TrustSectionContent = {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  cards: TrustCard[];
+};
+
+const HOMEPAGE_TRUST_SECTION_KEY = "homepageTrustSection";
+
+const trustItems: TrustCard[] = [
   {
-    icon: "truck" as TrustIcon,
+    icon: "truck",
     title: "Spedizione gratuita sopra 25 euro",
     description: "Gli ordini oltre la soglia partono senza costi aggiuntivi.",
   },
   {
-    icon: "package" as TrustIcon,
+    icon: "package",
     title: "Spedizione gratuita con piu di 3 articoli",
     description: "Se costruisci una piccola selezione, la spedizione resta inclusa.",
   },
   {
-    icon: "delivery" as TrustIcon,
+    icon: "delivery",
     title: "Consegna in 3-5 giorni lavorativi",
     description: "Tempi chiari e rapidi per ricevere il tuo ordine senza attese lunghe.",
   },
   {
-    icon: "paypal" as TrustIcon,
+    icon: "paypal",
     title: "Pagamento sicuro con PayPal",
     description: "Checkout protetto e flusso di pagamento gia integrato nello shop.",
   },
   {
-    icon: "receipt" as TrustIcon,
+    icon: "receipt",
     title: "Ricevuta disponibile dopo il pagamento",
     description: "Ogni acquisto genera una ricevuta scaricabile in modo semplice.",
   },
   {
-    icon: "spark" as TrustIcon,
+    icon: "spark",
     title: "Nuovi prodotti ogni giorno",
     description: "Il catalogo resta vivo con uscite continue e nuove idee da scoprire.",
   },
 ];
+
+const defaultTrustSection: TrustSectionContent = {
+  eyebrow: "Fiducia",
+  title: "Dettagli chiari prima dell'acquisto, zero zone grigie dopo.",
+  intro:
+    "Una sezione sintetica per togliere dubbi subito: spedizione, tempi, pagamento e ricevuta sono gia esplicitati prima di entrare nel catalogo completo.",
+  cards: trustItems,
+};
 
 function TrustGlyph({ icon }: { icon: TrustIcon }) {
   switch (icon) {
@@ -341,6 +364,42 @@ function parseHomepagePopularCategories(
   }
 }
 
+function parseHomepageTrustSection(rawValue: string | undefined, fallback: TrustSectionContent) {
+  if (!rawValue) return fallback
+
+  try {
+    const parsed = JSON.parse(rawValue)
+    if (!parsed || typeof parsed !== "object") return fallback
+
+    const cards = Array.isArray(parsed.cards)
+      ? parsed.cards
+          .filter((entry) => entry && typeof entry === "object")
+          .map((entry) => {
+            const icon = String(entry.icon || "spark").trim() as TrustIcon
+            const safeIcon: TrustIcon = ["truck", "package", "delivery", "paypal", "receipt", "spark"].includes(icon)
+              ? icon
+              : "spark"
+
+            return {
+              icon: safeIcon,
+              title: String(entry.title || "").trim(),
+              description: String(entry.description || "").trim(),
+            }
+          })
+          .filter((entry) => entry.title && entry.description)
+      : fallback.cards
+
+    return {
+      eyebrow: String(parsed.eyebrow || fallback.eyebrow).trim(),
+      title: String(parsed.title || fallback.title).trim(),
+      intro: String(parsed.intro || fallback.intro).trim(),
+      cards: cards.length ? cards : fallback.cards,
+    }
+  } catch {
+    return fallback
+  }
+}
+
 function buildPopularCategoryHref(category: string, title: string, subtitle?: string) {
   const params = new URLSearchParams()
   if (category) {
@@ -377,6 +436,11 @@ export function HomeShop() {
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading">("idle");
+  const [editingTrust, setEditingTrust] = useState(false);
+  const [trustDraft, setTrustDraft] = useState<TrustSectionContent>(defaultTrustSection);
+  const [trustSaving, setTrustSaving] = useState(false);
+  const [trustMessage, setTrustMessage] = useState("");
+  const [trustError, setTrustError] = useState("");
 
   function rememberHomePosition() {
     persistHomeReturnState(buildHomeReturnState("/", typeof window !== "undefined" ? window.scrollY : 0))
@@ -410,6 +474,41 @@ export function HomeShop() {
     } catch {
       // Ignore quota/storage errors: homepage should continue to render.
     }
+  }
+
+  function updateTrustDraft(key: "eyebrow" | "title" | "intro", value: string) {
+    setTrustDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function updateTrustCard(index: number, key: "title" | "description", value: string) {
+    setTrustDraft((current) => ({
+      ...current,
+      cards: current.cards.map((card, itemIndex) => (itemIndex === index ? { ...card, [key]: value } : card)),
+    }))
+  }
+
+  function addTrustCard() {
+    setTrustDraft((current) => ({
+      ...current,
+      cards: [
+        ...current.cards,
+        {
+          icon: "spark",
+          title: "Nuova card",
+          description: "Scrivi qui la descrizione della nuova card.",
+        },
+      ],
+    }))
+  }
+
+  function removeTrustCard(index: number) {
+    const confirmed = window.confirm("Eliminare questa card?")
+    if (!confirmed) return
+
+    setTrustDraft((current) => ({
+      ...current,
+      cards: current.cards.filter((_, itemIndex) => itemIndex !== index),
+    }))
   }
 
   useEffect(() => {
@@ -477,6 +576,17 @@ export function HomeShop() {
     [collections, shopSettings]
   )
 
+  const trustSection = useMemo(
+    () => parseHomepageTrustSection(shopSettings[HOMEPAGE_TRUST_SECTION_KEY], defaultTrustSection),
+    [shopSettings],
+  )
+
+  useEffect(() => {
+    if (!editingTrust) {
+      setTrustDraft(trustSection)
+    }
+  }, [editingTrust, trustSection])
+
   const popularCategoryCards = useMemo(
     () =>
       popularCategories.map((category, index) => ({
@@ -510,6 +620,47 @@ export function HomeShop() {
     }
     return shuffleProducts(featuredProducts).slice(0, 8)
   }, [products])
+
+  async function saveTrustSection() {
+    setTrustError("")
+    setTrustMessage("")
+    const nextTrustSection = parseHomepageTrustSection(JSON.stringify(trustDraft), defaultTrustSection)
+    const nextSettings = {
+      ...shopSettings,
+      [HOMEPAGE_TRUST_SECTION_KEY]: JSON.stringify(nextTrustSection),
+    }
+
+    try {
+      setTrustSaving(true)
+      await apiFetch("/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify([{ key: HOMEPAGE_TRUST_SECTION_KEY, value: JSON.stringify(nextTrustSection) }]),
+      })
+      setShopSettings(nextSettings)
+      writeHomeShopCache({
+        products,
+        productTotal,
+        settings: nextSettings,
+        collections,
+      })
+      setTrustDraft(nextTrustSection)
+      setEditingTrust(false)
+      setTrustMessage("Sezione Fiducia salvata.")
+    } catch (err) {
+      setTrustError(err instanceof Error ? err.message : "Errore durante il salvataggio della sezione Fiducia.")
+    } finally {
+      setTrustSaving(false)
+    }
+  }
+
+  function cancelTrustEdit() {
+    setTrustDraft(trustSection)
+    setEditingTrust(false)
+    setTrustError("")
+    setTrustMessage("")
+  }
+
+  const trustDisplay = editingTrust ? trustDraft : trustSection
 
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
@@ -774,29 +925,114 @@ export function HomeShop() {
         </div>
 
         <div className="space-y-8 pt-10 sm:pt-16">
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.32em] text-white/45">Fiducia</p>
-            <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              Dettagli chiari prima dell'acquisto, zero zone grigie dopo.
-            </h3>
-            <p className="max-w-3xl text-sm leading-6 text-white/62 sm:text-base">
-              Una sezione sintetica per togliere dubbi subito: spedizione, tempi, pagamento e ricevuta sono
-              gia esplicitati prima di entrare nel catalogo completo.
-            </p>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="w-full space-y-3">
+              {editingTrust ? (
+                <>
+                  <input
+                    className="shop-input max-w-xs text-xs uppercase tracking-[0.28em]"
+                    value={trustDraft.eyebrow}
+                    onChange={(event) => updateTrustDraft("eyebrow", event.target.value)}
+                    aria-label="Label sezione Fiducia"
+                  />
+                  <input
+                    className="shop-input text-2xl font-semibold tracking-tight text-white sm:text-3xl"
+                    value={trustDraft.title}
+                    onChange={(event) => updateTrustDraft("title", event.target.value)}
+                    aria-label="Titolo sezione Fiducia"
+                  />
+                  <textarea
+                    className="shop-input min-h-24 text-sm leading-6 sm:text-base"
+                    value={trustDraft.intro}
+                    onChange={(event) => updateTrustDraft("intro", event.target.value)}
+                    aria-label="Testo introduttivo sezione Fiducia"
+                  />
+                </>
+              ) : (
+                <>
+                  <p className="text-xs uppercase tracking-[0.32em] text-white/45">{trustDisplay.eyebrow}</p>
+                  <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                    {trustDisplay.title}
+                  </h3>
+                  <p className="max-w-3xl text-sm leading-6 text-white/62 sm:text-base">
+                    {trustDisplay.intro}
+                  </p>
+                </>
+              )}
+              {trustMessage ? <p className="text-sm text-emerald-200/80">{trustMessage}</p> : null}
+              {trustError ? <p className="text-sm text-red-200/80">{trustError}</p> : null}
+            </div>
+
+            {effectiveRole === "admin" ? (
+              <div className="flex flex-wrap gap-3 self-start md:self-auto md:justify-end">
+                {editingTrust ? (
+                  <>
+                    <Button variant="cart" size="sm" onClick={saveTrustSection} disabled={trustSaving}>
+                      {trustSaving ? "Salvataggio..." : "Salva"}
+                    </Button>
+                    <Button variant="profile" size="sm" onClick={cancelTrustEdit} disabled={trustSaving}>
+                      Annulla
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={addTrustCard} disabled={trustSaving}>
+                      Aggiungi card
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setTrustDraft(trustSection)
+                      setTrustMessage("")
+                      setTrustError("")
+                      setEditingTrust(true)
+                    }}
+                  >
+                    Modifica
+                  </Button>
+                )}
+              </div>
+            ) : null}
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {(trustItems || []).map((item) => (
+            {(trustDisplay.cards || []).map((item, index) => (
               <div
-                key={item.title}
+                key={`${item.title}-${index}`}
                 className="rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-5"
               >
                 <div className="flex items-start gap-4">
                   <div className="mt-0.5 inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-white/10 bg-white/8 text-white/88">
                     <TrustGlyph icon={item.icon} />
                   </div>
-                  <div className="space-y-1.5">
-                    <h4 className="text-base font-semibold text-white">{item.title}</h4>
-                    <p className="text-sm leading-6 text-white/62">{item.description}</p>
+                  <div className="w-full space-y-1.5">
+                    {editingTrust ? (
+                      <>
+                        <input
+                          className="shop-input text-base font-semibold"
+                          value={trustDraft.cards[index]?.title || ""}
+                          onChange={(event) => updateTrustCard(index, "title", event.target.value)}
+                          aria-label={`Titolo card Fiducia ${index + 1}`}
+                        />
+                        <textarea
+                          className="shop-input min-h-28 text-sm leading-6"
+                          value={trustDraft.cards[index]?.description || ""}
+                          onChange={(event) => updateTrustCard(index, "description", event.target.value)}
+                          aria-label={`Descrizione card Fiducia ${index + 1}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeTrustCard(index)}
+                          className="rounded-full border border-red-200/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-red-100/75 transition hover:border-red-200/40 hover:text-red-50"
+                        >
+                          Elimina card
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <h4 className="text-base font-semibold text-white">{item.title}</h4>
+                        <p className="text-sm leading-6 text-white/62">{item.description}</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
