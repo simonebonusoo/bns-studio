@@ -6,6 +6,7 @@ type HorizontalScrollRailProps = {
   className?: string
   contentClassName?: string
   ariaLabel?: string
+  isolateWheel?: boolean
   onWheel?: WheelEventHandler<HTMLDivElement>
 }
 
@@ -14,6 +15,7 @@ export function HorizontalScrollRail({
   className = "",
   contentClassName = "",
   ariaLabel = "Scorri a destra",
+  isolateWheel = false,
   onWheel,
 }: HorizontalScrollRailProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -42,6 +44,28 @@ export function HorizontalScrollRail({
     }
   }, [])
 
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node || !isolateWheel) return
+
+    const containWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      event.stopPropagation()
+      event.stopImmediatePropagation()
+
+      const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX
+      if (delta) {
+        node.scrollLeft += delta
+      }
+    }
+
+    node.addEventListener("wheel", containWheel, { passive: false, capture: true })
+
+    return () => {
+      node.removeEventListener("wheel", containWheel, { capture: true })
+    }
+  }, [isolateWheel])
+
   function handleScroll(delta: number) {
     const node = scrollRef.current
     if (!node) return
@@ -50,7 +74,12 @@ export function HorizontalScrollRail({
 
   return (
     <div className={`relative ${className}`.trim()}>
-      <div ref={scrollRef} className={contentClassName} onWheelCapture={onWheel}>
+      <div
+        ref={scrollRef}
+        className={contentClassName}
+        onWheelCapture={onWheel}
+        style={isolateWheel ? { overscrollBehavior: "contain" } : undefined}
+      >
         {children}
       </div>
 

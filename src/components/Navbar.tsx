@@ -49,15 +49,6 @@ function containWheel(event: React.WheelEvent<HTMLElement>) {
   event.stopPropagation()
 }
 
-function forwardWheelToHorizontalScroll(event: React.WheelEvent<HTMLElement>) {
-  const target = event.currentTarget
-  const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX
-  if (!delta) return
-  event.preventDefault()
-  event.stopPropagation()
-  target.scrollLeft += delta
-}
-
 function requiresSharedProfilePassword(field: "username" | "email" | "password" | "shipping") {
   return field === "username" || field === "email" || field === "password" || field === "shipping"
 }
@@ -874,7 +865,7 @@ export function Navbar() {
                             <HorizontalScrollRail
                               className="pb-1"
                               contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                              onWheel={forwardWheelToHorizontalScroll}
+                              isolateWheel
                               ariaLabel="Scorri a destra i suggerimenti"
                             >
                               <div data-testid="desktop-search-suggestions" className="contents">
@@ -916,7 +907,7 @@ export function Navbar() {
                             <HorizontalScrollRail
                               className="pb-1"
                               contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                              onWheel={forwardWheelToHorizontalScroll}
+                              isolateWheel
                               ariaLabel="Scorri a destra i risultati live"
                             >
                               <div data-testid="desktop-search-live-results" className="contents">
@@ -1123,7 +1114,7 @@ export function Navbar() {
                       <HorizontalScrollRail
                         className="pb-2"
                         contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                        onWheel={forwardWheelToHorizontalScroll}
+                        isolateWheel
                         ariaLabel="Scorri a destra i suggerimenti"
                       >
                         <div data-testid="mobile-search-suggestions" className="contents">
@@ -1167,7 +1158,7 @@ export function Navbar() {
                       <HorizontalScrollRail
                         className="pb-2"
                         contentClassName="flex gap-4 overflow-x-auto pb-2 pr-14 touch-pan-x snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                        onWheel={forwardWheelToHorizontalScroll}
+                        isolateWheel
                         ariaLabel="Scorri a destra i risultati live"
                       >
                         <div data-testid="mobile-search-live-results" className="contents">
