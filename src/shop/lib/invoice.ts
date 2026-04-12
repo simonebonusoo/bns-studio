@@ -66,6 +66,12 @@ export async function downloadInvoicePdf(order: ShopOrder, settings: ShopSetting
     doc.text(String(item.quantity), 360, y)
     doc.text(formatPrice(item.lineTotal), 540, y, { align: "right" })
     y += 22
+    if (item.personalizationText) {
+      doc.setTextColor(190, 190, 190)
+      doc.text(`Personalizzazione: ${item.personalizationText}`, margin, y)
+      doc.setTextColor(255, 255, 255)
+      y += 18
+    }
   })
 
   y += 12

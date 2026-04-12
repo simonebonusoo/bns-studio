@@ -39,6 +39,8 @@ export function ShopProductPage() {
   const [selectedVariantKey, setSelectedVariantKey] = useState("")
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
+  const [personalizationText, setPersonalizationText] = useState("")
+  const [personalizationError, setPersonalizationError] = useState("")
   const [settings, setSettings] = useState<ShopSettings>({})
   const [notifyInterest, setNotifyInterest] = useState(false)
   const [notifyMessage, setNotifyMessage] = useState("")
@@ -58,6 +60,8 @@ export function ShopProductPage() {
         setSelectedVariantKey(getDefaultVariant(data)?.key || getDefaultVariant(data)?.title || "")
         setIsLightboxOpen(false)
         setQuantity(1)
+        setPersonalizationText("")
+        setPersonalizationError("")
         setNotifyInterest(false)
         setNotifyMessage("")
         setVariantMenuOpen(false)
@@ -169,6 +173,24 @@ export function ShopProductPage() {
     setQuantity(Math.min(Math.max(nextValue, 1), maxQuantity))
   }
 
+  function resolvePersonalizationText() {
+    if (!product?.isCustomizable) return null
+
+    const normalized = personalizationText.trim()
+    if (!normalized) {
+      setPersonalizationError("Inserisci il nome da usare per la personalizzazione.")
+      return undefined
+    }
+
+    if (normalized.length > 50) {
+      setPersonalizationError("Il testo personalizzato può contenere al massimo 50 caratteri.")
+      return undefined
+    }
+
+    setPersonalizationError("")
+    return normalized
+  }
+
   function openLoginFlow() {
     window.dispatchEvent(new CustomEvent("bns:open-profile", { detail: { step: "login" } }))
   }
@@ -195,11 +217,14 @@ export function ShopProductPage() {
     }
     if (!product) return
     if (!purchasable) return
+    const resolvedPersonalizationText = resolvePersonalizationText()
+    if (resolvedPersonalizationText === undefined) return
     beginCheckout(product, quantity, {
       variantId: selectedVariant?.id ?? null,
       format: selectedVariant?.title || null,
       variantLabel: selectedVariant?.title || null,
       variantSku: selectedVariant?.sku || null,
+      personalizationText: resolvedPersonalizationText,
     })
     if (!user) {
       window.dispatchEvent(new CustomEvent("bns:open-profile"))
@@ -286,12 +311,15 @@ export function ShopProductPage() {
       openLoginFlow()
       return
     }
+    const resolvedPersonalizationText = resolvePersonalizationText()
+    if (resolvedPersonalizationText === undefined) return
 
     addItem(product, quantity, {
       variantId: selectedVariant?.id ?? null,
       format: selectedVariant?.title || null,
       variantLabel: selectedVariant?.title || null,
       variantSku: selectedVariant?.sku || null,
+      personalizationText: resolvedPersonalizationText,
     })
   }
 
@@ -337,7 +365,7 @@ export function ShopProductPage() {
 
     observer.observe(panel)
     return () => observer.disconnect()
-  }, [product?.id, quantity, selectedVariantKey, stockStatus, subtotal, variantMenuOpen])
+  }, [personalizationError, personalizationText, product?.id, quantity, selectedVariantKey, stockStatus, subtotal, variantMenuOpen])
 
   if (productError) {
     return (
@@ -407,6 +435,9 @@ export function ShopProductPage() {
             variantMenuOpen={variantMenuOpen}
             quantity={quantity}
             maxQuantity={maxQuantity}
+            isCustomizable={Boolean(product.isCustomizable)}
+            personalizationText={personalizationText}
+            personalizationError={personalizationError}
             purchasable={purchasable}
             purchaseState={purchaseState}
             stockStatus={stockStatus}
@@ -431,6 +462,10 @@ export function ShopProductPage() {
             }}
             onDecreaseQuantity={() => updateQuantity(quantity - 1)}
             onIncreaseQuantity={() => updateQuantity(quantity + 1)}
+            onPersonalizationTextChange={(value) => {
+              setPersonalizationText(value)
+              if (personalizationError) setPersonalizationError("")
+            }}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onEdit={handleEditProduct}

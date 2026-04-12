@@ -26,7 +26,7 @@ export function ShopProfilePage() {
   }, [trackingFeedback])
 
   function buildOrderItemsSummary(order: ShopOrder) {
-    const previewItems = order.items.slice(0, 2).map((item) => `${item.title} x ${item.quantity}`)
+    const previewItems = order.items.slice(0, 2).map((item) => `${item.title}${item.personalizationText ? ` (${item.personalizationText})` : ""} x ${item.quantity}`)
     if (order.items.length > 2) {
       previewItems.push(`+ ${order.items.length - 2} altri articoli`)
     }

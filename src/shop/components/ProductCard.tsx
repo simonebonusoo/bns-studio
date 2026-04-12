@@ -28,6 +28,10 @@ export function ProductCard({ product }: { product: ShopProduct }) {
 
   function handleBuyNow() {
     if (!purchasable) return
+    if (product.isCustomizable) {
+      navigate(`/shop/${product.slug}`)
+      return
+    }
     beginCheckout(product, 1, {
       variantId: defaultVariant?.id ?? null,
       format: defaultVariant?.title || null,
@@ -133,14 +137,18 @@ export function ProductCard({ product }: { product: ShopProduct }) {
             <Button
               type="button"
               variant="profile"
-              onClick={() =>
+              onClick={() => {
+                if (product.isCustomizable) {
+                  navigate(`/shop/${product.slug}`)
+                  return
+                }
                 addItem(product, 1, {
                   variantId: defaultVariant?.id ?? null,
                   format: defaultVariant?.title || null,
                   variantLabel: defaultVariant?.title || null,
                   variantSku: defaultVariant?.sku || null,
                 })
-              }
+              }}
               className="w-full"
               disabled={!purchasable}
             >

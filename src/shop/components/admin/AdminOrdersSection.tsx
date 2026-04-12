@@ -180,6 +180,25 @@ export function AdminOrdersSection({
                   </InfoSection>
                 </div>
 
+                <div className="mt-4">
+                  <InfoSection title="Articoli ordine">
+                    {order.items.map((item) => (
+                      <div key={item.id} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-white/64">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="font-medium text-white">{item.title}</p>
+                            <p className="mt-1">{item.variantLabel || item.format || "Variante"} · Qtà {item.quantity}</p>
+                            {item.personalizationText ? (
+                              <p className="mt-2 text-[#eef879]">Personalizzazione: {item.personalizationText}</p>
+                            ) : null}
+                          </div>
+                          <span className="shrink-0 font-medium text-white">{formatPrice(item.lineTotal)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </InfoSection>
+                </div>
+
                 <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                   <InfoSection title="Totale ordine">
                     <InfoRow label="Totale speso dal cliente" value={formatPrice(order.total)} />

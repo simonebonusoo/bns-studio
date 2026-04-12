@@ -220,6 +220,11 @@ export function ShopPage() {
     const defaultVariant = getDefaultVariant(product)
     const nextQuantity = getProductCartQuantity(product.id) + 1
 
+    if (product.isCustomizable) {
+      navigate(`/shop/${product.slug}`)
+      return
+    }
+
     addItem(product, 1, {
       variantId: defaultVariant?.id ?? null,
       format: defaultVariant?.title || null,

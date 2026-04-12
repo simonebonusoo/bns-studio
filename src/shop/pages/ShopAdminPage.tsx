@@ -85,6 +85,7 @@ type ProductFormState = {
   tags: string
   collectionIds: number[]
   manualBadges: ProductManualBadge[]
+  isCustomizable: boolean
   featured: boolean
   stock: number
   lowStockThreshold: number
@@ -270,6 +271,7 @@ const emptyProductForm = (): ProductFormState => ({
   tags: "",
   collectionIds: [],
   manualBadges: [],
+  isCustomizable: false,
   featured: false,
   stock: 0,
   lowStockThreshold: 5,
@@ -530,6 +532,7 @@ function buildProductPayloadFromFormState(productForm: ProductFormState) {
     tags: productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
     collectionIds: productForm.collectionIds,
     manualBadges: productForm.manualBadges,
+    isCustomizable: productForm.isCustomizable,
     featured: productForm.featured,
     stock: variantSummary.summary.stock,
     lowStockThreshold: variantSummary.summary.lowStockThreshold,
@@ -1012,6 +1015,7 @@ export function ShopAdminPage() {
             tags: productTouchedFields.tags ? productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean) : (product.tags?.map((tag) => tag.name) || []),
             collectionIds: productTouchedFields.collectionIds ? productForm.collectionIds : (product.collections?.map((collection) => collection.id) || []),
             manualBadges: productTouchedFields.manualBadges ? productForm.manualBadges : (product.manualBadges || []),
+            isCustomizable: productTouchedFields.isCustomizable ? productForm.isCustomizable : Boolean(product.isCustomizable),
             featured: productTouchedFields.featured ? productForm.featured : product.featured,
             stock: productTouchedFields.stock ? Number(productForm.stock) : Number(product.stock),
             lowStockThreshold: productTouchedFields.lowStockThreshold ? Number(productForm.lowStockThreshold) : Number(product.lowStockThreshold || 5),

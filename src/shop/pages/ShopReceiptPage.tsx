@@ -124,6 +124,20 @@ export function ShopReceiptPage() {
           </div>
 
           <OrderTimeline order={order} />
+
+          <div className="space-y-3 border-t border-white/10 pt-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Articoli</p>
+            {order.items.map((item) => (
+              <div key={item.id} className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
+                <div>
+                  <p className="font-medium text-white">{item.title}</p>
+                  <p className="mt-1">{item.variantLabel || item.format || "Variante"} x {item.quantity}</p>
+                  {item.personalizationText ? <p className="mt-2 text-[#eef879]">Personalizzazione: {item.personalizationText}</p> : null}
+                </div>
+                <span className="shrink-0 font-medium text-white">{formatPrice(item.lineTotal)}</span>
+              </div>
+            ))}
+          </div>
         </section>
 
         <aside className="shop-card self-start space-y-4 p-6">

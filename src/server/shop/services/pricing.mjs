@@ -3,6 +3,7 @@ import { HttpError } from "../lib/http.mjs"
 import { getProductCostForFormat, getProductPriceForFormat, normalizeProductFormat } from "../lib/product-formats.mjs"
 import { isProductPurchasable } from "../lib/product-status.mjs"
 import { resolveSelectedVariant } from "../lib/product-variants.mjs"
+import { sanitizePlainText } from "../lib/sanitize-text.mjs"
 import { resolveSelectedShippingRate } from "./shipping-rates.mjs"
 import { getShippingMethodOptions } from "../../../shop/lib/shipping-methods.mjs"
 
@@ -65,6 +66,21 @@ async function validateFirstRegistrationCoupon(coupon, userId, now) {
   if (!sourceRule || !sourceRule.active || sourceRule.ruleType !== "first_registration" || !withinStart || !withinEnd) {
     throw new HttpError(400, "La promo registrazione non è più attiva")
   }
+}
+
+function normalizePersonalizationText(product, item) {
+  if (!product?.isCustomizable) return null
+
+  const normalized = sanitizePlainText(item?.personalizationText || "").trim()
+  if (!normalized) {
+    throw new HttpError(400, `${product.title} richiede un nome per la personalizzazione`)
+  }
+
+  if (normalized.length > 50) {
+    throw new HttpError(400, "Il testo personalizzato può contenere al massimo 50 caratteri")
+  }
+
+  return normalized
 }
 
 export function buildPricingBreakdown(items, automaticDiscount = 0, couponDiscount = 0, shippingTotal = 0) {
@@ -140,6 +156,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     }
 
     const format = selectedVariant.title || normalizeProductFormat(product, item.format)
+    const personalizationText = normalizePersonalizationText(product, item)
     const originalUnitPrice = selectedVariant.price ?? getProductPriceForFormat(product, format)
     const discountedUnitPrice =
       getValidDiscountUnitPrice(originalUnitPrice, selectedVariant.discountPrice) ?? originalUnitPrice
@@ -150,6 +167,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
       variantId: selectedVariant.id ?? null,
       variantLabel: selectedVariant.title,
       variantSku: selectedVariant.sku ?? null,
+      personalizationText,
       slug: product.slug,
       title: product.title,
       imageUrl: imageUrls[0] || "",

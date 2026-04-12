@@ -430,6 +430,7 @@ router.post(
             quantity: z.number().int().min(1),
             format: z.string().optional(),
             variantId: z.number().int().positive().optional().nullable(),
+            personalizationText: z.string().trim().max(50).optional().nullable(),
           })
         ),
         couponCode: z.string().optional().nullable(),

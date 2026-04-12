@@ -93,6 +93,7 @@ export type ShopProduct = {
   variants?: ShopProductVariant[]
   defaultVariantId?: number | null
   manualBadges?: ProductManualBadge[]
+  isCustomizable?: boolean
   badges?: ProductVisibleBadge[]
   tags?: ProductTag[]
   collections?: ProductCollection[]
@@ -124,6 +125,7 @@ export type ShopCartItem = {
   variantId?: number | null
   variantLabel?: string | null
   variantSku?: string | null
+  personalizationText?: string | null
   product: ShopProduct
 }
 
@@ -136,6 +138,7 @@ export type PricingItem = {
   variantId?: number | null
   variantLabel?: string | null
   variantSku?: string | null
+  personalizationText?: string | null
   unitPrice: number
   unitCost?: number
   quantity: number
@@ -181,6 +184,7 @@ export type ShopOrderItem = {
   format?: string | null
   variantLabel?: string | null
   variantSku?: string | null
+  personalizationText?: string | null
   unitPrice: number
   unitCost?: number
   quantity: number

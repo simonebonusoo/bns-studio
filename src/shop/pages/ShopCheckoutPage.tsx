@@ -74,7 +74,7 @@ export function ShopCheckoutPage() {
     apiFetch<ShopPricing>("/store/pricing/preview", {
       method: "POST",
       body: JSON.stringify({
-        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null })),
+        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null, personalizationText: item.personalizationText || null })),
         couponCode: couponCode || null,
         shippingMethod: form.shippingMethod || null,
       }),
@@ -167,6 +167,7 @@ export function ShopCheckoutPage() {
             format: item.format || null,
             variantLabel: item.variantLabel || null,
             variantSku: item.variantSku || null,
+            personalizationText: item.personalizationText || null,
             unitPrice: item.unitPrice,
             unitCost: item.unitCost,
             quantity: item.quantity,
@@ -186,7 +187,7 @@ export function ShopCheckoutPage() {
           ...form,
           couponCode: couponCode || null,
           shippingMethod: form.shippingMethod,
-          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null })),
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null, personalizationText: item.personalizationText || null })),
         }),
       })
 
@@ -282,7 +283,7 @@ export function ShopCheckoutPage() {
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="space-y-4">
             {items.map((item) => (
-              <article key={`${item.productId}-${item.variantId || item.format || "default"}`} className="shop-card flex flex-col gap-4 p-4 md:flex-row md:items-center">
+              <article key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}`} className="shop-card flex flex-col gap-4 p-4 md:flex-row md:items-center">
                 <img src={getProductPrimaryImage(item.product)} alt={item.product.title} className="h-28 w-full rounded-[20px] object-cover md:w-40" />
                 <div className="min-w-0 flex-1">
                   <span className="shop-pill">{item.product.category}</span>
@@ -290,6 +291,7 @@ export function ShopCheckoutPage() {
                   <p className="mt-2 text-sm text-white/65">
                     {item.variantLabel || item.format || "Variante"} · Qtà {item.quantity} · {formatPrice(getPriceForVariant(item.product, item.variantId))}
                   </p>
+                  {item.personalizationText ? <p className="mt-2 text-sm text-white/55">Personalizzazione: {item.personalizationText}</p> : null}
                 </div>
                 <div className="text-sm font-medium text-[#e3f503]">
                   {formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}
@@ -433,8 +435,8 @@ export function ShopCheckoutPage() {
             <span className="shop-pill">Step 2</span>
             <h2 className="text-2xl font-semibold text-white">Riepilogo conferma</h2>
             {items.map((item) => (
-              <div key={`${item.productId}-${item.variantId || item.format || "default"}`} className="flex items-center justify-between gap-4 text-sm text-white/70">
-                <span>{item.product.title} · {item.variantLabel || item.format || "Variante"} x {item.quantity}</span>
+              <div key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}`} className="flex items-center justify-between gap-4 text-sm text-white/70">
+                <span>{item.product.title} · {item.variantLabel || item.format || "Variante"} x {item.quantity}{item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""}</span>
                 <span>{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
               </div>
             ))}
@@ -486,7 +488,7 @@ export function ShopCheckoutPage() {
             <div className="space-y-3 border-t border-white/10 pt-4">
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between gap-4 text-sm text-white/70">
-                  <span>{item.title} · {item.variantLabel || item.format || "Variante"} x {item.quantity}</span>
+                  <span>{item.title} · {item.variantLabel || item.format || "Variante"} x {item.quantity}{item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""}</span>
                   <span>{formatPrice(item.lineTotal)}</span>
                 </div>
               ))}

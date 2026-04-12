@@ -43,6 +43,7 @@ function resolveSelectedVariant(product, selection = {}) {
 }
 
 export function normalizeCartSelection(product, selection = {}) {
+  const personalizationText = String(selection?.personalizationText || "").trim()
   const variant =
     resolveSelectedVariant(product, {
       variantId: selection?.variantId,
@@ -54,15 +55,21 @@ export function normalizeCartSelection(product, selection = {}) {
     format: selection?.format || variant?.title || null,
     variantLabel: selection?.variantLabel || variant?.title || null,
     variantSku: selection?.variantSku || variant?.sku || null,
+    personalizationText: personalizationText || null,
   }
 }
 
 export function selectionMatches(item, selection = {}) {
+  const samePersonalization = String(item.personalizationText || "") === String(selection.personalizationText || "")
+
   if (selection.variantId && item.variantId) {
-    return Number(item.variantId) === Number(selection.variantId)
+    return Number(item.variantId) === Number(selection.variantId) && samePersonalization
   }
 
-  return String(item.format || "") === String(selection.format || "")
+  return (
+    String(item.format || "") === String(selection.format || "") &&
+    samePersonalization
+  )
 }
 
 export function normalizeStoredCartItems(items = []) {

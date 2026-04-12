@@ -38,6 +38,7 @@ export function serializeCheckoutSessionAsPendingOrder(session) {
     format: item.format || null,
     variantLabel: item.variantLabel || null,
     variantSku: item.variantSku || null,
+    personalizationText: item.personalizationText || null,
     unitPrice: item.unitPrice,
     unitCost: item.unitCost || 0,
     quantity: item.quantity,

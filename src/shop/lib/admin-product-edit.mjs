@@ -111,6 +111,7 @@ export function normalizeProductFormStateForEdit(product) {
           enabled: badge.enabled !== false,
         }))
       : [],
+    isCustomizable: Boolean(safeProduct.isCustomizable),
     featured: Boolean(safeProduct.featured),
     stock: Number(safeProduct.stock || 0),
     lowStockThreshold: Number(safeProduct.lowStockThreshold || 5),

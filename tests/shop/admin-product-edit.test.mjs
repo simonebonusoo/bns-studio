@@ -21,6 +21,7 @@ test("normalizeProductFormStateForEdit apre in sicurezza un prodotto con immagin
     tags: [{ name: "pop" }, { name: "music" }],
     collections: [{ id: 4, title: "Cantanti" }],
     manualBadges: [{ id: "badge-1", label: "New", enabled: true }],
+    isCustomizable: true,
     variants: [
       {
         id: 1,
@@ -46,6 +47,7 @@ test("normalizeProductFormStateForEdit apre in sicurezza un prodotto con immagin
   assert.equal(form.variants[0].title, "A4")
   assert.equal(form.variants[0].discountPrice, "12")
   assert.equal(form.discountPriceA4, "12")
+  assert.equal(form.isCustomizable, true)
 })
 
 test("normalizeProductFormStateForEdit non crasha senza immagini", () => {
@@ -88,5 +90,6 @@ test("normalizeProductFormStateForEdit crea fallback per dati legacy o parziali"
   assert.equal(form.manualBadges.length, 1)
   assert.equal(form.manualBadges[0].label, "Promo")
   assert.equal(form.status, "active")
+  assert.equal(form.isCustomizable, false)
   assert.equal(form.variants.length >= 1, true)
 })

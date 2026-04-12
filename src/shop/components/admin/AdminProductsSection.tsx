@@ -24,6 +24,7 @@ type ProductFormState = {
   tags: string
   collectionIds: number[]
   manualBadges: ProductManualBadge[]
+  isCustomizable: boolean
   featured: boolean
   stock: number
   lowStockThreshold: number

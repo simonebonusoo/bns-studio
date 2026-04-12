@@ -63,6 +63,16 @@ test("addCartItem keeps different variants on separate rows", () => {
   )
 })
 
+test("addCartItem keeps personalized rows separate by text", () => {
+  const first = addCartItem([], product, 1, { variantId: 101, personalizationText: "Marco" })
+  const second = addCartItem(first, product, 1, { variantId: 101, personalizationText: "Luca" })
+  const third = addCartItem(second, product, 2, { variantId: 101, personalizationText: "Marco" })
+
+  assert.equal(third.length, 2)
+  assert.equal(third.find((item) => item.personalizationText === "Marco")?.quantity, 3)
+  assert.equal(third.find((item) => item.personalizationText === "Luca")?.quantity, 1)
+})
+
 test("updateCartItem removes the row when quantity reaches zero", () => {
   const items = addCartItem([], product, 2, { variantId: 101 })
   const updated = updateCartItem(items, product.id, 0, { variantId: 101 })

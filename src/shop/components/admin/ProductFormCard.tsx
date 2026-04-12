@@ -31,6 +31,7 @@ type ProductFormState = {
   tags: string
   collectionIds: number[]
   manualBadges: ProductManualBadge[]
+  isCustomizable: boolean
   featured: boolean
   stock: number
   lowStockThreshold: number
@@ -186,6 +187,29 @@ export function ProductFormCard({
               <option value="hidden">Nascosto</option>
               <option value="out_of_stock">Esaurito</option>
             </select>
+
+            <div className="rounded-[20px] border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Personalizzazione</p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {[
+                  { value: false, label: "No" },
+                  { value: true, label: "Sì" },
+                ].map((option) => (
+                  <button
+                    key={String(option.value)}
+                    type="button"
+                    onClick={() => onChange({ ...productForm, isCustomizable: option.value })}
+                    className={`rounded-full border px-4 py-2 text-sm transition ${
+                      productForm.isCustomizable === option.value
+                        ? "border-[#e3f503]/50 bg-[#e3f503]/12 text-[#eef879]"
+                        : "border-white/10 text-white/62 hover:border-white/20 hover:text-white"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
           </div>
         </div>

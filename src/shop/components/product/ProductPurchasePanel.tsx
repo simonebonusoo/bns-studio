@@ -20,6 +20,9 @@ type ProductPurchasePanelProps = {
   variantMenuOpen: boolean
   quantity: number
   maxQuantity: number
+  isCustomizable?: boolean
+  personalizationText: string
+  personalizationError: string
   purchasable: boolean
   purchaseState: ProductPurchaseState
   stockStatus: string
@@ -29,6 +32,7 @@ type ProductPurchasePanelProps = {
   onSelectVariant: (variant: ShopProductVariant) => void
   onDecreaseQuantity: () => void
   onIncreaseQuantity: () => void
+  onPersonalizationTextChange: (value: string) => void
   onAddToCart: () => void
   onBuyNow: () => void
   onEdit: () => void
@@ -52,6 +56,9 @@ export function ProductPurchasePanel({
   variantMenuOpen,
   quantity,
   maxQuantity,
+  isCustomizable = false,
+  personalizationText,
+  personalizationError,
   purchasable,
   purchaseState,
   stockStatus,
@@ -61,6 +68,7 @@ export function ProductPurchasePanel({
   onSelectVariant,
   onDecreaseQuantity,
   onIncreaseQuantity,
+  onPersonalizationTextChange,
   onAddToCart,
   onBuyNow,
   onEdit,
@@ -135,6 +143,23 @@ export function ProductPurchasePanel({
             onToggle={onToggleVariantMenu}
             onSelect={onSelectVariant}
           />
+          {isCustomizable ? (
+            <div className="rounded-2xl border border-white/10 px-4 py-4">
+              <label htmlFor="product-personalization" className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                Nome da inserire
+              </label>
+              <input
+                id="product-personalization"
+                className="shop-input mt-3"
+                value={personalizationText}
+                maxLength={50}
+                onChange={(event) => onPersonalizationTextChange(event.target.value)}
+                placeholder="Inserisci il nome da stampare"
+              />
+              <p className="mt-2 text-xs leading-5 text-white/45">Massimo 50 caratteri. Il testo verrà associato a questa riga ordine.</p>
+              {personalizationError ? <p className="mt-2 text-sm text-red-300">{personalizationError}</p> : null}
+            </div>
+          ) : null}
           <div className="rounded-2xl border border-white/10 px-4 py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
