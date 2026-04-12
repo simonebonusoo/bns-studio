@@ -387,7 +387,7 @@ router.post(
       throw new HttpError(400, "L'email del checkout deve corrispondere all'utente autenticato")
     }
 
-    const pricing = await calculatePricing(body.items, body.couponCode, { shippingMethod })
+    const pricing = await calculatePricing(body.items, body.couponCode, { shippingMethod, userId: req.user.id })
 
     const orderReference = createCheckoutReference()
 

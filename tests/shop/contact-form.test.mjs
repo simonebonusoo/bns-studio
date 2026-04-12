@@ -16,6 +16,7 @@ test("project contact form is reused on about page and below homepage reviews", 
 
   assert.match(about, /ProjectContactForm/)
   assert.match(testimonials, /ProjectContactForm/)
+  assert.match(testimonials, /className="mt-24 md:mt-28"/)
   assert.match(form, /Parliamo del tuo progetto/)
   assert.match(form, /firstName/)
   assert.match(form, /lastName/)

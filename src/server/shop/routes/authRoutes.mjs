@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs"
+import crypto from "node:crypto"
 import { Router } from "express"
 import { z } from "zod"
 
@@ -33,19 +34,59 @@ function normalizeUsername(value) {
   return value.trim().toLowerCase()
 }
 
-async function findFirstRegistrationCoupon() {
-  const now = new Date()
-  const candidates = await prisma.coupon.findMany({
-    where: {
-      type: "first_registration",
-      active: true,
-      OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
-    },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  })
+const REGISTRATION_COUPON_SETTING_PREFIX = "registrationCoupon:"
 
-  return candidates.find((coupon) => !coupon.usageLimit || coupon.usageCount < coupon.usageLimit) || null
+async function findFirstRegistrationRule() {
+  const now = new Date()
+  return prisma.discountRule.findFirst({
+    where: {
+      ruleType: "first_registration",
+      discountType: "percentage",
+      active: true,
+      AND: [
+        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+        { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
+      ],
+    },
+    orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
+  })
+}
+
+async function createUniqueRegistrationCoupon(userId) {
+  const rule = await findFirstRegistrationRule()
+  if (!rule) return null
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const code = `BNS${Math.max(1, Math.round(rule.amount))}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`
+    const existing = await prisma.coupon.findUnique({ where: { code } })
+    if (existing) continue
+
+    const coupon = await prisma.coupon.create({
+      data: {
+        code,
+        type: "first_registration",
+        amount: rule.amount,
+        expiresAt: rule.endsAt || null,
+        usageLimit: 1,
+        active: true,
+      },
+    })
+
+    await prisma.setting.create({
+      data: {
+        key: `${REGISTRATION_COUPON_SETTING_PREFIX}${code}`,
+        value: JSON.stringify({
+          ownerUserId: userId,
+          sourceRuleId: rule.id,
+          createdAt: new Date().toISOString(),
+        }),
+      },
+    })
+
+    return coupon
+  }
+
+  throw new HttpError(500, "Impossibile generare un coupon registrazione univoco")
 }
 
 function slugifyUsernameSeed(value) {
@@ -145,7 +186,7 @@ router.post(
       },
     })
 
-    const firstRegistrationCoupon = body.source === "promo_popup" ? await findFirstRegistrationCoupon() : null
+    const firstRegistrationCoupon = body.source === "promo_popup" ? await createUniqueRegistrationCoupon(user.id) : null
 
     return res.status(201).json({
       token: signToken(user),

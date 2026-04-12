@@ -14,7 +14,7 @@ import { isProductPurchasable, isPublicProductStatus } from "../lib/product-stat
 import { getProductStockLabel, getProductStockStatus } from "../lib/product-stock.mjs"
 import { resolveSelectedVariant, serializeProductVariants } from "../lib/product-variants.mjs"
 import { rankRelatedProducts, sortCatalogSearchProducts } from "../lib/product-discovery.mjs"
-import { requireAuth } from "../middleware/auth.mjs"
+import { optionalAuth, requireAuth } from "../middleware/auth.mjs"
 import { createMockLabelResponse, createMockTrackingResponse } from "../shipping/mocks/mock-tracking-route.mjs"
 import { sanitizeMultilineText, sanitizePlainText } from "../lib/sanitize-text.mjs"
 
@@ -420,6 +420,7 @@ router.post(
 
 router.post(
   "/pricing/preview",
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const body = z
       .object({
@@ -439,6 +440,7 @@ router.post(
     res.json(await calculatePricing(body.items, body.couponCode, {
       shippingMethod: body.shippingMethod,
       allowShippingQuoteFailure: true,
+      userId: req.user?.id || null,
     }))
   })
 )

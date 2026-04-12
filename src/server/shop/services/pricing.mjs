@@ -28,6 +28,45 @@ function getValidDiscountUnitPrice(price, discountPrice) {
   return discountPrice < price ? discountPrice : null
 }
 
+async function validateFirstRegistrationCoupon(coupon, userId, now) {
+  if (coupon.type !== "first_registration") return
+
+  if (!userId) {
+    throw new HttpError(401, "Accedi con l'account associato per usare questo coupon")
+  }
+
+  const metadata = await prisma.setting.findUnique({
+    where: { key: `registrationCoupon:${coupon.code}` },
+  })
+
+  if (!metadata?.value) {
+    throw new HttpError(400, "Coupon registrazione non valido")
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(metadata.value)
+  } catch {
+    throw new HttpError(400, "Coupon registrazione non valido")
+  }
+
+  if (Number(parsed?.ownerUserId) !== Number(userId)) {
+    throw new HttpError(400, "Questo coupon è riservato a un altro account")
+  }
+
+  const sourceRuleId = Number(parsed?.sourceRuleId || 0)
+  if (!sourceRuleId) {
+    throw new HttpError(400, "Coupon registrazione non valido")
+  }
+
+  const sourceRule = await prisma.discountRule.findUnique({ where: { id: sourceRuleId } })
+  const withinStart = !sourceRule?.startsAt || sourceRule.startsAt <= now
+  const withinEnd = !sourceRule?.endsAt || sourceRule.endsAt >= now
+  if (!sourceRule || !sourceRule.active || sourceRule.ruleType !== "first_registration" || !withinStart || !withinEnd) {
+    throw new HttpError(400, "La promo registrazione non è più attiva")
+  }
+}
+
 export function buildPricingBreakdown(items, automaticDiscount = 0, couponDiscount = 0, shippingTotal = 0) {
   const subtotal = items.reduce((sum, item) => sum + item.lineSubtotal, 0)
   const discountedSubtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
@@ -203,6 +242,8 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
       throw new HttpError(400, "Limite di utilizzo del coupon raggiunto")
     }
+
+    await validateFirstRegistrationCoupon(coupon, options.userId, now)
 
     couponDiscount =
       coupon.type === "percentage" || coupon.type === "first_registration"

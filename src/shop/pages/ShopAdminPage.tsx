@@ -36,7 +36,7 @@ type DiscountRule = {
   id: number
   name: string
   description?: string | null
-  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed"
+  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration"
   threshold: number
   discountType: "percentage" | "shipping" | "fixed"
   amount: number
@@ -131,7 +131,7 @@ type CouponFormState = {
 type RuleFormState = {
   name: string
   description: string
-  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed"
+  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration"
   threshold: string
   discountType: "percentage" | "shipping" | "fixed"
   amount: string
@@ -602,6 +602,7 @@ function getCouponAmountLabel(type: CouponFormState["type"]) {
 }
 
 function getRuleThresholdLabel(ruleType: RuleFormState["ruleType"]) {
+  if (ruleType === "first_registration") return "Soglia interna (lascia 1)"
   return ruleType === "subtotal_fixed" ? "Subtotale minimo ordine (€)" : "Quantità minima prodotti"
 }
 
@@ -1315,14 +1316,21 @@ export function ShopAdminPage() {
         name: ruleForm.name,
         description: ruleForm.description || null,
         ruleType: ruleForm.ruleType,
-        threshold: ruleForm.ruleType === "subtotal_fixed" ? parseEuroToCents(ruleForm.threshold) : Number(ruleForm.threshold),
-        discountType: ruleForm.discountType,
+        threshold:
+          ruleForm.ruleType === "first_registration"
+            ? 1
+            : ruleForm.ruleType === "subtotal_fixed"
+              ? parseEuroToCents(ruleForm.threshold)
+              : Number(ruleForm.threshold),
+        discountType: ruleForm.ruleType === "first_registration" ? "percentage" : ruleForm.discountType,
         amount:
-          ruleForm.discountType === "fixed"
-            ? parseEuroToCents(ruleForm.amount)
-            : ruleForm.discountType === "shipping"
-              ? 0
-              : Number(ruleForm.amount),
+          ruleForm.ruleType === "first_registration"
+            ? Number(ruleForm.amount)
+            : ruleForm.discountType === "fixed"
+              ? parseEuroToCents(ruleForm.amount)
+              : ruleForm.discountType === "shipping"
+                ? 0
+                : Number(ruleForm.amount),
         priority: Number(ruleForm.priority),
         startsAt: ruleForm.startsAt || null,
         endsAt: ruleForm.endsAt || null,

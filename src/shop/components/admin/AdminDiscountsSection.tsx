@@ -18,7 +18,7 @@ type DiscountRule = {
   id: number
   name: string
   description?: string | null
-  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed"
+  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration"
   threshold: number
   discountType: "percentage" | "shipping" | "fixed"
   amount: number
@@ -40,7 +40,7 @@ type CouponFormState = {
 type RuleFormState = {
   name: string
   description: string
-  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed"
+  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration"
   threshold: string
   discountType: "percentage" | "shipping" | "fixed"
   amount: string
@@ -209,15 +209,37 @@ export function AdminDiscountsSection({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm text-white/65">Tipo regola</label>
-              <select className="shop-select" value={ruleForm.ruleType} onChange={(event) => onRuleFormChange({ ...ruleForm, ruleType: event.target.value as RuleFormState["ruleType"] })}>
+              <select
+                className="shop-select"
+                value={ruleForm.ruleType}
+                onChange={(event) => {
+                  const nextRuleType = event.target.value as RuleFormState["ruleType"]
+                  onRuleFormChange({
+                    ...ruleForm,
+                    ruleType: nextRuleType,
+                    ...(nextRuleType === "first_registration" ? { threshold: "1", discountType: "percentage" } : {}),
+                  })
+                }}
+              >
                 <option value="quantity_percentage">Sconto percentuale per quantita minima</option>
                 <option value="free_shipping_quantity">Spedizione gratuita per quantita minima</option>
                 <option value="subtotal_fixed">Sconto fisso per subtotale minimo</option>
+                <option value="first_registration">Prima registrazione</option>
               </select>
+              {ruleForm.ruleType === "first_registration" ? (
+                <p className="text-xs leading-5 text-white/45">
+                  Genera un codice casuale, univoco e monouso quando un guest si registra dal popup.
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <label className="text-sm text-white/65">Modalità sconto</label>
-              <select className="shop-select" value={ruleForm.discountType} onChange={(event) => onRuleFormChange({ ...ruleForm, discountType: event.target.value as RuleFormState["discountType"] })}>
+              <select
+                className="shop-select"
+                value={ruleForm.discountType}
+                disabled={ruleForm.ruleType === "first_registration"}
+                onChange={(event) => onRuleFormChange({ ...ruleForm, discountType: event.target.value as RuleFormState["discountType"] })}
+              >
                 <option value="percentage">Percentuale</option>
                 <option value="shipping">Spedizione</option>
                 <option value="fixed">Importo fisso</option>
@@ -267,7 +289,11 @@ export function AdminDiscountsSection({
                     <p className="text-sm font-medium text-white">{rule.name}</p>
                     <p className="mt-1 text-sm text-white/60">
                       {rule.active ? "Attiva" : "Disattivata"} ·{" "}
-                      {rule.ruleType === "subtotal_fixed" ? `soglia ${formatPrice(rule.threshold)}` : `soglia ${rule.threshold}`} ·{" "}
+                      {rule.ruleType === "first_registration"
+                        ? "prima registrazione"
+                        : rule.ruleType === "subtotal_fixed"
+                          ? `soglia ${formatPrice(rule.threshold)}`
+                          : `soglia ${rule.threshold}`} ·{" "}
                       {rule.discountType === "fixed" ? `valore ${formatPrice(rule.amount)}` : rule.discountType === "percentage" ? `valore ${rule.amount}%` : "spedizione gratuita"}
                     </p>
                   </div>

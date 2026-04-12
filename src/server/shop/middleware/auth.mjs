@@ -21,6 +21,25 @@ export async function requireAuth(req, _res, next) {
   }
 }
 
+export async function optionalAuth(req, _res, next) {
+  const header = req.headers.authorization
+  if (!header?.startsWith("Bearer ")) {
+    next()
+    return
+  }
+
+  try {
+    const payload = verifyToken(header.slice(7))
+    const user = await prisma.user.findUnique({ where: { id: Number(payload.sub) } })
+    if (user) {
+      req.user = user
+    }
+    next()
+  } catch {
+    next()
+  }
+}
+
 export function requireAdmin(req, _res, next) {
   if (!req.user || req.user.role !== "admin") {
     return next(new HttpError(403, "Accesso admin richiesto"))
