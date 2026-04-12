@@ -318,7 +318,9 @@ export function Testimonials() {
           )}
         </motion.div>
 
-        <ProjectContactForm className="mt-24 md:mt-28" />
+        <div id="contatti">
+          <ProjectContactForm className="mt-24 md:mt-28" />
+        </div>
       </Container>
     </section>
   )

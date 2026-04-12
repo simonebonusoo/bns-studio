@@ -81,6 +81,7 @@ function scoreSearchSuggestion(product: ShopProduct, query: string) {
 
 const overlayTransition = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const }
 const drawerTransition = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }
+const desktopNavTransition = { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const }
 const mobileScrollablePanelClass = mobileSheetBodyClass
 
 function shuffleProducts(products: ShopProduct[]) {
@@ -572,6 +573,22 @@ export function Navbar() {
   const suggestedProducts = shuffledSuggestedProducts
   const profileView = user ? "logged" : profileStep
   const displayUsername = user?.username || user?.email?.split("@")[0] || "cliente"
+  const desktopNavItems = [
+    { label: "Home", href: "/#top", onClick: handleLogoClick },
+    { label: "Promo", href: "/shop/offerte" },
+    { label: "Categorie", href: "/#shop-categories" },
+    { label: "Collezioni", href: "/#shop-collections" },
+    { label: "Catalogo", href: "/shop" },
+    { label: "Chi siamo", href: "/chi-siamo" },
+    { label: "Contatti", href: "/#contatti" },
+  ]
+
+  function closeTransientPanels() {
+    setMenuOpen(false)
+    setSearchOpen(false)
+    setProfileOpen(false)
+    setCartOpen(false)
+  }
 
   async function submitProfileLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -817,60 +834,111 @@ export function Navbar() {
 
                 <div className="relative hidden md:block">
                   <div className="grid min-h-[88px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-6 py-4">
-                  <a href="#top" onClick={handleLogoClick} aria-label="Vai all'inizio" className="flex items-center no-underline">
-                    <Logo className="h-9" />
-                  </a>
+                    <a href="#top" onClick={handleLogoClick} aria-label="Vai all'inizio" className="flex items-center no-underline">
+                      <Logo className="h-9" />
+                    </a>
 
-                  <div ref={searchRootRef} className="min-w-0">
-                    <div
-                      className={[
-                        "flex h-[50px] w-full items-center gap-3 rounded-full border bg-white/[0.04] px-5 backdrop-blur-xl transition",
-                        searchOpen ? "border-white/20 text-white" : "border-white/10 text-white/55 hover:border-white/20 hover:text-white",
-                      ].join(" ")}
-                    >
-                      <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
-                      <input
-                        ref={inputRef}
-                        value={search}
-                        onFocus={() => setSearchOpen(true)}
-                        onChange={(event) => {
-                          setSearch(event.target.value)
-                          if (!searchOpen) setSearchOpen(true)
+                    <div className="relative min-w-0">
+                      <AnimatePresence mode="wait" initial={false}>
+                        {searchOpen ? (
+                          <motion.div
+                            key="desktop-search"
+                            ref={searchRootRef}
+                            initial={{ opacity: 0, y: 8, scale: 0.985 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -8, scale: 0.985 }}
+                            transition={desktopNavTransition}
+                            className="mx-auto w-full max-w-3xl"
+                          >
+                            <div className="flex h-[50px] w-full items-center gap-3 rounded-full border border-white/20 bg-white/[0.04] px-5 text-white backdrop-blur-xl transition">
+                              <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
+                              <input
+                                ref={inputRef}
+                                value={search}
+                                onFocus={() => setSearchOpen(true)}
+                                onChange={(event) => {
+                                  setSearch(event.target.value)
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    submitSearch(search)
+                                  }
+                                }}
+                                placeholder="Cerca prodotti, nomi, artisti..."
+                                className="w-full bg-transparent text-base text-white placeholder:text-white/35 outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSearch("")
+                                  setSearchOpen(false)
+                                }}
+                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
+                                aria-label="Chiudi ricerca"
+                              >
+                                <XMarkIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <motion.nav
+                            key="desktop-links"
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 8 }}
+                            transition={desktopNavTransition}
+                            className="flex min-w-0 items-center justify-center gap-1 xl:gap-2"
+                            aria-label="Navigazione desktop principale"
+                          >
+                            {desktopNavItems.map((item) => (
+                              <Button
+                                key={item.label}
+                                href={item.href}
+                                onClick={(event) => {
+                                  if (item.onClick) {
+                                    item.onClick(event)
+                                    return
+                                  }
+                                  closeTransientPanels()
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                text={item.label}
+                                className="!h-9 !rounded-full !border-transparent !bg-transparent !px-2.5 !text-white/68 !shadow-none hover:!border-white/10 hover:!bg-white/[0.04] hover:!text-white xl:!px-3.5"
+                              >
+                                {item.label}
+                              </Button>
+                            ))}
+                          </motion.nav>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false)
+                          setCartOpen(false)
+                          setProfileOpen(false)
+                          setSearchOpen(true)
                         }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            submitSearch(search)
-                          }
-                        }}
-                        placeholder="Cerca prodotti, nomi, artisti..."
-                        className="w-full bg-transparent text-base text-white placeholder:text-white/35 outline-none"
-                      />
-                      {search || searchOpen ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSearch("")
-                            setSearchOpen(false)
-                          }}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
-                          aria-label="Chiudi ricerca"
-                        >
-                          <XMarkIcon className="h-4 w-4" />
-                        </button>
-                      ) : null}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/72 transition hover:border-white/20 hover:text-white"
+                        aria-label="Apri ricerca"
+                        aria-expanded={searchOpen}
+                      >
+                        <MagnifyingGlassIcon className="h-5 w-5" />
+                      </button>
+
+                      <Button onClick={() => openProfilePanel("initial")} variant="ghost" size="sm" className="hidden sm:inline-flex">
+                        Profilo
+                      </Button>
+
+                      <Button onClick={openCartPanel} size="sm" text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}>
+                        Carrello
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-end gap-3">
-                    <Button onClick={() => openProfilePanel("initial")} variant="ghost" size="sm" className="hidden sm:inline-flex">
-                      Profilo
-                    </Button>
-
-                    <Button onClick={openCartPanel} size="sm" text={`Carrello${cartCount ? ` (${cartCount})` : ""}`}>
-                      Carrello
-                    </Button>
-                  </div>
-                </div>
 
                   <AnimatePresence>
                     {searchOpen && !isMobileViewport ? (

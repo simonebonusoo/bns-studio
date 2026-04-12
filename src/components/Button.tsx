@@ -211,7 +211,17 @@ export function Button({
 
   if (href) {
     return (
-      <a href={href} {...common}>
+      <a
+        href={href}
+        onClick={(event) => {
+          if (disabled) {
+            event.preventDefault()
+            return
+          }
+          onClick?.(event)
+        }}
+        {...common}
+      >
         {Inner}
       </a>
     )
