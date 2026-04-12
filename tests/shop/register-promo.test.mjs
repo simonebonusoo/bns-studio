@@ -41,6 +41,20 @@ test("auth registration accepts the minimal popup payload and keeps optional pro
   assert.match(authRoutes, /shippingAddressLine1: body\.shippingAddressLine1 \? sanitizePlainText\(body\.shippingAddressLine1\) : null/)
 })
 
+test("promo registration blocks existing emails before user and coupon creation", () => {
+  const authRoutes = read("src/server/shop/routes/authRoutes.mjs")
+  const popup = read("src/components/RegisterPromoPopup.tsx")
+
+  assert.match(authRoutes, /const normalizedEmail = body\.email\.trim\(\)\.toLowerCase\(\)/)
+  assert.match(authRoutes, /prisma\.user\.findUnique\(\{ where: \{ email: normalizedEmail \} \}\)/)
+  assert.match(authRoutes, /body\.source === "promo_popup"[\s\S]*Questa email risulta già registrata\. Accedi al tuo account per continuare\./)
+  assert.ok(authRoutes.indexOf("if (existingEmail)") < authRoutes.indexOf("prisma.user.create"))
+  assert.ok(authRoutes.indexOf("prisma.user.create") < authRoutes.indexOf("createUniqueRegistrationCoupon(user.id)"))
+  assert.match(popup, /REGISTERED_EMAIL_MESSAGE/)
+  assert.match(popup, /bns:open-profile/)
+  assert.match(popup, /step: "login"/)
+})
+
 test("first registration discount rule generates a unique owner-bound coupon", () => {
   const adminPage = read("src/shop/pages/ShopAdminPage.tsx")
   const adminDiscounts = read("src/shop/components/admin/AdminDiscountsSection.tsx")

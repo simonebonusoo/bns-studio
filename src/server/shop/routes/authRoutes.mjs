@@ -156,14 +156,20 @@ router.post(
       })
       .parse(req.body)
 
+    const normalizedEmail = body.email.trim().toLowerCase()
     const normalizedUsername = normalizeUsername(body.username)
     const [existingEmail, existingUsername] = await Promise.all([
-      prisma.user.findUnique({ where: { email: body.email } }),
+      prisma.user.findUnique({ where: { email: normalizedEmail } }),
       prisma.user.findUnique({ where: { username: normalizedUsername } }),
     ])
 
     if (existingEmail) {
-      throw new HttpError(409, "Email gia registrata")
+      throw new HttpError(
+        409,
+        body.source === "promo_popup"
+          ? "Questa email risulta già registrata. Accedi al tuo account per continuare."
+          : "Email gia registrata",
+      )
     }
 
     if (existingUsername) {
@@ -172,7 +178,7 @@ router.post(
 
     const user = await prisma.user.create({
       data: {
-        email: body.email.trim().toLowerCase(),
+        email: normalizedEmail,
         username: normalizedUsername,
         passwordHash: await bcrypt.hash(body.password, 10),
         firstName: sanitizePlainText(body.firstName || normalizedUsername),

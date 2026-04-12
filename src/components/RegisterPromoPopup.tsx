@@ -35,6 +35,8 @@ function persistDismissal() {
   sessionStorage.setItem(SESSION_SEEN_KEY, "true")
 }
 
+const REGISTERED_EMAIL_MESSAGE = "Questa email risulta già registrata. Accedi al tuo account per continuare."
+
 export function RegisterPromoPopup() {
   const { user, loading, registerFromPromo } = useShopAuth()
   const [open, setOpen] = useState(false)
@@ -88,6 +90,11 @@ export function RegisterPromoPopup() {
   function closeRegisterPopup() {
     persistDismissal()
     setOpen(false)
+  }
+
+  function openLoginFlow() {
+    setOpen(false)
+    window.dispatchEvent(new CustomEvent("bns:open-profile", { detail: { step: "login" } }))
   }
 
   async function submitRegister(event: FormEvent) {
@@ -176,7 +183,16 @@ export function RegisterPromoPopup() {
               {touched.password && fieldErrors.password ? <p className="mt-2 text-xs text-red-200">{fieldErrors.password}</p> : null}
             </div>
 
-            {error ? <p className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</p> : null}
+            {error ? (
+              <div className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                <p>{error}</p>
+                {error === REGISTERED_EMAIL_MESSAGE ? (
+                  <button type="button" onClick={openLoginFlow} className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-white underline underline-offset-4">
+                    Accedi
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="space-y-3 pt-1">
               <Button type="submit" variant="cart" disabled={!canSubmit} className="w-full">
