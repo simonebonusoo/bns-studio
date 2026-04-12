@@ -15,10 +15,11 @@ import {
 import { Container } from "./Container"
 import { HorizontalScrollRail } from "./HorizontalScrollRail"
 import { Logo } from "./Logo"
-import { Button, getButtonClassName } from "./Button"
+import { Button, getButtonClassName, getDangerButtonClassName } from "./Button"
 import { MobileSheet, mobileSheetBodyClass, mobileSheetFooterClass } from "./mobile/MobileSheet"
 import { useCanHover } from "../hooks/useCanHover"
 import { useIsMobileViewport } from "../hooks/useIsMobileViewport"
+import { ConfirmActionModal } from "../shop/components/admin/ConfirmActionModal"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
@@ -169,6 +170,8 @@ export function Navbar() {
   const [loadingCartPricing, setLoadingCartPricing] = useState(false)
   const [profileError, setProfileError] = useState("")
   const [profileSubmitting, setProfileSubmitting] = useState(false)
+  const [desktopDeleteConfirmOpen, setDesktopDeleteConfirmOpen] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const [loginForm, setLoginForm] = useState({
     identifier: "",
     password: "",
@@ -202,7 +205,7 @@ export function Navbar() {
   const navH = 88
   const isMobileViewport = useIsMobileViewport()
 
-  const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview, login, updateProfile, logout, loading } = useShopAuth()
+  const { user, effectiveRole, isGuestPreview, enableGuestPreview, disableGuestPreview, login, updateProfile, deleteAccount, logout, loading } = useShopAuth()
   const { items, couponCode, clearCart, removeItem } = useShopCart()
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
@@ -333,6 +336,10 @@ export function Navbar() {
       const handlePointerDown = (event: MouseEvent) => {
         const target = event.target as Node
 
+        if (desktopDeleteConfirmOpen) {
+          return
+        }
+
         if (menuOpen && !menuRef.current?.contains(target)) {
           setMenuOpen(false)
         }
@@ -362,7 +369,7 @@ export function Navbar() {
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("mousedown", handlePointerDown)
     }
-  }, [cartOpen, isMobileViewport, menuOpen, profileOpen, searchOpen, shouldUseGlobalOverlayLock])
+  }, [cartOpen, desktopDeleteConfirmOpen, isMobileViewport, menuOpen, profileOpen, searchOpen, shouldUseGlobalOverlayLock])
 
   useEffect(() => {
     if (!searchOpen) return
@@ -418,6 +425,7 @@ export function Navbar() {
       setProfileEditField(null)
       setProfileError("")
       setProfileSubmitting(false)
+      setDesktopDeleteConfirmOpen(false)
     }
   }, [profileOpen])
 
@@ -696,6 +704,24 @@ export function Navbar() {
       setProfileError(err instanceof Error ? err.message : "Errore durante l'aggiornamento del profilo.")
     } finally {
       setProfileSubmitting(false)
+    }
+  }
+
+  async function confirmDesktopDeleteAccount() {
+    setProfileError("")
+
+    try {
+      setDeletingAccount(true)
+      await deleteAccount()
+      setDesktopDeleteConfirmOpen(false)
+      setProfileOpen(false)
+      setCartOpen(false)
+      setSearchOpen(false)
+      navigate("/", { replace: true })
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Errore durante l'eliminazione dell'account.")
+    } finally {
+      setDeletingAccount(false)
     }
   }
 
@@ -2329,6 +2355,27 @@ export function Navbar() {
                             >
                               Annulla
                             </Button>
+
+                            <section className="mt-3 rounded-[22px] border border-red-400/20 bg-red-500/[0.06] p-5">
+                              <p className="text-xs uppercase tracking-[0.22em] text-red-100/55">Danger zone</p>
+                              <h3 className="mt-3 text-lg font-semibold text-red-50">Elimina account</h3>
+                              <p className="mt-2 text-sm leading-6 text-red-100/68">
+                                Questa azione elimina il tuo account e non può essere annullata. Gli eventuali ordini storici vengono mantenuti per integrità operativa, ma i dati personali dell&apos;account vengono anonimizzati.
+                              </p>
+                              {profileError && profileEditField === null ? <p className="mt-3 text-sm text-red-300">{profileError}</p> : null}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setProfileEditField(null)
+                                  setProfileError("")
+                                  setDesktopDeleteConfirmOpen(true)
+                                }}
+                                disabled={deletingAccount}
+                                className={getDangerButtonClassName({ className: "mt-5 w-full", disabled: deletingAccount })}
+                              >
+                                Elimina account
+                              </button>
+                            </section>
                           </div>
                         )}
                       </>
@@ -2487,6 +2534,20 @@ export function Navbar() {
           )
         ) : null}
       </AnimatePresence>
+
+      <ConfirmActionModal
+        open={desktopDeleteConfirmOpen}
+        title="Elimina account"
+        description="Confermi di voler eliminare definitivamente il tuo account? Verrai disconnesso e non potrai più accedere con queste credenziali."
+        confirmLabel="Conferma eliminazione"
+        cancelLabel="Annulla"
+        loading={deletingAccount}
+        loadingLabel="Eliminazione..."
+        onCancel={() => {
+          if (!deletingAccount) setDesktopDeleteConfirmOpen(false)
+        }}
+        onConfirm={confirmDesktopDeleteAccount}
+      />
     </>
   )
 }
