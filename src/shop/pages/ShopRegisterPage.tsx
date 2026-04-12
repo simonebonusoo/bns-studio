@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
-import { Button } from "../../components/Button"
+import { Button, getDangerButtonClassName } from "../../components/Button"
 import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
+import { ConfirmActionModal } from "../components/admin/ConfirmActionModal"
 
 export function ShopRegisterPage() {
-  const { user, login, updateProfile } = useShopAuth()
+  const { user, login, updateProfile, deleteAccount } = useShopAuth()
   const navigate = useNavigate()
   const isEditMode = Boolean(user)
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -160,6 +163,20 @@ export function ShopRegisterPage() {
     if (!form.shippingStreetNumber.trim()) return setError("Inserisci il numero civico.")
     if (!form.shippingPostalCode.trim()) return setError("Inserisci il CAP.")
     setStep(3)
+  }
+
+  async function confirmDeleteAccount() {
+    setError("")
+    try {
+      setDeletingAccount(true)
+      await deleteAccount()
+      setDeleteConfirmOpen(false)
+      navigate("/", { replace: true, state: { resetHomeTop: true } })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'eliminazione dell'account.")
+    } finally {
+      setDeletingAccount(false)
+    }
   }
 
   return (
@@ -344,7 +361,39 @@ export function ShopRegisterPage() {
             </p>
           ) : null}
         </form>
+
+        {isEditMode ? (
+          <section className="mt-8 rounded-[24px] border border-red-400/20 bg-red-500/[0.06] p-5 md:p-6">
+            <p className="text-xs uppercase tracking-[0.22em] text-red-100/55">Danger zone</p>
+            <h2 className="mt-3 text-xl font-semibold text-red-50">Elimina account</h2>
+            <p className="mt-2 text-sm leading-6 text-red-100/68">
+              Questa azione elimina il tuo account e non può essere annullata. Gli eventuali ordini storici vengono mantenuti per integrità operativa, ma i dati personali dell&apos;account vengono anonimizzati.
+            </p>
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmOpen(true)}
+              disabled={deletingAccount}
+              className={getDangerButtonClassName({ className: "mt-5", disabled: deletingAccount })}
+            >
+              Elimina account
+            </button>
+          </section>
+        ) : null}
       </div>
+
+      <ConfirmActionModal
+        open={deleteConfirmOpen}
+        title="Elimina account"
+        description="Confermi di voler eliminare definitivamente il tuo account? Verrai disconnesso e non potrai più accedere con queste credenziali."
+        confirmLabel="Conferma eliminazione"
+        cancelLabel="Annulla"
+        loading={deletingAccount}
+        loadingLabel="Eliminazione..."
+        onCancel={() => {
+          if (!deletingAccount) setDeleteConfirmOpen(false)
+        }}
+        onConfirm={confirmDeleteAccount}
+      />
     </ShopLayout>
   )
 }

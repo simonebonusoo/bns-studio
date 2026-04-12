@@ -226,6 +226,42 @@ router.get(
   })
 )
 
+router.delete(
+  "/me",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (req.user.role === "admin") {
+      const adminCount = await prisma.user.count({ where: { role: "admin" } })
+      if (adminCount <= 1) {
+        throw new HttpError(400, "Non puoi eliminare l'ultimo account admin.")
+      }
+    }
+
+    const deletedSuffix = `${req.user.id}-${Date.now()}`
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        email: `deleted-${deletedSuffix}@deleted.local`,
+        username: `deleted-${deletedSuffix}`,
+        passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10),
+        firstName: "Account",
+        lastName: "eliminato",
+        shippingCountry: null,
+        shippingRegion: null,
+        shippingCity: null,
+        shippingAddressLine1: null,
+        shippingStreetNumber: null,
+        shippingPostalCode: null,
+        sessionNonce: crypto.randomUUID(),
+        sessionFingerprintHash: null,
+        role: "deleted",
+      },
+    })
+
+    res.status(204).send()
+  })
+)
+
 router.patch(
   "/profile",
   requireAuth,

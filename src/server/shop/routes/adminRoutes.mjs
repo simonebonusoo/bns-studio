@@ -553,6 +553,7 @@ router.get(
   "/users",
   asyncHandler(async (_req, res) => {
     const users = await prisma.user.findMany({
+      where: { role: { not: "deleted" } },
       select: {
         id: true,
         email: true,

@@ -10,6 +10,7 @@ type AuthContextValue = {
   login: (payload: Record<string, string>, mode?: "login" | "register") => Promise<ShopUser>
   registerFromPromo: (payload: Record<string, string>) => Promise<{ user: ShopUser; couponCode: string | null; couponAmount: number | null }>
   updateProfile: (payload: Record<string, string>) => Promise<ShopUser>
+  deleteAccount: () => Promise<void>
   logout: () => Promise<void>
   enableGuestPreview: () => void
   disableGuestPreview: () => void
@@ -79,6 +80,16 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
     return data.user
   }
 
+  async function deleteAccount() {
+    await apiFetch<null>("/auth/me", {
+      method: "DELETE",
+    })
+    localStorage.removeItem("bns_shop_token")
+    localStorage.removeItem("bns_shop_guest_preview")
+    setUser(null)
+    setIsGuestPreview(false)
+  }
+
   async function logout() {
     localStorage.removeItem("bns_shop_token")
     localStorage.removeItem("bns_shop_guest_preview")
@@ -101,7 +112,7 @@ export function ShopAuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, effectiveRole, isGuestPreview, login, registerFromPromo, updateProfile, logout, enableGuestPreview, disableGuestPreview }}
+      value={{ user, loading, effectiveRole, isGuestPreview, login, registerFromPromo, updateProfile, deleteAccount, logout, enableGuestPreview, disableGuestPreview }}
     >
       {children}
     </AuthContext.Provider>

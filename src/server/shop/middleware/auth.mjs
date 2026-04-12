@@ -14,6 +14,9 @@ export async function requireAuth(req, _res, next) {
     if (!user) {
       return next(new HttpError(401, "Utente non trovato"))
     }
+    if (user.role === "deleted") {
+      return next(new HttpError(401, "Account eliminato"))
+    }
     req.user = user
     next()
   } catch (error) {
@@ -31,7 +34,7 @@ export async function optionalAuth(req, _res, next) {
   try {
     const payload = verifyToken(header.slice(7))
     const user = await prisma.user.findUnique({ where: { id: Number(payload.sub) } })
-    if (user) {
+    if (user && user.role !== "deleted") {
       req.user = user
     }
     next()
