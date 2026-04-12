@@ -10,33 +10,15 @@ const DISMISS_DAYS = 3
 const SHOW_DELAY_MS = 12_000
 
 type RegisterPromoForm = {
-  firstName: string
-  lastName: string
   username: string
   email: string
   password: string
-  confirmPassword: string
-  shippingCountry: string
-  shippingRegion: string
-  shippingCity: string
-  shippingAddressLine1: string
-  shippingStreetNumber: string
-  shippingPostalCode: string
 }
 
 const emptyForm: RegisterPromoForm = {
-  firstName: "",
-  lastName: "",
   username: "",
   email: "",
   password: "",
-  confirmPassword: "",
-  shippingCountry: "",
-  shippingRegion: "",
-  shippingCity: "",
-  shippingAddressLine1: "",
-  shippingStreetNumber: "",
-  shippingPostalCode: "",
 }
 
 function isDismissed() {
@@ -63,6 +45,25 @@ export function RegisterPromoPopup() {
   const [submitting, setSubmitting] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState("")
+  const [touched, setTouched] = useState<Partial<Record<keyof RegisterPromoForm, boolean>>>({})
+
+  const fieldErrors = {
+    email:
+      form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+        ? "Inserisci un'email valida."
+        : "",
+    username:
+      form.username.trim() && !/^[a-zA-Z0-9._-]{3,32}$/.test(form.username.trim())
+        ? "Usa 3-32 caratteri: lettere, numeri, punto, trattino o underscore."
+        : "",
+    password:
+      form.password && form.password.length < 8
+        ? "La password deve contenere almeno 8 caratteri."
+        : "",
+  }
+  const hasEmptyFields = !form.email.trim() || !form.username.trim() || !form.password
+  const hasFieldErrors = Boolean(fieldErrors.email || fieldErrors.username || fieldErrors.password)
+  const canSubmit = !hasEmptyFields && !hasFieldErrors && !submitting
 
   useEffect(() => {
     if (loading || user) {
@@ -93,8 +94,8 @@ export function RegisterPromoPopup() {
     event.preventDefault()
     setError("")
 
-    if (form.password !== form.confirmPassword) {
-      setError("Le password non coincidono.")
+    setTouched({ email: true, username: true, password: true })
+    if (!canSubmit) {
       return
     }
 
@@ -126,51 +127,64 @@ export function RegisterPromoPopup() {
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
       {open ? (
-        <div className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b0c] shadow-2xl">
-          <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 md:px-6">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.24em] text-lime-200/80">Welcome offer</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Registrati e sblocca il tuo 10%</h2>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-white/60">
-                Crea il tuo account BNS Studio per salvare ordini, dati di spedizione e ricevere il codice dedicato alla prima registrazione.
-              </p>
-            </div>
-            <button type="button" onClick={closeRegisterPopup} className="rounded-full border border-white/10 px-3 py-1 text-sm text-white/60 transition hover:text-white">
-              Chiudi
-            </button>
+        <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0b0b0c] p-5 shadow-2xl md:p-6">
+          <div className="text-center">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-lime-200/80">Welcome offer</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">Sblocca il 10% di sconto</h2>
+            <p className="mt-3 text-sm leading-6 text-white/60">
+              Crea il tuo account e ricevi il codice per il primo ordine
+            </p>
           </div>
 
-          <form onSubmit={submitRegister} className="max-h-[72vh] space-y-4 overflow-y-auto overscroll-contain px-5 py-5 md:px-6">
-            <div className="grid gap-3 md:grid-cols-2">
-              <input className="shop-input" placeholder="Nome" value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} required />
-              <input className="shop-input" placeholder="Cognome" value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} required />
-              <input className="shop-input" placeholder="Username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} required />
-              <input className="shop-input" type="email" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
-              <input className="shop-input" type="password" placeholder="Password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required minLength={8} />
-              <input className="shop-input" type="password" placeholder="Conferma password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} required minLength={8} />
+          <form onSubmit={submitRegister} className="mt-6 space-y-4">
+            <div>
+              <input
+                className="shop-input w-full"
+                type="email"
+                placeholder="Email"
+                value={form.email}
+                onBlur={() => setTouched((current) => ({ ...current, email: true }))}
+                onChange={(event) => setForm({ ...form, email: event.target.value })}
+                required
+              />
+              {touched.email && fieldErrors.email ? <p className="mt-2 text-xs text-red-200">{fieldErrors.email}</p> : null}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-sm font-medium text-white">Dati spedizione</p>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <input className="shop-input" placeholder="Paese" value={form.shippingCountry} onChange={(event) => setForm({ ...form, shippingCountry: event.target.value })} required />
-                <input className="shop-input" placeholder="Provincia / Regione" value={form.shippingRegion} onChange={(event) => setForm({ ...form, shippingRegion: event.target.value })} required />
-                <input className="shop-input" placeholder="Città" value={form.shippingCity} onChange={(event) => setForm({ ...form, shippingCity: event.target.value })} required />
-                <input className="shop-input" placeholder="CAP" value={form.shippingPostalCode} onChange={(event) => setForm({ ...form, shippingPostalCode: event.target.value })} required />
-                <input className="shop-input md:col-span-1" placeholder="Indirizzo" value={form.shippingAddressLine1} onChange={(event) => setForm({ ...form, shippingAddressLine1: event.target.value })} required />
-                <input className="shop-input" placeholder="Numero civico" value={form.shippingStreetNumber} onChange={(event) => setForm({ ...form, shippingStreetNumber: event.target.value })} required />
-              </div>
+            <div>
+              <input
+                className="shop-input w-full"
+                placeholder="Username"
+                value={form.username}
+                onBlur={() => setTouched((current) => ({ ...current, username: true }))}
+                onChange={(event) => setForm({ ...form, username: event.target.value })}
+                required
+              />
+              {touched.username && fieldErrors.username ? <p className="mt-2 text-xs text-red-200">{fieldErrors.username}</p> : null}
+            </div>
+
+            <div>
+              <input
+                className="shop-input w-full"
+                type="password"
+                placeholder="Password"
+                value={form.password}
+                onBlur={() => setTouched((current) => ({ ...current, password: true }))}
+                onChange={(event) => setForm({ ...form, password: event.target.value })}
+                required
+                minLength={8}
+              />
+              {touched.password && fieldErrors.password ? <p className="mt-2 text-xs text-red-200">{fieldErrors.password}</p> : null}
             </div>
 
             {error ? <p className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</p> : null}
 
-            <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
-              <button type="button" onClick={closeRegisterPopup} className={getButtonClassName({ variant: "profile" })}>
+            <div className="space-y-3 pt-1">
+              <Button type="submit" variant="cart" disabled={!canSubmit} className="w-full">
+                {submitting ? "Creazione account..." : "Ottieni codice"}
+              </Button>
+              <button type="button" onClick={closeRegisterPopup} className="mx-auto block text-sm text-white/50 transition hover:text-white">
                 Non ora
               </button>
-              <Button type="submit" variant="cart" disabled={submitting}>
-                {submitting ? "Creazione account..." : "Crea account"}
-              </Button>
             </div>
           </form>
         </div>
@@ -179,12 +193,10 @@ export function RegisterPromoPopup() {
       {successOpen ? (
         <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0b0b0c] p-6 text-center shadow-2xl">
           <p className="text-[11px] uppercase tracking-[0.24em] text-lime-200/80">Account creato</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
-            {couponCode ? `Ecco il tuo codice sconto del ${couponAmount || 10}%` : "Registrazione completata"}
-          </h2>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">{couponCode ? "Ecco il tuo sconto" : "Registrazione completata"}</h2>
           <p className="mt-3 text-sm leading-6 text-white/60">
             {couponCode
-              ? "Usalo nel carrello quando vuoi completare il tuo primo ordine."
+              ? `Usa questo codice al checkout${couponAmount ? ` per il ${couponAmount}% di sconto.` : "."}`
               : "Non c'e un coupon prima registrazione attivo in questo momento, ma il tuo account e pronto."}
           </p>
 
@@ -201,7 +213,7 @@ export function RegisterPromoPopup() {
               </button>
             ) : null}
             <Button type="button" variant="cart" onClick={() => setSuccessOpen(false)}>
-              Continua allo shop
+              Vai allo shop
             </Button>
           </div>
         </div>

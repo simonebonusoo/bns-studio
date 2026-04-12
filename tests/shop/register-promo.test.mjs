@@ -21,12 +21,24 @@ test("guest registration promo is mounted safely and uses the existing auth regi
   assert.match(popup, /DISMISSED_UNTIL_KEY/)
   assert.match(popup, /SESSION_SEEN_KEY/)
   assert.match(popup, /COMPLETED_KEY/)
-  assert.match(popup, /firstName/)
-  assert.match(popup, /lastName/)
   assert.match(popup, /username/)
-  assert.match(popup, /shippingAddressLine1/)
-  assert.match(popup, /shippingPostalCode/)
+  assert.match(popup, /Sblocca il 10% di sconto/)
+  assert.match(popup, /Ottieni codice/)
+  assert.match(popup, /Ecco il tuo sconto/)
+  assert.doesNotMatch(popup, /Dati spedizione/)
+  assert.doesNotMatch(popup, /shippingAddressLine1/)
+  assert.doesNotMatch(popup, /confirmPassword/)
   assert.doesNotMatch(popup, /newsletter/i)
+})
+
+test("auth registration accepts the minimal popup payload and keeps optional profile fields non-blocking", () => {
+  const authRoutes = read("src/server/shop/routes/authRoutes.mjs")
+
+  assert.match(authRoutes, /firstName: z\.string\(\)\.trim\(\)\.optional\(\)/)
+  assert.match(authRoutes, /lastName: z\.string\(\)\.trim\(\)\.optional\(\)/)
+  assert.match(authRoutes, /shippingCountry: z\.string\(\)\.trim\(\)\.optional\(\)/)
+  assert.match(authRoutes, /firstName: sanitizePlainText\(body\.firstName \|\| normalizedUsername\)/)
+  assert.match(authRoutes, /shippingAddressLine1: body\.shippingAddressLine1 \? sanitizePlainText\(body\.shippingAddressLine1\) : null/)
 })
 
 test("first registration coupon type is exposed in admin and treated as a percentage coupon", () => {

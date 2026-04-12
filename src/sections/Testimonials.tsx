@@ -5,6 +5,7 @@ import { Container } from "../components/Container"
 import { Reveal } from "../components/Reveal"
 import { SectionTitle } from "../components/SectionTitle"
 import { Button } from "../components/Button"
+import { ProjectContactForm } from "../components/ProjectContactForm"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { apiFetch } from "../shop/lib/api"
 import { ShopReview, ShopReviewSummary } from "../shop/types"
@@ -316,6 +317,8 @@ export function Testimonials() {
             </div>
           )}
         </motion.div>
+
+        <ProjectContactForm className="mt-16" />
       </Container>
     </section>
   )

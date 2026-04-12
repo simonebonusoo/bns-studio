@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import founderImageUrl from "../assets/founder/simone-centrale.jpeg"
 import { Button, getButtonClassName } from "../components/Button"
 import { Container } from "../components/Container"
+import { ProjectContactForm } from "../components/ProjectContactForm"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 import { apiFetch } from "../shop/lib/api"
 import {
@@ -463,6 +464,8 @@ export function AboutPage() {
               ))}
             </div>
           </section>
+
+          <ProjectContactForm className="border-t border-white/10 pt-14" />
 
         </div>
       </Container>
