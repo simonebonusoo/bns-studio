@@ -3,11 +3,12 @@ import { useEffect, useState, type FormEvent } from "react"
 import { Button, getButtonClassName } from "./Button"
 import { useShopAuth } from "../shop/context/ShopAuthProvider"
 
-const DISMISSED_UNTIL_KEY = "bns_register_promo_dismissed_until"
-const SESSION_SEEN_KEY = "bns_register_promo_seen_session"
+const DISMISSED_AT_KEY = "signupDiscountPopupDismissedAt"
+const LEGACY_DISMISSED_UNTIL_KEY = "bns_register_promo_dismissed_until"
+const LEGACY_SESSION_SEEN_KEY = "bns_register_promo_seen_session"
 const COMPLETED_KEY = "bns_register_promo_completed"
-const DISMISS_DAYS = 3
-const SHOW_DELAY_MS = 12_000
+const REAPPEAR_DELAY_MS = 90_000
+const POPUP_CHECK_INTERVAL_MS = 1_000
 
 type RegisterPromoForm = {
   username: string
@@ -25,14 +26,17 @@ function isDismissed() {
   const completed = localStorage.getItem(COMPLETED_KEY) === "true"
   if (completed) return true
 
-  const dismissedUntil = Number(localStorage.getItem(DISMISSED_UNTIL_KEY) || 0)
-  return Number.isFinite(dismissedUntil) && dismissedUntil > Date.now()
+  const dismissedAt = Number(localStorage.getItem(DISMISSED_AT_KEY) || 0)
+  return Number.isFinite(dismissedAt) && dismissedAt > 0 && Date.now() - dismissedAt < REAPPEAR_DELAY_MS
 }
 
 function persistDismissal() {
-  const dismissedUntil = Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000
-  localStorage.setItem(DISMISSED_UNTIL_KEY, String(dismissedUntil))
-  sessionStorage.setItem(SESSION_SEEN_KEY, "true")
+  localStorage.setItem(DISMISSED_AT_KEY, String(Date.now()))
+}
+
+function clearLegacyDismissalState() {
+  localStorage.removeItem(LEGACY_DISMISSED_UNTIL_KEY)
+  sessionStorage.removeItem(LEGACY_SESSION_SEEN_KEY)
 }
 
 const REGISTERED_EMAIL_MESSAGE = "Questa email risulta già registrata. Accedi al tuo account per continuare."
@@ -68,24 +72,26 @@ export function RegisterPromoPopup() {
   const canSubmit = !hasEmptyFields && !hasFieldErrors && !submitting
 
   useEffect(() => {
+    clearLegacyDismissalState()
+
     if (loading || user) {
       setOpen(false)
       return
     }
 
-    if (sessionStorage.getItem(SESSION_SEEN_KEY) === "true" || isDismissed()) {
-      return
-    }
-
-    const timer = window.setTimeout(() => {
-      if (!localStorage.getItem("bns_shop_token") && !isDismissed()) {
-        sessionStorage.setItem(SESSION_SEEN_KEY, "true")
+    const showIfEligible = () => {
+      if (open || successOpen) return
+      if (localStorage.getItem("bns_shop_token")) return
+      if (!isDismissed()) {
         setOpen(true)
       }
-    }, SHOW_DELAY_MS)
+    }
 
-    return () => window.clearTimeout(timer)
-  }, [loading, user])
+    showIfEligible()
+    const interval = window.setInterval(showIfEligible, POPUP_CHECK_INTERVAL_MS)
+
+    return () => window.clearInterval(interval)
+  }, [loading, open, successOpen, user])
 
   function closeRegisterPopup() {
     persistDismissal()
@@ -110,7 +116,8 @@ export function RegisterPromoPopup() {
     try {
       const { couponCode: nextCouponCode, couponAmount: nextCouponAmount } = await registerFromPromo(form)
       localStorage.setItem(COMPLETED_KEY, "true")
-      localStorage.removeItem(DISMISSED_UNTIL_KEY)
+      localStorage.removeItem(DISMISSED_AT_KEY)
+      clearLegacyDismissalState()
       setCouponCode(nextCouponCode)
       setCouponAmount(nextCouponAmount)
       setOpen(false)

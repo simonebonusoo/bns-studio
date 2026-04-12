@@ -18,8 +18,7 @@ test("guest registration promo is mounted safely and uses the existing auth regi
   assert.match(authProvider, /registerFromPromo/)
   assert.match(authProvider, /source: "promo_popup"/)
   assert.match(popup, /useShopAuth/)
-  assert.match(popup, /DISMISSED_UNTIL_KEY/)
-  assert.match(popup, /SESSION_SEEN_KEY/)
+  assert.match(popup, /DISMISSED_AT_KEY/)
   assert.match(popup, /COMPLETED_KEY/)
   assert.match(popup, /username/)
   assert.match(popup, /Sblocca il 10% di sconto/)
@@ -29,6 +28,22 @@ test("guest registration promo is mounted safely and uses the existing auth regi
   assert.doesNotMatch(popup, /shippingAddressLine1/)
   assert.doesNotMatch(popup, /confirmPassword/)
   assert.doesNotMatch(popup, /newsletter/i)
+})
+
+test("guest registration promo reappears for guests after the controlled cooldown", () => {
+  const popup = read("src/components/RegisterPromoPopup.tsx")
+
+  assert.match(popup, /const DISMISSED_AT_KEY = "signupDiscountPopupDismissedAt"/)
+  assert.match(popup, /const REAPPEAR_DELAY_MS = 90_000/)
+  assert.match(popup, /Date\.now\(\) - dismissedAt < REAPPEAR_DELAY_MS/)
+  assert.match(popup, /const POPUP_CHECK_INTERVAL_MS = 1_000/)
+  assert.match(popup, /window\.setInterval\(showIfEligible, POPUP_CHECK_INTERVAL_MS\)/)
+  assert.match(popup, /if \(loading \|\| user\)/)
+  assert.match(popup, /if \(open \|\| successOpen\) return/)
+  assert.match(popup, /localStorage\.setItem\(DISMISSED_AT_KEY, String\(Date\.now\(\)\)\)/)
+  assert.match(popup, /localStorage\.setItem\(COMPLETED_KEY, "true"\)/)
+  assert.doesNotMatch(popup, /sessionStorage\.setItem\(SESSION_SEEN_KEY/)
+  assert.doesNotMatch(popup, /DISMISS_DAYS/)
 })
 
 test("auth registration accepts the minimal popup payload and keeps optional profile fields non-blocking", () => {
