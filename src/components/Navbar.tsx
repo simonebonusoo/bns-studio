@@ -148,6 +148,36 @@ function SuggestionProductCard({
   )
 }
 
+function DesktopNavLink({
+  href,
+  label,
+  onClick,
+}: {
+  href: string
+  label: string
+  onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void
+}) {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className="group/navlink relative block overflow-hidden py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/62 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:text-white xl:text-xs"
+    >
+      <span className="relative block h-[1.15em] overflow-hidden leading-none">
+        <span className="block transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/navlink:-translate-y-full group-focus-visible/navlink:-translate-y-full">
+          {label}
+        </span>
+        <span
+          aria-hidden
+          className="absolute left-0 top-full block text-[#e3f503] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/navlink:-translate-y-full group-focus-visible/navlink:-translate-y-full"
+        >
+          {label}
+        </span>
+      </span>
+    </a>
+  )
+}
+
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -834,101 +864,109 @@ export function Navbar() {
 
                 <div className="relative hidden md:block">
                   <div className="grid min-h-[88px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-6 py-4">
-                    <a href="#top" onClick={handleLogoClick} aria-label="Vai all'inizio" className="flex items-center no-underline">
+                    <a href="#top" onClick={handleLogoClick} aria-label="Vai all'inizio" className="relative z-20 flex items-center no-underline">
                       <Logo className="h-9" />
                     </a>
 
-                    <div className="relative min-w-0">
-                      <AnimatePresence mode="wait" initial={false}>
-                        {searchOpen ? (
-                          <motion.div
-                            key="desktop-search"
-                            ref={searchRootRef}
-                            initial={{ opacity: 0, y: 8, scale: 0.985 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -8, scale: 0.985 }}
-                            transition={desktopNavTransition}
-                            className="mx-auto w-full max-w-3xl"
-                          >
-                            <div className="flex h-[50px] w-full items-center gap-3 rounded-full border border-white/20 bg-white/[0.04] px-5 text-white backdrop-blur-xl transition">
-                              <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
-                              <input
-                                ref={inputRef}
-                                value={search}
-                                onFocus={() => setSearchOpen(true)}
-                                onChange={(event) => {
-                                  setSearch(event.target.value)
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    submitSearch(search)
-                                  }
-                                }}
-                                placeholder="Cerca prodotti, nomi, artisti..."
-                                className="w-full bg-transparent text-base text-white placeholder:text-white/35 outline-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSearch("")
-                                  setSearchOpen(false)
-                                }}
-                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
-                                aria-label="Chiudi ricerca"
-                              >
-                                <XMarkIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </motion.div>
-                        ) : (
-                          <motion.nav
-                            key="desktop-links"
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 8 }}
-                            transition={desktopNavTransition}
-                            className="flex min-w-0 items-center justify-center gap-1 xl:gap-2"
-                            aria-label="Navigazione desktop principale"
-                          >
-                            {desktopNavItems.map((item) => (
-                              <Button
-                                key={item.label}
-                                href={item.href}
-                                onClick={(event) => {
-                                  if (item.onClick) {
-                                    item.onClick(event)
-                                    return
-                                  }
-                                  closeTransientPanels()
-                                }}
-                                variant="ghost"
-                                size="sm"
-                                text={item.label}
-                                className="!h-9 !rounded-full !border-transparent !bg-transparent !px-2.5 !text-white/68 !shadow-none hover:!border-white/10 hover:!bg-white/[0.04] hover:!text-white xl:!px-3.5"
-                              >
-                                {item.label}
-                              </Button>
-                            ))}
-                          </motion.nav>
-                        )}
-                      </AnimatePresence>
+                    <div className="min-w-0" />
+
+                    <div className="pointer-events-none absolute inset-y-0 left-1/2 z-10 flex w-[min(58vw,760px)] -translate-x-1/2 items-center justify-center">
+                      <div className="pointer-events-auto w-full">
+                        <AnimatePresence mode="wait" initial={false}>
+                          {searchOpen ? (
+                            <motion.div
+                              key="desktop-search"
+                              ref={searchRootRef}
+                              initial={{ opacity: 0, y: 8, scale: 0.985 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: -8, scale: 0.985 }}
+                              transition={desktopNavTransition}
+                              className="mx-auto w-full max-w-3xl"
+                            >
+                              <div className="flex h-[50px] w-full items-center gap-3 rounded-full border border-white/20 bg-white/[0.04] px-5 text-white backdrop-blur-xl transition">
+                                <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-white/45" />
+                                <input
+                                  ref={inputRef}
+                                  value={search}
+                                  onFocus={() => setSearchOpen(true)}
+                                  onChange={(event) => {
+                                    setSearch(event.target.value)
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      submitSearch(search)
+                                    }
+                                  }}
+                                  placeholder="Cerca prodotti, nomi, artisti..."
+                                  className="w-full bg-transparent text-base text-white placeholder:text-white/35 outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSearch("")
+                                    setSearchOpen(false)
+                                  }}
+                                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition hover:text-white"
+                                  aria-label="Chiudi ricerca"
+                                >
+                                  <XMarkIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </motion.div>
+                          ) : (
+                            <motion.nav
+                              key="desktop-links"
+                              initial={{ opacity: 0, y: -8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 8 }}
+                              transition={desktopNavTransition}
+                              className="flex min-w-0 items-center justify-center gap-5 xl:gap-7"
+                              aria-label="Navigazione desktop principale"
+                            >
+                              {desktopNavItems.map((item) => (
+                                <DesktopNavLink
+                                  key={item.label}
+                                  href={item.href}
+                                  label={item.label}
+                                  onClick={(event) => {
+                                    if (item.onClick) {
+                                      item.onClick(event)
+                                      return
+                                    }
+                                    closeTransientPanels()
+                                  }}
+                                />
+                              ))}
+                            </motion.nav>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuOpen(false)
-                          setCartOpen(false)
-                          setProfileOpen(false)
-                          setSearchOpen(true)
-                        }}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/72 transition hover:border-white/20 hover:text-white"
-                        aria-label="Apri ricerca"
-                        aria-expanded={searchOpen}
-                      >
-                        <MagnifyingGlassIcon className="h-5 w-5" />
-                      </button>
+                    <div className="relative z-20 flex items-center justify-end gap-3">
+                      <AnimatePresence initial={false}>
+                        {!searchOpen ? (
+                          <motion.button
+                            key="desktop-search-trigger"
+                            type="button"
+                            initial={{ opacity: 0, x: 6 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 6 }}
+                            transition={desktopNavTransition}
+                            onClick={() => {
+                              setMenuOpen(false)
+                              setCartOpen(false)
+                              setProfileOpen(false)
+                              setSearchOpen(true)
+                            }}
+                            className="inline-flex h-10 w-7 items-center justify-center p-0 text-white/68 transition hover:text-[#e3f503] focus-visible:outline-none focus-visible:text-[#e3f503]"
+                            aria-label="Apri ricerca"
+                            aria-expanded={searchOpen}
+                          >
+                            <MagnifyingGlassIcon className="h-5 w-5" />
+                          </motion.button>
+                        ) : null}
+                      </AnimatePresence>
 
                       <Button onClick={() => openProfilePanel("initial")} variant="ghost" size="sm" className="hidden sm:inline-flex">
                         Profilo

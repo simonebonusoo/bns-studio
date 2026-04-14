@@ -28,12 +28,15 @@ test("desktop navbar exposes ecommerce editorial links and keeps mobile sheet un
 
 test("desktop search replaces nav links with the existing suggestion overlay", () => {
   const navbar = read("src/components/Navbar.tsx")
-  const button = read("src/components/Button.tsx")
 
   assert.match(navbar, /key="desktop-links"/)
   assert.match(navbar, /key="desktop-search"/)
+  assert.match(navbar, /key="desktop-search-trigger"/)
+  assert.match(navbar, /!searchOpen \? \(/)
   assert.match(navbar, /desktopNavTransition/)
   assert.match(navbar, /data-testid="desktop-search-suggestions"/)
   assert.match(navbar, /data-testid="desktop-search-live-results"/)
-  assert.match(button, /onClick=\{\(event\) =>/)
+  assert.match(navbar, /className="inline-flex h-10 w-7 items-center justify-center p-0/)
+  assert.match(navbar, /function DesktopNavLink/)
+  assert.match(navbar, /group-hover\/navlink:-translate-y-full/)
 })
