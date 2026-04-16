@@ -14,20 +14,25 @@ function inferLegacyVariantOptions(title?: string | null) {
 
 function withVariantMetadata(variant: ShopProductVariant) {
   const options = variant.options?.length ? variant.options : inferLegacyVariantOptions(variant.title)
+  const publicOptions = options.filter((option) => !isVariantProductOption(option))
   const editionName = getVariantOptionValue(options, ["Variante", "Edition", "Edizione"]) || variant.editionName || inferEditionName(variant.title, options)
   const size = getVariantOptionValue(options, ["Misura", "Size", "Format", "Formato"]) || variant.size || normalizeLegacyFormat(variant.title) || variant.title
   return {
     ...variant,
     editionName,
     size,
-    options,
-    optionSummary: options.map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
+    options: publicOptions,
+    optionSummary: publicOptions.map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
   }
 }
 
 function getVariantOptionValue(options: ShopProductVariant["options"] = [], names: string[]) {
   const normalizedNames = names.map((name) => name.trim().toLowerCase())
   return options.find((option) => normalizedNames.includes(String(option.name || "").trim().toLowerCase()))?.value || null
+}
+
+function isVariantProductOption(option: { name?: string } | null | undefined) {
+  return String(option?.name || "").startsWith("_variantProduct")
 }
 
 function inferEditionName(title?: string | null, options: ShopProductVariant["options"] = []) {
@@ -183,7 +188,11 @@ export function getProductEditionOptions(product: ShopProduct) {
     const name = variant.editionName || "Standard"
     if (!byName.has(name)) byName.set(name, variant)
   })
-  return Array.from(byName.entries()).map(([name, previewVariant]) => ({ name, previewVariant }))
+  return Array.from(byName.entries()).map(([name, previewVariant]) => ({
+    name,
+    previewVariant,
+    previewImage: previewVariant.variantProductImageUrl || undefined,
+  }))
 }
 
 export function getSizeOptionsForEdition(product: ShopProduct, editionName?: string | null) {

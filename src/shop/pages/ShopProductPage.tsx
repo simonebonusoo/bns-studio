@@ -104,14 +104,19 @@ export function ShopProductPage() {
   const allVariants = product ? getProductVariants(product) : []
   const editionOptions = product ? getProductEditionOptions(product) : []
   const variants = product ? getSizeOptionsForEdition(product, selectedEditionName) : []
-  const galleryImages = product ? getProductGalleryImages(product) : []
-  const primaryCollection = product?.collections?.[0] || null
   const selectedVariant = product
     ? resolveSelectedVariant(product, {
         format: selectedVariantKey,
         editionName: selectedEditionName,
       }) || getDefaultVariant(product)
     : null
+  const galleryImages = product
+    ? [
+        selectedVariant?.variantProductImageUrl || "",
+        ...getProductGalleryImages(product),
+      ].filter((image, index, images) => image && images.indexOf(image) === index)
+    : []
+  const primaryCollection = product?.collections?.[0] || null
   const originalPrice = product ? getOriginalPriceForVariant(product, selectedVariant?.id) : 0
   const selectedPrice = product ? getPriceForVariant(product, selectedVariant?.id) : 0
   const purchasable = product ? isProductPurchasable(product, selectedVariant?.id) : false
@@ -472,6 +477,7 @@ export function ShopProductPage() {
                 allVariants.find((variant) => variant.editionName === editionName)
               setSelectedEditionName(editionName)
               setSelectedVariantKey(nextVariant?.key || nextVariant?.title || "")
+              setSelectedImage(nextVariant?.variantProductImageUrl || getProductPrimaryImage(product))
               setQuantity(1)
               setNotifyInterest(false)
               setNotifyMessage("")
@@ -479,6 +485,7 @@ export function ShopProductPage() {
             onSelectVariant={(variant) => {
               setSelectedEditionName(variant.editionName || selectedEditionName || "Standard")
               setSelectedVariantKey(variant.key || variant.title)
+              setSelectedImage(variant.variantProductImageUrl || getProductPrimaryImage(product))
               setQuantity(1)
               setNotifyInterest(false)
               setNotifyMessage("")

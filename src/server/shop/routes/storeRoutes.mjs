@@ -44,6 +44,7 @@ function serializePublicProduct(product) {
     variants,
     defaultVariantId: defaultVariant?.id ?? null,
     manualBadges: parseManualBadges(product.manualBadges),
+    hiddenAsStandalone: Boolean(product.hiddenAsStandalone),
     isPurchasable: isProductPurchasable(product),
     lowStockThreshold: product.lowStockThreshold,
     stockStatus: getProductStockStatus(product),
@@ -166,6 +167,8 @@ function buildPublicProductsWhere(filters) {
   } else {
     conditions.push({ status: { in: ["active", "out_of_stock"] } })
   }
+
+  conditions.push({ hiddenAsStandalone: false })
 
   return conditions.length ? { AND: conditions } : {}
 }
@@ -295,7 +298,7 @@ router.get(
   "/products/featured",
   asyncHandler(async (_req, res) => {
     const products = await loadProductsWithStoredOrder({
-      where: { featured: true, status: { in: ["active", "out_of_stock"] } },
+      where: { featured: true, hiddenAsStandalone: false, status: { in: ["active", "out_of_stock"] } },
       orderBy: { createdAt: "desc" },
       include: productRelationInclude(),
     })
@@ -312,7 +315,7 @@ router.get(
       include: productRelationInclude(),
     })
 
-    if (!product || !isPublicProductStatus(product.status)) {
+    if (!product || product.hiddenAsStandalone || !isPublicProductStatus(product.status)) {
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 
@@ -328,7 +331,7 @@ router.get(
       include: productRelationInclude(),
     })
 
-    if (!product || !isPublicProductStatus(product.status)) {
+    if (!product || product.hiddenAsStandalone || !isPublicProductStatus(product.status)) {
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 
@@ -338,6 +341,7 @@ router.get(
     const relatedCandidates = await prisma.product.findMany({
       where: {
         id: { not: product.id },
+        hiddenAsStandalone: false,
         status: { in: ["active", "out_of_stock"] },
         OR: [
           { category: product.category },

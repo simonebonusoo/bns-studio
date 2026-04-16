@@ -1,6 +1,32 @@
 import { HttpError } from "./http.mjs"
 import { markBackInStockSubscriptionsReady } from "../services/back-in-stock.mjs"
 
+const VARIANT_PRODUCT_OPTION_NAMES = {
+  id: "_variantProductId",
+  title: "_variantProductTitle",
+  slug: "_variantProductSlug",
+  imageUrl: "_variantProductImageUrl",
+}
+
+function isVariantProductOption(option) {
+  return Object.values(VARIANT_PRODUCT_OPTION_NAMES).includes(String(option?.name || ""))
+}
+
+function getOptionValue(options, name) {
+  return options.find((option) => String(option?.name || "") === name)?.value || null
+}
+
+function getVariantProductMetadata(variant, parsedOptions = parseVariantOptions(variant)) {
+  const rawId = variant?.variantProductId ?? getOptionValue(parsedOptions, VARIANT_PRODUCT_OPTION_NAMES.id)
+  const variantProductId = Number(rawId)
+  return {
+    variantProductId: Number.isInteger(variantProductId) && variantProductId > 0 ? variantProductId : null,
+    variantProductTitle: String(variant?.variantProductTitle || getOptionValue(parsedOptions, VARIANT_PRODUCT_OPTION_NAMES.title) || "").trim() || null,
+    variantProductSlug: String(variant?.variantProductSlug || getOptionValue(parsedOptions, VARIANT_PRODUCT_OPTION_NAMES.slug) || "").trim() || null,
+    variantProductImageUrl: String(variant?.variantProductImageUrl || getOptionValue(parsedOptions, VARIANT_PRODUCT_OPTION_NAMES.imageUrl) || "").trim() || null,
+  }
+}
+
 function normalizeOptionEntry(option) {
   const name = String(option?.name || option?.label || "").trim()
   const value = String(option?.value || option?.title || "").trim()
@@ -49,14 +75,19 @@ function buildVariantOptions(variant) {
   const parsedOptions = parseVariantOptions(variant)
   const editionName = inferVariantEditionName(variant)
   const size = inferVariantSize(variant)
+  const variantProduct = getVariantProductMetadata(variant, parsedOptions)
   const withoutManagedOptions = parsedOptions.filter((option) => {
     const name = String(option.name || "").trim().toLowerCase()
-    return !["variante", "edition", "edizione", "misura", "size", "format", "formato"].includes(name)
+    return !["variante", "edition", "edizione", "misura", "size", "format", "formato"].includes(name) && !isVariantProductOption(option)
   })
 
   return [
     editionName ? { name: "Variante", value: editionName } : null,
     size ? { name: "Misura", value: size } : null,
+    variantProduct.variantProductId ? { name: VARIANT_PRODUCT_OPTION_NAMES.id, value: String(variantProduct.variantProductId) } : null,
+    variantProduct.variantProductTitle ? { name: VARIANT_PRODUCT_OPTION_NAMES.title, value: variantProduct.variantProductTitle } : null,
+    variantProduct.variantProductSlug ? { name: VARIANT_PRODUCT_OPTION_NAMES.slug, value: variantProduct.variantProductSlug } : null,
+    variantProduct.variantProductImageUrl ? { name: VARIANT_PRODUCT_OPTION_NAMES.imageUrl, value: variantProduct.variantProductImageUrl } : null,
     ...withoutManagedOptions,
   ].filter(Boolean)
 }
@@ -114,6 +145,8 @@ function buildVariantRecord(variant, index) {
   const stock = Number(variant?.stock ?? 0)
   const lowStockThreshold = Number(variant?.lowStockThreshold ?? 5)
   const costPrice = Number(variant?.costPrice ?? 0)
+  const parsedOptions = parseVariantOptions(variant)
+  const variantProduct = getVariantProductMetadata(variant, parsedOptions)
 
   return {
     id: typeof variant?.id === "number" ? variant.id : null,
@@ -122,6 +155,7 @@ function buildVariantRecord(variant, index) {
     sku: variant?.sku ? String(variant.sku).trim().toUpperCase() : null,
     editionName: inferVariantEditionName(variant),
     size: inferVariantSize(variant),
+    ...variantProduct,
     options: buildVariantOptions(variant),
     price,
     discountPrice: discountPrice !== null && discountPrice < price ? discountPrice : null,
@@ -268,7 +302,11 @@ export function serializeProductVariants(product) {
     size: variant.size || inferVariantSize(variant),
     sku: variant.sku || null,
     options: variant.options || [],
-    optionSummary: (variant.options || []).map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
+    optionSummary: (variant.options || []).filter((option) => !isVariantProductOption(option)).map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
+    variantProductId: variant.variantProductId ?? null,
+    variantProductTitle: variant.variantProductTitle ?? null,
+    variantProductSlug: variant.variantProductSlug ?? null,
+    variantProductImageUrl: variant.variantProductImageUrl ?? null,
     price: variant.price,
     discountPrice: typeof variant.discountPrice === "number" && variant.discountPrice < variant.price ? variant.discountPrice : null,
     costPrice: variant.costPrice,
@@ -281,6 +319,44 @@ export function serializeProductVariants(product) {
     stockStatus:
       variant.stock <= 0 ? "out_of_stock" : variant.stock <= variant.lowStockThreshold ? "low_stock" : "in_stock",
   }))
+}
+
+function getLinkedVariantProductIdsFromVariants(variants = []) {
+  return Array.from(
+    new Set(
+      variants
+        .map((variant) => {
+          const meta = getVariantProductMetadata(variant)
+          return meta.variantProductId
+        })
+        .filter((value) => Number.isInteger(value) && value > 0),
+    ),
+  )
+}
+
+export async function refreshHiddenStandaloneProducts(db) {
+  const allVariants = await db.productVariant.findMany({ select: { optionsJson: true } })
+  const linkedIds = new Set()
+
+  for (const variant of allVariants) {
+    const meta = getVariantProductMetadata(variant)
+    if (meta.variantProductId) linkedIds.add(meta.variantProductId)
+  }
+
+  await db.product.updateMany({
+    where: {
+      hiddenAsStandalone: true,
+      id: linkedIds.size ? { notIn: Array.from(linkedIds) } : undefined,
+    },
+    data: { hiddenAsStandalone: false },
+  })
+
+  if (linkedIds.size) {
+    await db.product.updateMany({
+      where: { id: { in: Array.from(linkedIds) } },
+      data: { hiddenAsStandalone: true },
+    })
+  }
 }
 
 export async function syncProductVariants(db, productId, rawVariants = []) {
@@ -376,6 +452,8 @@ export async function syncProductVariants(db, productId, rawVariants = []) {
     previousVariants: existingVariants,
     nextVariants,
   })
+
+  await refreshHiddenStandaloneProducts(db)
 }
 
 export async function backfillLegacyProductVariants(db) {

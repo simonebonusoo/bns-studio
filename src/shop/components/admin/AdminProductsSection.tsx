@@ -36,6 +36,10 @@ type ProductFormState = {
     key: string
     editionName: string
     size: string
+    variantProductId: number | null
+    variantProductTitle: string
+    variantProductSlug: string
+    variantProductImageUrl: string
     sku: string
     price: string
     discountPrice: string
@@ -202,6 +206,7 @@ export function AdminProductsSection({
             onFileChange={onProductFileChange}
             onReorderImages={onReorderProductImages}
             onRemoveImage={onRemoveProductImage}
+            products={products}
           />
         </AdminRenderGuard>
       </div>

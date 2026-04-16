@@ -1,7 +1,7 @@
-import type { FormEvent, ReactNode } from "react"
+import { useMemo, useState, type FormEvent, type ReactNode } from "react"
 
 import { Button } from "../../../components/Button"
-import { AdminCollection, ProductManualBadge, ProductStatus } from "../../types"
+import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
 import { ProductMediaManager } from "./ProductMediaManager"
 
 type ProductVariantFormState = {
@@ -10,6 +10,10 @@ type ProductVariantFormState = {
   key: string
   editionName: string
   size: string
+  variantProductId: number | null
+  variantProductTitle: string
+  variantProductSlug: string
+  variantProductImageUrl: string
   sku: string
   price: string
   discountPrice: string
@@ -51,6 +55,7 @@ type ProductFormCardProps = {
   categories: string[]
   collections: AdminCollection[]
   productImages: string[]
+  products: ShopProduct[]
   onSubmit: (event: FormEvent) => void
   onCancel: () => void
   onChange: (next: ProductFormState) => void
@@ -101,6 +106,7 @@ export function ProductFormCard({
   categories,
   collections,
   productImages,
+  products,
   onSubmit,
   onCancel,
   onChange,
@@ -114,14 +120,30 @@ export function ProductFormCard({
   const activeVariants = safeVariants.filter((variant) => variant.isActive)
   const totalVariantStock = activeVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
   const lowStockVariantCount = activeVariants.filter((variant) => variant.stock > 0 && variant.stock <= variant.lowStockThreshold).length
-  const variantGroups = Array.from(
-    safeVariants.reduce((groups, variant) => {
-      const editionName = variant.editionName.trim() || "Standard"
-      const current = groups.get(editionName) || []
-      current.push(variant.size.trim() || variant.title.trim() || "Misura")
-      groups.set(editionName, current)
-      return groups
-    }, new Map<string, string[]>())
+  const [variantPickerOpen, setVariantPickerOpen] = useState(false)
+  const mainSizeRows = safeVariants.filter((variant) => !variant.variantProductId)
+  const linkedVariantGroups = Array.from(
+    safeVariants
+      .filter((variant) => variant.variantProductId)
+      .reduce((groups, variant) => {
+        const key = String(variant.variantProductId)
+        const current = groups.get(key) || []
+        current.push(variant)
+        groups.set(key, current)
+        return groups
+      }, new Map<string, ProductVariantFormState[]>())
+  )
+  const variantGroups: Array<[string, string[]]> = []
+  const selectedVariantProductIds = new Set(safeVariants.map((variant) => variant.variantProductId).filter(Boolean))
+  const selectableVariantProducts = useMemo(
+    () =>
+      products.filter(
+        (product) =>
+          product.id !== editingProductId &&
+          !selectedVariantProductIds.has(product.id) &&
+          product.status !== "draft",
+      ),
+    [editingProductId, products, selectedVariantProductIds],
   )
   const inventoryTone =
     productForm.status === "out_of_stock" || totalVariantStock <= 0
@@ -129,6 +151,189 @@ export function ProductFormCard({
       : lowStockVariantCount > 0
         ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
         : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
+
+  function slugifyVariantKey(value: string) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-")
+  }
+
+  function formatCentsInput(value?: number | null) {
+    const numeric = Number(value || 0)
+    if (!Number.isFinite(numeric) || numeric <= 0) return ""
+    return Number.isInteger(numeric / 100) ? String(numeric / 100) : (numeric / 100).toFixed(2)
+  }
+
+  function updateVariant(index: number, patch: Partial<ProductVariantFormState>) {
+    onChange({
+      ...productForm,
+      variants: productForm.variants.map((entry, entryIndex) =>
+        entryIndex === index ? { ...entry, ...patch } : entry,
+      ),
+    })
+  }
+
+  function removeVariantRow(index: number) {
+    onChange({
+      ...productForm,
+      variants: productForm.variants.filter((_, variantIndex) => variantIndex !== index),
+    })
+  }
+
+  function addMainSize() {
+    const size = mainSizeRows.length ? "A3" : "A4"
+    onChange({
+      ...productForm,
+      variants: [
+        ...safeVariants,
+        {
+          id: null,
+          title: size,
+          key: slugifyVariantKey(size),
+          editionName: "Standard",
+          size,
+          variantProductId: null,
+          variantProductTitle: "",
+          variantProductSlug: "",
+          variantProductImageUrl: "",
+          sku: "",
+          price: "",
+          discountPrice: "",
+          costPrice: "",
+          stock: 0,
+          lowStockThreshold: 5,
+          isDefault: safeVariants.length === 0,
+          isActive: true,
+        },
+      ],
+    })
+  }
+
+  function addLinkedVariant(product: ShopProduct) {
+    const sourceVariants = Array.isArray(product.variants) && product.variants.length
+      ? product.variants.filter((variant) => variant.isActive !== false)
+      : []
+    const rows = (sourceVariants.length ? sourceVariants : [{
+      title: "A4",
+      key: "a4",
+      size: "A4",
+      price: product.priceA4 ?? product.price,
+      discountPrice: product.discountPriceA4 ?? product.discountPrice ?? null,
+      costPrice: product.costPrice ?? 0,
+      stock: product.stock ?? 0,
+      lowStockThreshold: product.lowStockThreshold ?? 5,
+      sku: product.sku || "",
+    }]).map((variant, index) => {
+      const size = String(variant.size || variant.title || `Misura ${index + 1}`).trim()
+      const editionName = product.title
+      return {
+        id: null,
+        title: `${editionName} / ${size}`,
+        key: slugifyVariantKey(`${product.slug || product.id}-${size}`) || `variant-${product.id}-${index + 1}`,
+        editionName,
+        size,
+        variantProductId: product.id,
+        variantProductTitle: product.title,
+        variantProductSlug: product.slug,
+        variantProductImageUrl: product.coverImageUrl || product.imageUrls?.[0] || "",
+        sku: variant.sku || "",
+        price: formatCentsInput(variant.price ?? product.price),
+        discountPrice: formatCentsInput(variant.discountPrice ?? product.discountPrice ?? null),
+        costPrice: formatCentsInput(variant.costPrice ?? product.costPrice ?? 0),
+        stock: Number(variant.stock ?? product.stock ?? 0),
+        lowStockThreshold: Number(variant.lowStockThreshold ?? product.lowStockThreshold ?? 5),
+        isDefault: safeVariants.length === 0 && index === 0,
+        isActive: true,
+      }
+    })
+
+    onChange({ ...productForm, variants: [...safeVariants, ...rows] })
+    setVariantPickerOpen(false)
+  }
+
+  function renderMeasureRow(variant: ProductVariantFormState, index: number, compact = false) {
+    return (
+      <div key={`${variant.id ?? "new"}-${index}`} className="grid gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3 lg:grid-cols-[minmax(110px,0.8fr)_minmax(100px,0.7fr)_minmax(110px,0.7fr)_minmax(110px,0.7fr)_auto]">
+        <input
+          className="shop-input"
+          placeholder="Misura"
+          value={variant.size}
+          onChange={(event) => {
+            const size = event.target.value
+            updateVariant(index, {
+              size,
+              title: variant.variantProductId ? `${variant.variantProductTitle || variant.editionName} / ${size}` : size,
+              key: slugifyVariantKey(`${variant.variantProductSlug || variant.editionName}-${size}`),
+            })
+          }}
+        />
+        <input
+          className="shop-input"
+          type="number"
+          min="0"
+          placeholder="Quantita"
+          value={variant.stock}
+          onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })}
+        />
+        <input
+          className="shop-input"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Prezzo"
+          value={variant.price}
+          onChange={(event) => updateVariant(index, { price: event.target.value })}
+        />
+        <input
+          className="shop-input"
+          type="number"
+          min="0"
+          placeholder="Soglia"
+          value={variant.lowStockThreshold}
+          onChange={(event) => updateVariant(index, { lowStockThreshold: Number(event.target.value) })}
+        />
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65">
+            <input
+              type="checkbox"
+              checked={variant.isDefault}
+              onChange={() =>
+                onChange({
+                  ...productForm,
+                  variants: productForm.variants.map((entry, entryIndex) => ({
+                    ...entry,
+                    isDefault: entryIndex === index,
+                  })),
+                })
+              }
+            />
+            Default
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65">
+            <input
+              type="checkbox"
+              checked={variant.isActive}
+              onChange={(event) => updateVariant(index, { isActive: event.target.checked })}
+            />
+            Attiva
+          </label>
+          <button type="button" onClick={() => removeVariantRow(index)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 transition hover:border-red-300/30 hover:text-red-100">
+            Rimuovi
+          </button>
+        </div>
+        {!compact ? (
+          <div className="lg:col-span-5 grid gap-3 md:grid-cols-3">
+            <input className="shop-input" placeholder="SKU misura" value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} />
+            <input className="shop-input" type="number" min="0" step="0.01" placeholder="Prezzo scontato" value={variant.discountPrice} onChange={(event) => updateVariant(index, { discountPrice: event.target.value })} />
+            <input className="shop-input" type="number" min="0" step="0.01" placeholder="Costo produzione" value={variant.costPrice} onChange={(event) => updateVariant(index, { costPrice: event.target.value })} />
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <form onSubmit={onSubmit} className="shop-card space-y-5 p-6">
@@ -289,6 +494,128 @@ export function ProductFormCard({
       </Section>
 
       {!isMultiEdit ? (
+        <>
+          <Section
+            title="Misure"
+            description="Misure del prodotto principale, con quantita e prezzo per ogni formato."
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className={`rounded-lg border px-4 py-3 text-sm ${inventoryTone}`}>
+                <p className="font-medium">{mainSizeRows.filter((variant) => variant.isActive).length} misure attive</p>
+                <p className="mt-1 opacity-80">Stock totale {totalVariantStock} · low stock {lowStockVariantCount}</p>
+              </div>
+              <Button type="button" variant="profile" size="sm" onClick={addMainSize}>
+                Aggiungi misura
+              </Button>
+            </div>
+
+            <div className="grid gap-2 text-[11px] uppercase tracking-[0.16em] text-white/45 lg:grid-cols-[minmax(110px,0.8fr)_minmax(100px,0.7fr)_minmax(110px,0.7fr)_minmax(110px,0.7fr)_auto]">
+              <span>Nome misura</span>
+              <span>Quantita</span>
+              <span>Prezzo</span>
+              <span>Soglia</span>
+              <span>Stato</span>
+            </div>
+            <div className="space-y-3">
+              {mainSizeRows.length ? (
+                mainSizeRows.map((variant) => renderMeasureRow(variant, safeVariants.indexOf(variant)))
+              ) : (
+                <p className="rounded-lg border border-dashed border-white/10 px-4 py-6 text-sm text-white/50">Nessuna misura configurata per il prodotto principale.</p>
+              )}
+            </div>
+          </Section>
+
+          <Section
+            title="Varianti"
+            description="Le varianti sono altri prodotti esistenti. Quando salvi, i prodotti scelti restano in admin ma spariscono dal catalogo pubblico come articoli singoli."
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-white/55">{linkedVariantGroups.length} prodotti collegati come varianti.</p>
+              <Button type="button" variant="profile" size="sm" onClick={() => setVariantPickerOpen(true)}>
+                Aggiungi variante
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {linkedVariantGroups.length ? (
+                linkedVariantGroups.map(([groupId, rows]) => {
+                  const first = rows[0]
+                  return (
+                    <article key={groupId} className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          {first.variantProductImageUrl ? (
+                            <img src={first.variantProductImageUrl} alt="" className="h-14 w-14 rounded-lg object-cover" />
+                          ) : (
+                            <span className="h-14 w-14 rounded-lg border border-white/10 bg-white/[0.04]" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-white">{first.variantProductTitle || first.editionName}</p>
+                            <p className="mt-1 text-xs text-white/45">{rows.length} misure disponibili</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onChange({ ...productForm, variants: safeVariants.filter((variant) => variant.variantProductId !== first.variantProductId) })}
+                          className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 transition hover:border-red-300/30 hover:text-red-100"
+                        >
+                          Rimuovi variante
+                        </button>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {rows.map((variant) => renderMeasureRow(variant, safeVariants.indexOf(variant), true))}
+                      </div>
+                    </article>
+                  )
+                })
+              ) : (
+                <p className="rounded-lg border border-dashed border-white/10 px-4 py-6 text-sm text-white/50">Nessuna variante collegata.</p>
+              )}
+            </div>
+
+            {variantPickerOpen ? (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
+                <div className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-lg border border-white/10 bg-[#0b0b0c] shadow-2xl">
+                  <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+                    <h3 className="text-base font-semibold text-white">Aggiungi variante</h3>
+                    <button type="button" onClick={() => setVariantPickerOpen(false)} className="text-sm text-white/55 transition hover:text-white">
+                      Chiudi
+                    </button>
+                  </div>
+                  <div className="max-h-[70vh] overflow-y-auto p-5">
+                    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      {selectableVariantProducts.map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => addLinkedVariant(product)}
+                          className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.025] text-left transition hover:border-white/25 hover:bg-white/[0.05]"
+                        >
+                          <img src={product.coverImageUrl || product.imageUrls?.[0] || ""} alt="" className="aspect-[4/3] w-full object-cover" />
+                          <span className="block truncate px-3 py-3 text-sm font-medium text-white">{product.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {!selectableVariantProducts.length ? (
+                      <p className="rounded-lg border border-dashed border-white/10 px-4 py-8 text-center text-sm text-white/50">Nessun prodotto selezionabile.</p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </Section>
+        </>
+      ) : (
+        <Section
+          title="Misure e varianti"
+          description="La modifica multipla non tocca misure e varianti per evitare di sovrascrivere prezzi, stock o collegamenti prodotto."
+        >
+          <p className="text-sm text-white/50">Per modificare misure e varianti apri il singolo prodotto.</p>
+        </Section>
+      )}
+
+      {false ? (
         <Section
           title="Varianti e misure"
           description="Ogni riga è una misura acquistabile dentro una variante estetica. Esempio: Variante Black edition, Misura A4."
@@ -316,6 +643,10 @@ export function ProductFormCard({
                       key: `standard-a4-${safeVariants.length + 1}`,
                       editionName: "Standard",
                       size: "A4",
+                      variantProductId: null,
+                      variantProductTitle: "",
+                      variantProductSlug: "",
+                      variantProductImageUrl: "",
                       sku: "",
                       price: "",
                       discountPrice: "",
@@ -625,14 +956,15 @@ export function ProductFormCard({
             ))}
           </div>
         </Section>
-      ) : (
+      ) : null}
+      {false ? (
         <Section
           title="Varianti"
           description="La modifica multipla non tocca la matrice varianti per evitare di sovrascrivere prezzi, stock o SKU specifici di prodotto."
         >
           <p className="text-sm text-white/50">Per modificare varianti, prezzi o inventory specifica apri il singolo prodotto.</p>
         </Section>
-      )}
+      ) : null}
 
       <Section title="Badge prodotto">
         <div className="flex items-center justify-between gap-4">

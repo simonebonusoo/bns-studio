@@ -19,7 +19,7 @@ import { getAvailableProductFormats, getBaseProductPrice, getProductCostForForma
 import { getStoredProductOrderSetting, loadProductsWithStoredOrder, parseStoredProductOrder, saveProductOrder } from "../lib/product-order.mjs"
 import { assertFeaturedProductLimit } from "../lib/product-featured.mjs"
 import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
-import { buildLegacyProductFieldsFromVariants, deriveLegacyVariantsFromProduct, serializeProductVariants, syncProductVariants } from "../lib/product-variants.mjs"
+import { buildLegacyProductFieldsFromVariants, deriveLegacyVariantsFromProduct, refreshHiddenStandaloneProducts, serializeProductVariants, syncProductVariants } from "../lib/product-variants.mjs"
 import { serializeShopOrder } from "../lib/order-serialization.mjs"
 
 const router = Router()
@@ -107,6 +107,7 @@ function serializeAdminProduct(product) {
     variants,
     defaultVariantId: defaultVariant?.id ?? null,
     manualBadges: parseManualBadges(product.manualBadges),
+    hiddenAsStandalone: Boolean(product.hiddenAsStandalone),
     badges: buildVisibleProductBadges(product),
     ...serializeTaxonomyRelations(product),
     stockStatus: getProductStockStatus(product),
@@ -425,6 +426,10 @@ const productSchema = z.object({
         key: z.string().optional().nullable(),
         editionName: z.string().optional().nullable(),
         size: z.string().optional().nullable(),
+        variantProductId: z.number().int().positive().optional().nullable(),
+        variantProductTitle: z.string().optional().nullable(),
+        variantProductSlug: z.string().optional().nullable(),
+        variantProductImageUrl: z.string().optional().nullable(),
         sku: z.string().optional().nullable(),
         options: z
           .array(
@@ -844,6 +849,7 @@ router.post(
         lowStockThreshold: body.lowStockThreshold,
         status: normalizeProductStatus(body.status),
         isCustomizable: Boolean(body.isCustomizable),
+        hiddenAsStandalone: false,
         slug,
         imageUrls: JSON.stringify(body.imageUrls),
       },
@@ -1089,6 +1095,7 @@ router.delete(
     const productId = Number(req.params.id)
     const product = await prisma.product.findUnique({ where: { id: productId } })
     await prisma.product.delete({ where: { id: productId } })
+    await refreshHiddenStandaloneProducts(prisma)
     const existingOrderSetting = await getStoredProductOrderSetting()
     if (existingOrderSetting) {
       const nextOrder = parseStoredProductOrder(existingOrderSetting.value).filter((id) => id !== productId)

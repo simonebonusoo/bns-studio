@@ -13,6 +13,10 @@ export type ShopProductVariant = {
     value: string
   }>
   optionSummary?: string | null
+  variantProductId?: number | null
+  variantProductTitle?: string | null
+  variantProductSlug?: string | null
+  variantProductImageUrl?: string | null
   price: number
   discountPrice?: number | null
   costPrice?: number
@@ -100,6 +104,7 @@ export type ShopProduct = {
   tags?: ProductTag[]
   collections?: ProductCollection[]
   isPurchasable?: boolean
+  hiddenAsStandalone?: boolean
   createdAt?: string
   updatedAt?: string
 }

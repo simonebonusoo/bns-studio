@@ -51,6 +51,7 @@ model Product {
   imageUrls   String
   manualBadges String    @default("[]")
   isCustomizable Boolean  @default(false)
+  hiddenAsStandalone Boolean @default(false)
   featured    Boolean     @default(false)
   stock       Int         @default(100)
   lowStockThreshold Int   @default(5)

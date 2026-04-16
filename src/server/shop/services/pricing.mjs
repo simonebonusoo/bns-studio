@@ -174,7 +174,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
       personalizationText,
       slug: product.slug,
       title: product.title,
-      imageUrl: imageUrls[0] || "",
+      imageUrl: selectedVariant.variantProductImageUrl || imageUrls[0] || "",
       format,
       unitPrice: discountedUnitPrice,
       unitOriginalPrice: originalUnitPrice,

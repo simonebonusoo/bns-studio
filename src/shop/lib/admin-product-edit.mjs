@@ -32,6 +32,7 @@ function mapProductVariantToForm(variant, index) {
     const normalizedNames = names.map((name) => String(name).trim().toLowerCase())
     return options.find((option) => normalizedNames.includes(String(option?.name || "").trim().toLowerCase()))?.value || ""
   }
+  const findMetadataOption = (name) => options.find((option) => String(option?.name || "") === name)?.value || ""
   const size = String(variant?.size || findOption(["Misura", "Size", "Format", "Formato"]) || variant?.legacyFormat || safeTitle).trim()
   const editionName = String(variant?.editionName || findOption(["Variante", "Edition", "Edizione"]) || (size.toUpperCase() === safeTitle.toUpperCase() ? "Standard" : safeTitle)).trim()
 
@@ -41,6 +42,10 @@ function mapProductVariantToForm(variant, index) {
     key: String(variant?.key || "").trim() || slugifyVariantKey(safeTitle) || `variant-${index + 1}`,
     editionName,
     size,
+    variantProductId: Number(variant?.variantProductId || findMetadataOption("_variantProductId") || 0) || null,
+    variantProductTitle: String(variant?.variantProductTitle || findMetadataOption("_variantProductTitle") || ""),
+    variantProductSlug: String(variant?.variantProductSlug || findMetadataOption("_variantProductSlug") || ""),
+    variantProductImageUrl: String(variant?.variantProductImageUrl || findMetadataOption("_variantProductImageUrl") || ""),
     sku: String(variant?.sku || ""),
     price: formatEuroInput(variant?.price),
     discountPrice: formatEuroInput(variant?.discountPrice),
@@ -64,6 +69,10 @@ function buildLegacyVariants(product) {
       key: hasA4 ? "a4" : hasA3 ? "a3" : "standard",
       editionName: "Standard",
       size: fallbackTitle,
+      variantProductId: null,
+      variantProductTitle: "",
+      variantProductSlug: "",
+      variantProductImageUrl: "",
       sku: product?.sku || null,
       price: hasA4 ? (product?.priceA4 ?? product?.price ?? 0) : (product?.priceA3 ?? product?.price ?? 0),
       discountPrice: hasA4 ? (product?.discountPriceA4 ?? product?.discountPrice ?? null) : (product?.discountPriceA3 ?? product?.discountPrice ?? null),
@@ -82,6 +91,10 @@ function buildLegacyVariants(product) {
             key: "a3",
             editionName: "Standard",
             size: "A3",
+            variantProductId: null,
+            variantProductTitle: "",
+            variantProductSlug: "",
+            variantProductImageUrl: "",
             sku: null,
             price: product?.priceA3 ?? product?.price ?? 0,
             discountPrice: product?.discountPriceA3 ?? product?.discountPrice ?? null,

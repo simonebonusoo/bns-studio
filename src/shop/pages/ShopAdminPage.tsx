@@ -97,6 +97,10 @@ type ProductFormState = {
     key: string
     editionName: string
     size: string
+    variantProductId: number | null
+    variantProductTitle: string
+    variantProductSlug: string
+    variantProductImageUrl: string
     sku: string
     price: string
     discountPrice: string
@@ -286,6 +290,10 @@ const emptyProductForm = (): ProductFormState => ({
       key: "a4",
       editionName: "Standard",
       size: "A4",
+      variantProductId: null,
+      variantProductTitle: "",
+      variantProductSlug: "",
+      variantProductImageUrl: "",
       sku: "",
       price: "",
       discountPrice: "",
@@ -443,6 +451,10 @@ function mapProductVariantToForm(variant: ShopProductVariant, index: number) {
     key: variant.key || slugifyVariantKey(variant.title) || `variant-${index + 1}`,
     editionName,
     size,
+    variantProductId: variant.variantProductId ?? null,
+    variantProductTitle: variant.variantProductTitle || "",
+    variantProductSlug: variant.variantProductSlug || "",
+    variantProductImageUrl: variant.variantProductImageUrl || "",
     sku: variant.sku || "",
     price: formatEuroInput(variant.price),
     discountPrice: variant.discountPrice ? formatEuroInput(variant.discountPrice) : "",
@@ -502,7 +514,15 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
       options: [
         { name: "Variante", value: variant.editionName.trim() || "Standard" },
         { name: "Misura", value: variant.size.trim() || variant.title.trim() || "Standard" },
+        ...(variant.variantProductId ? [{ name: "_variantProductId", value: String(variant.variantProductId) }] : []),
+        ...(variant.variantProductTitle.trim() ? [{ name: "_variantProductTitle", value: variant.variantProductTitle.trim() }] : []),
+        ...(variant.variantProductSlug.trim() ? [{ name: "_variantProductSlug", value: variant.variantProductSlug.trim() }] : []),
+        ...(variant.variantProductImageUrl.trim() ? [{ name: "_variantProductImageUrl", value: variant.variantProductImageUrl.trim() }] : []),
       ],
+      variantProductId: variant.variantProductId,
+      variantProductTitle: variant.variantProductTitle.trim() || null,
+      variantProductSlug: variant.variantProductSlug.trim() || null,
+      variantProductImageUrl: variant.variantProductImageUrl.trim() || null,
       price: parseEuroToCents(variant.price),
       discountPrice: variant.discountPrice.trim() ? parseEuroToCents(variant.discountPrice) : null,
       costPrice: parseEuroToCents(variant.costPrice),
