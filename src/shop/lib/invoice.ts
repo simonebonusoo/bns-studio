@@ -1,5 +1,6 @@
 import { ShopOrder, ShopSettings } from "../types"
 import { formatPrice } from "./format"
+import { formatVariantSelectionLabel } from "./product"
 import { formatShippingAddressLines } from "./shipping-details.mjs"
 
 export async function downloadInvoicePdf(order: ShopOrder, settings: ShopSettings = {}) {
@@ -62,7 +63,7 @@ export async function downloadInvoicePdf(order: ShopOrder, settings: ShopSetting
 
   doc.setTextColor(255, 255, 255)
   order.items.forEach((item) => {
-    doc.text(`${item.title}${item.variantLabel || item.format ? ` · ${item.variantLabel || item.format}` : ""}`, margin, y)
+    doc.text(`${item.title} · ${formatVariantSelectionLabel(item)}`, margin, y)
     doc.text(String(item.quantity), 360, y)
     doc.text(formatPrice(item.lineTotal), 540, y, { align: "right" })
     y += 22

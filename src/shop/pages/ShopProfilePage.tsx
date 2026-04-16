@@ -6,6 +6,7 @@ import { ShopLayout } from "../components/ShopLayout"
 import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
+import { formatVariantSelectionLabel } from "../lib/product"
 import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
 import { ShopOrder } from "../types"
 
@@ -26,7 +27,7 @@ export function ShopProfilePage() {
   }, [trackingFeedback])
 
   function buildOrderItemsSummary(order: ShopOrder) {
-    const previewItems = order.items.slice(0, 2).map((item) => `${item.title}${item.personalizationText ? ` (${item.personalizationText})` : ""} x ${item.quantity}`)
+    const previewItems = order.items.slice(0, 2).map((item) => `${item.title} · ${formatVariantSelectionLabel(item)}${item.personalizationText ? ` (${item.personalizationText})` : ""} x ${item.quantity}`)
     if (order.items.length > 2) {
       previewItems.push(`+ ${order.items.length - 2} altri articoli`)
     }

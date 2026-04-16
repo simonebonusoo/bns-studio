@@ -15,7 +15,7 @@ import { apiFetch } from "../lib/api"
 import { readCatalogReturnState } from "../lib/catalog-return.mjs"
 import { readHomeReturnState } from "../lib/home-return.mjs"
 import { consumePreviousProductReturnEntry, pushProductReturnEntry } from "../lib/product-return-stack.mjs"
-import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
+import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductEditionOptions, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, getSizeOptionsForEdition, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { getRelatedProductsPageState, getRecentlyViewedProducts, upsertRecentlyViewedProduct } from "../lib/product-page-discovery.mjs"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct, ShopSettings } from "../types"
@@ -36,6 +36,7 @@ export function ShopProductPage() {
   const [visibleRelatedCount, setVisibleRelatedCount] = useState(RELATED_PAGE_SIZE)
   const [recentlyViewedProducts, setRecentlyViewedProducts] = useState<ShopProduct[]>([])
   const [selectedImage, setSelectedImage] = useState("")
+  const [selectedEditionName, setSelectedEditionName] = useState("")
   const [selectedVariantKey, setSelectedVariantKey] = useState("")
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
@@ -44,7 +45,6 @@ export function ShopProductPage() {
   const [settings, setSettings] = useState<ShopSettings>({})
   const [notifyInterest, setNotifyInterest] = useState(false)
   const [notifyMessage, setNotifyMessage] = useState("")
-  const [variantMenuOpen, setVariantMenuOpen] = useState(false)
   const [openInfoSection, setOpenInfoSection] = useState<"details" | "shipping" | "delivery" | null>(null)
   const purchasePanelRef = useRef<HTMLDivElement | null>(null)
   const [galleryLockedHeight, setGalleryLockedHeight] = useState<number | null>(null)
@@ -56,15 +56,16 @@ export function ShopProductPage() {
     apiFetch<ShopProduct>(`/store/products/${slug}`)
       .then((data) => {
         setProduct(data)
+        const defaultVariant = getDefaultVariant(data)
         setSelectedImage(getProductPrimaryImage(data))
-        setSelectedVariantKey(getDefaultVariant(data)?.key || getDefaultVariant(data)?.title || "")
+        setSelectedEditionName(defaultVariant?.editionName || "Standard")
+        setSelectedVariantKey(defaultVariant?.key || defaultVariant?.title || "")
         setIsLightboxOpen(false)
         setQuantity(1)
         setPersonalizationText("")
         setPersonalizationError("")
         setNotifyInterest(false)
         setNotifyMessage("")
-        setVariantMenuOpen(false)
         setOpenInfoSection(null)
       })
       .catch((err) => {
@@ -100,10 +101,17 @@ export function ShopProductPage() {
   }, [product])
 
   const availableFormats = product ? getAvailableFormats(product) : []
-  const variants = product ? getProductVariants(product) : []
+  const allVariants = product ? getProductVariants(product) : []
+  const editionOptions = product ? getProductEditionOptions(product) : []
+  const variants = product ? getSizeOptionsForEdition(product, selectedEditionName) : []
   const galleryImages = product ? getProductGalleryImages(product) : []
   const primaryCollection = product?.collections?.[0] || null
-  const selectedVariant = product ? resolveSelectedVariant(product, { format: selectedVariantKey }) || getDefaultVariant(product) : null
+  const selectedVariant = product
+    ? resolveSelectedVariant(product, {
+        format: selectedVariantKey,
+        editionName: selectedEditionName,
+      }) || getDefaultVariant(product)
+    : null
   const originalPrice = product ? getOriginalPriceForVariant(product, selectedVariant?.id) : 0
   const selectedPrice = product ? getPriceForVariant(product, selectedVariant?.id) : 0
   const purchasable = product ? isProductPurchasable(product, selectedVariant?.id) : false
@@ -221,7 +229,9 @@ export function ShopProductPage() {
     if (resolvedPersonalizationText === undefined) return
     beginCheckout(product, quantity, {
       variantId: selectedVariant?.id ?? null,
-      format: selectedVariant?.title || null,
+      editionName: selectedVariant?.editionName || selectedEditionName || null,
+      size: selectedVariant?.size || null,
+      format: selectedVariant?.size || selectedVariant?.title || null,
       variantLabel: selectedVariant?.title || null,
       variantSku: selectedVariant?.sku || null,
       personalizationText: resolvedPersonalizationText,
@@ -316,7 +326,9 @@ export function ShopProductPage() {
 
     addItem(product, quantity, {
       variantId: selectedVariant?.id ?? null,
-      format: selectedVariant?.title || null,
+      editionName: selectedVariant?.editionName || selectedEditionName || null,
+      size: selectedVariant?.size || null,
+      format: selectedVariant?.size || selectedVariant?.title || null,
       variantLabel: selectedVariant?.title || null,
       variantSku: selectedVariant?.sku || null,
       personalizationText: resolvedPersonalizationText,
@@ -351,7 +363,7 @@ export function ShopProductPage() {
     }
 
     const panel = purchasePanelRef.current
-    if (!panel || variantMenuOpen) return
+    if (!panel) return
 
     const updateHeight = () => {
       setGalleryLockedHeight(panel.getBoundingClientRect().height)
@@ -365,7 +377,7 @@ export function ShopProductPage() {
 
     observer.observe(panel)
     return () => observer.disconnect()
-  }, [personalizationError, personalizationText, product?.id, quantity, selectedVariantKey, stockStatus, subtotal, variantMenuOpen])
+  }, [personalizationError, personalizationText, product?.id, quantity, selectedEditionName, selectedVariantKey, stockStatus, subtotal])
 
   if (productError) {
     return (
@@ -431,8 +443,9 @@ export function ShopProductPage() {
             panelRef={purchasePanelRef}
             sku={selectedVariant?.sku || product.sku}
             variants={variants}
+            editions={editionOptions}
+            selectedEditionName={selectedEditionName}
             selectedVariantKey={selectedVariantKey}
-            variantMenuOpen={variantMenuOpen}
             quantity={quantity}
             maxQuantity={maxQuantity}
             isCustomizable={Boolean(product.isCustomizable)}
@@ -452,13 +465,23 @@ export function ShopProductPage() {
               }
               navigate(`/shop?${params.toString()}`)
             }}
-            onToggleVariantMenu={() => setVariantMenuOpen((current) => !current)}
+            onSelectEdition={(editionName) => {
+              const nextVariant =
+                allVariants.find((variant) => variant.editionName === editionName && variant.size === selectedVariant?.size) ||
+                allVariants.find((variant) => variant.editionName === editionName && variant.isActive !== false) ||
+                allVariants.find((variant) => variant.editionName === editionName)
+              setSelectedEditionName(editionName)
+              setSelectedVariantKey(nextVariant?.key || nextVariant?.title || "")
+              setQuantity(1)
+              setNotifyInterest(false)
+              setNotifyMessage("")
+            }}
             onSelectVariant={(variant) => {
+              setSelectedEditionName(variant.editionName || selectedEditionName || "Standard")
               setSelectedVariantKey(variant.key || variant.title)
               setQuantity(1)
               setNotifyInterest(false)
               setNotifyMessage("")
-              setVariantMenuOpen(false)
             }}
             onDecreaseQuantity={() => updateQuantity(quantity - 1)}
             onIncreaseQuantity={() => updateQuantity(quantity + 1)}

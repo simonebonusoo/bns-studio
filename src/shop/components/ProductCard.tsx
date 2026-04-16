@@ -34,7 +34,9 @@ export function ProductCard({ product }: { product: ShopProduct }) {
     }
     beginCheckout(product, 1, {
       variantId: defaultVariant?.id ?? null,
-      format: defaultVariant?.title || null,
+      editionName: defaultVariant?.editionName || null,
+      size: defaultVariant?.size || null,
+      format: defaultVariant?.size || defaultVariant?.title || null,
       variantLabel: defaultVariant?.title || null,
       variantSku: defaultVariant?.sku || null,
     })
@@ -144,7 +146,9 @@ export function ProductCard({ product }: { product: ShopProduct }) {
                 }
                 addItem(product, 1, {
                   variantId: defaultVariant?.id ?? null,
-                  format: defaultVariant?.title || null,
+                  editionName: defaultVariant?.editionName || null,
+                  size: defaultVariant?.size || null,
+                  format: defaultVariant?.size || defaultVariant?.title || null,
                   variantLabel: defaultVariant?.title || null,
                   variantSku: defaultVariant?.sku || null,
                 })

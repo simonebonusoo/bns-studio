@@ -22,9 +22,48 @@ function normalizeLegacyFormatTitle(value) {
   return normalized === "A3" || normalized === "A4" ? normalized : null
 }
 
+function normalizeVariantOptionValue(variant, names = []) {
+  const options = parseVariantOptions(variant)
+  const normalizedNames = names.map((name) => String(name).trim().toLowerCase())
+  const match = options.find((option) => normalizedNames.includes(String(option.name || "").trim().toLowerCase()))
+  return match?.value || null
+}
+
+function inferVariantSize(variant) {
+  return normalizeVariantOptionValue(variant, ["Misura", "Size", "Format", "Formato"]) || normalizeLegacyFormatTitle(variant?.title) || String(variant?.size || "").trim() || null
+}
+
+function inferVariantEditionName(variant) {
+  const explicit =
+    String(variant?.editionName || variant?.variantName || "").trim() ||
+    normalizeVariantOptionValue(variant, ["Variante", "Edition", "Edizione"])
+  if (explicit) return explicit
+
+  const size = inferVariantSize(variant)
+  const title = String(variant?.title || "").trim()
+  if (size && title.toUpperCase() === String(size).trim().toUpperCase()) return "Standard"
+  return title || "Standard"
+}
+
+function buildVariantOptions(variant) {
+  const parsedOptions = parseVariantOptions(variant)
+  const editionName = inferVariantEditionName(variant)
+  const size = inferVariantSize(variant)
+  const withoutManagedOptions = parsedOptions.filter((option) => {
+    const name = String(option.name || "").trim().toLowerCase()
+    return !["variante", "edition", "edizione", "misura", "size", "format", "formato"].includes(name)
+  })
+
+  return [
+    editionName ? { name: "Variante", value: editionName } : null,
+    size ? { name: "Misura", value: size } : null,
+    ...withoutManagedOptions,
+  ].filter(Boolean)
+}
+
 function inferLegacyVariantOptions(variantTitle) {
   const legacyFormat = normalizeLegacyFormatTitle(variantTitle)
-  return legacyFormat ? [{ name: "Format", value: legacyFormat }] : []
+  return legacyFormat ? [{ name: "Variante", value: "Standard" }, { name: "Misura", value: legacyFormat }] : []
 }
 
 function parseVariantOptions(variant) {
@@ -81,7 +120,9 @@ function buildVariantRecord(variant, index) {
     title,
     key,
     sku: variant?.sku ? String(variant.sku).trim().toUpperCase() : null,
-    options: parseVariantOptions(variant),
+    editionName: inferVariantEditionName(variant),
+    size: inferVariantSize(variant),
+    options: buildVariantOptions(variant),
     price,
     discountPrice: discountPrice !== null && discountPrice < price ? discountPrice : null,
     costPrice: Number.isInteger(costPrice) && costPrice >= 0 ? costPrice : 0,
@@ -112,7 +153,9 @@ export function deriveLegacyVariantsFromProduct(product) {
       isDefault: true,
       isActive: true,
       legacyFormat: "A4",
-      options: [{ name: "Format", value: "A4" }],
+      editionName: "Standard",
+      size: "A4",
+      options: [{ name: "Variante", value: "Standard" }, { name: "Misura", value: "A4" }],
     })
   }
 
@@ -130,7 +173,9 @@ export function deriveLegacyVariantsFromProduct(product) {
       isDefault: !variants.length,
       isActive: true,
       legacyFormat: "A3",
-      options: [{ name: "Format", value: "A3" }],
+      editionName: "Standard",
+      size: "A3",
+      options: [{ name: "Variante", value: "Standard" }, { name: "Misura", value: "A3" }],
     })
   }
 
@@ -148,6 +193,8 @@ export function deriveLegacyVariantsFromProduct(product) {
       isDefault: true,
       isActive: true,
       legacyFormat: null,
+      editionName: "Standard",
+      size: "Standard",
       options: [],
     })
   }
@@ -217,6 +264,8 @@ export function serializeProductVariants(product) {
     id: typeof variant.id === "number" ? variant.id : null,
     title: variant.title,
     key: variant.key,
+    editionName: variant.editionName || inferVariantEditionName(variant),
+    size: variant.size || inferVariantSize(variant),
     sku: variant.sku || null,
     options: variant.options || [],
     optionSummary: (variant.options || []).map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
@@ -298,11 +347,14 @@ export async function syncProductVariants(db, productId, rawVariants = []) {
     where: { id: productId },
     data: {
       price: summary.price,
+      discountPrice: summary.discountPrice,
       costPrice: summary.costPrice,
       hasA4: summary.hasA4,
       hasA3: summary.hasA3,
       priceA4: summary.priceA4,
+      discountPriceA4: summary.discountPriceA4,
       priceA3: summary.priceA3,
+      discountPriceA3: summary.discountPriceA3,
       stock: summary.stock,
       lowStockThreshold: summary.lowStockThreshold,
     },
@@ -351,7 +403,10 @@ export function resolveSelectedVariant(product, { variantId = null, format = nul
 
   if (format) {
     const normalizedFormat = String(format).trim().toUpperCase()
-    const byFormat = variants.find((variant) => variant.title.toUpperCase() === normalizedFormat || variant.key.toUpperCase() === normalizedFormat)
+    const byFormat = variants.find((variant) => {
+      const size = String(variant.size || inferVariantSize(variant) || "").trim().toUpperCase()
+      return variant.title.toUpperCase() === normalizedFormat || variant.key.toUpperCase() === normalizedFormat || size === normalizedFormat
+    })
     if (byFormat) return byFormat
   }
 

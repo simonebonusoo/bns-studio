@@ -3,7 +3,7 @@ import { ProductCollection, ProductVisibleBadge, ShopProductVariant } from "../.
 import { Button } from "../../../components/Button"
 import { formatPrice } from "../../lib/format"
 import { ProductPurchaseState } from "./purchaseState"
-import { ProductVariantSelector } from "./ProductVariantSelector"
+import { ProductEditionSelector, ProductVariantSelector } from "./ProductVariantSelector"
 
 type ProductPurchasePanelProps = {
   badges: ProductVisibleBadge[]
@@ -16,8 +16,9 @@ type ProductPurchasePanelProps = {
   panelRef?: RefObject<HTMLDivElement | null>
   sku?: string | null
   variants: ShopProductVariant[]
+  editions: Array<{ name: string; previewVariant?: ShopProductVariant | null; previewImage?: string }>
+  selectedEditionName: string
   selectedVariantKey: string
-  variantMenuOpen: boolean
   quantity: number
   maxQuantity: number
   isCustomizable?: boolean
@@ -28,7 +29,7 @@ type ProductPurchasePanelProps = {
   stockStatus: string
   onCategoryClick: () => void
   onCollectionClick: () => void
-  onToggleVariantMenu: () => void
+  onSelectEdition: (editionName: string) => void
   onSelectVariant: (variant: ShopProductVariant) => void
   onDecreaseQuantity: () => void
   onIncreaseQuantity: () => void
@@ -52,8 +53,9 @@ export function ProductPurchasePanel({
   panelRef,
   sku,
   variants,
+  editions,
+  selectedEditionName,
   selectedVariantKey,
-  variantMenuOpen,
   quantity,
   maxQuantity,
   isCustomizable = false,
@@ -64,7 +66,7 @@ export function ProductPurchasePanel({
   stockStatus,
   onCategoryClick,
   onCollectionClick,
-  onToggleVariantMenu,
+  onSelectEdition,
   onSelectVariant,
   onDecreaseQuantity,
   onIncreaseQuantity,
@@ -135,12 +137,15 @@ export function ProductPurchasePanel({
               <span>{sku}</span>
             </div>
           ) : null}
+          <ProductEditionSelector
+            editions={editions}
+            selectedEditionName={selectedEditionName}
+            onSelect={onSelectEdition}
+          />
           <ProductVariantSelector
-            open={variantMenuOpen}
             variants={variants}
             selectedVariantKey={selectedVariantKey}
             getVariantStockLabel={getVariantStockLabel}
-            onToggle={onToggleVariantMenu}
             onSelect={onSelectVariant}
           />
           {isCustomizable ? (

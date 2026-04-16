@@ -5,6 +5,8 @@ export type ShopProductVariant = {
   id?: number | null
   title: string
   key: string
+  editionName?: string | null
+  size?: string | null
   sku?: string | null
   options?: Array<{
     name: string
@@ -123,6 +125,8 @@ export type ShopCartItem = {
   quantity: number
   format?: string
   variantId?: number | null
+  editionName?: string | null
+  size?: string | null
   variantLabel?: string | null
   variantSku?: string | null
   personalizationText?: string | null
@@ -136,6 +140,8 @@ export type PricingItem = {
   imageUrl: string
   format?: string
   variantId?: number | null
+  editionName?: string | null
+  size?: string | null
   variantLabel?: string | null
   variantSku?: string | null
   personalizationText?: string | null
@@ -182,6 +188,8 @@ export type ShopOrderItem = {
   title: string
   imageUrl: string
   format?: string | null
+  editionName?: string | null
+  size?: string | null
   variantLabel?: string | null
   variantSku?: string | null
   personalizationText?: string | null

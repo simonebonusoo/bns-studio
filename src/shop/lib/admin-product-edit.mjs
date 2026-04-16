@@ -27,11 +27,20 @@ function slugifyVariantKey(value) {
 
 function mapProductVariantToForm(variant, index) {
   const safeTitle = String(variant?.title || "").trim() || `Variante ${index + 1}`
+  const options = Array.isArray(variant?.options) ? variant.options : []
+  const findOption = (names) => {
+    const normalizedNames = names.map((name) => String(name).trim().toLowerCase())
+    return options.find((option) => normalizedNames.includes(String(option?.name || "").trim().toLowerCase()))?.value || ""
+  }
+  const size = String(variant?.size || findOption(["Misura", "Size", "Format", "Formato"]) || variant?.legacyFormat || safeTitle).trim()
+  const editionName = String(variant?.editionName || findOption(["Variante", "Edition", "Edizione"]) || (size.toUpperCase() === safeTitle.toUpperCase() ? "Standard" : safeTitle)).trim()
 
   return {
     id: typeof variant?.id === "number" ? variant.id : null,
     title: safeTitle,
     key: String(variant?.key || "").trim() || slugifyVariantKey(safeTitle) || `variant-${index + 1}`,
+    editionName,
+    size,
     sku: String(variant?.sku || ""),
     price: formatEuroInput(variant?.price),
     discountPrice: formatEuroInput(variant?.discountPrice),
@@ -53,6 +62,8 @@ function buildLegacyVariants(product) {
       id: null,
       title: fallbackTitle,
       key: hasA4 ? "a4" : hasA3 ? "a3" : "standard",
+      editionName: "Standard",
+      size: fallbackTitle,
       sku: product?.sku || null,
       price: hasA4 ? (product?.priceA4 ?? product?.price ?? 0) : (product?.priceA3 ?? product?.price ?? 0),
       discountPrice: hasA4 ? (product?.discountPriceA4 ?? product?.discountPrice ?? null) : (product?.discountPriceA3 ?? product?.discountPrice ?? null),
@@ -69,6 +80,8 @@ function buildLegacyVariants(product) {
             id: null,
             title: "A3",
             key: "a3",
+            editionName: "Standard",
+            size: "A3",
             sku: null,
             price: product?.priceA3 ?? product?.price ?? 0,
             discountPrice: product?.discountPriceA3 ?? product?.discountPrice ?? null,

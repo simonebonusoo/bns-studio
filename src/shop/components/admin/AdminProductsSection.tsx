@@ -34,6 +34,8 @@ type ProductFormState = {
     id: number | null
     title: string
     key: string
+    editionName: string
+    size: string
     sku: string
     price: string
     discountPrice: string

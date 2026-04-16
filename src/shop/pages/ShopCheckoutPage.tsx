@@ -8,7 +8,7 @@ import { useShopCart } from "../context/ShopCartProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
-import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
+import { formatVariantSelectionLabel, getPriceForVariant, getProductPrimaryImage } from "../lib/product"
 import { DEFAULT_SHIPPING_METHOD, formatShippingMethodSummary } from "../lib/shipping-methods.mjs"
 import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
 import { ShopOrder, ShopPayment, ShopPricing, ShopSettings } from "../types"
@@ -289,7 +289,7 @@ export function ShopCheckoutPage() {
                   <span className="shop-pill">{item.product.category}</span>
                   <h2 className="mt-3 text-xl font-semibold text-white">{item.product.title}</h2>
                   <p className="mt-2 text-sm text-white/65">
-                    {item.variantLabel || item.format || "Variante"} · Qtà {item.quantity} · {formatPrice(getPriceForVariant(item.product, item.variantId))}
+                    {formatVariantSelectionLabel(item)} · Qtà {item.quantity} · {formatPrice(getPriceForVariant(item.product, item.variantId))}
                   </p>
                   {item.personalizationText ? <p className="mt-2 text-sm text-white/55">Personalizzazione: {item.personalizationText}</p> : null}
                 </div>
@@ -436,7 +436,7 @@ export function ShopCheckoutPage() {
             <h2 className="text-2xl font-semibold text-white">Riepilogo conferma</h2>
             {items.map((item) => (
               <div key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}`} className="flex items-center justify-between gap-4 text-sm text-white/70">
-                <span>{item.product.title} · {item.variantLabel || item.format || "Variante"} x {item.quantity}{item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""}</span>
+                <span>{item.product.title} · {formatVariantSelectionLabel(item)} x {item.quantity}{item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""}</span>
                 <span>{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
               </div>
             ))}
@@ -488,7 +488,7 @@ export function ShopCheckoutPage() {
             <div className="space-y-3 border-t border-white/10 pt-4">
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between gap-4 text-sm text-white/70">
-                  <span>{item.title} · {item.variantLabel || item.format || "Variante"} x {item.quantity}{item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""}</span>
+                  <span>{item.title} · {formatVariantSelectionLabel(item)} x {item.quantity}{item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""}</span>
                   <span>{formatPrice(item.lineTotal)}</span>
                 </div>
               ))}

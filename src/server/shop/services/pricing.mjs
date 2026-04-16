@@ -155,7 +155,9 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
       throw new HttpError(400, `${product.title} supera la disponibilita di magazzino`)
     }
 
-    const format = selectedVariant.title || normalizeProductFormat(product, item.format)
+    const editionName = selectedVariant.editionName || selectedVariant.options?.find((option) => option.name === "Variante")?.value || null
+    const size = selectedVariant.size || selectedVariant.options?.find((option) => option.name === "Misura")?.value || selectedVariant.title || normalizeProductFormat(product, item.format)
+    const format = size
     const personalizationText = normalizePersonalizationText(product, item)
     const originalUnitPrice = selectedVariant.price ?? getProductPriceForFormat(product, format)
     const discountedUnitPrice =
@@ -165,7 +167,9 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     return {
       productId: product.id,
       variantId: selectedVariant.id ?? null,
-      variantLabel: selectedVariant.title,
+      editionName,
+      size,
+      variantLabel: editionName || selectedVariant.title,
       variantSku: selectedVariant.sku ?? null,
       personalizationText,
       slug: product.slug,

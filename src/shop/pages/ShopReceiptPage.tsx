@@ -8,6 +8,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
+import { formatVariantSelectionLabel } from "../lib/product"
 import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
 import { buildAdminOrderShippingSummary } from "../lib/order-shipping.mjs"
 import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
@@ -131,7 +132,7 @@ export function ShopReceiptPage() {
               <div key={item.id} className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
                 <div>
                   <p className="font-medium text-white">{item.title}</p>
-                  <p className="mt-1">{item.variantLabel || item.format || "Variante"} x {item.quantity}</p>
+                  <p className="mt-1">{formatVariantSelectionLabel(item)} x {item.quantity}</p>
                   {item.personalizationText ? <p className="mt-2 text-[#eef879]">Personalizzazione: {item.personalizationText}</p> : null}
                 </div>
                 <span className="shrink-0 font-medium text-white">{formatPrice(item.lineTotal)}</span>

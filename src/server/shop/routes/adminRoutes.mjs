@@ -423,6 +423,8 @@ const productSchema = z.object({
         id: z.number().int().positive().optional().nullable(),
         title: z.string().min(1),
         key: z.string().optional().nullable(),
+        editionName: z.string().optional().nullable(),
+        size: z.string().optional().nullable(),
         sku: z.string().optional().nullable(),
         options: z
           .array(

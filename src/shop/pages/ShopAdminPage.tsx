@@ -95,6 +95,8 @@ type ProductFormState = {
     id: number | null
     title: string
     key: string
+    editionName: string
+    size: string
     sku: string
     price: string
     discountPrice: string
@@ -282,6 +284,8 @@ const emptyProductForm = (): ProductFormState => ({
       id: null,
       title: "A4",
       key: "a4",
+      editionName: "Standard",
+      size: "A4",
       sku: "",
       price: "",
       discountPrice: "",
@@ -410,6 +414,11 @@ function getVariantCostInputValue(title: string, costPrice?: number | null) {
   return resolvedCost > 0 ? formatEuroInput(resolvedCost) : ""
 }
 
+function getVariantOptionValue(variant: ShopProductVariant, names: string[]) {
+  const normalizedNames = names.map((name) => name.trim().toLowerCase())
+  return variant.options?.find((option) => normalizedNames.includes(String(option.name || "").trim().toLowerCase()))?.value || null
+}
+
 function parseEuroToCents(value: string) {
   const normalized = Number(String(value).replace(",", "."))
   if (!Number.isFinite(normalized) || normalized < 0) return 0
@@ -426,10 +435,14 @@ function slugifyVariantKey(value: string) {
 }
 
 function mapProductVariantToForm(variant: ShopProductVariant, index: number) {
+  const editionName = variant.editionName || getVariantOptionValue(variant, ["Variante", "Edition", "Edizione"]) || "Standard"
+  const size = variant.size || getVariantOptionValue(variant, ["Misura", "Size", "Format", "Formato"]) || variant.legacyFormat || variant.title
   return {
     id: typeof variant.id === "number" ? variant.id : null,
     title: variant.title,
     key: variant.key || slugifyVariantKey(variant.title) || `variant-${index + 1}`,
+    editionName,
+    size,
     sku: variant.sku || "",
     price: formatEuroInput(variant.price),
     discountPrice: variant.discountPrice ? formatEuroInput(variant.discountPrice) : "",
@@ -446,8 +459,10 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
     .filter((variant) => variant.isActive !== false)
     .map((variant, index) => ({
       ...variant,
-      title: variant.title.trim() || `Variante ${index + 1}`,
-      key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
+      editionName: variant.editionName.trim() || "Standard",
+      size: variant.size.trim() || variant.title.trim() || `Misura ${index + 1}`,
+      title: variant.title.trim() || `${variant.editionName.trim() || "Standard"} / ${variant.size.trim() || `Misura ${index + 1}`}`,
+      key: slugifyVariantKey(variant.key || `${variant.editionName}-${variant.size}` || `variant-${index + 1}`),
       priceCents: parseEuroToCents(variant.price),
       discountPriceCents: variant.discountPrice.trim() ? parseEuroToCents(variant.discountPrice) : null,
       costPriceCents: parseEuroToCents(variant.costPrice),
@@ -457,16 +472,18 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
     ? normalized
     : variants.map((variant, index) => ({
         ...variant,
-        title: variant.title.trim() || `Variante ${index + 1}`,
-        key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
+        editionName: variant.editionName.trim() || "Standard",
+        size: variant.size.trim() || variant.title.trim() || `Misura ${index + 1}`,
+        title: variant.title.trim() || `${variant.editionName.trim() || "Standard"} / ${variant.size.trim() || `Misura ${index + 1}`}`,
+        key: slugifyVariantKey(variant.key || `${variant.editionName}-${variant.size}` || `variant-${index + 1}`),
         priceCents: parseEuroToCents(variant.price),
         discountPriceCents: variant.discountPrice.trim() ? parseEuroToCents(variant.discountPrice) : null,
         costPriceCents: parseEuroToCents(variant.costPrice),
       }))
 
   const defaultVariant = fallbackVariants.find((variant) => variant.isDefault) || fallbackVariants[0]
-  const a4Variant = fallbackVariants.find((variant) => variant.title.trim().toUpperCase() === "A4")
-  const a3Variant = fallbackVariants.find((variant) => variant.title.trim().toUpperCase() === "A3")
+  const a4Variant = fallbackVariants.find((variant) => variant.size.trim().toUpperCase() === "A4")
+  const a3Variant = fallbackVariants.find((variant) => variant.size.trim().toUpperCase() === "A3")
 
   fallbackVariants.forEach((variant) => {
     if (variant.discountPriceCents !== null && variant.discountPriceCents > variant.priceCents) {
@@ -477,9 +494,15 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
   return {
     variants: variants.map((variant, index) => ({
       id: variant.id,
-      title: variant.title.trim() || `Variante ${index + 1}`,
-      key: slugifyVariantKey(variant.key || variant.title || `variant-${index + 1}`),
+      title: variant.title.trim() || `${variant.editionName.trim() || "Standard"} / ${variant.size.trim() || `Misura ${index + 1}`}`,
+      key: slugifyVariantKey(variant.key || `${variant.editionName}-${variant.size}` || `variant-${index + 1}`),
       sku: variant.sku.trim() || null,
+      editionName: variant.editionName.trim() || "Standard",
+      size: variant.size.trim() || variant.title.trim() || null,
+      options: [
+        { name: "Variante", value: variant.editionName.trim() || "Standard" },
+        { name: "Misura", value: variant.size.trim() || variant.title.trim() || "Standard" },
+      ],
       price: parseEuroToCents(variant.price),
       discountPrice: variant.discountPrice.trim() ? parseEuroToCents(variant.discountPrice) : null,
       costPrice: parseEuroToCents(variant.costPrice),

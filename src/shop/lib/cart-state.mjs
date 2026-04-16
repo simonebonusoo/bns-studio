@@ -29,6 +29,20 @@ function resolveSelectedVariant(product, selection = {}) {
     if (byId) return byId
   }
 
+  if (selection.editionName || selection.size) {
+    const normalizedEdition = String(selection.editionName || "").trim().toUpperCase()
+    const normalizedSize = String(selection.size || selection.format || "").trim().toUpperCase()
+    const byPair = variants.find((variant) => {
+      const edition = getVariantOptionValue(variant, ["Variante", "Edition", "Edizione"]) || variant.editionName || "Standard"
+      const size = getVariantOptionValue(variant, ["Misura", "Size", "Format", "Formato"]) || variant.size || variant.title
+      return (
+        (!normalizedEdition || String(edition).trim().toUpperCase() === normalizedEdition) &&
+        (!normalizedSize || String(size).trim().toUpperCase() === normalizedSize)
+      )
+    })
+    if (byPair) return byPair
+  }
+
   if (selection.format) {
     const normalized = String(selection.format).trim().toUpperCase()
     const byFormat = variants.find(
@@ -42,6 +56,24 @@ function resolveSelectedVariant(product, selection = {}) {
   return getDefaultVariant(product)
 }
 
+function getVariantOptionValue(variant, names = []) {
+  const normalizedNames = names.map((name) => String(name).trim().toLowerCase())
+  const options = Array.isArray(variant?.options) ? variant.options : []
+  return options.find((option) => normalizedNames.includes(String(option?.name || "").trim().toLowerCase()))?.value || null
+}
+
+function getVariantEditionName(variant) {
+  const value = getVariantOptionValue(variant, ["Variante", "Edition", "Edizione"]) || variant?.editionName
+  if (value) return value
+  const title = String(variant?.title || "").trim()
+  const size = getVariantSize(variant)
+  return size && title.toUpperCase() === String(size).toUpperCase() ? "Standard" : title || "Standard"
+}
+
+function getVariantSize(variant) {
+  return getVariantOptionValue(variant, ["Misura", "Size", "Format", "Formato"]) || variant?.size || variant?.title || null
+}
+
 export function normalizeCartSelection(product, selection = {}) {
   const personalizationText = String(selection?.personalizationText || "").trim()
   const variant =
@@ -52,7 +84,9 @@ export function normalizeCartSelection(product, selection = {}) {
 
   return {
     variantId: variant?.id ?? selection?.variantId ?? null,
-    format: selection?.format || variant?.title || null,
+    editionName: selection?.editionName || getVariantEditionName(variant) || null,
+    size: selection?.size || getVariantSize(variant) || null,
+    format: selection?.format || getVariantSize(variant) || variant?.title || null,
     variantLabel: selection?.variantLabel || variant?.title || null,
     variantSku: selection?.variantSku || variant?.sku || null,
     personalizationText: personalizationText || null,
@@ -68,6 +102,8 @@ export function selectionMatches(item, selection = {}) {
 
   return (
     String(item.format || "") === String(selection.format || "") &&
+    String(item.editionName || "") === String(selection.editionName || "") &&
+    String(item.size || "") === String(selection.size || "") &&
     samePersonalization
   )
 }
@@ -77,6 +113,8 @@ export function normalizeStoredCartItems(items = []) {
     const normalizedSelection = normalizeCartSelection(item.product, {
       variantId: item.variantId,
       format: item.format,
+      editionName: item.editionName,
+      size: item.size,
       variantLabel: item.variantLabel,
       variantSku: item.variantSku,
     })

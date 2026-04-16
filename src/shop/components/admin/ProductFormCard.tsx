@@ -8,6 +8,8 @@ type ProductVariantFormState = {
   id: number | null
   title: string
   key: string
+  editionName: string
+  size: string
   sku: string
   price: string
   discountPrice: string
@@ -112,6 +114,15 @@ export function ProductFormCard({
   const activeVariants = safeVariants.filter((variant) => variant.isActive)
   const totalVariantStock = activeVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
   const lowStockVariantCount = activeVariants.filter((variant) => variant.stock > 0 && variant.stock <= variant.lowStockThreshold).length
+  const variantGroups = Array.from(
+    safeVariants.reduce((groups, variant) => {
+      const editionName = variant.editionName.trim() || "Standard"
+      const current = groups.get(editionName) || []
+      current.push(variant.size.trim() || variant.title.trim() || "Misura")
+      groups.set(editionName, current)
+      return groups
+    }, new Map<string, string[]>())
+  )
   const inventoryTone =
     productForm.status === "out_of_stock" || totalVariantStock <= 0
       ? "border-red-400/20 bg-red-400/10 text-red-100"
@@ -279,8 +290,8 @@ export function ProductFormCard({
 
       {!isMultiEdit ? (
         <Section
-          title="Varianti"
-          description="Prezzo, stock, SKU e disponibilità ora vivono a livello variante. Il prodotto resta il contenitore editoriale e commerciale."
+          title="Varianti e misure"
+          description="Ogni riga è una misura acquistabile dentro una variante estetica. Esempio: Variante Black edition, Misura A4."
         >
           <div className="flex items-center justify-between gap-4">
             <div className={`rounded-2xl border px-4 py-3 text-sm ${inventoryTone}`}>
@@ -301,8 +312,10 @@ export function ProductFormCard({
                     ...safeVariants,
                     {
                       id: null,
-                      title: `Variante ${safeVariants.length + 1}`,
-                      key: `variant-${safeVariants.length + 1}`,
+                      title: `Standard / A4`,
+                      key: `standard-a4-${safeVariants.length + 1}`,
+                      editionName: "Standard",
+                      size: "A4",
                       sku: "",
                       price: "",
                       discountPrice: "",
@@ -320,12 +333,29 @@ export function ProductFormCard({
             </Button>
           </div>
 
+          {variantGroups.length ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {variantGroups.map(([editionName, sizes]) => (
+                <div key={editionName} className="rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3">
+                  <p className="text-sm font-medium text-white">{editionName}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {Array.from(new Set(sizes)).map((size) => (
+                      <span key={size} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/62">
+                        {size}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="space-y-3">
             {safeVariants.map((variant, index) => (
               <div key={`${variant.id ?? "new"}-${index}`} className="rounded-[24px] border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium text-white">{variant.title || `Variante ${index + 1}`}</p>
+                    <p className="text-sm font-medium text-white">{variant.editionName || "Standard"} / {variant.size || variant.title || `Misura ${index + 1}`}</p>
                     {variant.isDefault ? (
                       <span className="rounded-full bg-[#e3f503] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-black">
                         Default
@@ -382,10 +412,42 @@ export function ProductFormCard({
 
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                   <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Nome variante</span>
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Nome variante estetica</span>
+                    <input
+                      className="shop-input"
+                      placeholder="Black edition"
+                      value={variant.editionName}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, editionName: event.target.value } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Misura</span>
                     <input
                       className="shop-input"
                       placeholder="A4"
+                      value={variant.size}
+                      onChange={(event) =>
+                        onChange({
+                          ...productForm,
+                          variants: productForm.variants.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, size: event.target.value } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Titolo tecnico riga</span>
+                    <input
+                      className="shop-input"
+                      placeholder="Black edition / A4"
                       value={variant.title}
                       onChange={(event) =>
                         onChange({
@@ -396,12 +458,13 @@ export function ProductFormCard({
                         })
                       }
                     />
+                    <p className="text-xs leading-5 text-white/45">Può restare vuoto: verrà generato da variante e misura.</p>
                   </label>
                   <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Key variante</span>
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Key tecnica</span>
                     <input
                       className="shop-input"
-                      placeholder="a4"
+                      placeholder="black-edition-a4"
                       value={variant.key}
                       onChange={(event) =>
                         onChange({

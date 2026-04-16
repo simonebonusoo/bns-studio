@@ -7,7 +7,7 @@ import {
   serializeProductVariants,
 } from "../../src/server/shop/lib/product-variants.mjs"
 
-test("deriveLegacyVariantsFromProduct keeps A3/A4 compatibility and infers format options", () => {
+test("deriveLegacyVariantsFromProduct keeps A3/A4 compatibility and infers variant and size options", () => {
   const variants = deriveLegacyVariantsFromProduct({
     sku: "PRINT-001",
     price: 1500,
@@ -21,8 +21,8 @@ test("deriveLegacyVariantsFromProduct keeps A3/A4 compatibility and infers forma
   })
 
   assert.equal(variants.length, 2)
-  assert.deepEqual(variants[0].options, [{ name: "Format", value: "A4" }])
-  assert.deepEqual(variants[1].options, [{ name: "Format", value: "A3" }])
+  assert.deepEqual(variants[0].options, [{ name: "Variante", value: "Standard" }, { name: "Misura", value: "A4" }])
+  assert.deepEqual(variants[1].options, [{ name: "Variante", value: "Standard" }, { name: "Misura", value: "A3" }])
 })
 
 test("buildLegacyProductFieldsFromVariants accepts generic option payloads and keeps summary fields", () => {
@@ -42,7 +42,7 @@ test("buildLegacyProductFieldsFromVariants accepts generic option payloads and k
   ])
 
   assert.equal(payload.variants[0].key, "frame-black")
-  assert.deepEqual(payload.variants[0].options, [{ name: "Frame", value: "Black" }])
+  assert.deepEqual(payload.variants[0].options, [{ name: "Variante", value: "Cornice nera" }, { name: "Frame", value: "Black" }])
   assert.equal(payload.summary.price, 2400)
   assert.equal(payload.summary.discountPrice, 1800)
   assert.equal(payload.summary.stock, 3)
@@ -72,7 +72,7 @@ test("serializeProductVariants exposes options and option summary", () => {
   }
 
   const serialized = serializeProductVariants(product)
-  assert.equal(serialized[0].optionSummary, "Format: A4")
-  assert.deepEqual(serialized[0].options, [{ name: "Format", value: "A4" }])
+  assert.equal(serialized[0].optionSummary, "Variante: Standard · Misura: A4")
+  assert.deepEqual(serialized[0].options, [{ name: "Variante", value: "Standard" }, { name: "Misura", value: "A4" }])
   assert.equal(serialized[0].discountPrice, 1200)
 })

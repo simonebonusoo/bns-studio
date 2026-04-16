@@ -8,7 +8,7 @@ import { useShopAuth } from "../context/ShopAuthProvider"
 import { useShopCart } from "../context/ShopCartProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
-import { getPriceForVariant, getProductPrimaryImage } from "../lib/product"
+import { formatVariantSelectionLabel, getPriceForVariant, getProductPrimaryImage } from "../lib/product"
 import { ShopPricing } from "../types"
 
 function mapPricingPreviewErrorMessage(message: string) {
@@ -106,7 +106,7 @@ export function ShopCartPage() {
               <div className="min-w-0 flex-1">
                 <span className="shop-pill">{item.product.category}</span>
                 <h2 className="mt-3 text-xl font-semibold text-white">{item.product.title}</h2>
-                <p className="mt-2 text-sm text-white/65">{item.variantLabel || item.format || "Variante"} · {formatPrice(getPriceForVariant(item.product, item.variantId))}</p>
+                <p className="mt-2 text-sm text-white/65">{formatVariantSelectionLabel(item)} · {formatPrice(getPriceForVariant(item.product, item.variantId))}</p>
                 {item.personalizationText ? <p className="mt-2 text-sm text-white/55">Personalizzazione: {item.personalizationText}</p> : null}
               </div>
               {isMobileViewport ? (
@@ -118,6 +118,8 @@ export function ShopCartPage() {
                       onClick={() =>
                         updateItem(item.productId, Math.max(1, item.quantity - 1), {
                           variantId: item.variantId,
+                          editionName: item.editionName,
+                          size: item.size,
                           format: item.format,
                           variantLabel: item.variantLabel,
                           variantSku: item.variantSku,
@@ -137,6 +139,8 @@ export function ShopCartPage() {
                       onClick={() =>
                         updateItem(item.productId, item.quantity + 1, {
                           variantId: item.variantId,
+                          editionName: item.editionName,
+                          size: item.size,
                           format: item.format,
                           variantLabel: item.variantLabel,
                           variantSku: item.variantSku,
@@ -151,7 +155,7 @@ export function ShopCartPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
+                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
                     className={getButtonClassName({ variant: "cart", size: "sm" })}
                   >
                     Rimuovi
@@ -164,11 +168,11 @@ export function ShopCartPage() {
                     type="number"
                     min="1"
                     value={item.quantity}
-                    onChange={(event) => updateItem(item.productId, Number(event.target.value), { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
+                    onChange={(event) => updateItem(item.productId, Number(event.target.value), { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
                   />
                   <button
                     type="button"
-                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
+                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
                     className={getButtonClassName({ variant: "cart", size: "sm" })}
                   >
                     Rimuovi

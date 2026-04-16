@@ -36,6 +36,8 @@ export function serializeCheckoutSessionAsPendingOrder(session) {
     title: item.title,
     imageUrl: item.imageUrl,
     format: item.format || null,
+    editionName: item.editionName || item.variantLabel || null,
+    size: item.size || item.format || null,
     variantLabel: item.variantLabel || null,
     variantSku: item.variantSku || null,
     personalizationText: item.personalizationText || null,

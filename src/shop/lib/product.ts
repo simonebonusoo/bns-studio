@@ -9,16 +9,32 @@ function normalizeLegacyFormat(value?: string | null) {
 
 function inferLegacyVariantOptions(title?: string | null) {
   const legacyFormat = normalizeLegacyFormat(title)
-  return legacyFormat ? [{ name: "Format", value: legacyFormat }] : []
+  return legacyFormat ? [{ name: "Variante", value: "Standard" }, { name: "Misura", value: legacyFormat }] : []
 }
 
 function withVariantMetadata(variant: ShopProductVariant) {
   const options = variant.options?.length ? variant.options : inferLegacyVariantOptions(variant.title)
+  const editionName = getVariantOptionValue(options, ["Variante", "Edition", "Edizione"]) || variant.editionName || inferEditionName(variant.title, options)
+  const size = getVariantOptionValue(options, ["Misura", "Size", "Format", "Formato"]) || variant.size || normalizeLegacyFormat(variant.title) || variant.title
   return {
     ...variant,
+    editionName,
+    size,
     options,
     optionSummary: options.map((option) => `${option.name}: ${option.value}`).join(" · ") || null,
   }
+}
+
+function getVariantOptionValue(options: ShopProductVariant["options"] = [], names: string[]) {
+  const normalizedNames = names.map((name) => name.trim().toLowerCase())
+  return options.find((option) => normalizedNames.includes(String(option.name || "").trim().toLowerCase()))?.value || null
+}
+
+function inferEditionName(title?: string | null, options: ShopProductVariant["options"] = []) {
+  const size = getVariantOptionValue(options, ["Misura", "Size", "Format", "Formato"]) || normalizeLegacyFormat(title)
+  const normalizedTitle = String(title || "").trim()
+  if (size && normalizedTitle.toUpperCase() === String(size).trim().toUpperCase()) return "Standard"
+  return normalizedTitle || "Standard"
 }
 
 function getValidDiscountPrice(price?: number | null, discountPrice?: number | null) {
@@ -50,6 +66,8 @@ export function getProductVariants(product: ShopProduct) {
       key: "a4",
       sku: product.sku || null,
       options: [{ name: "Format", value: "A4" }],
+      editionName: "Standard",
+      size: "A4",
       price: product.priceA4 ?? product.price,
       discountPrice: getValidDiscountPrice(product.priceA4 ?? product.price, product.discountPriceA4 ?? product.discountPrice ?? null),
       costPrice: product.costPrice ?? 0,
@@ -70,6 +88,8 @@ export function getProductVariants(product: ShopProduct) {
       key: "a3",
       sku: null,
       options: [{ name: "Format", value: "A3" }],
+      editionName: "Standard",
+      size: "A3",
       price: product.priceA3 ?? product.priceA4 ?? product.price,
       discountPrice: getValidDiscountPrice(product.priceA3 ?? product.priceA4 ?? product.price, product.discountPriceA3 ?? product.discountPrice ?? null),
       costPrice: product.costPrice ?? 0,
@@ -90,6 +110,8 @@ export function getProductVariants(product: ShopProduct) {
       key: "standard",
       sku: product.sku || null,
       options: [],
+      editionName: "Standard",
+      size: "Standard",
       price: product.price,
       discountPrice: getValidDiscountPrice(product.price, product.discountPrice ?? null),
       costPrice: product.costPrice ?? 0,
@@ -129,17 +151,63 @@ export function getVariantByLabel(product: ShopProduct, value?: string | null) {
       (variant) =>
         variant.title.toUpperCase() === normalized ||
         variant.key.toUpperCase() === normalized ||
+        String(variant.size || "").trim().toUpperCase() === normalized ||
         normalizeLegacyFormat(variant.legacyFormat) === normalized,
     ) || null
   )
 }
 
-export function resolveSelectedVariant(product: ShopProduct, selection?: { variantId?: number | null; format?: string | null }) {
+export function resolveSelectedVariant(product: ShopProduct, selection?: { variantId?: number | null; format?: string | null; editionName?: string | null; size?: string | null }) {
+  if (selection?.editionName || selection?.size) {
+    const normalizedEdition = String(selection.editionName || "").trim().toUpperCase()
+    const normalizedSize = String(selection.size || selection.format || "").trim().toUpperCase()
+    const byPair = getProductVariants(product).find((variant) => {
+      const sameEdition = !normalizedEdition || String(variant.editionName || "").trim().toUpperCase() === normalizedEdition
+      const sameSize = !normalizedSize || String(variant.size || variant.title || "").trim().toUpperCase() === normalizedSize
+      return sameEdition && sameSize
+    })
+    if (byPair) return byPair
+  }
+
   return getVariantById(product, selection?.variantId) || getVariantByLabel(product, selection?.format) || getDefaultVariant(product)
 }
 
 export function getAvailableFormats(product: ShopProduct) {
-  return getProductVariants(product).map((variant) => variant.title)
+  return Array.from(new Set(getProductVariants(product).map((variant) => variant.size || variant.title).filter(Boolean)))
+}
+
+export function getProductEditionOptions(product: ShopProduct) {
+  const variants = getProductVariants(product)
+  const byName = new Map<string, ShopProductVariant>()
+  variants.forEach((variant) => {
+    const name = variant.editionName || "Standard"
+    if (!byName.has(name)) byName.set(name, variant)
+  })
+  return Array.from(byName.entries()).map(([name, previewVariant]) => ({ name, previewVariant }))
+}
+
+export function getSizeOptionsForEdition(product: ShopProduct, editionName?: string | null) {
+  const normalizedEdition = String(editionName || "").trim().toUpperCase()
+  return getProductVariants(product).filter((variant) => {
+    if (!normalizedEdition) return true
+    return String(variant.editionName || "").trim().toUpperCase() === normalizedEdition
+  })
+}
+
+export function formatVariantSelectionLabel(item: { editionName?: string | null; size?: string | null; variantLabel?: string | null; format?: string | null }) {
+  let edition = String(item.editionName || "").trim()
+  const size = String(item.size || item.format || "").trim()
+  const variantLabel = String(item.variantLabel || "").trim()
+  if (!edition && variantLabel && variantLabel.toUpperCase() !== size.toUpperCase()) {
+    edition = variantLabel
+  }
+  if (edition && size && edition.toUpperCase() === size.toUpperCase() && (size.toUpperCase() === "A3" || size.toUpperCase() === "A4")) {
+    edition = ""
+  }
+  if (edition && size) return `Variante: ${edition} · Misura: ${size}`
+  if (edition) return `Variante: ${edition}`
+  if (size) return `Misura: ${size}`
+  return variantLabel || "Variante"
 }
 
 export function getDefaultFormat(product: ShopProduct) {
