@@ -24,6 +24,17 @@ const PENDING_NOTIFY_KEY = "bns_pending_back_in_stock"
 const RECENTLY_VIEWED_KEY = "bns_recently_viewed_products"
 const RELATED_PAGE_SIZE = 8
 
+function uniqueImages(images: Array<string | null | undefined>) {
+  return images.filter((image): image is string => Boolean(image && image.trim())).filter((image, index, all) => all.indexOf(image) === index)
+}
+
+function getImagesForSelectedVariant(product: ShopProduct, variant?: ReturnType<typeof getDefaultVariant> | null) {
+  const variantImages = uniqueImages([...(variant?.variantProductImageUrls || []), variant?.variantProductImageUrl])
+  if (variant?.variantProductId && variantImages.length) return variantImages
+  if (variant?.variantProductId) return []
+  return getProductGalleryImages(product)
+}
+
 export function ShopProductPage() {
   const navigate = useNavigate()
   const { slug = "" } = useParams()
@@ -57,9 +68,9 @@ export function ShopProductPage() {
       .then((data) => {
         setProduct(data)
         const defaultVariant = getDefaultVariant(data)
-        setSelectedImage(getProductPrimaryImage(data))
         setSelectedEditionName(defaultVariant?.editionName || "Standard")
         setSelectedVariantKey(defaultVariant?.key || defaultVariant?.title || "")
+        setSelectedImage(getImagesForSelectedVariant(data, defaultVariant)[0] || getProductPrimaryImage(data))
         setIsLightboxOpen(false)
         setQuantity(1)
         setPersonalizationText("")
@@ -110,12 +121,7 @@ export function ShopProductPage() {
         editionName: selectedEditionName,
       }) || getDefaultVariant(product)
     : null
-  const galleryImages = product
-    ? [
-        selectedVariant?.variantProductImageUrl || "",
-        ...getProductGalleryImages(product),
-      ].filter((image, index, images) => image && images.indexOf(image) === index)
-    : []
+  const galleryImages = product ? getImagesForSelectedVariant(product, selectedVariant) : []
   const primaryCollection = product?.collections?.[0] || null
   const originalPrice = product ? getOriginalPriceForVariant(product, selectedVariant?.id) : 0
   const selectedPrice = product ? getPriceForVariant(product, selectedVariant?.id) : 0
@@ -181,6 +187,14 @@ export function ShopProductPage() {
     () => getRelatedProductsPageState(relatedProducts, visibleRelatedCount, RELATED_PAGE_SIZE),
     [relatedProducts, visibleRelatedCount],
   )
+
+  useEffect(() => {
+    if (!product) return
+    const nextImage = galleryImages[0] || ""
+    if (!galleryImages.includes(selectedImage)) {
+      setSelectedImage(nextImage)
+    }
+  }, [galleryImages, product, selectedImage])
 
   function updateQuantity(nextValue: number) {
     setQuantity(Math.min(Math.max(nextValue, 1), maxQuantity))
@@ -477,7 +491,7 @@ export function ShopProductPage() {
                 allVariants.find((variant) => variant.editionName === editionName)
               setSelectedEditionName(editionName)
               setSelectedVariantKey(nextVariant?.key || nextVariant?.title || "")
-              setSelectedImage(nextVariant?.variantProductImageUrl || getProductPrimaryImage(product))
+              setSelectedImage(getImagesForSelectedVariant(product, nextVariant)[0] || "")
               setQuantity(1)
               setNotifyInterest(false)
               setNotifyMessage("")
@@ -485,7 +499,7 @@ export function ShopProductPage() {
             onSelectVariant={(variant) => {
               setSelectedEditionName(variant.editionName || selectedEditionName || "Standard")
               setSelectedVariantKey(variant.key || variant.title)
-              setSelectedImage(variant.variantProductImageUrl || getProductPrimaryImage(product))
+              setSelectedImage(getImagesForSelectedVariant(product, variant)[0] || "")
               setQuantity(1)
               setNotifyInterest(false)
               setNotifyMessage("")

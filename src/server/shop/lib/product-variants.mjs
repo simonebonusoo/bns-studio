@@ -6,6 +6,7 @@ const VARIANT_PRODUCT_OPTION_NAMES = {
   title: "_variantProductTitle",
   slug: "_variantProductSlug",
   imageUrl: "_variantProductImageUrl",
+  imageUrls: "_variantProductImageUrls",
 }
 
 function isVariantProductOption(option) {
@@ -24,6 +25,18 @@ function getVariantProductMetadata(variant, parsedOptions = parseVariantOptions(
     variantProductTitle: String(variant?.variantProductTitle || getOptionValue(parsedOptions, VARIANT_PRODUCT_OPTION_NAMES.title) || "").trim() || null,
     variantProductSlug: String(variant?.variantProductSlug || getOptionValue(parsedOptions, VARIANT_PRODUCT_OPTION_NAMES.slug) || "").trim() || null,
     variantProductImageUrl: String(variant?.variantProductImageUrl || getOptionValue(parsedOptions, VARIANT_PRODUCT_OPTION_NAMES.imageUrl) || "").trim() || null,
+    variantProductImageUrls: Array.isArray(variant?.variantProductImageUrls)
+      ? variant.variantProductImageUrls.filter((image) => typeof image === "string" && image.trim())
+      : (() => {
+          const raw = getOptionValue(parsedOptions, VARIANT_PRODUCT_OPTION_NAMES.imageUrls)
+          if (!raw) return []
+          try {
+            const parsed = JSON.parse(raw)
+            return Array.isArray(parsed) ? parsed.filter((image) => typeof image === "string" && image.trim()) : []
+          } catch {
+            return []
+          }
+        })(),
   }
 }
 
@@ -88,6 +101,7 @@ function buildVariantOptions(variant) {
     variantProduct.variantProductTitle ? { name: VARIANT_PRODUCT_OPTION_NAMES.title, value: variantProduct.variantProductTitle } : null,
     variantProduct.variantProductSlug ? { name: VARIANT_PRODUCT_OPTION_NAMES.slug, value: variantProduct.variantProductSlug } : null,
     variantProduct.variantProductImageUrl ? { name: VARIANT_PRODUCT_OPTION_NAMES.imageUrl, value: variantProduct.variantProductImageUrl } : null,
+    variantProduct.variantProductImageUrls?.length ? { name: VARIANT_PRODUCT_OPTION_NAMES.imageUrls, value: JSON.stringify(variantProduct.variantProductImageUrls) } : null,
     ...withoutManagedOptions,
   ].filter(Boolean)
 }
@@ -307,6 +321,7 @@ export function serializeProductVariants(product) {
     variantProductTitle: variant.variantProductTitle ?? null,
     variantProductSlug: variant.variantProductSlug ?? null,
     variantProductImageUrl: variant.variantProductImageUrl ?? null,
+    variantProductImageUrls: variant.variantProductImageUrls || [],
     price: variant.price,
     discountPrice: typeof variant.discountPrice === "number" && variant.discountPrice < variant.price ? variant.discountPrice : null,
     costPrice: variant.costPrice,

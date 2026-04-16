@@ -40,6 +40,7 @@ type ProductFormState = {
     variantProductTitle: string
     variantProductSlug: string
     variantProductImageUrl: string
+    variantProductImageUrls: string[]
     sku: string
     price: string
     discountPrice: string

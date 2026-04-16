@@ -14,6 +14,7 @@ type ProductVariantFormState = {
   variantProductTitle: string
   variantProductSlug: string
   variantProductImageUrl: string
+  variantProductImageUrls: string[]
   sku: string
   price: string
   discountPrice: string
@@ -199,6 +200,7 @@ export function ProductFormCard({
           variantProductTitle: "",
           variantProductSlug: "",
           variantProductImageUrl: "",
+          variantProductImageUrls: [],
           sku: "",
           price: "",
           discountPrice: "",
@@ -239,6 +241,7 @@ export function ProductFormCard({
         variantProductTitle: product.title,
         variantProductSlug: product.slug,
         variantProductImageUrl: product.coverImageUrl || product.imageUrls?.[0] || "",
+        variantProductImageUrls: product.imageUrls || [],
         sku: variant.sku || "",
         price: formatCentsInput(variant.price ?? product.price),
         discountPrice: formatCentsInput(variant.discountPrice ?? product.discountPrice ?? null),
@@ -647,6 +650,7 @@ export function ProductFormCard({
                       variantProductTitle: "",
                       variantProductSlug: "",
                       variantProductImageUrl: "",
+                      variantProductImageUrls: [],
                       sku: "",
                       price: "",
                       discountPrice: "",

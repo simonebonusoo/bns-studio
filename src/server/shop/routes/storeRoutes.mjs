@@ -21,11 +21,39 @@ import { sanitizeMultilineText, sanitizePlainText } from "../lib/sanitize-text.m
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
 
-function serializePublicProduct(product) {
+async function serializePublicProduct(product) {
   const { imageUrls, costPrice: _costPrice, ...rest } = product
   const parsedImages = JSON.parse(imageUrls)
   const variants = serializeProductVariants(product)
-  const defaultVariant = variants.find((variant) => variant.isDefault) || variants[0] || null
+  const linkedVariantProductIds = Array.from(
+    new Set(variants.map((variant) => Number(variant.variantProductId || 0)).filter((id) => Number.isInteger(id) && id > 0)),
+  )
+  const linkedProducts = linkedVariantProductIds.length
+    ? await prisma.product.findMany({
+        where: { id: { in: linkedVariantProductIds } },
+        select: { id: true, imageUrls: true },
+      })
+    : []
+  const linkedImagesByProductId = new Map(
+    linkedProducts.map((linkedProduct) => {
+      let linkedImages = []
+      try {
+        linkedImages = JSON.parse(linkedProduct.imageUrls || "[]")
+      } catch {
+        linkedImages = []
+      }
+      return [linkedProduct.id, Array.isArray(linkedImages) ? linkedImages.filter((image) => typeof image === "string" && image.trim()) : []]
+    }),
+  )
+  const enrichedVariants = variants.map((variant) => {
+    const linkedImages = linkedImagesByProductId.get(Number(variant.variantProductId || 0)) || variant.variantProductImageUrls || []
+    return {
+      ...variant,
+      variantProductImageUrls: linkedImages,
+      variantProductImageUrl: linkedImages[0] || variant.variantProductImageUrl || null,
+    }
+  })
+  const defaultVariant = enrichedVariants.find((variant) => variant.isDefault) || enrichedVariants[0] || null
   const basePrice = getBaseProductPrice(product)
   const validDiscountPrice =
     typeof product.discountPrice === "number" && product.discountPrice >= 0 && product.discountPrice < basePrice ? product.discountPrice : null
@@ -41,7 +69,7 @@ function serializePublicProduct(product) {
     availableFormats: getAvailableProductFormats(product),
     imageUrls: parsedImages,
     coverImageUrl: parsedImages[0] || "",
-    variants,
+    variants: enrichedVariants,
     defaultVariantId: defaultVariant?.id ?? null,
     manualBadges: parseManualBadges(product.manualBadges),
     hiddenAsStandalone: Boolean(product.hiddenAsStandalone),
@@ -283,7 +311,7 @@ router.get(
     const items = sortedProducts.slice(start, start + pageSize)
 
     res.json({
-      items: items.map(serializePublicProduct),
+      items: await Promise.all(items.map(serializePublicProduct)),
       pagination: {
         page: safePage,
         pageSize,
@@ -303,7 +331,7 @@ router.get(
       include: productRelationInclude(),
     })
 
-    res.json(products.slice(0, MAX_FEATURED_PRODUCTS).map(serializePublicProduct))
+    res.json(await Promise.all(products.slice(0, MAX_FEATURED_PRODUCTS).map(serializePublicProduct)))
   })
 )
 
@@ -319,7 +347,7 @@ router.get(
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 
-    res.json(serializePublicProduct(product))
+    res.json(await serializePublicProduct(product))
   })
 )
 
@@ -356,7 +384,7 @@ router.get(
 
     const related = rankRelatedProducts(product, relatedCandidates, 4)
 
-    res.json(related.map(serializePublicProduct))
+    res.json(await Promise.all(related.map(serializePublicProduct)))
   })
 )
 

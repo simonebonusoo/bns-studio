@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react"
 import { formatPrice } from "../../lib/format"
 import { ShopProductVariant } from "../../types"
 
@@ -18,47 +19,123 @@ type ProductVariantSelectorProps = {
   onSelect: (variant: ShopProductVariant) => void
 }
 
-export function ProductEditionSelector({ editions, selectedEditionName, onSelect }: ProductEditionSelectorProps) {
-  if (editions.length <= 1) {
-    return (
-      <div className="rounded-2xl border border-white/10 px-4 py-3">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Variante</p>
-        <p className="mt-2 text-sm font-medium text-white">{editions[0]?.name || selectedEditionName || "Standard"}</p>
-      </div>
-    )
-  }
+type DropdownOption = {
+  key: string
+  label: string
+  meta?: string
+  image?: string
+  disabled?: boolean
+  tone?: "price"
+  onSelect: () => void
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} aria-hidden="true">
+      <path d="m5 8 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function CompactDropdown({
+  label,
+  value,
+  options,
+  emptyLabel,
+}: {
+  label: string
+  value: string
+  options: DropdownOption[]
+  emptyLabel: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!ref.current?.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false)
+    }
+
+    document.addEventListener("mousedown", handlePointerDown)
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [open])
 
   return (
-    <div className="rounded-2xl border border-white/10 px-4 py-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Variante</p>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {editions.map((edition) => {
-          const isSelected = edition.name === selectedEditionName
-          return (
-            <button
-              key={edition.name}
-              type="button"
-              onClick={() => onSelect(edition.name)}
-              className={`flex min-h-[72px] items-center gap-3 rounded-lg border p-3 text-left transition ${
-                isSelected
-                  ? "border-[#e3f503]/70 bg-[#e3f503]/10 text-white"
-                  : "border-white/10 bg-white/[0.02] text-white/75 hover:border-white/25 hover:text-white"
-              }`}
-            >
-              {edition.previewImage ? (
-                <img src={edition.previewImage} alt="" className="h-12 w-12 rounded-md object-cover" />
-              ) : (
-                <span className={`h-12 w-12 rounded-md border ${isSelected ? "border-[#e3f503]/50 bg-[#e3f503]/14" : "border-white/10 bg-white/[0.04]"}`} />
-              )}
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{edition.name}</span>
-                <span className="mt-1 block text-xs text-white/45">Edizione prodotto</span>
-              </span>
-            </button>
-          )
-        })}
-      </div>
+    <div ref={ref} className="relative rounded-2xl border border-white/10 px-4 py-3">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{label}</p>
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="mt-2 flex min-h-[46px] w-full items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.025] px-4 py-2 text-left text-white transition hover:border-white/24 hover:bg-white/[0.045]"
+        aria-expanded={open}
+      >
+        <span className="min-w-0 truncate text-sm font-medium">{value || emptyLabel}</span>
+        <span className="shrink-0 text-white/55">
+          <ChevronIcon open={open} />
+        </span>
+      </button>
+
+      {open ? (
+        <div className="absolute left-4 right-4 top-[calc(100%-6px)] z-30 max-h-72 overflow-y-auto rounded-lg border border-white/12 bg-[#101012] p-2 shadow-2xl">
+          {options.length ? (
+            options.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                disabled={option.disabled}
+                onClick={() => {
+                  option.onSelect()
+                  setOpen(false)
+                }}
+                className="flex min-h-[46px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-white/78 transition hover:bg-white/[0.055] hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  {option.image ? <img src={option.image} alt="" className="h-9 w-9 rounded-md object-cover" /> : null}
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{option.label}</span>
+                    {option.meta ? <span className="mt-0.5 block truncate text-xs text-white/45">{option.meta}</span> : null}
+                  </span>
+                </span>
+                {option.tone === "price" ? <span className="shrink-0 text-sm font-medium text-[#e3f503]">{option.meta}</span> : null}
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-3 text-sm text-white/45">{emptyLabel}</div>
+          )}
+        </div>
+      ) : null}
     </div>
+  )
+}
+
+export function ProductEditionSelector({ editions, selectedEditionName, onSelect }: ProductEditionSelectorProps) {
+  const selectedEdition = editions.find((edition) => edition.name === selectedEditionName) || editions[0] || null
+
+  return (
+    <CompactDropdown
+      label="Variante"
+      value={selectedEdition?.name || selectedEditionName || "Standard"}
+      emptyLabel="Nessuna variante disponibile"
+      options={editions.map((edition) => ({
+        key: edition.name,
+        label: edition.name,
+        image: edition.previewImage,
+        meta: "Edizione prodotto",
+        onSelect: () => onSelect(edition.name),
+      }))}
+    />
   )
 }
 
@@ -71,37 +148,17 @@ export function ProductVariantSelector({
   const selectedVariant = variants.find((variant) => variant.key === selectedVariantKey) || variants[0] || null
 
   return (
-    <div className="rounded-2xl border border-white/10 px-4 py-4">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Misura</p>
-        {selectedVariant ? <p className="text-sm text-white/65">{selectedVariant.size || selectedVariant.title}</p> : null}
-      </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {variants.length ? variants.map((variant) => {
-            const isSelected = selectedVariant?.key === variant.key
-            return (
-              <button
-                key={`${variant.id ?? variant.key}-${variant.position}`}
-                type="button"
-                onClick={() => onSelect(variant)}
-                className={`flex min-h-[76px] items-center justify-between gap-4 rounded-lg border px-4 py-3 text-left transition ${
-                  isSelected
-                    ? "border-[#e3f503] bg-[#e3f503]/8 text-white"
-                    : "border-white/10 text-white/78 hover:border-white/25 hover:bg-white/[0.03] hover:text-white"
-                }`}
-                disabled={variant.isActive === false}
-              >
-                <div>
-                  <span className="block text-sm font-medium text-white">{variant.size || variant.title}</span>
-                  <span className="mt-1 block text-xs text-white/55">{getVariantStockLabel(variant.id)}</span>
-                </div>
-                <span className={`text-sm font-medium ${isSelected ? "text-[#e3f503]" : "text-white/70"}`}>
-                  {formatPrice(variant.price)}
-                </span>
-              </button>
-            )
-        }) : <div className="px-2 py-2 text-sm text-white/45">Nessuna misura disponibile</div>}
-      </div>
-    </div>
+    <CompactDropdown
+      label="Misura"
+      value={selectedVariant?.size || selectedVariant?.title || ""}
+      emptyLabel="Nessuna misura disponibile"
+      options={variants.map((variant) => ({
+        key: `${variant.id ?? variant.key}-${variant.position}`,
+        label: variant.size || variant.title,
+        meta: `${getVariantStockLabel(variant.id)} · ${formatPrice(variant.price)}`,
+        disabled: variant.isActive === false,
+        onSelect: () => onSelect(variant),
+      }))}
+    />
   )
 }

@@ -101,6 +101,7 @@ type ProductFormState = {
     variantProductTitle: string
     variantProductSlug: string
     variantProductImageUrl: string
+    variantProductImageUrls: string[]
     sku: string
     price: string
     discountPrice: string
@@ -294,6 +295,7 @@ const emptyProductForm = (): ProductFormState => ({
       variantProductTitle: "",
       variantProductSlug: "",
       variantProductImageUrl: "",
+      variantProductImageUrls: [],
       sku: "",
       price: "",
       discountPrice: "",
@@ -455,6 +457,7 @@ function mapProductVariantToForm(variant: ShopProductVariant, index: number) {
     variantProductTitle: variant.variantProductTitle || "",
     variantProductSlug: variant.variantProductSlug || "",
     variantProductImageUrl: variant.variantProductImageUrl || "",
+    variantProductImageUrls: variant.variantProductImageUrls || [],
     sku: variant.sku || "",
     price: formatEuroInput(variant.price),
     discountPrice: variant.discountPrice ? formatEuroInput(variant.discountPrice) : "",
@@ -518,11 +521,13 @@ function buildLegacyVariantSummary(variants: ProductFormState["variants"]) {
         ...(variant.variantProductTitle.trim() ? [{ name: "_variantProductTitle", value: variant.variantProductTitle.trim() }] : []),
         ...(variant.variantProductSlug.trim() ? [{ name: "_variantProductSlug", value: variant.variantProductSlug.trim() }] : []),
         ...(variant.variantProductImageUrl.trim() ? [{ name: "_variantProductImageUrl", value: variant.variantProductImageUrl.trim() }] : []),
+        ...(variant.variantProductImageUrls.length ? [{ name: "_variantProductImageUrls", value: JSON.stringify(variant.variantProductImageUrls) }] : []),
       ],
       variantProductId: variant.variantProductId,
       variantProductTitle: variant.variantProductTitle.trim() || null,
       variantProductSlug: variant.variantProductSlug.trim() || null,
       variantProductImageUrl: variant.variantProductImageUrl.trim() || null,
+      variantProductImageUrls: variant.variantProductImageUrls,
       price: parseEuroToCents(variant.price),
       discountPrice: variant.discountPrice.trim() ? parseEuroToCents(variant.discountPrice) : null,
       costPrice: parseEuroToCents(variant.costPrice),

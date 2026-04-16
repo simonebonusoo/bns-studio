@@ -17,6 +17,7 @@ export type ShopProductVariant = {
   variantProductTitle?: string | null
   variantProductSlug?: string | null
   variantProductImageUrl?: string | null
+  variantProductImageUrls?: string[]
   price: number
   discountPrice?: number | null
   costPrice?: number
