@@ -22,7 +22,7 @@ import { formatPrice } from "../lib/format"
 import { normalizeProductFormStateForEdit } from "../lib/admin-product-edit.mjs"
 import { parseMidBannerSettings, parseTopBannerSettings } from "../lib/banner-settings.mjs"
 import { resolveTrendingProductIds } from "../lib/trending-products.mjs"
-import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
+import { AdminCategory, AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
   id: number
@@ -127,6 +127,16 @@ type CollectionFormState = {
   launchAt: string
   active: boolean
   productIds: number[]
+}
+
+type CategoryFormState = {
+  name: string
+  slug: string
+  description: string
+  imageUrl: string
+  secondaryText: string
+  position: number
+  active: boolean
 }
 
 type AdminReview = ShopReview & {
@@ -325,6 +335,16 @@ const emptyCollectionForm = (): CollectionFormState => ({
   launchAt: "",
   active: true,
   productIds: [],
+})
+
+const emptyCategoryForm = (): CategoryFormState => ({
+  name: "",
+  slug: "",
+  description: "",
+  imageUrl: "",
+  secondaryText: "",
+  position: 0,
+  active: true,
 })
 
 const emptyCouponForm = (): CouponFormState => ({
@@ -693,6 +713,7 @@ export function ShopAdminPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [rules, setRules] = useState<DiscountRule[]>([])
   const [categories, setCategories] = useState<string[]>([])
+  const [categoryRecords, setCategoryRecords] = useState<AdminCategory[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
   const [shippingCostInput, setShippingCostInput] = useState("9")
   const [tab, setTab] = useState<"prodotti" | "collezioni" | "categorie" | "homepage" | "banner" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti">("prodotti")
@@ -723,6 +744,10 @@ export function ShopAdminPage() {
   const [newCategoryName, setNewCategoryName] = useState("")
   const [renamingCategory, setRenamingCategory] = useState<string | null>(null)
   const [renamedCategoryValue, setRenamedCategoryValue] = useState("")
+  const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm)
+  const [editingCategorySlug, setEditingCategorySlug] = useState<string | null>(null)
+  const [categoryCoverFiles, setCategoryCoverFiles] = useState<File[]>([])
+  const [categoryCoverPreviewUrl, setCategoryCoverPreviewUrl] = useState("")
   const [collectionForm, setCollectionForm] = useState<CollectionFormState>(emptyCollectionForm)
   const [editingCollectionId, setEditingCollectionId] = useState<number | null>(null)
   const [collectionCoverFiles, setCollectionCoverFiles] = useState<File[]>([])
@@ -814,8 +839,9 @@ export function ShopAdminPage() {
   useEffect(() => {
     return () => {
       if (collectionCoverPreviewUrl) URL.revokeObjectURL(collectionCoverPreviewUrl)
+      if (categoryCoverPreviewUrl) URL.revokeObjectURL(categoryCoverPreviewUrl)
     }
-  }, [collectionCoverPreviewUrl])
+  }, [categoryCoverPreviewUrl, collectionCoverPreviewUrl])
 
   useEffect(() => {
     if (!message && !error) return
@@ -861,7 +887,7 @@ export function ShopAdminPage() {
   }
 
   async function refresh() {
-    const [, allProductsData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData, collectionsData, archivedReviewData, archivedOrderData] = await Promise.all([
+    const [, allProductsData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, categoryRecordData, settingsData, runtimeData, collectionsData, archivedReviewData, archivedOrderData] = await Promise.all([
       refreshProducts(),
       apiFetch<ShopProduct[]>("/admin/products"),
       apiFetch<AdminReview[]>("/admin/reviews"),
@@ -871,6 +897,7 @@ export function ShopAdminPage() {
       apiFetch<Coupon[]>("/admin/coupons"),
       apiFetch<DiscountRule[]>("/admin/discount-rules"),
       apiFetch<string[]>("/admin/categories"),
+      apiFetch<AdminCategory[]>("/admin/category-records"),
       apiFetch<SettingEntry[]>("/admin/settings"),
       apiFetch<AdminRuntimeStatus>("/admin/runtime-status"),
       apiFetch<AdminCollection[]>("/admin/collections"),
@@ -889,6 +916,7 @@ export function ShopAdminPage() {
     setCoupons(couponData)
     setRules(ruleData)
     setCategories(categoryData)
+    setCategoryRecords(categoryRecordData)
     setSettings(settingsData)
     setRuntimeStatus(runtimeData)
     setCollections(collectionsData)
@@ -1056,6 +1084,17 @@ export function ShopAdminPage() {
       body: formData,
     })
     return data.files[0]?.url || collectionForm.coverImageUrl
+  }
+
+  async function uploadCategoryCover() {
+    if (!categoryCoverFiles.length) return categoryForm.imageUrl
+    const formData = new FormData()
+    categoryCoverFiles.forEach((file) => formData.append("images", file))
+    const data = await apiFetch<{ files: { url: string }[] }>("/admin/uploads", {
+      method: "POST",
+      body: formData,
+    })
+    return data.files[0]?.url || categoryForm.imageUrl
   }
 
   async function saveProduct(event: FormEvent) {
@@ -1231,12 +1270,96 @@ export function ShopAdminPage() {
     }
   }
 
+  function startEditCategoryRecord(category: AdminCategory) {
+    clearFeedback()
+    setEditingCategorySlug(category.slug)
+    if (categoryCoverPreviewUrl) URL.revokeObjectURL(categoryCoverPreviewUrl)
+    setCategoryCoverPreviewUrl("")
+    setCategoryCoverFiles([])
+    setCategoryForm({
+      name: category.name,
+      slug: category.slug,
+      description: category.description || "",
+      imageUrl: category.imageUrl || "",
+      secondaryText: category.secondaryText || "",
+      position: Number(category.position || 0),
+      active: category.active !== false,
+    })
+  }
+
+  function resetCategoryForm() {
+    setEditingCategorySlug(null)
+    setCategoryForm(emptyCategoryForm())
+    setCategoryCoverFiles([])
+    if (categoryCoverPreviewUrl) URL.revokeObjectURL(categoryCoverPreviewUrl)
+    setCategoryCoverPreviewUrl("")
+  }
+
+  function handleCategoryCoverFileChange(files: FileList | null) {
+    const file = files?.[0]
+    if (!file) return
+    if (categoryCoverPreviewUrl) URL.revokeObjectURL(categoryCoverPreviewUrl)
+    setCategoryCoverFiles([file])
+    setCategoryCoverPreviewUrl(URL.createObjectURL(file))
+  }
+
+  async function saveCategoryRecord(event: FormEvent) {
+    event.preventDefault()
+    clearFeedback()
+    try {
+      const imageUrl = await uploadCategoryCover()
+      const payload = {
+        ...categoryForm,
+        imageUrl: imageUrl || "",
+      }
+      const next = await apiFetch<AdminCategory[]>(
+        editingCategorySlug ? `/admin/category-records/${encodeURIComponent(editingCategorySlug)}` : "/admin/category-records",
+        {
+          method: editingCategorySlug ? "PUT" : "POST",
+          body: JSON.stringify(payload),
+        },
+      )
+      setCategoryRecords(next)
+      setCategories(next.map((category) => category.name))
+      if (editingCategorySlug && productForm.category && !next.some((category) => category.name === productForm.category)) {
+        setProductForm((current) => ({ ...current, category: payload.name }))
+      }
+      resetCategoryForm()
+      await refreshProducts()
+      setMessage(editingCategorySlug ? "Categoria aggiornata correttamente." : "Categoria creata correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il salvataggio della categoria.")
+    }
+  }
+
+  async function deleteCategoryRecord(category: AdminCategory) {
+    clearFeedback()
+    try {
+      const next = await apiFetch<AdminCategory[]>(`/admin/category-records/${encodeURIComponent(category.slug)}`, {
+        method: "DELETE",
+      })
+      setCategoryRecords(next)
+      setCategories(next.map((entry) => entry.name))
+      if (editingCategorySlug === category.slug) resetCategoryForm()
+      if (productForm.category === category.name) {
+        setProductForm((current) => ({ ...current, category: "" }))
+      }
+      setMessage("Categoria eliminata correttamente.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della categoria.")
+    }
+  }
+
   function startEditCollection(collection: AdminCollection) {
     clearFeedback()
     setEditingCollectionId(collection.id)
     if (collectionCoverPreviewUrl) URL.revokeObjectURL(collectionCoverPreviewUrl)
     setCollectionCoverPreviewUrl("")
     setCollectionCoverFiles([])
+    const productIdsFromCollection = (collection.products || []).map((product) => product.id)
+    const productIdsFromProductForms = allProductsForTrending
+      .filter((product) => (product.collections || []).some((entry) => entry.id === collection.id || entry.slug === collection.slug))
+      .map((product) => product.id)
     setCollectionForm({
       title: collection.title,
       slug: collection.slug,
@@ -1246,7 +1369,7 @@ export function ShopAdminPage() {
       status: collection.status || "live",
       launchAt: toDatetimeLocal(collection.launchAt),
       active: collection.active,
-      productIds: (collection.products || []).map((product) => product.id),
+      productIds: Array.from(new Set([...productIdsFromCollection, ...productIdsFromProductForms])),
     })
   }
 
@@ -1271,6 +1394,11 @@ export function ShopAdminPage() {
     clearFeedback()
     try {
       const coverImageUrl = await uploadCollectionCover()
+      const productIdsFromProductForms = editingCollectionId
+        ? allProductsForTrending
+            .filter((product) => (product.collections || []).some((entry) => entry.id === editingCollectionId))
+            .map((product) => product.id)
+        : []
       const payload = {
         title: collectionForm.title,
         slug: collectionForm.slug || undefined,
@@ -1280,7 +1408,7 @@ export function ShopAdminPage() {
         status: collectionForm.status,
         launchAt: collectionForm.launchAt || null,
         active: collectionForm.active,
-        productIds: collectionForm.productIds,
+        productIds: Array.from(new Set([...collectionForm.productIds, ...productIdsFromProductForms])),
       }
 
       if (editingCollectionId) {
@@ -1771,19 +1899,16 @@ export function ShopAdminPage() {
 
       {tab === "categorie" ? (
         <AdminCategoriesSection
-          categories={categories}
-          newCategoryName={newCategoryName}
-          renamingCategory={renamingCategory}
-          renamedCategoryValue={renamedCategoryValue}
-          onStartRenameCategory={(category) => {
-            setRenamingCategory(category)
-            setRenamedCategoryValue(category)
-          }}
-          onRenamedCategoryValueChange={setRenamedCategoryValue}
-          onRenameCategory={renameCategory}
-          onDeleteCategory={deleteCategory}
-          onNewCategoryNameChange={setNewCategoryName}
-          onCreateCategory={createCategory}
+          categories={categoryRecords}
+          categoryForm={categoryForm}
+          editingCategorySlug={editingCategorySlug}
+          coverPreviewUrl={categoryCoverPreviewUrl}
+          onCategoryFormChange={setCategoryForm}
+          onCoverFileChange={handleCategoryCoverFileChange}
+          onSaveCategory={saveCategoryRecord}
+          onResetCategoryForm={resetCategoryForm}
+          onStartEditCategory={startEditCategoryRecord}
+          onDeleteCategory={deleteCategoryRecord}
         />
       ) : null}
 

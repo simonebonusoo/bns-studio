@@ -75,13 +75,29 @@ export function AdminCollectionsSection({
 }: AdminCollectionsSectionProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<AdminCollection | null>(null)
+  const selectedProductIds = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...collectionForm.productIds,
+          ...products
+            .filter((product) =>
+              editingCollectionId
+                ? (product.collections || []).some((collection) => collection.id === editingCollectionId)
+                : false,
+            )
+            .map((product) => product.id),
+        ]),
+      ),
+    [collectionForm.productIds, editingCollectionId, products],
+  )
   const selectedProducts = useMemo(
-    () => collectionForm.productIds.map((id) => products.find((product) => product.id === id)).filter((product): product is ShopProduct => Boolean(product)),
-    [collectionForm.productIds, products],
+    () => selectedProductIds.map((id) => products.find((product) => product.id === id)).filter((product): product is ShopProduct => Boolean(product)),
+    [products, selectedProductIds],
   )
   const selectableProducts = useMemo(
-    () => products.filter((product) => !collectionForm.productIds.includes(product.id)),
-    [collectionForm.productIds, products],
+    () => products.filter((product) => !selectedProductIds.includes(product.id)),
+    [products, selectedProductIds],
   )
   const coverImage = coverPreviewUrl || collectionForm.coverImageUrl
 
@@ -144,7 +160,7 @@ export function AdminCollectionsSection({
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-white">Prodotti assegnati</p>
-                <p className="mt-1 text-xs text-white/55">{selectedProducts.length} prodotti nella collezione.</p>
+                <p className="mt-1 text-xs text-white/55">{selectedProducts.length} prodotti nella collezione, unificati da prodotto e pannello collezione.</p>
               </div>
               <Button type="button" variant="profile" size="sm" onClick={() => setPickerOpen(true)}>
                 Aggiungi prodotto
@@ -159,13 +175,17 @@ export function AdminCollectionsSection({
                     <p className="truncate text-sm font-medium text-white">{product.title}</p>
                     <p className="text-xs text-white/45">{product.status === "draft" ? "Bozza" : "Pubblico/gestito da stato prodotto"}</p>
                   </div>
-                  <button
-                    type="button"
-                    className="text-xs text-white/45 transition hover:text-white"
-                    onClick={() => onCollectionFormChange({ ...collectionForm, productIds: collectionForm.productIds.filter((id) => id !== product.id) })}
-                  >
-                    Rimuovi
-                  </button>
+                  {collectionForm.productIds.includes(product.id) ? (
+                    <button
+                      type="button"
+                      className="text-xs text-white/45 transition hover:text-white"
+                      onClick={() => onCollectionFormChange({ ...collectionForm, productIds: collectionForm.productIds.filter((id) => id !== product.id) })}
+                    >
+                      Rimuovi
+                    </button>
+                  ) : (
+                    <span className="text-xs text-white/35">Dal prodotto</span>
+                  )}
                 </div>
               ))}
               {!selectedProducts.length ? <p className="rounded-lg border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/45">Nessun prodotto assegnato.</p> : null}

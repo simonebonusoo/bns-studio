@@ -73,9 +73,46 @@ router.use((req, res, next) => {
 })
 
 function parseCategories(value) {
+  return parseCategoryRecords(value).map((category) => category.name)
+}
+
+function parseCategoryRecords(value) {
   try {
     const parsed = JSON.parse(value || "[]")
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map((entry, index) => {
+        if (typeof entry === "string") {
+          const name = normalizeCategoryName(entry)
+          return name
+            ? {
+                name,
+                slug: slugifyCatalogText(name),
+                description: "",
+                imageUrl: "",
+                secondaryText: "",
+                position: index,
+                active: true,
+              }
+            : null
+        }
+
+        if (!entry || typeof entry !== "object") return null
+        const name = normalizeCategoryName(String(entry.name || entry.title || ""))
+        if (!name) return null
+        const slug = slugifyCatalogText(String(entry.slug || name))
+        return {
+          name,
+          slug,
+          description: String(entry.description || ""),
+          imageUrl: String(entry.imageUrl || entry.coverImageUrl || ""),
+          secondaryText: String(entry.secondaryText || entry.subtitle || ""),
+          position: Number.isFinite(Number(entry.position)) ? Number(entry.position) : index,
+          active: entry.active !== false,
+        }
+      })
+      .filter(Boolean)
+      .sort((left, right) => Number(left.position || 0) - Number(right.position || 0) || left.name.localeCompare(right.name, "it"))
   } catch {
     return []
   }
@@ -83,6 +120,22 @@ function parseCategories(value) {
 
 function normalizeCategoryName(value) {
   return value.trim()
+}
+
+function normalizeCategoryRecord(input, index = 0) {
+  const name = normalizeCategoryName(String(input.name || ""))
+  if (!name) {
+    throw new HttpError(400, "Nome categoria obbligatorio")
+  }
+  return {
+    name,
+    slug: slugifyCatalogText(String(input.slug || name)),
+    description: String(input.description || ""),
+    imageUrl: String(input.imageUrl || ""),
+    secondaryText: String(input.secondaryText || ""),
+    position: Number.isFinite(Number(input.position)) ? Number(input.position) : index,
+    active: input.active !== false,
+  }
 }
 
 function normalizeCouponCode(value) {
@@ -315,7 +368,17 @@ async function ensureCategoriesSetting() {
     update: {},
     create: {
       key: "shopCategories",
-      value: JSON.stringify(existingCategories.map((item) => item.category)),
+      value: JSON.stringify(
+        existingCategories.map((item, index) => ({
+          name: item.category,
+          slug: slugifyCatalogText(item.category),
+          description: "",
+          imageUrl: "",
+          secondaryText: "",
+          position: index,
+          active: true,
+        })),
+      ),
     },
   })
 }
@@ -336,8 +399,48 @@ async function ensureFeaturedProductSlotAvailable(nextFeatured, excludeId = null
 }
 
 async function getCategories() {
+  const records = await getCategoryRecords()
+  return records.map((category) => category.name)
+}
+
+async function saveCategoryRecords(records) {
+  const normalized = records
+    .map((entry, index) => normalizeCategoryRecord({ ...entry, position: Number.isFinite(Number(entry.position)) ? Number(entry.position) : index }, index))
+    .sort((left, right) => Number(left.position || 0) - Number(right.position || 0) || left.name.localeCompare(right.name, "it"))
+
+  await prisma.setting.upsert({
+    where: { key: "shopCategories" },
+    update: { value: JSON.stringify(normalized) },
+    create: { key: "shopCategories", value: JSON.stringify(normalized) },
+  })
+
+  return normalized
+}
+
+async function getCategoryRecords() {
   const setting = await ensureCategoriesSetting()
-  return parseCategories(setting.value)
+  const records = parseCategoryRecords(setting.value)
+  const productCategories = await prisma.product.findMany({
+    distinct: ["category"],
+    select: { category: true },
+    orderBy: { category: "asc" },
+  })
+  const existingNames = new Set(records.map((category) => category.name))
+  const merged = [
+    ...records,
+    ...productCategories
+      .filter((item) => item.category && !existingNames.has(item.category))
+      .map((item, index) => ({
+        name: item.category,
+        slug: slugifyCatalogText(item.category),
+        description: "",
+        imageUrl: "",
+        secondaryText: "",
+        position: records.length + index,
+        active: true,
+      })),
+  ]
+  return saveCategoryRecords(merged)
 }
 
 function resolveProductPayload(body, fallbackPrice = 0, fallbackDiscounts = {}) {
@@ -1198,24 +1301,94 @@ router.get(
   })
 )
 
+const categoryRecordSchema = z.object({
+  name: z.string().trim().min(1),
+  slug: z.string().trim().optional().nullable(),
+  description: z.string().trim().optional().nullable(),
+  imageUrl: z.string().trim().optional().nullable(),
+  secondaryText: z.string().trim().optional().nullable(),
+  position: z.number().int().min(0).default(0),
+  active: z.boolean().default(true),
+})
+
+router.get(
+  "/category-records",
+  asyncHandler(async (_req, res) => {
+    res.json(await getCategoryRecords())
+  })
+)
+
+router.post(
+  "/category-records",
+  asyncHandler(async (req, res) => {
+    const body = categoryRecordSchema.parse(req.body)
+    const records = await getCategoryRecords()
+    const nextRecord = normalizeCategoryRecord({ ...body, position: Number.isFinite(body.position) ? body.position : records.length }, records.length)
+    if (records.some((category) => category.name === nextRecord.name || category.slug === nextRecord.slug)) {
+      throw new HttpError(409, "Esiste già una categoria con questo nome o slug")
+    }
+    const next = await saveCategoryRecords([...records, nextRecord])
+    res.status(201).json(next)
+  })
+)
+
+router.put(
+  "/category-records/:slug",
+  asyncHandler(async (req, res) => {
+    const body = categoryRecordSchema.parse(req.body)
+    const currentSlug = decodeURIComponent(req.params.slug)
+    const records = await getCategoryRecords()
+    const current = records.find((category) => category.slug === currentSlug)
+    if (!current) {
+      throw new HttpError(404, "Categoria non trovata")
+    }
+    const nextRecord = normalizeCategoryRecord(body, current.position)
+    if (records.some((category) => category.slug !== currentSlug && (category.name === nextRecord.name || category.slug === nextRecord.slug))) {
+      throw new HttpError(409, "Esiste già una categoria con questo nome o slug")
+    }
+    const next = await saveCategoryRecords(records.map((category) => (category.slug === currentSlug ? nextRecord : category)))
+    if (current.name !== nextRecord.name) {
+      await prisma.product.updateMany({
+        where: { category: current.name },
+        data: { category: nextRecord.name },
+      })
+    }
+    res.json(next)
+  })
+)
+
+router.delete(
+  "/category-records/:slug",
+  asyncHandler(async (req, res) => {
+    const currentSlug = decodeURIComponent(req.params.slug)
+    const records = await getCategoryRecords()
+    const current = records.find((category) => category.slug === currentSlug)
+    if (!current) {
+      throw new HttpError(404, "Categoria non trovata")
+    }
+    const productsCount = await prisma.product.count({ where: { category: current.name } })
+    if (productsCount > 0) {
+      throw new HttpError(400, "Impossibile eliminare una categoria assegnata a prodotti esistenti")
+    }
+    const next = await saveCategoryRecords(records.filter((category) => category.slug !== currentSlug))
+    res.json(next)
+  })
+)
+
 router.post(
   "/categories",
   asyncHandler(async (req, res) => {
     const body = z.object({ name: z.string().min(1) }).parse(req.body)
     const normalizedName = normalizeCategoryName(body.name)
-    const categories = await getCategories()
+    const records = await getCategoryRecords()
     if (!normalizedName) {
       throw new HttpError(400, "Impossibile creare la categoria")
     }
-    if (categories.includes(normalizedName)) {
+    if (records.some((category) => category.name === normalizedName)) {
       throw new HttpError(409, "Esiste già una categoria con questo nome")
     }
-    const next = [...categories, normalizedName]
-    await prisma.setting.update({
-      where: { key: "shopCategories" },
-      data: { value: JSON.stringify(next) },
-    })
-    res.status(201).json(next)
+    const next = await saveCategoryRecords([...records, normalizeCategoryRecord({ name: normalizedName, position: records.length }, records.length)])
+    res.status(201).json(next.map((category) => category.name))
   })
 )
 
@@ -1225,26 +1398,22 @@ router.put(
     const body = z.object({ name: z.string().min(1) }).parse(req.body)
     const currentName = decodeURIComponent(req.params.name)
     const normalizedName = normalizeCategoryName(body.name)
-    const categories = await getCategories()
-    if (!categories.includes(currentName)) {
+    const records = await getCategoryRecords()
+    if (!records.some((category) => category.name === currentName)) {
       throw new HttpError(404, "Categoria non trovata")
     }
     if (!normalizedName) {
       throw new HttpError(400, "Impossibile rinominare la categoria")
     }
-    if (currentName !== normalizedName && categories.includes(normalizedName)) {
+    if (currentName !== normalizedName && records.some((category) => category.name === normalizedName)) {
       throw new HttpError(409, "Esiste già una categoria con questo nome")
     }
-    const next = categories.map((category) => (category === currentName ? normalizedName : category))
-    await prisma.setting.update({
-      where: { key: "shopCategories" },
-      data: { value: JSON.stringify(next) },
-    })
+    const next = await saveCategoryRecords(records.map((category) => (category.name === currentName ? { ...category, name: normalizedName, slug: slugifyCatalogText(normalizedName) } : category)))
     await prisma.product.updateMany({
       where: { category: currentName },
       data: { category: normalizedName },
     })
-    res.json(next)
+    res.json(next.map((category) => category.name))
   })
 )
 
@@ -1252,20 +1421,16 @@ router.delete(
   "/categories/:name",
   asyncHandler(async (req, res) => {
     const categoryName = decodeURIComponent(req.params.name)
-    const categories = await getCategories()
-    if (!categories.includes(categoryName)) {
+    const records = await getCategoryRecords()
+    if (!records.some((category) => category.name === categoryName)) {
       throw new HttpError(404, "Categoria non trovata")
     }
     const productsCount = await prisma.product.count({ where: { category: categoryName } })
     if (productsCount > 0) {
       throw new HttpError(400, "Impossibile eliminare una categoria assegnata a prodotti esistenti")
     }
-    const next = categories.filter((category) => category !== categoryName)
-    await prisma.setting.update({
-      where: { key: "shopCategories" },
-      data: { value: JSON.stringify(next) },
-    })
-    res.json(next)
+    const next = await saveCategoryRecords(records.filter((category) => category.name !== categoryName))
+    res.json(next.map((category) => category.name))
   })
 )
 

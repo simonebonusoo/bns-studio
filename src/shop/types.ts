@@ -55,6 +55,16 @@ export type ProductCollection = {
   updatedAt?: string
 }
 
+export type AdminCategory = {
+  name: string
+  slug: string
+  description?: string
+  imageUrl?: string
+  secondaryText?: string
+  position: number
+  active: boolean
+}
+
 export type ProductManualBadge = {
   id: string
   label: string

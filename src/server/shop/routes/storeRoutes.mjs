@@ -30,6 +30,13 @@ function parseJsonArray(value) {
   }
 }
 
+function parseCategoryNames(value) {
+  return parseJsonArray(value)
+    .map((entry) => (typeof entry === "string" ? entry : String(entry?.name || "")))
+    .map((name) => name.trim())
+    .filter(Boolean)
+}
+
 function findVariantProductIdInOptions(optionsJson) {
   const entry = parseJsonArray(optionsJson).find((option) => option?.name === "_variantProductId")
   const id = Number(entry?.value || 0)
@@ -335,7 +342,7 @@ router.get(
     })
     const categories =
       categoriesSetting
-        ? JSON.parse(categoriesSetting.value || "[]")
+        ? parseCategoryNames(categoriesSetting.value)
         : (
             await prisma.product.findMany({
               distinct: ["category"],
