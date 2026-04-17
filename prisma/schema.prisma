@@ -55,12 +55,15 @@ model Product {
   featured    Boolean     @default(false)
   stock       Int         @default(100)
   lowStockThreshold Int   @default(5)
+  dropId      Int?
+  dropPosition Int        @default(0)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   orderItems  OrderItem[]
   variants    ProductVariant[]
   productTags ProductTag[]
   productCollections ProductCollection[]
+  drop        Drop?       @relation(fields: [dropId], references: [id], onDelete: SetNull)
   backInStockSubscriptions BackInStockSubscription[]
 }
 
@@ -144,6 +147,22 @@ model ProductCollection {
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@id([productId, collectionId])
+}
+
+model Drop {
+  id               Int       @id @default(autoincrement())
+  title            String
+  slug             String    @unique
+  shortDescription String?
+  description      String?
+  coverImageUrl    String?
+  status           String    @default("draft")
+  launchAt         DateTime?
+  visible          Boolean   @default(false)
+  label            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  products         Product[]
 }
 
 model Order {

@@ -133,6 +133,7 @@ export function normalizeProductFormStateForEdit(product) {
     collectionIds: Array.isArray(safeProduct.collections)
       ? safeProduct.collections.map((collection) => Number(collection?.id)).filter((id) => Number.isFinite(id))
       : [],
+    dropId: Number(safeProduct.dropId || safeProduct.drop?.id || 0) || null,
     manualBadges: Array.isArray(safeProduct.manualBadges)
       ? safeProduct.manualBadges.filter((badge) => badge && typeof badge === "object").map((badge, index) => ({
           id: String(badge.id || `manual-${index + 1}`),

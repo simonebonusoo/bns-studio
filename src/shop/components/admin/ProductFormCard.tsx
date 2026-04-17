@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react"
 
 import { Button } from "../../../components/Button"
-import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
+import { AdminCollection, ProductManualBadge, ProductStatus, ShopDrop, ShopProduct } from "../../types"
 import { ProductMediaManager } from "./ProductMediaManager"
 
 type ProductVariantFormState = {
@@ -37,6 +37,7 @@ type ProductFormState = {
   category: string
   tags: string
   collectionIds: number[]
+  dropId: number | null
   manualBadges: ProductManualBadge[]
   isCustomizable: boolean
   featured: boolean
@@ -55,6 +56,7 @@ type ProductFormCardProps = {
   productForm: ProductFormState
   categories: string[]
   collections: AdminCollection[]
+  drops: ShopDrop[]
   productImages: string[]
   products: ShopProduct[]
   onSubmit: (event: FormEvent) => void
@@ -106,6 +108,7 @@ export function ProductFormCard({
   productForm,
   categories,
   collections,
+  drops,
   productImages,
   products,
   onSubmit,
@@ -527,6 +530,25 @@ export function ProductFormCard({
               <p className="text-sm text-white/50">Nessuna collezione disponibile.</p>
             )}
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 p-4">
+          <div className="mb-3">
+            <p className="text-sm font-medium text-white">Appartenenza drop</p>
+            <p className="mt-1 text-xs text-white/55">Collega il poster a un lancio coordinato. Le collezioni restano separate.</p>
+          </div>
+          <select
+            className="shop-select"
+            value={productForm.dropId || ""}
+            onChange={(event) => onChange({ ...productForm, dropId: event.target.value ? Number(event.target.value) : null })}
+          >
+            <option value="">Nessun drop assegnato</option>
+            {drops.map((drop) => (
+              <option key={drop.id} value={drop.id}>
+                {drop.title} · {drop.status}
+              </option>
+            ))}
+          </select>
         </div>
       </Section>
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 
 import { getDangerButtonClassName } from "../../../components/Button"
 import { Button } from "../../../components/Button"
-import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
+import { AdminCollection, ProductManualBadge, ProductStatus, ShopDrop, ShopProduct } from "../../types"
 import { AdminRenderGuard } from "./AdminRenderGuard"
 import { ConfirmActionModal } from "./ConfirmActionModal"
 import { ProductFiltersBar } from "./ProductFiltersBar"
@@ -23,6 +23,7 @@ type ProductFormState = {
   category: string
   tags: string
   collectionIds: number[]
+  dropId: number | null
   manualBadges: ProductManualBadge[]
   isCustomizable: boolean
   featured: boolean
@@ -67,6 +68,7 @@ type AdminProductsSectionProps = {
   productForm: ProductFormState
   categories: string[]
   collections: AdminCollection[]
+  drops: ShopDrop[]
   productImages: string[]
   productSearch: string
   productCategoryFilter: string
@@ -113,6 +115,7 @@ export function AdminProductsSection({
   productForm,
   categories,
   collections,
+  drops,
   productImages,
   productSearch,
   productCategoryFilter,
@@ -200,6 +203,7 @@ export function AdminProductsSection({
             productForm={productForm}
             categories={categories}
             collections={collections}
+            drops={drops}
             productImages={productImages}
             onSubmit={onSubmitProduct}
             onCancel={onCancelProduct}

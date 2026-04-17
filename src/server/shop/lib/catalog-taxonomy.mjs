@@ -125,6 +125,7 @@ export function productRelationInclude() {
         collection: true,
       },
     },
+    drop: true,
   }
 }
 
@@ -144,4 +145,37 @@ export function serializeTaxonomyRelations(product) {
   }))
 
   return { tags, collections }
+}
+
+export function isDropPublic(drop, now = new Date()) {
+  if (!drop || !drop.visible) return false
+  const status = String(drop.status || "draft").trim().toLowerCase()
+  if (status === "live") return true
+  if (status === "scheduled" || status === "programmato") {
+    return Boolean(drop.launchAt && new Date(drop.launchAt).getTime() <= now.getTime())
+  }
+  return false
+}
+
+export function isProductVisibleWithDrop(product, now = new Date()) {
+  if (!product?.dropId) return true
+  return isDropPublic(product.drop, now)
+}
+
+export function serializeDropSummary(drop) {
+  if (!drop) return null
+  return {
+    id: drop.id,
+    title: drop.title,
+    slug: drop.slug,
+    shortDescription: drop.shortDescription || "",
+    description: drop.description || "",
+    coverImageUrl: drop.coverImageUrl || "",
+    status: drop.status,
+    launchAt: drop.launchAt ? drop.launchAt.toISOString() : null,
+    visible: Boolean(drop.visible),
+    label: drop.label || "",
+    createdAt: drop.createdAt ? drop.createdAt.toISOString() : undefined,
+    updatedAt: drop.updatedAt ? drop.updatedAt.toISOString() : undefined,
+  }
 }
