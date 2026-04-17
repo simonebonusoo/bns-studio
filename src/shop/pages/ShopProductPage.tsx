@@ -15,7 +15,7 @@ import { apiFetch } from "../lib/api"
 import { readCatalogReturnState } from "../lib/catalog-return.mjs"
 import { readHomeReturnState } from "../lib/home-return.mjs"
 import { consumePreviousProductReturnEntry, pushProductReturnEntry } from "../lib/product-return-stack.mjs"
-import { getAvailableFormats, getDefaultVariant, getOriginalPriceForVariant, getPriceForVariant, getProductBadges, getProductEditionOptions, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, getSizeOptionsForEdition, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
+import { getAvailableFormats, getDefaultVariant, getProductBadges, getProductEditionOptions, getProductGalleryImages, getProductPrimaryImage, getProductStockLabel, getProductStockStatus, getProductVariants, getSizeOptionsForEdition, isProductPurchasable, resolveSelectedVariant } from "../lib/product"
 import { getRelatedProductsPageState, getRecentlyViewedProducts, upsertRecentlyViewedProduct } from "../lib/product-page-discovery.mjs"
 import { ShopLayout } from "../components/ShopLayout"
 import { ShopProduct, ShopSettings } from "../types"
@@ -33,6 +33,16 @@ function getImagesForSelectedVariant(product: ShopProduct, variant?: ReturnType<
   if (variant?.variantProductId && variantImages.length) return variantImages
   if (variant?.variantProductId) return []
   return getProductGalleryImages(product)
+}
+
+function variantMatchesEditionName(variant: ReturnType<typeof getDefaultVariant>, editionName: string) {
+  const normalizedEdition = String(editionName || "").trim().toUpperCase()
+  return [
+    variant?.editionName,
+    variant?.variantProductTitle,
+    variant?.variantProductSlug,
+    variant?.variantProductId ? String(variant.variantProductId) : "",
+  ].some((value) => String(value || "").trim().toUpperCase() === normalizedEdition)
 }
 
 export function ShopProductPage() {
@@ -123,8 +133,11 @@ export function ShopProductPage() {
     : null
   const galleryImages = product ? getImagesForSelectedVariant(product, selectedVariant) : []
   const primaryCollection = product?.collections?.[0] || null
-  const originalPrice = product ? getOriginalPriceForVariant(product, selectedVariant?.id) : 0
-  const selectedPrice = product ? getPriceForVariant(product, selectedVariant?.id) : 0
+  const originalPrice = selectedVariant?.price ?? product?.price ?? 0
+  const selectedPrice =
+    typeof selectedVariant?.discountPrice === "number" && selectedVariant.discountPrice < originalPrice
+      ? selectedVariant.discountPrice
+      : originalPrice
   const purchasable = product ? isProductPurchasable(product, selectedVariant?.id) : false
   const badges = product ? getProductBadges(product) : []
   const heroBadge = badges[0] || null
@@ -196,6 +209,16 @@ export function ShopProductPage() {
       setSelectedImage(nextImage)
     }
   }, [galleryImages, product, selectedImage])
+
+  useEffect(() => {
+    if (!product || !variants.length) return
+    const currentStillValid = variants.some((variant) => variant.key === selectedVariantKey || variant.title === selectedVariantKey)
+    if (!currentStillValid) {
+      const nextVariant = variants.find((variant) => variant.isDefault && variant.isActive !== false) || variants.find((variant) => variant.isActive !== false) || variants[0]
+      setSelectedVariantKey(nextVariant?.key || nextVariant?.title || "")
+      setQuantity(1)
+    }
+  }, [product, selectedVariantKey, variants])
 
   function updateQuantity(nextValue: number) {
     setQuantity(Math.min(Math.max(nextValue, 1), maxQuantity))
@@ -487,9 +510,9 @@ export function ShopProductPage() {
             }}
             onSelectEdition={(editionName) => {
               const nextVariant =
-                allVariants.find((variant) => variant.editionName === editionName && variant.size === selectedVariant?.size) ||
-                allVariants.find((variant) => variant.editionName === editionName && variant.isActive !== false) ||
-                allVariants.find((variant) => variant.editionName === editionName)
+                allVariants.find((variant) => variantMatchesEditionName(variant, editionName) && variant.size === selectedVariant?.size) ||
+                allVariants.find((variant) => variantMatchesEditionName(variant, editionName) && variant.isActive !== false) ||
+                allVariants.find((variant) => variantMatchesEditionName(variant, editionName))
               setSelectedEditionName(editionName)
               setSelectedVariantKey(nextVariant?.key || nextVariant?.title || "")
               setSelectedImage(getImagesForSelectedVariant(product, nextVariant)[0] || "")

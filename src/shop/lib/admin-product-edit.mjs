@@ -49,7 +49,7 @@ function mapProductVariantToForm(variant, index) {
     variantProductImageUrls: Array.isArray(variant?.variantProductImageUrls) ? variant.variantProductImageUrls : [],
     sku: String(variant?.sku || ""),
     price: formatEuroInput(variant?.price),
-    discountPrice: formatEuroInput(variant?.discountPrice),
+    discountPrice: typeof variant?.discountPrice === "number" ? formatEuroInput(variant.discountPrice) : "",
     costPrice: getVariantCostInputValue(safeTitle, variant?.costPrice),
     stock: Number(variant?.stock || 0),
     lowStockThreshold: Number(variant?.lowStockThreshold || 5),

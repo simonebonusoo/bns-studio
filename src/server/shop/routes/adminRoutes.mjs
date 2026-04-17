@@ -430,6 +430,7 @@ const productSchema = z.object({
         variantProductTitle: z.string().optional().nullable(),
         variantProductSlug: z.string().optional().nullable(),
         variantProductImageUrl: z.string().optional().nullable(),
+        variantProductImageUrls: z.array(z.string().min(1)).optional().default([]),
         sku: z.string().optional().nullable(),
         options: z
           .array(

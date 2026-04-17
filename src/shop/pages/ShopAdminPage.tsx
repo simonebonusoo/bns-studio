@@ -460,7 +460,7 @@ function mapProductVariantToForm(variant: ShopProductVariant, index: number) {
     variantProductImageUrls: variant.variantProductImageUrls || [],
     sku: variant.sku || "",
     price: formatEuroInput(variant.price),
-    discountPrice: variant.discountPrice ? formatEuroInput(variant.discountPrice) : "",
+    discountPrice: typeof variant.discountPrice === "number" ? formatEuroInput(variant.discountPrice) : "",
     costPrice: getVariantCostInputValue(variant.title, variant.costPrice),
     stock: variant.stock,
     lowStockThreshold: variant.lowStockThreshold ?? 5,

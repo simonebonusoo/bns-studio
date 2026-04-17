@@ -162,12 +162,22 @@ export function getVariantByLabel(product: ShopProduct, value?: string | null) {
   )
 }
 
+function variantMatchesEdition(variant: ShopProductVariant, editionName?: string | null) {
+  const normalizedEdition = String(editionName || "").trim().toUpperCase()
+  if (!normalizedEdition) return true
+  return [
+    variant.editionName,
+    variant.variantProductTitle,
+    variant.variantProductSlug,
+    variant.variantProductId ? String(variant.variantProductId) : "",
+  ].some((value) => String(value || "").trim().toUpperCase() === normalizedEdition)
+}
+
 export function resolveSelectedVariant(product: ShopProduct, selection?: { variantId?: number | null; format?: string | null; editionName?: string | null; size?: string | null }) {
   if (selection?.editionName || selection?.size) {
-    const normalizedEdition = String(selection.editionName || "").trim().toUpperCase()
     const normalizedSize = String(selection.size || selection.format || "").trim().toUpperCase()
     const byPair = getProductVariants(product).find((variant) => {
-      const sameEdition = !normalizedEdition || String(variant.editionName || "").trim().toUpperCase() === normalizedEdition
+      const sameEdition = variantMatchesEdition(variant, selection.editionName)
       const sameSize = !normalizedSize || String(variant.size || variant.title || "").trim().toUpperCase() === normalizedSize
       return sameEdition && sameSize
     })
@@ -196,10 +206,8 @@ export function getProductEditionOptions(product: ShopProduct) {
 }
 
 export function getSizeOptionsForEdition(product: ShopProduct, editionName?: string | null) {
-  const normalizedEdition = String(editionName || "").trim().toUpperCase()
   return getProductVariants(product).filter((variant) => {
-    if (!normalizedEdition) return true
-    return String(variant.editionName || "").trim().toUpperCase() === normalizedEdition
+    return variantMatchesEdition(variant, editionName)
   })
 }
 
