@@ -41,21 +41,13 @@ export type ProductCollection = {
   title: string
   slug: string
   description?: string
-  active: boolean
-}
-
-export type ShopDrop = {
-  id: number
-  title: string
-  slug: string
-  shortDescription?: string
-  description?: string
   coverImageUrl?: string
-  status: "draft" | "scheduled" | "live" | "archived"
+  promoText?: string
+  status?: "draft" | "scheduled" | "live" | "archived"
   launchAt?: string | null
-  visible: boolean
-  label?: string
+  active: boolean
   products?: ShopProduct[]
+  position?: number
   _count?: {
     products: number
   }
@@ -125,9 +117,6 @@ export type ShopProduct = {
   badges?: ProductVisibleBadge[]
   tags?: ProductTag[]
   collections?: ProductCollection[]
-  drop?: ShopDrop | null
-  dropId?: number | null
-  dropPosition?: number
   isPurchasable?: boolean
   hiddenAsStandalone?: boolean
   createdAt?: string

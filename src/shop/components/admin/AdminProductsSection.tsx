@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 
 import { getDangerButtonClassName } from "../../../components/Button"
 import { Button } from "../../../components/Button"
-import { AdminCollection, ProductManualBadge, ProductStatus, ShopDrop, ShopProduct } from "../../types"
+import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
 import { AdminRenderGuard } from "./AdminRenderGuard"
 import { ConfirmActionModal } from "./ConfirmActionModal"
 import { ProductFiltersBar } from "./ProductFiltersBar"
@@ -23,7 +23,6 @@ type ProductFormState = {
   category: string
   tags: string
   collectionIds: number[]
-  dropId: number | null
   manualBadges: ProductManualBadge[]
   isCustomizable: boolean
   featured: boolean
@@ -68,7 +67,6 @@ type AdminProductsSectionProps = {
   productForm: ProductFormState
   categories: string[]
   collections: AdminCollection[]
-  drops: ShopDrop[]
   productImages: string[]
   productSearch: string
   productCategoryFilter: string
@@ -105,6 +103,7 @@ type AdminProductsSectionProps = {
   onResetCollectionForm: () => void
   onStartEditCollection: (collection: AdminCollection) => void
   onDeleteCollection: (collectionId: number) => void
+  showTaxonomySections?: boolean
 }
 
 export function AdminProductsSection({
@@ -115,7 +114,6 @@ export function AdminProductsSection({
   productForm,
   categories,
   collections,
-  drops,
   productImages,
   productSearch,
   productCategoryFilter,
@@ -152,6 +150,7 @@ export function AdminProductsSection({
   onResetCollectionForm,
   onStartEditCollection,
   onDeleteCollection,
+  showTaxonomySections = false,
 }: AdminProductsSectionProps) {
   const formColumnRef = useRef<HTMLDivElement | null>(null)
   const [listColumnHeight, setListColumnHeight] = useState<number | null>(null)
@@ -203,7 +202,6 @@ export function AdminProductsSection({
             productForm={productForm}
             categories={categories}
             collections={collections}
-            drops={drops}
             productImages={productImages}
             onSubmit={onSubmitProduct}
             onCancel={onCancelProduct}
@@ -244,6 +242,8 @@ export function AdminProductsSection({
         </div>
       </div>
 
+      {showTaxonomySections ? (
+        <>
       <section className="shop-card space-y-4 p-6 xl:col-span-2">
         <div className="max-w-3xl">
           <h2 className="text-xl font-semibold text-white">Gestione categorie</h2>
@@ -394,6 +394,8 @@ export function AdminProductsSection({
           setPendingDelete(null)
         }}
       />
+        </>
+      ) : null}
     </div>
   )
 }

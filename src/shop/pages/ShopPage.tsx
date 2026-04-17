@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Button, getButtonClassName } from "../../components/Button"
 import { useIsMobileViewport } from "../../hooks/useIsMobileViewport"
@@ -12,7 +12,7 @@ import { formatPrice } from "../lib/format"
 import { readHomeReturnState } from "../lib/home-return.mjs"
 import { getDefaultVariant } from "../lib/product"
 import { useShopCart } from "../context/ShopCartProvider"
-import { AdminCollection, ShopDrop, ShopProduct, ShopProductListResponse } from "../types"
+import { AdminCollection, ShopProduct, ShopProductListResponse } from "../types"
 
 const SORT_OPTIONS = [
   { value: "manual", label: "Ordine catalogo" },
@@ -32,7 +32,6 @@ export function ShopPage() {
   const { addItem, items } = useShopCart()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
-  const [drops, setDrops] = useState<ShopDrop[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 })
   const [searchInput, setSearchInput] = useState("")
   const [catalogError, setCatalogError] = useState("")
@@ -69,9 +68,6 @@ export function ShopPage() {
     apiFetch<AdminCollection[]>("/store/collections")
       .then((data) => setCollections(Array.isArray(data) ? data : []))
       .catch(() => setCollections([]))
-    apiFetch<ShopDrop[]>("/store/drops")
-      .then((data) => setDrops(Array.isArray(data) ? data : []))
-      .catch(() => setDrops([]))
   }, [])
 
   useEffect(() => {
@@ -326,30 +322,6 @@ export function ShopPage() {
         </Button>
       }
     >
-      {drops.length ? (
-        <section className="grid gap-4 md:grid-cols-2">
-          {drops.slice(0, 2).map((drop) => (
-            <Link
-              key={drop.id}
-              to={`/drop/${drop.slug}`}
-              className="group overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] transition hover:border-white/20"
-            >
-              {drop.coverImageUrl ? (
-                <img src={drop.coverImageUrl} alt="" className="aspect-[16/9] w-full object-cover transition duration-500 group-hover:scale-[1.02]" />
-              ) : null}
-              <div className="space-y-2 p-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  {drop.label ? <span className="shop-pill">{drop.label}</span> : null}
-                  <span className="text-xs uppercase tracking-[0.18em] text-white/45">Drop</span>
-                </div>
-                <h2 className="text-xl font-semibold text-white">{drop.title}</h2>
-                {drop.shortDescription ? <p className="text-sm leading-6 text-white/60">{drop.shortDescription}</p> : null}
-              </div>
-            </Link>
-          ))}
-        </section>
-      ) : null}
-
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
         <div className="border-b border-white/10 pb-4">
           <div>

@@ -26,7 +26,6 @@ import { ShopCartProvider } from "./shop/context/ShopCartProvider"
 import { ShopPage } from "./shop/pages/ShopPage"
 import { ShopOffersPage } from "./shop/pages/ShopOffersPage"
 import { ShopProductPage } from "./shop/pages/ShopProductPage"
-import { ShopDropPage } from "./shop/pages/ShopDropPage"
 import { ShopCartPage } from "./shop/pages/ShopCartPage"
 import { ShopAuthPage } from "./shop/pages/ShopAuthPage"
 import { ShopRegisterPage } from "./shop/pages/ShopRegisterPage"
@@ -318,7 +317,6 @@ export default function App() {
             <Route path="/case/:slug" element={<CaseStudyPage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/shop/offerte" element={<ShopOffersPage />} />
-            <Route path="/drop/:slug" element={<ShopDropPage />} />
             <Route path="/shop/:slug" element={<ShopProductPage />} />
             <Route path="/shop/cart" element={<ShopCartPage />} />
             <Route path="/shop/auth" element={<ShopAuthPage />} />

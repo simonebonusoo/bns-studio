@@ -15,13 +15,14 @@ import { AdminProductsSection } from "../components/admin/AdminProductsSection"
 import { AdminReviewsSection } from "../components/admin/AdminReviewsSection"
 import { AdminTrendingSection } from "../components/admin/AdminTrendingSection"
 import { AdminUsersSection } from "../components/admin/AdminUsersSection"
-import { AdminDropsSection } from "../components/admin/AdminDropsSection"
+import { AdminCategoriesSection } from "../components/admin/AdminCategoriesSection"
+import { AdminCollectionsSection } from "../components/admin/AdminCollectionsSection"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { normalizeProductFormStateForEdit } from "../lib/admin-product-edit.mjs"
 import { parseMidBannerSettings, parseTopBannerSettings } from "../lib/banner-settings.mjs"
 import { resolveTrendingProductIds } from "../lib/trending-products.mjs"
-import { AdminCollection, ProductManualBadge, ShopDrop, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
+import { AdminCollection, ProductManualBadge, ShopOrder, ShopProduct, ShopProductVariant, ShopReview, ShopSettings, ProductStatus } from "../types"
 
 type Coupon = {
   id: number
@@ -85,7 +86,6 @@ type ProductFormState = {
   category: string
   tags: string
   collectionIds: number[]
-  dropId: number | null
   manualBadges: ProductManualBadge[]
   isCustomizable: boolean
   featured: boolean
@@ -121,19 +121,11 @@ type CollectionFormState = {
   title: string
   slug: string
   description: string
-  active: boolean
-}
-
-type DropFormState = {
-  title: string
-  slug: string
-  shortDescription: string
-  description: string
   coverImageUrl: string
-  status: ShopDrop["status"]
+  promoText: string
+  status: NonNullable<AdminCollection["status"]>
   launchAt: string
-  visible: boolean
-  label: string
+  active: boolean
   productIds: number[]
 }
 
@@ -292,7 +284,6 @@ const emptyProductForm = (): ProductFormState => ({
   category: "",
   tags: "",
   collectionIds: [],
-  dropId: null,
   manualBadges: [],
   isCustomizable: false,
   featured: false,
@@ -328,19 +319,11 @@ const emptyCollectionForm = (): CollectionFormState => ({
   title: "",
   slug: "",
   description: "",
-  active: true,
-})
-
-const emptyDropForm = (): DropFormState => ({
-  title: "",
-  slug: "",
-  shortDescription: "",
-  description: "",
   coverImageUrl: "",
+  promoText: "",
   status: "draft",
   launchAt: "",
-  visible: false,
-  label: "Nuovo drop",
+  active: true,
   productIds: [],
 })
 
@@ -608,7 +591,6 @@ function buildProductPayloadFromFormState(productForm: ProductFormState) {
     category: productForm.category,
     tags: productForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
     collectionIds: productForm.collectionIds,
-    dropId: productForm.dropId,
     manualBadges: productForm.manualBadges,
     isCustomizable: productForm.isCustomizable,
     featured: productForm.featured,
@@ -698,7 +680,6 @@ export function ShopAdminPage() {
   const [searchParams] = useSearchParams()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
-  const [drops, setDrops] = useState<ShopDrop[]>([])
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [archivedReviews, setArchivedReviews] = useState<AdminReview[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
@@ -714,7 +695,7 @@ export function ShopAdminPage() {
   const [categories, setCategories] = useState<string[]>([])
   const [settings, setSettings] = useState<SettingEntry[]>([])
   const [shippingCostInput, setShippingCostInput] = useState("9")
-  const [tab, setTab] = useState<"prodotti" | "drop" | "homepage" | "banner" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti">("prodotti")
+  const [tab, setTab] = useState<"prodotti" | "collezioni" | "categorie" | "homepage" | "banner" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti">("prodotti")
   const [homepagePopularCategories, setHomepagePopularCategories] = useState<HomepagePopularCategory[]>(defaultHomepagePopularCategories)
   const [homepageShowcases, setHomepageShowcases] = useState<HomepageShowcase[]>(defaultHomepageShowcases)
   const [trendingProductIds, setTrendingProductIds] = useState<number[]>([])
@@ -744,10 +725,8 @@ export function ShopAdminPage() {
   const [renamedCategoryValue, setRenamedCategoryValue] = useState("")
   const [collectionForm, setCollectionForm] = useState<CollectionFormState>(emptyCollectionForm)
   const [editingCollectionId, setEditingCollectionId] = useState<number | null>(null)
-  const [dropForm, setDropForm] = useState<DropFormState>(emptyDropForm)
-  const [editingDropId, setEditingDropId] = useState<number | null>(null)
-  const [dropCoverFiles, setDropCoverFiles] = useState<File[]>([])
-  const [dropCoverPreviewUrl, setDropCoverPreviewUrl] = useState("")
+  const [collectionCoverFiles, setCollectionCoverFiles] = useState<File[]>([])
+  const [collectionCoverPreviewUrl, setCollectionCoverPreviewUrl] = useState("")
 
   const [couponForm, setCouponForm] = useState<CouponFormState>(emptyCouponForm)
   const [editingCouponId, setEditingCouponId] = useState<number | null>(null)
@@ -804,7 +783,8 @@ export function ShopAdminPage() {
       nextTab === "homepage" ||
       nextTab === "tendenza" ||
       nextTab === "prodotti" ||
-      nextTab === "drop" ||
+      nextTab === "collezioni" ||
+      nextTab === "categorie" ||
       nextTab === "recensioni" ||
       nextTab === "ordini" ||
       nextTab === "archivio" ||
@@ -833,9 +813,9 @@ export function ShopAdminPage() {
 
   useEffect(() => {
     return () => {
-      if (dropCoverPreviewUrl) URL.revokeObjectURL(dropCoverPreviewUrl)
+      if (collectionCoverPreviewUrl) URL.revokeObjectURL(collectionCoverPreviewUrl)
     }
-  }, [dropCoverPreviewUrl])
+  }, [collectionCoverPreviewUrl])
 
   useEffect(() => {
     if (!message && !error) return
@@ -881,7 +861,7 @@ export function ShopAdminPage() {
   }
 
   async function refresh() {
-    const [, allProductsData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData, collectionsData, dropsData, archivedReviewData, archivedOrderData] = await Promise.all([
+    const [, allProductsData, reviewData, orderData, usersData, analyticsData, couponData, ruleData, categoryData, settingsData, runtimeData, collectionsData, archivedReviewData, archivedOrderData] = await Promise.all([
       refreshProducts(),
       apiFetch<ShopProduct[]>("/admin/products"),
       apiFetch<AdminReview[]>("/admin/reviews"),
@@ -894,7 +874,6 @@ export function ShopAdminPage() {
       apiFetch<SettingEntry[]>("/admin/settings"),
       apiFetch<AdminRuntimeStatus>("/admin/runtime-status"),
       apiFetch<AdminCollection[]>("/admin/collections"),
-      apiFetch<ShopDrop[]>("/admin/drops"),
       apiFetch<AdminReview[]>("/admin/archive/reviews"),
       apiFetch<ShopOrder[]>("/admin/archive/orders"),
     ])
@@ -913,7 +892,6 @@ export function ShopAdminPage() {
     setSettings(settingsData)
     setRuntimeStatus(runtimeData)
     setCollections(collectionsData)
-    setDrops(dropsData)
   }
 
   function clearFeedback() {
@@ -1069,15 +1047,15 @@ export function ShopAdminPage() {
     return data.files[0]?.url || ""
   }
 
-  async function uploadDropCover() {
-    if (!dropCoverFiles.length) return dropForm.coverImageUrl
+  async function uploadCollectionCover() {
+    if (!collectionCoverFiles.length) return collectionForm.coverImageUrl
     const formData = new FormData()
-    dropCoverFiles.forEach((file) => formData.append("images", file))
+    collectionCoverFiles.forEach((file) => formData.append("images", file))
     const data = await apiFetch<{ files: { url: string }[] }>("/admin/uploads", {
       method: "POST",
       body: formData,
     })
-    return data.files[0]?.url || dropForm.coverImageUrl
+    return data.files[0]?.url || collectionForm.coverImageUrl
   }
 
   async function saveProduct(event: FormEvent) {
@@ -1256,28 +1234,53 @@ export function ShopAdminPage() {
   function startEditCollection(collection: AdminCollection) {
     clearFeedback()
     setEditingCollectionId(collection.id)
+    if (collectionCoverPreviewUrl) URL.revokeObjectURL(collectionCoverPreviewUrl)
+    setCollectionCoverPreviewUrl("")
+    setCollectionCoverFiles([])
     setCollectionForm({
       title: collection.title,
       slug: collection.slug,
       description: collection.description || "",
+      coverImageUrl: collection.coverImageUrl || "",
+      promoText: collection.promoText || "",
+      status: collection.status || "live",
+      launchAt: toDatetimeLocal(collection.launchAt),
       active: collection.active,
+      productIds: (collection.products || []).map((product) => product.id),
     })
   }
 
   function resetCollectionForm() {
     setEditingCollectionId(null)
     setCollectionForm(emptyCollectionForm())
+    setCollectionCoverFiles([])
+    if (collectionCoverPreviewUrl) URL.revokeObjectURL(collectionCoverPreviewUrl)
+    setCollectionCoverPreviewUrl("")
+  }
+
+  function handleCollectionCoverFileChange(files: FileList | null) {
+    const file = files?.[0]
+    if (!file) return
+    if (collectionCoverPreviewUrl) URL.revokeObjectURL(collectionCoverPreviewUrl)
+    setCollectionCoverFiles([file])
+    setCollectionCoverPreviewUrl(URL.createObjectURL(file))
   }
 
   async function saveCollection(event: FormEvent) {
     event.preventDefault()
     clearFeedback()
     try {
+      const coverImageUrl = await uploadCollectionCover()
       const payload = {
         title: collectionForm.title,
         slug: collectionForm.slug || undefined,
         description: collectionForm.description || null,
+        coverImageUrl: coverImageUrl || null,
+        promoText: collectionForm.promoText || null,
+        status: collectionForm.status,
+        launchAt: collectionForm.launchAt || null,
         active: collectionForm.active,
+        productIds: collectionForm.productIds,
       }
 
       if (editingCollectionId) {
@@ -1314,90 +1317,6 @@ export function ShopAdminPage() {
       setMessage("Collezione eliminata correttamente.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante l'eliminazione della collezione.")
-    }
-  }
-
-  function startEditDrop(drop: ShopDrop) {
-    clearFeedback()
-    setEditingDropId(drop.id)
-    if (dropCoverPreviewUrl) URL.revokeObjectURL(dropCoverPreviewUrl)
-    setDropCoverPreviewUrl("")
-    setDropCoverFiles([])
-    setDropForm({
-      title: drop.title,
-      slug: drop.slug,
-      shortDescription: drop.shortDescription || "",
-      description: drop.description || "",
-      coverImageUrl: drop.coverImageUrl || "",
-      status: drop.status,
-      launchAt: toDatetimeLocal(drop.launchAt),
-      visible: Boolean(drop.visible),
-      label: drop.label || "",
-      productIds: (drop.products || []).map((product) => product.id),
-    })
-  }
-
-  function resetDropForm() {
-    setEditingDropId(null)
-    setDropForm(emptyDropForm())
-    setDropCoverFiles([])
-    if (dropCoverPreviewUrl) URL.revokeObjectURL(dropCoverPreviewUrl)
-    setDropCoverPreviewUrl("")
-  }
-
-  function handleDropCoverFileChange(files: FileList | null) {
-    const file = files?.[0]
-    if (!file) return
-    if (dropCoverPreviewUrl) URL.revokeObjectURL(dropCoverPreviewUrl)
-    setDropCoverFiles([file])
-    setDropCoverPreviewUrl(URL.createObjectURL(file))
-  }
-
-  async function saveDrop(event: FormEvent) {
-    event.preventDefault()
-    clearFeedback()
-    try {
-      const coverImageUrl = await uploadDropCover()
-      const payload = {
-        ...dropForm,
-        coverImageUrl: coverImageUrl || null,
-        slug: dropForm.slug || undefined,
-        shortDescription: dropForm.shortDescription || null,
-        description: dropForm.description || null,
-        launchAt: dropForm.launchAt || null,
-        label: dropForm.label || null,
-      }
-
-      if (editingDropId) {
-        await apiFetch(`/admin/drops/${editingDropId}`, {
-          method: "PUT",
-          body: JSON.stringify(payload),
-        })
-        setMessage("Drop aggiornato correttamente.")
-      } else {
-        await apiFetch("/admin/drops", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        })
-        setMessage("Drop creato correttamente.")
-      }
-
-      resetDropForm()
-      await refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante il salvataggio del drop.")
-    }
-  }
-
-  async function deleteDrop(dropId: number) {
-    clearFeedback()
-    try {
-      await apiFetch(`/admin/drops/${dropId}`, { method: "DELETE" })
-      if (editingDropId === dropId) resetDropForm()
-      await refresh()
-      setMessage("Drop eliminato correttamente.")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante l'eliminazione del drop.")
     }
   }
 
@@ -1741,7 +1660,8 @@ export function ShopAdminPage() {
       <div className="flex flex-wrap gap-3">
         {[
           ["prodotti", "Prodotti"],
-          ["drop", "Drop"],
+          ["collezioni", "Collezioni"],
+          ["categorie", "Categorie"],
           ["homepage", "Homepage"],
           ["banner", "Banner"],
           ["tendenza", "Tendenza"],
@@ -1755,7 +1675,7 @@ export function ShopAdminPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setTab(key as "prodotti" | "drop" | "homepage" | "banner" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti")}
+            onClick={() => setTab(key as "prodotti" | "collezioni" | "categorie" | "homepage" | "banner" | "tendenza" | "recensioni" | "ordini" | "archivio" | "utenti" | "data" | "sconti")}
             className={getButtonClassName({ variant: tab === key ? "cart" : "profile", size: "sm" })}
           >
             {label}
@@ -1775,7 +1695,6 @@ export function ShopAdminPage() {
           productForm={productForm}
           categories={categories}
           collections={collections}
-          drops={drops}
           productImages={productImages}
           productSearch={productSearch}
           productCategoryFilter={productCategoryFilter}
@@ -1834,19 +1753,37 @@ export function ShopAdminPage() {
         />
       ) : null}
 
-      {tab === "drop" ? (
-        <AdminDropsSection
-          drops={drops}
+      {tab === "collezioni" ? (
+        <AdminCollectionsSection
+          collections={collections}
           products={allProductsForTrending}
-          dropForm={dropForm}
-          editingDropId={editingDropId}
-          coverPreviewUrl={dropCoverPreviewUrl}
-          onDropFormChange={setDropForm}
-          onCoverFileChange={handleDropCoverFileChange}
-          onSaveDrop={saveDrop}
-          onResetDropForm={resetDropForm}
-          onStartEditDrop={startEditDrop}
-          onDeleteDrop={deleteDrop}
+          collectionForm={collectionForm}
+          editingCollectionId={editingCollectionId}
+          coverPreviewUrl={collectionCoverPreviewUrl}
+          onCollectionFormChange={setCollectionForm}
+          onCoverFileChange={handleCollectionCoverFileChange}
+          onSaveCollection={saveCollection}
+          onResetCollectionForm={resetCollectionForm}
+          onStartEditCollection={startEditCollection}
+          onDeleteCollection={deleteCollection}
+        />
+      ) : null}
+
+      {tab === "categorie" ? (
+        <AdminCategoriesSection
+          categories={categories}
+          newCategoryName={newCategoryName}
+          renamingCategory={renamingCategory}
+          renamedCategoryValue={renamedCategoryValue}
+          onStartRenameCategory={(category) => {
+            setRenamingCategory(category)
+            setRenamedCategoryValue(category)
+          }}
+          onRenamedCategoryValueChange={setRenamedCategoryValue}
+          onRenameCategory={renameCategory}
+          onDeleteCategory={deleteCategory}
+          onNewCategoryNameChange={setNewCategoryName}
+          onCreateCategory={createCategory}
         />
       ) : null}
 

@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react"
 
 import { Button } from "../../../components/Button"
-import { AdminCollection, ProductManualBadge, ProductStatus, ShopDrop, ShopProduct } from "../../types"
+import { AdminCollection, ProductManualBadge, ProductStatus, ShopProduct } from "../../types"
 import { ProductMediaManager } from "./ProductMediaManager"
 
 type ProductVariantFormState = {
@@ -37,7 +37,6 @@ type ProductFormState = {
   category: string
   tags: string
   collectionIds: number[]
-  dropId: number | null
   manualBadges: ProductManualBadge[]
   isCustomizable: boolean
   featured: boolean
@@ -56,7 +55,6 @@ type ProductFormCardProps = {
   productForm: ProductFormState
   categories: string[]
   collections: AdminCollection[]
-  drops: ShopDrop[]
   productImages: string[]
   products: ShopProduct[]
   onSubmit: (event: FormEvent) => void
@@ -108,7 +106,6 @@ export function ProductFormCard({
   productForm,
   categories,
   collections,
-  drops,
   productImages,
   products,
   onSubmit,
@@ -121,7 +118,6 @@ export function ProductFormCard({
   const safeVariants = Array.isArray(productForm.variants) ? productForm.variants : []
   const safeManualBadges = Array.isArray(productForm.manualBadges) ? productForm.manualBadges : []
   const safeCollectionIds = Array.isArray(productForm.collectionIds) ? productForm.collectionIds : []
-  const canAssignDrop = productForm.status === "draft" || Boolean(productForm.dropId)
   const [variantPickerOpen, setVariantPickerOpen] = useState(false)
   const mainSizeRows = safeVariants.filter((variant) => !variant.variantProductId || variant.variantProductId === editingProductId)
   const linkedRows = safeVariants.filter((variant) => variant.variantProductId && variant.variantProductId !== editingProductId)
@@ -533,28 +529,6 @@ export function ProductFormCard({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 p-4">
-          <div className="mb-3">
-            <p className="text-sm font-medium text-white">Appartenenza drop</p>
-            <p className="mt-1 text-xs text-white/55">Collega il poster a un lancio coordinato. Le collezioni restano separate.</p>
-          </div>
-          <select
-            className="shop-select"
-            value={productForm.dropId || ""}
-            disabled={!canAssignDrop}
-            onChange={(event) => onChange({ ...productForm, dropId: event.target.value ? Number(event.target.value) : null })}
-          >
-            <option value="">Nessun drop assegnato</option>
-            {drops.map((drop) => (
-              <option key={drop.id} value={drop.id}>
-                {drop.title} · {drop.status}
-              </option>
-            ))}
-          </select>
-          {!canAssignDrop ? (
-            <p className="mt-2 text-xs text-white/45">Solo i prodotti in bozza possono essere assegnati a un drop.</p>
-          ) : null}
-        </div>
       </Section>
 
       {!isMultiEdit ? (

@@ -7,7 +7,7 @@ import { z } from "zod"
 import { env } from "../config/env.mjs"
 import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
-import { ensureUniqueSlug, normalizeSku, normalizeTagNames, productRelationInclude, resolveDueDropLaunches, serializeDropSummary, serializeTaxonomyRelations, slugifyCatalogText, syncProductCollections, syncProductTags } from "../lib/catalog-taxonomy.mjs"
+import { ensureUniqueSlug, normalizeSku, normalizeTagNames, productRelationInclude, resolveDueCollectionLaunches, serializeTaxonomyRelations, slugifyCatalogText, syncCollectionProducts, syncProductCollections, syncProductTags } from "../lib/catalog-taxonomy.mjs"
 import { getPersistenceStatus } from "../lib/persistence-status.mjs"
 import { buildVisibleProductBadges, parseManualBadges, sanitizeManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
@@ -110,23 +110,30 @@ function serializeAdminProduct(product) {
     hiddenAsStandalone: Boolean(product.hiddenAsStandalone),
     badges: buildVisibleProductBadges(product),
     ...serializeTaxonomyRelations(product),
-    drop: serializeDropSummary(product.drop),
-    dropId: product.dropId ?? null,
-    dropPosition: product.dropPosition ?? 0,
     stockStatus: getProductStockStatus(product),
     stockLabel: getProductStockLabel(product),
   }
 }
 
-function serializeAdminDrop(drop) {
+function serializeAdminCollection(collection) {
   return {
-    ...serializeDropSummary(drop),
-    _count: drop._count || { products: Array.isArray(drop.products) ? drop.products.length : 0 },
-    products: Array.isArray(drop.products)
-      ? drop.products
+    id: collection.id,
+    title: collection.title,
+    slug: collection.slug,
+    description: collection.description || "",
+    coverImageUrl: collection.coverImageUrl || "",
+    promoText: collection.promoText || "",
+    status: collection.status || (collection.active ? "live" : "draft"),
+    launchAt: collection.launchAt ? collection.launchAt.toISOString() : null,
+    active: Boolean(collection.active),
+    createdAt: collection.createdAt ? collection.createdAt.toISOString() : undefined,
+    updatedAt: collection.updatedAt ? collection.updatedAt.toISOString() : undefined,
+    _count: collection._count || { products: Array.isArray(collection.products) ? collection.products.length : 0 },
+    products: Array.isArray(collection.products)
+      ? collection.products
           .slice()
-          .sort((a, b) => (a.dropPosition || 0) - (b.dropPosition || 0) || a.title.localeCompare(b.title, "it"))
-          .map(serializeAdminProduct)
+          .sort((a, b) => (a.position || 0) - (b.position || 0))
+          .map((entry) => serializeAdminProduct(entry.product))
       : [],
   }
 }
@@ -284,10 +291,6 @@ async function ensureUniqueProductSlug(baseValue, excludeId) {
 
 async function ensureUniqueCollectionSlug(baseValue, excludeId) {
   return ensureUniqueSlug("collection", baseValue, excludeId)
-}
-
-async function ensureUniqueDropSlug(baseValue, excludeId) {
-  return ensureUniqueSlug("drop", baseValue, excludeId)
 }
 
 async function ensureUniqueSku(value, excludeId) {
@@ -484,28 +487,19 @@ const productSchema = z.object({
     )
     .default([]),
   featured: z.boolean().default(false),
-  dropId: z.number().int().positive().optional().nullable(),
   stock: z.number().int().min(0).default(0),
   lowStockThreshold: z.number().int().min(0).default(5),
 })
 
 const collectionSchema = z.object({
-  title: z.string().min(1),
-  slug: z.string().optional(),
-  description: z.string().optional().nullable(),
-  active: z.boolean().default(true),
-})
-
-const dropSchema = z.object({
   title: z.string().trim().min(1),
   slug: z.string().trim().optional().nullable(),
-  shortDescription: z.string().trim().optional().nullable(),
   description: z.string().trim().optional().nullable(),
   coverImageUrl: z.string().trim().optional().nullable(),
-  status: z.enum(["draft", "scheduled", "live", "archived"]).default("draft"),
+  promoText: z.string().trim().optional().nullable(),
+  status: z.enum(["draft", "scheduled", "live", "archived"]).default("live"),
   launchAt: z.string().optional().nullable(),
-  visible: z.boolean().default(false),
-  label: z.string().trim().optional().nullable(),
+  active: z.boolean().default(true),
   productIds: z.array(z.number().int().positive()).default([]),
 })
 
@@ -701,7 +695,7 @@ router.get(
 router.get(
   "/products",
   asyncHandler(async (_req, res) => {
-    await resolveDueDropLaunches(prisma)
+    await resolveDueCollectionLaunches(prisma)
     const querySchema = z.object({
       search: z.string().optional(),
       category: z.string().optional(),
@@ -771,17 +765,35 @@ router.get(
 router.get(
   "/collections",
   asyncHandler(async (_req, res) => {
+    await resolveDueCollectionLaunches(prisma)
     const collections = await prisma.collection.findMany({
-      orderBy: { title: "asc" },
+      orderBy: [{ launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
       include: {
+        products: {
+          orderBy: [{ position: "asc" }],
+          include: {
+            product: {
+              include: productRelationInclude(),
+            },
+          },
+        },
         _count: {
           select: { products: true },
         },
       },
     })
-    res.json(collections)
+    res.json(collections.map(serializeAdminCollection))
   })
 )
+
+function parseCollectionLaunchAt(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    throw new HttpError(400, "Data lancio collezione non valida")
+  }
+  return date
+}
 
 router.post(
   "/collections",
@@ -793,10 +805,25 @@ router.post(
         title: body.title.trim(),
         slug,
         description: body.description?.trim() || null,
+        coverImageUrl: body.coverImageUrl || null,
+        promoText: body.promoText || null,
+        status: body.status,
+        launchAt: parseCollectionLaunchAt(body.launchAt),
         active: body.active,
       },
     })
-    res.status(201).json(collection)
+    await syncCollectionProducts(collection.id, body.productIds)
+    if (body.status === "live") {
+      await resolveDueCollectionLaunches(prisma)
+    }
+    const hydrated = await prisma.collection.findUnique({
+      where: { id: collection.id },
+      include: {
+        products: { orderBy: [{ position: "asc" }], include: { product: { include: productRelationInclude() } } },
+        _count: { select: { products: true } },
+      },
+    })
+    res.status(201).json(serializeAdminCollection(hydrated))
   })
 )
 
@@ -820,10 +847,25 @@ router.put(
         title: body.title.trim(),
         slug,
         description: body.description?.trim() || null,
+        coverImageUrl: body.coverImageUrl || null,
+        promoText: body.promoText || null,
+        status: body.status,
+        launchAt: parseCollectionLaunchAt(body.launchAt),
         active: body.active,
       },
     })
-    res.json(collection)
+    await syncCollectionProducts(collection.id, body.productIds)
+    if (body.status === "live") {
+      await resolveDueCollectionLaunches(prisma)
+    }
+    const hydrated = await prisma.collection.findUnique({
+      where: { id: collection.id },
+      include: {
+        products: { orderBy: [{ position: "asc" }], include: { product: { include: productRelationInclude() } } },
+        _count: { select: { products: true } },
+      },
+    })
+    res.json(serializeAdminCollection(hydrated))
   })
 )
 
@@ -832,218 +874,6 @@ router.delete(
   asyncHandler(async (req, res) => {
     const collectionId = Number(req.params.id)
     await prisma.collection.delete({ where: { id: collectionId } })
-    res.status(204).send()
-  })
-)
-
-function parseDropLaunchAt(value) {
-  if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    throw new HttpError(400, "Data lancio drop non valida")
-  }
-  return date
-}
-
-async function ensureDropExists(dropId) {
-  if (!dropId) return null
-  const drop = await prisma.drop.findUnique({ where: { id: dropId } })
-  if (!drop) {
-    throw new HttpError(400, "Drop non valido")
-  }
-  return drop
-}
-
-async function ensureProductCanJoinDrop(product, dropId) {
-  if (!dropId) return
-  if (product.dropId === dropId) return
-  if (product.dropId && product.dropId !== dropId) {
-    throw new HttpError(400, "Questo prodotto e gia assegnato a un altro drop")
-  }
-  if (product.status !== "draft") {
-    throw new HttpError(400, "Solo i prodotti in bozza possono essere assegnati a un drop")
-  }
-}
-
-async function validateDraftProductsForDrop(productIds, dropId = null) {
-  const normalizedIds = Array.from(new Set(productIds.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0)))
-  if (!normalizedIds.length) return []
-
-  const products = await prisma.product.findMany({
-    where: { id: { in: normalizedIds } },
-    select: { id: true, title: true, status: true, dropId: true },
-  })
-  if (products.length !== normalizedIds.length) {
-    throw new HttpError(400, "Uno o piu prodotti del drop non sono validi")
-  }
-
-  products.forEach((product) => {
-    const alreadyInThisDrop = dropId && product.dropId === dropId
-    if (alreadyInThisDrop) return
-    if (product.dropId && product.dropId !== dropId) {
-      throw new HttpError(400, `Il prodotto "${product.title}" e gia assegnato a un altro drop`)
-    }
-    if (product.status !== "draft") {
-      throw new HttpError(400, `Il prodotto "${product.title}" non e in bozza e non puo essere aggiunto a un drop`)
-    }
-  })
-
-  return normalizedIds
-}
-
-async function publishLiveDropProducts(dropId) {
-  await prisma.product.updateMany({
-    where: { dropId, status: "draft" },
-    data: { status: "active" },
-  })
-}
-
-router.get(
-  "/drops",
-  asyncHandler(async (_req, res) => {
-    await resolveDueDropLaunches(prisma)
-    const drops = await prisma.drop.findMany({
-      orderBy: [{ launchAt: "desc" }, { createdAt: "desc" }],
-      include: {
-        products: {
-          orderBy: [{ dropPosition: "asc" }, { title: "asc" }],
-          include: productRelationInclude(),
-        },
-        _count: {
-          select: { products: true },
-        },
-      },
-    })
-    res.json(drops.map(serializeAdminDrop))
-  })
-)
-
-router.get(
-  "/drops/assignable-products",
-  asyncHandler(async (req, res) => {
-    await resolveDueDropLaunches(prisma)
-    const dropId = Number(req.query.dropId || 0) || null
-    const products = await prisma.product.findMany({
-      where: {
-        status: "draft",
-        OR: [
-          { dropId: null },
-          dropId ? { dropId } : undefined,
-        ].filter(Boolean),
-      },
-      orderBy: [{ createdAt: "desc" }, { title: "asc" }],
-      include: productRelationInclude(),
-    })
-    res.json(products.map(serializeAdminProduct))
-  })
-)
-
-router.post(
-  "/drops",
-  asyncHandler(async (req, res) => {
-    const body = dropSchema.parse(req.body)
-    const slug = await ensureUniqueDropSlug(body.slug || body.title)
-    const productIds = await validateDraftProductsForDrop(body.productIds)
-    const visible = body.status === "live" ? true : body.visible
-    const drop = await prisma.drop.create({
-      data: {
-        title: body.title,
-        slug,
-        shortDescription: body.shortDescription || null,
-        description: body.description || null,
-        coverImageUrl: body.coverImageUrl || null,
-        status: body.status,
-        launchAt: parseDropLaunchAt(body.launchAt),
-        visible,
-        label: body.label || null,
-      },
-    })
-
-    if (productIds.length) {
-      await prisma.$transaction(
-        productIds.map((productId, index) =>
-          prisma.product.update({
-            where: { id: productId },
-            data: { dropId: drop.id, dropPosition: index },
-          }),
-        ),
-      )
-    }
-    if (body.status === "live") {
-      await publishLiveDropProducts(drop.id)
-    }
-
-    const hydrated = await prisma.drop.findUnique({
-      where: { id: drop.id },
-      include: {
-        products: { orderBy: [{ dropPosition: "asc" }, { title: "asc" }], include: productRelationInclude() },
-        _count: { select: { products: true } },
-      },
-    })
-    res.status(201).json(serializeAdminDrop(hydrated))
-  })
-)
-
-router.put(
-  "/drops/:id",
-  asyncHandler(async (req, res) => {
-    const body = dropSchema.parse(req.body)
-    const dropId = Number(req.params.id)
-    const existing = await prisma.drop.findUnique({ where: { id: dropId } })
-    if (!existing) {
-      throw new HttpError(404, "Drop non trovato")
-    }
-
-    const slug = await ensureUniqueDropSlug(body.slug || body.title, dropId)
-    const productIds = await validateDraftProductsForDrop(body.productIds, dropId)
-    const visible = body.status === "live" ? true : body.visible
-    await prisma.$transaction(async (tx) => {
-      await tx.drop.update({
-        where: { id: dropId },
-        data: {
-          title: body.title,
-          slug,
-          shortDescription: body.shortDescription || null,
-          description: body.description || null,
-          coverImageUrl: body.coverImageUrl || null,
-          status: body.status,
-          launchAt: parseDropLaunchAt(body.launchAt),
-          visible,
-          label: body.label || null,
-        },
-      })
-      await tx.product.updateMany({
-        where: { dropId, id: { notIn: productIds.length ? productIds : [0] } },
-        data: { dropId: null, dropPosition: 0 },
-      })
-      for (const [index, productId] of productIds.entries()) {
-        await tx.product.update({
-          where: { id: productId },
-          data: { dropId, dropPosition: index },
-        })
-      }
-    })
-    if (body.status === "live") {
-      await publishLiveDropProducts(dropId)
-    }
-
-    const hydrated = await prisma.drop.findUnique({
-      where: { id: dropId },
-      include: {
-        products: { orderBy: [{ dropPosition: "asc" }, { title: "asc" }], include: productRelationInclude() },
-        _count: { select: { products: true } },
-      },
-    })
-    res.json(serializeAdminDrop(hydrated))
-  })
-)
-
-router.delete(
-  "/drops/:id",
-  asyncHandler(async (req, res) => {
-    const dropId = Number(req.params.id)
-    await prisma.product.updateMany({ where: { dropId }, data: { dropId: null, dropPosition: 0 } })
-    await prisma.drop.delete({ where: { id: dropId } })
     res.status(204).send()
   })
 )
@@ -1089,8 +919,6 @@ router.post(
     const payload = resolveProductPayload(body)
     const slug = await ensureUniqueProductSlug(body.slug || body.title)
     const sku = await ensureUniqueSku(body.sku)
-    await ensureDropExists(body.dropId)
-    await ensureProductCanJoinDrop({ status: normalizeProductStatus(body.status), dropId: null }, body.dropId)
     await ensureFeaturedProductSlotAvailable(Boolean(body.featured))
     const product = await prisma.product.create({
       data: {
@@ -1100,8 +928,6 @@ router.post(
         status: normalizeProductStatus(body.status),
         isCustomizable: Boolean(body.isCustomizable),
         hiddenAsStandalone: false,
-        dropId: body.dropId ?? null,
-        dropPosition: 0,
         slug,
         imageUrls: JSON.stringify(body.imageUrls),
       },
@@ -1143,9 +969,6 @@ router.put(
     })
     await ensureFeaturedProductSlotAvailable(Boolean(body.featured), productId, Boolean(existingProduct.featured))
     const sku = await ensureUniqueSku(body.sku, productId)
-    const nextDropId = body.dropId === undefined ? existingProduct.dropId : body.dropId
-    await ensureDropExists(nextDropId)
-    await ensureProductCanJoinDrop(existingProduct, nextDropId)
     const slug = body.slug
       ? await ensureUniqueProductSlug(body.slug, productId)
       : existingProduct.slug
@@ -1157,7 +980,6 @@ router.put(
         lowStockThreshold: body.lowStockThreshold,
         status: normalizeProductStatus(body.status),
         isCustomizable: Boolean(body.isCustomizable),
-        dropId: nextDropId ?? null,
         slug,
         imageUrls: JSON.stringify(body.imageUrls),
       },

@@ -2,7 +2,7 @@ import { Router } from "express"
 import { z } from "zod"
 
 import { asyncHandler } from "../lib/http.mjs"
-import { isDropPublic, isProductVisibleWithDrop, productRelationInclude, resolveDueDropLaunches, serializeDropSummary, serializeTaxonomyRelations, slugifyCatalogText } from "../lib/catalog-taxonomy.mjs"
+import { isCollectionPublic, productRelationInclude, resolveDueCollectionLaunches, serializeTaxonomyRelations, slugifyCatalogText } from "../lib/catalog-taxonomy.mjs"
 import { buildVisibleProductBadges, parseManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
@@ -126,8 +126,6 @@ async function serializePublicProduct(product, options = {}) {
     activeVariantEditionName: defaultVariant?.editionName || null,
     manualBadges: parseManualBadges(product.manualBadges),
     hiddenAsStandalone: Boolean(product.hiddenAsStandalone),
-    drop: serializeDropSummary(product.drop),
-    dropId: product.dropId ?? null,
     isPurchasable: isProductPurchasable(product),
     lowStockThreshold: product.lowStockThreshold,
     stockStatus: getProductStockStatus(product),
@@ -148,6 +146,7 @@ function buildPublicProductsWhere(filters) {
   const tag = String(filters.tag || "").trim()
   const collection = String(filters.collection || filters.collectionSlug || "").trim()
   const conditions = []
+  const now = new Date()
 
   if (search) {
     conditions.push({
@@ -218,6 +217,10 @@ function buildPublicProductsWhere(filters) {
           collection: {
             slug: collection,
             active: true,
+            OR: [
+              { status: "live" },
+              { status: "scheduled", launchAt: { lte: now } },
+            ],
           },
         },
       },
@@ -252,13 +255,6 @@ function buildPublicProductsWhere(filters) {
   }
 
   conditions.push({ hiddenAsStandalone: false })
-  conditions.push({
-    OR: [
-      { dropId: null },
-      { drop: { is: { visible: true, status: "live" } } },
-      { drop: { is: { visible: true, status: "scheduled", launchAt: { lte: new Date() } } } },
-    ],
-  })
 
   return conditions.length ? { AND: conditions } : {}
 }
@@ -354,7 +350,7 @@ router.get(
 router.get(
   "/products",
   asyncHandler(async (req, res) => {
-    await resolveDueDropLaunches(prisma)
+    await resolveDueCollectionLaunches(prisma)
     const page = Math.max(1, Number(req.query.page || 1))
     const pageSize = Math.min(48, Math.max(1, Number(req.query.pageSize || 12)))
     const sort = String(req.query.sort || "manual")
@@ -388,16 +384,12 @@ router.get(
 router.get(
   "/products/featured",
   asyncHandler(async (_req, res) => {
-    await resolveDueDropLaunches(prisma)
+    await resolveDueCollectionLaunches(prisma)
     const products = await loadProductsWithStoredOrder({
       where: {
         featured: true,
         hiddenAsStandalone: false,
         status: { in: ["active", "out_of_stock"] },
-        OR: [
-          { dropId: null },
-          { drop: { is: { visible: true, status: "live" } } },
-        ],
       },
       orderBy: { createdAt: "desc" },
       include: productRelationInclude(),
@@ -410,18 +402,18 @@ router.get(
 router.get(
   "/products/:slug",
   asyncHandler(async (req, res) => {
-    await resolveDueDropLaunches(prisma)
+    await resolveDueCollectionLaunches(prisma)
     const requestedProduct = await prisma.product.findUnique({
       where: { slug: req.params.slug },
       include: productRelationInclude(),
     })
 
-    if (!requestedProduct || !isPublicProductStatus(requestedProduct.status) || !isProductVisibleWithDrop(requestedProduct)) {
+    if (!requestedProduct || !isPublicProductStatus(requestedProduct.status)) {
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 
     const groupProduct = await findVariantGroupParentForProduct(requestedProduct)
-    if (!groupProduct || !isPublicProductStatus(groupProduct.status) || !isProductVisibleWithDrop(groupProduct)) {
+    if (!groupProduct || !isPublicProductStatus(groupProduct.status)) {
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 
@@ -436,7 +428,7 @@ router.get(
 router.get(
   "/products/:slug/related",
   asyncHandler(async (req, res) => {
-    await resolveDueDropLaunches(prisma)
+    await resolveDueCollectionLaunches(prisma)
     const product = await prisma.product.findUnique({
       where: { slug: req.params.slug },
       include: productRelationInclude(),
@@ -454,11 +446,6 @@ router.get(
         id: { not: product.id },
         hiddenAsStandalone: false,
         status: { in: ["active", "out_of_stock"] },
-        OR: [
-          { dropId: null },
-          { drop: { is: { visible: true, status: "live" } } },
-          { drop: { is: { visible: true, status: "scheduled", launchAt: { lte: new Date() } } } },
-        ],
         AND: [
           {
             OR: [
@@ -483,90 +470,54 @@ router.get(
 router.get(
   "/collections",
   asyncHandler(async (_req, res) => {
+    await resolveDueCollectionLaunches(prisma)
     const collections = await prisma.collection.findMany({
-      where: { active: true },
-      orderBy: { title: "asc" },
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
-    })
-    res.json(collections)
-  })
-)
-
-function serializePublicDrop(drop) {
-  return {
-    ...serializeDropSummary(drop),
-    products: Array.isArray(drop.products)
-      ? drop.products
-          .filter((product) => product.hiddenAsStandalone === false && isPublicProductStatus(product.status) && isProductVisibleWithDrop(product))
-          .sort((a, b) => (a.dropPosition || 0) - (b.dropPosition || 0) || a.title.localeCompare(b.title, "it"))
-      : [],
-  }
-}
-
-router.get(
-  "/drops",
-  asyncHandler(async (_req, res) => {
-    await resolveDueDropLaunches(prisma)
-    const drops = await prisma.drop.findMany({
       where: {
-        visible: true,
+        active: true,
         OR: [
           { status: "live" },
           { status: "scheduled", launchAt: { lte: new Date() } },
         ],
       },
-      orderBy: [{ launchAt: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
       include: {
         products: {
-          orderBy: [{ dropPosition: "asc" }, { title: "asc" }],
-          include: productRelationInclude(),
+          orderBy: [{ position: "asc" }],
+          include: {
+            product: {
+              include: productRelationInclude(),
+            },
+          },
+        },
+        _count: {
+          select: { products: true },
         },
       },
     })
-
     res.json(
       await Promise.all(
-        drops
-          .filter((drop) => isDropPublic(drop))
-          .map(async (drop) => {
-            const serialized = serializePublicDrop(drop)
-            return {
-              ...serialized,
-              products: await Promise.all(serialized.products.map(serializePublicProduct)),
-            }
-          }),
+        collections.filter((collection) => isCollectionPublic(collection)).map(async (collection) => ({
+          id: collection.id,
+          title: collection.title,
+          slug: collection.slug,
+          description: collection.description || "",
+          coverImageUrl: collection.coverImageUrl || "",
+          promoText: collection.promoText || "",
+          status: collection.status,
+          launchAt: collection.launchAt,
+          active: collection.active,
+          createdAt: collection.createdAt,
+          updatedAt: collection.updatedAt,
+          _count: collection._count,
+          products: await Promise.all(
+            (collection.products || [])
+              .map((entry) => entry.product)
+              .filter((product) => product && product.hiddenAsStandalone === false && isPublicProductStatus(product.status))
+              .map(serializePublicProduct),
+          ),
+        })),
       ),
     )
-  })
-)
-
-router.get(
-  "/drops/:slug",
-  asyncHandler(async (req, res) => {
-    await resolveDueDropLaunches(prisma)
-    const drop = await prisma.drop.findUnique({
-      where: { slug: req.params.slug },
-      include: {
-        products: {
-          orderBy: [{ dropPosition: "asc" }, { title: "asc" }],
-          include: productRelationInclude(),
-        },
-      },
-    })
-
-    if (!drop || !isDropPublic(drop)) {
-      return res.status(404).json({ message: "Drop non trovato" })
-    }
-
-    const serialized = serializePublicDrop(drop)
-    res.json({
-      ...serialized,
-      products: await Promise.all(serialized.products.map(serializePublicProduct)),
-    })
   })
 )
 

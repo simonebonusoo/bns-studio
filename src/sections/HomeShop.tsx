@@ -10,7 +10,7 @@ import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
 import { buildHomeReturnState, persistHomeReturnState } from "../shop/lib/home-return.mjs";
 import { orderTrendingProducts, resolveTrendingProductIds } from "../shop/lib/trending-products.mjs";
-import type { AdminCollection, ShopDrop, ShopProduct, ShopProductListResponse } from "../shop/types";
+import type { AdminCollection, ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
   title: string;
@@ -35,7 +35,6 @@ type HomeShopCache = {
   productTotal: number;
   settings: Record<string, string>;
   collections: AdminCollection[];
-  drops: ShopDrop[];
 };
 
 const HOME_SHOP_CACHE_KEY = "bns-shop-home-cache-v1";
@@ -429,34 +428,19 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
   return query ? `${pathname}?${query}` : pathname
 }
 
-function getDropSortTime(drop: ShopDrop) {
-  const launchTime = drop.launchAt ? new Date(drop.launchAt).getTime() : 0
+function getCollectionSortTime(collection: AdminCollection) {
+  const launchTime = collection.launchAt ? new Date(collection.launchAt).getTime() : 0
   if (Number.isFinite(launchTime) && launchTime > 0) return launchTime
-  const createdTime = drop.createdAt ? new Date(drop.createdAt).getTime() : 0
+  const createdTime = collection.createdAt ? new Date(collection.createdAt).getTime() : 0
   return Number.isFinite(createdTime) ? createdTime : 0
 }
 
-function getLatestPublicDrop(drops: ShopDrop[]) {
-  return [...drops]
-    .filter((drop) => drop.visible && drop.status === "live")
-    .sort((left, right) => getDropSortTime(right) - getDropSortTime(left))[0] || null
-}
-
-function getDropVisuals(drop: ShopDrop | null) {
-  if (!drop) return []
-  const productImages = (drop.products || [])
+function getCollectionImage(collection: AdminCollection, products: ShopProduct[], index: number) {
+  if (collection.coverImageUrl) return collection.coverImageUrl
+  const productImage = (collection.products || [])
     .flatMap((product) => [product.coverImageUrl, ...(product.imageUrls || [])])
-    .filter((image): image is string => Boolean(image))
-  return Array.from(new Set([drop.coverImageUrl, ...productImages].filter((image): image is string => Boolean(image)))).slice(0, 2)
-}
-
-function formatDropLaunch(value?: string | null) {
-  if (!value) return ""
-  return new Intl.DateTimeFormat("it-IT", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(value))
+    .find((image): image is string => Boolean(image))
+  return productImage || pickProductImageByCollection(products, collection.slug, index)
 }
 
 export function HomeShop() {
@@ -464,7 +448,7 @@ export function HomeShop() {
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [collections, setCollections] = useState<AdminCollection[]>([]);
-  const [drops, setDrops] = useState<ShopDrop[]>([]);
+  const [visibleCollectionCount, setVisibleCollectionCount] = useState(4);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading">("idle");
@@ -492,7 +476,6 @@ export function HomeShop() {
         productTotal: Number(parsed.productTotal || 0),
         settings: parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {},
         collections: Array.isArray(parsed.collections) ? parsed.collections : [],
-        drops: Array.isArray(parsed.drops) ? parsed.drops : [],
       };
     } catch {
       return null;
@@ -555,29 +538,25 @@ export function HomeShop() {
         setProductTotal(cachedContent.productTotal);
         setShopSettings(cachedContent.settings);
         setCollections(cachedContent.collections);
-        setDrops(cachedContent.drops);
       }
 
       try {
         setStatus("loading");
-        const [productData, settingsData, collectionsData, dropsData] = await Promise.all([
+        const [productData, settingsData, collectionsData] = await Promise.all([
           apiFetch<ShopProductListResponse>("/store/products?page=1&pageSize=100&sort=manual"),
           apiFetch<Record<string, string>>("/store/settings"),
           apiFetch<AdminCollection[]>("/store/collections"),
-          apiFetch<ShopDrop[]>("/store/drops"),
         ]);
         if (!cancelled) {
           setProducts(Array.isArray(productData?.items) ? productData.items : []);
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
           setCollections(Array.isArray(collectionsData) ? collectionsData : []);
-          setDrops(Array.isArray(dropsData) ? dropsData : []);
           writeHomeShopCache({
             products: Array.isArray(productData?.items) ? productData.items : [],
             productTotal: productData.pagination.total,
             settings: settingsData,
             collections: Array.isArray(collectionsData) ? collectionsData : [],
-            drops: Array.isArray(dropsData) ? dropsData : [],
           });
           setStatus("idle");
         }
@@ -588,7 +567,6 @@ export function HomeShop() {
             setProductTotal(0);
             setShopSettings({});
             setCollections([]);
-            setDrops([]);
           }
           setStatus("idle");
         }
@@ -647,12 +625,24 @@ export function HomeShop() {
     [products, showcases],
   )
 
+  const collectionCards = useMemo(
+    () =>
+      [...collections]
+        .filter((collection) => collection.active && (!collection.status || collection.status === "live"))
+        .sort((left, right) => getCollectionSortTime(right) - getCollectionSortTime(left) || left.title.localeCompare(right.title, "it"))
+        .map((collection, index) => ({
+          ...collection,
+          imageUrl: getCollectionImage(collection, products, index + 3),
+        })),
+    [collections, products],
+  )
+
+  const visibleCollectionCards = collectionCards.slice(0, visibleCollectionCount)
+  const canLoadMoreCollections = visibleCollectionCount < collectionCards.length
+
   const trendingProducts = useMemo(() => {
     return orderTrendingProducts(products, resolveTrendingProductIds(shopSettings.homepageTrendingProductIds, products))
   }, [products, shopSettings.homepageTrendingProductIds])
-
-  const latestDrop = useMemo(() => getLatestPublicDrop(drops), [drops])
-  const latestDropVisuals = useMemo(() => getDropVisuals(latestDrop), [latestDrop])
 
   const catalogPreviewProducts = useMemo(() => {
     const featuredProducts = (products ?? []).filter((product) => Boolean(product?.featured))
@@ -681,10 +671,9 @@ export function HomeShop() {
       writeHomeShopCache({
         products,
         productTotal,
-        settings: nextSettings,
-        collections,
-        drops,
-      })
+      settings: nextSettings,
+      collections,
+    })
       setTrustDraft(nextTrustSection)
       setEditingTrust(false)
       setTrustMessage("Sezione Fiducia salvata.")
@@ -707,74 +696,6 @@ export function HomeShop() {
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
       <Container className="space-y-20">
-        {latestDrop ? (
-          <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035]">
-            <div className="grid gap-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-              <div className="flex min-h-[28rem] flex-col justify-between gap-8 p-6 sm:p-8 lg:p-10">
-                <div className="space-y-5">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="shop-pill">Nuovo drop uscito</span>
-                    {latestDrop.launchAt ? (
-                      <span className="text-xs uppercase tracking-[0.22em] text-white/45">
-                        Online dal {formatDropLaunch(latestDrop.launchAt)}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="space-y-4">
-                    <h2 className="max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                      {latestDrop.title}
-                    </h2>
-                    {latestDrop.shortDescription || latestDrop.description ? (
-                      <p className="max-w-xl text-base leading-7 text-white/68">
-                        {latestDrop.shortDescription || latestDrop.description}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    variant="cart"
-                    size="sm"
-                    text="Visualizza drop completo"
-                    onClick={() => {
-                      rememberHomePosition()
-                      navigate(`/drop/${latestDrop.slug}`)
-                    }}
-                  >
-                    Visualizza drop completo
-                  </Button>
-                  {latestDrop.products?.length ? (
-                    <span className="text-sm text-white/50">
-                      {latestDrop.products.length} {latestDrop.products.length === 1 ? "poster" : "poster"} nel drop
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="relative min-h-[24rem] border-t border-white/10 lg:min-h-[32rem] lg:border-l lg:border-t-0">
-                {latestDropVisuals[0] ? (
-                  <img
-                    src={latestDropVisuals[0]}
-                    alt={latestDrop.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-white/[0.04]" />
-                )}
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.58),rgba(0,0,0,0.08)_48%,rgba(0,0,0,0.42))]" />
-                {latestDropVisuals[1] ? (
-                  <img
-                    src={latestDropVisuals[1]}
-                    alt=""
-                    className="absolute bottom-5 right-5 hidden h-40 w-32 rounded-[1.25rem] border border-white/18 object-cover shadow-2xl sm:block lg:h-52 lg:w-40"
-                  />
-                ) : null}
-              </div>
-            </div>
-          </section>
-        ) : null}
-
         <div className="space-y-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
@@ -905,18 +826,18 @@ export function HomeShop() {
                 variant="ghost"
                 size="sm"
                 className="self-start md:self-auto"
-                onClick={() => navigate("/shop/admin?tab=homepage&section=showcases")}
+                onClick={() => navigate("/shop/admin?tab=collezioni")}
               >
                 Modifica
               </Button>
             ) : null}
           </div>
 
-          {showcaseCards.length ? (
+          {visibleCollectionCards.length ? (
             <div className="space-y-6">
-              {(showcaseCards || []).map((showcase, index) => (
+              {visibleCollectionCards.map((collection, index) => (
                 <article
-                  key={showcase.title}
+                  key={collection.id}
                   className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03]"
                 >
                   <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
@@ -926,29 +847,33 @@ export function HomeShop() {
                       }`}
                     >
                       <div className="space-y-4">
-                        <p className="text-xs uppercase tracking-[0.32em] text-white/45">{showcase.eyebrow}</p>
+                        <p className="text-xs uppercase tracking-[0.32em] text-white/45">{collection.promoText ? "Nuova uscita" : "Collezione"}</p>
                         <div className="space-y-3">
                           <h3 className="max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                            {showcase.title}
+                            {collection.title}
                           </h3>
-                          <p className="max-w-xl text-base leading-7 text-white/68">{showcase.description}</p>
+                          {collection.promoText || collection.description ? (
+                            <p className="max-w-xl text-base leading-7 text-white/68">{collection.promoText || collection.description}</p>
+                          ) : null}
                         </div>
                       </div>
                       <div>
                         <Button
                           variant="cart"
                           size="sm"
-                          text={showcase.ctaLabel || "Esplora la collezione"}
+                          text="Esplora la collezione"
                           onClick={() => {
                             rememberHomePosition()
                             navigate(
-                              showcase.collectionSlug
-                                ? withCatalogContext(`/shop?collectionSlug=${encodeURIComponent(showcase.collectionSlug)}`, showcase.title, showcase.description)
-                                : withCatalogContext(showcase.href, showcase.title, showcase.description),
+                              withCatalogContext(
+                                `/shop?collectionSlug=${encodeURIComponent(collection.slug)}`,
+                                collection.title,
+                                collection.description || "",
+                              ),
                             )
                           }}
                         >
-                          {showcase.ctaLabel || "Esplora la collezione"}
+                          Esplora la collezione
                         </Button>
                       </div>
                     </div>
@@ -957,10 +882,10 @@ export function HomeShop() {
                         index % 2 === 1 ? "lg:order-1 lg:border-l-0 lg:border-r" : ""
                       }`}
                     >
-                      {showcase.imageUrl ? (
+                      {collection.imageUrl ? (
                         <img
-                          src={showcase.imageUrl}
-                          alt={showcase.title}
+                          src={collection.imageUrl}
+                          alt={collection.title}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -971,6 +896,13 @@ export function HomeShop() {
                   </div>
                 </article>
               ))}
+              {canLoadMoreCollections ? (
+                <div className="flex justify-center pt-2">
+                  <Button type="button" variant="profile" size="sm" onClick={() => setVisibleCollectionCount((current) => current + 3)}>
+                    Vedi ancora
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center text-sm text-white/55">

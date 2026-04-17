@@ -104,7 +104,37 @@ export async function syncProductCollections(productId, collectionIds = []) {
 
     if (normalizedIds.length) {
       await tx.productCollection.createMany({
-        data: normalizedIds.map((collectionId) => ({ productId, collectionId })),
+        data: normalizedIds.map((collectionId, position) => ({ productId, collectionId, position })),
+      })
+    }
+  })
+}
+
+export async function syncCollectionProducts(collectionId, productIds = []) {
+  const normalizedIds = Array.from(
+    new Set(
+      productIds
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value > 0),
+    ),
+  )
+
+  if (normalizedIds.length) {
+    const existingProducts = await prisma.product.findMany({
+      where: { id: { in: normalizedIds } },
+      select: { id: true },
+    })
+    if (existingProducts.length !== normalizedIds.length) {
+      throw new HttpError(400, "Uno o piu prodotti selezionati non sono validi")
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.productCollection.deleteMany({ where: { collectionId } })
+
+    if (normalizedIds.length) {
+      await tx.productCollection.createMany({
+        data: normalizedIds.map((productId, position) => ({ productId, collectionId, position })),
       })
     }
   })
@@ -121,11 +151,11 @@ export function productRelationInclude() {
       },
     },
     productCollections: {
+      orderBy: [{ position: "asc" }],
       include: {
         collection: true,
       },
     },
-    drop: true,
   }
 }
 
@@ -141,50 +171,59 @@ export function serializeTaxonomyRelations(product) {
     title: entry.collection.title,
     slug: entry.collection.slug,
     description: entry.collection.description || "",
+    coverImageUrl: entry.collection.coverImageUrl || "",
+    promoText: entry.collection.promoText || "",
+    status: entry.collection.status || (entry.collection.active ? "live" : "draft"),
+    launchAt: entry.collection.launchAt ? entry.collection.launchAt.toISOString() : null,
     active: entry.collection.active,
+    position: entry.position || 0,
   }))
 
   return { tags, collections }
 }
 
-export function isDropPublic(drop, now = new Date()) {
-  if (!drop || !drop.visible) return false
-  const status = String(drop.status || "draft").trim().toLowerCase()
+export function isCollectionPublic(collection, now = new Date()) {
+  if (!collection || collection.active === false) return false
+  const status = String(collection.status || "live").trim().toLowerCase()
   if (status === "live") return true
-  if (status === "scheduled" || status === "programmato") {
-    return Boolean(drop.launchAt && new Date(drop.launchAt).getTime() <= now.getTime())
+  if (status === "scheduled" || status === "programmata" || status === "programmato") {
+    return Boolean(collection.launchAt && new Date(collection.launchAt).getTime() <= now.getTime())
   }
   return false
 }
 
-export async function resolveDueDropLaunches(client = prisma, now = new Date()) {
-  const dueDrops = await client.drop.findMany({
+export async function resolveDueCollectionLaunches(client = prisma, now = new Date()) {
+  const dueCollections = await client.collection.findMany({
     where: {
-      visible: true,
+      active: true,
       status: "scheduled",
       launchAt: { lte: now },
     },
     select: { id: true },
   })
-  const dueDropIds = dueDrops.map((drop) => drop.id)
+  const dueCollectionIds = dueCollections.map((collection) => collection.id)
 
-  if (dueDropIds.length) {
-    await client.drop.updateMany({
-      where: { id: { in: dueDropIds } },
+  if (dueCollectionIds.length) {
+    await client.collection.updateMany({
+      where: { id: { in: dueCollectionIds } },
       data: { status: "live" },
     })
   }
 
-  const liveDrops = await client.drop.findMany({
+  const liveCollections = await client.collection.findMany({
     where: { status: "live" },
-    select: { id: true },
+    include: {
+      products: {
+        select: { productId: true },
+      },
+    },
   })
-  const liveDropIds = liveDrops.map((drop) => drop.id)
+  const liveProductIds = Array.from(new Set(liveCollections.flatMap((collection) => collection.products.map((entry) => entry.productId))))
 
-  if (liveDropIds.length) {
+  if (liveProductIds.length) {
     await client.product.updateMany({
       where: {
-        dropId: { in: liveDropIds },
+        id: { in: liveProductIds },
         status: "draft",
       },
       data: { status: "active" },
@@ -192,30 +231,7 @@ export async function resolveDueDropLaunches(client = prisma, now = new Date()) 
   }
 
   return {
-    launchedDropIds: dueDropIds,
-    liveDropIds,
-  }
-}
-
-export function isProductVisibleWithDrop(product, now = new Date()) {
-  if (!product?.dropId) return true
-  return isDropPublic(product.drop, now)
-}
-
-export function serializeDropSummary(drop) {
-  if (!drop) return null
-  return {
-    id: drop.id,
-    title: drop.title,
-    slug: drop.slug,
-    shortDescription: drop.shortDescription || "",
-    description: drop.description || "",
-    coverImageUrl: drop.coverImageUrl || "",
-    status: drop.status,
-    launchAt: drop.launchAt ? drop.launchAt.toISOString() : null,
-    visible: Boolean(drop.visible),
-    label: drop.label || "",
-    createdAt: drop.createdAt ? drop.createdAt.toISOString() : undefined,
-    updatedAt: drop.updatedAt ? drop.updatedAt.toISOString() : undefined,
+    launchedCollectionIds: dueCollectionIds,
+    liveProductIds,
   }
 }
