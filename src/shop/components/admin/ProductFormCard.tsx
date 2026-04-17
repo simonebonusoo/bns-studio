@@ -121,6 +121,7 @@ export function ProductFormCard({
   const safeVariants = Array.isArray(productForm.variants) ? productForm.variants : []
   const safeManualBadges = Array.isArray(productForm.manualBadges) ? productForm.manualBadges : []
   const safeCollectionIds = Array.isArray(productForm.collectionIds) ? productForm.collectionIds : []
+  const canAssignDrop = productForm.status === "draft" || Boolean(productForm.dropId)
   const [variantPickerOpen, setVariantPickerOpen] = useState(false)
   const mainSizeRows = safeVariants.filter((variant) => !variant.variantProductId || variant.variantProductId === editingProductId)
   const linkedRows = safeVariants.filter((variant) => variant.variantProductId && variant.variantProductId !== editingProductId)
@@ -540,6 +541,7 @@ export function ProductFormCard({
           <select
             className="shop-select"
             value={productForm.dropId || ""}
+            disabled={!canAssignDrop}
             onChange={(event) => onChange({ ...productForm, dropId: event.target.value ? Number(event.target.value) : null })}
           >
             <option value="">Nessun drop assegnato</option>
@@ -549,6 +551,9 @@ export function ProductFormCard({
               </option>
             ))}
           </select>
+          {!canAssignDrop ? (
+            <p className="mt-2 text-xs text-white/45">Solo i prodotti in bozza possono essere assegnati a un drop.</p>
+          ) : null}
         </div>
       </Section>
 

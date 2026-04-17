@@ -7,7 +7,7 @@ import { z } from "zod"
 import { env } from "../config/env.mjs"
 import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
-import { ensureUniqueSlug, normalizeSku, normalizeTagNames, productRelationInclude, serializeDropSummary, serializeTaxonomyRelations, slugifyCatalogText, syncProductCollections, syncProductTags } from "../lib/catalog-taxonomy.mjs"
+import { ensureUniqueSlug, normalizeSku, normalizeTagNames, productRelationInclude, resolveDueDropLaunches, serializeDropSummary, serializeTaxonomyRelations, slugifyCatalogText, syncProductCollections, syncProductTags } from "../lib/catalog-taxonomy.mjs"
 import { getPersistenceStatus } from "../lib/persistence-status.mjs"
 import { buildVisibleProductBadges, parseManualBadges, sanitizeManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
@@ -701,6 +701,7 @@ router.get(
 router.get(
   "/products",
   asyncHandler(async (_req, res) => {
+    await resolveDueDropLaunches(prisma)
     const querySchema = z.object({
       search: z.string().optional(),
       category: z.string().optional(),
@@ -853,9 +854,54 @@ async function ensureDropExists(dropId) {
   return drop
 }
 
+async function ensureProductCanJoinDrop(product, dropId) {
+  if (!dropId) return
+  if (product.dropId === dropId) return
+  if (product.dropId && product.dropId !== dropId) {
+    throw new HttpError(400, "Questo prodotto e gia assegnato a un altro drop")
+  }
+  if (product.status !== "draft") {
+    throw new HttpError(400, "Solo i prodotti in bozza possono essere assegnati a un drop")
+  }
+}
+
+async function validateDraftProductsForDrop(productIds, dropId = null) {
+  const normalizedIds = Array.from(new Set(productIds.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0)))
+  if (!normalizedIds.length) return []
+
+  const products = await prisma.product.findMany({
+    where: { id: { in: normalizedIds } },
+    select: { id: true, title: true, status: true, dropId: true },
+  })
+  if (products.length !== normalizedIds.length) {
+    throw new HttpError(400, "Uno o piu prodotti del drop non sono validi")
+  }
+
+  products.forEach((product) => {
+    const alreadyInThisDrop = dropId && product.dropId === dropId
+    if (alreadyInThisDrop) return
+    if (product.dropId && product.dropId !== dropId) {
+      throw new HttpError(400, `Il prodotto "${product.title}" e gia assegnato a un altro drop`)
+    }
+    if (product.status !== "draft") {
+      throw new HttpError(400, `Il prodotto "${product.title}" non e in bozza e non puo essere aggiunto a un drop`)
+    }
+  })
+
+  return normalizedIds
+}
+
+async function publishLiveDropProducts(dropId) {
+  await prisma.product.updateMany({
+    where: { dropId, status: "draft" },
+    data: { status: "active" },
+  })
+}
+
 router.get(
   "/drops",
   asyncHandler(async (_req, res) => {
+    await resolveDueDropLaunches(prisma)
     const drops = await prisma.drop.findMany({
       orderBy: [{ launchAt: "desc" }, { createdAt: "desc" }],
       include: {
@@ -877,6 +923,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = dropSchema.parse(req.body)
     const slug = await ensureUniqueDropSlug(body.slug || body.title)
+    const productIds = await validateDraftProductsForDrop(body.productIds)
+    const visible = body.status === "live" ? true : body.visible
     const drop = await prisma.drop.create({
       data: {
         title: body.title,
@@ -886,20 +934,23 @@ router.post(
         coverImageUrl: body.coverImageUrl || null,
         status: body.status,
         launchAt: parseDropLaunchAt(body.launchAt),
-        visible: body.visible,
+        visible,
         label: body.label || null,
       },
     })
 
-    if (body.productIds.length) {
+    if (productIds.length) {
       await prisma.$transaction(
-        Array.from(new Set(body.productIds)).map((productId, index) =>
+        productIds.map((productId, index) =>
           prisma.product.update({
             where: { id: productId },
             data: { dropId: drop.id, dropPosition: index },
           }),
         ),
       )
+    }
+    if (body.status === "live") {
+      await publishLiveDropProducts(drop.id)
     }
 
     const hydrated = await prisma.drop.findUnique({
@@ -924,7 +975,8 @@ router.put(
     }
 
     const slug = await ensureUniqueDropSlug(body.slug || body.title, dropId)
-    const productIds = Array.from(new Set(body.productIds))
+    const productIds = await validateDraftProductsForDrop(body.productIds, dropId)
+    const visible = body.status === "live" ? true : body.visible
     await prisma.$transaction(async (tx) => {
       await tx.drop.update({
         where: { id: dropId },
@@ -936,7 +988,7 @@ router.put(
           coverImageUrl: body.coverImageUrl || null,
           status: body.status,
           launchAt: parseDropLaunchAt(body.launchAt),
-          visible: body.visible,
+          visible,
           label: body.label || null,
         },
       })
@@ -951,6 +1003,9 @@ router.put(
         })
       }
     })
+    if (body.status === "live") {
+      await publishLiveDropProducts(dropId)
+    }
 
     const hydrated = await prisma.drop.findUnique({
       where: { id: dropId },
@@ -1015,6 +1070,7 @@ router.post(
     const slug = await ensureUniqueProductSlug(body.slug || body.title)
     const sku = await ensureUniqueSku(body.sku)
     await ensureDropExists(body.dropId)
+    await ensureProductCanJoinDrop({ status: normalizeProductStatus(body.status), dropId: null }, body.dropId)
     await ensureFeaturedProductSlotAvailable(Boolean(body.featured))
     const product = await prisma.product.create({
       data: {
@@ -1069,6 +1125,7 @@ router.put(
     const sku = await ensureUniqueSku(body.sku, productId)
     const nextDropId = body.dropId === undefined ? existingProduct.dropId : body.dropId
     await ensureDropExists(nextDropId)
+    await ensureProductCanJoinDrop(existingProduct, nextDropId)
     const slug = body.slug
       ? await ensureUniqueProductSlug(body.slug, productId)
       : existingProduct.slug

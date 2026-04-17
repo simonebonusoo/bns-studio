@@ -2,7 +2,7 @@ import { Router } from "express"
 import { z } from "zod"
 
 import { asyncHandler } from "../lib/http.mjs"
-import { isDropPublic, isProductVisibleWithDrop, productRelationInclude, serializeDropSummary, serializeTaxonomyRelations, slugifyCatalogText } from "../lib/catalog-taxonomy.mjs"
+import { isDropPublic, isProductVisibleWithDrop, productRelationInclude, resolveDueDropLaunches, serializeDropSummary, serializeTaxonomyRelations, slugifyCatalogText } from "../lib/catalog-taxonomy.mjs"
 import { buildVisibleProductBadges, parseManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
 import { loadProductsWithStoredOrder } from "../lib/product-order.mjs"
@@ -354,6 +354,7 @@ router.get(
 router.get(
   "/products",
   asyncHandler(async (req, res) => {
+    await resolveDueDropLaunches(prisma)
     const page = Math.max(1, Number(req.query.page || 1))
     const pageSize = Math.min(48, Math.max(1, Number(req.query.pageSize || 12)))
     const sort = String(req.query.sort || "manual")
@@ -387,8 +388,17 @@ router.get(
 router.get(
   "/products/featured",
   asyncHandler(async (_req, res) => {
+    await resolveDueDropLaunches(prisma)
     const products = await loadProductsWithStoredOrder({
-      where: { featured: true, hiddenAsStandalone: false, status: { in: ["active", "out_of_stock"] } },
+      where: {
+        featured: true,
+        hiddenAsStandalone: false,
+        status: { in: ["active", "out_of_stock"] },
+        OR: [
+          { dropId: null },
+          { drop: { is: { visible: true, status: "live" } } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
       include: productRelationInclude(),
     })
@@ -400,6 +410,7 @@ router.get(
 router.get(
   "/products/:slug",
   asyncHandler(async (req, res) => {
+    await resolveDueDropLaunches(prisma)
     const requestedProduct = await prisma.product.findUnique({
       where: { slug: req.params.slug },
       include: productRelationInclude(),
@@ -425,6 +436,7 @@ router.get(
 router.get(
   "/products/:slug/related",
   asyncHandler(async (req, res) => {
+    await resolveDueDropLaunches(prisma)
     const product = await prisma.product.findUnique({
       where: { slug: req.params.slug },
       include: productRelationInclude(),
@@ -498,6 +510,7 @@ function serializePublicDrop(drop) {
 router.get(
   "/drops",
   asyncHandler(async (_req, res) => {
+    await resolveDueDropLaunches(prisma)
     const drops = await prisma.drop.findMany({
       where: {
         visible: true,
@@ -534,6 +547,7 @@ router.get(
 router.get(
   "/drops/:slug",
   asyncHandler(async (req, res) => {
+    await resolveDueDropLaunches(prisma)
     const drop = await prisma.drop.findUnique({
       where: { slug: req.params.slug },
       include: {

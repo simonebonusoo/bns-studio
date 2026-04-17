@@ -47,6 +47,12 @@ function getStatusLabel(status: ShopDrop["status"]) {
   return "Bozza"
 }
 
+function getDropProductBadge(product: ShopProduct, dropStatus: ShopDrop["status"]) {
+  if (product.status === "draft") return dropStatus === "live" ? "Pubblicazione al salvataggio" : "Bozza nel drop"
+  if (product.status === "active") return "Live"
+  return product.status
+}
+
 export function AdminDropsSection({
   drops,
   products,
@@ -63,7 +69,12 @@ export function AdminDropsSection({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<ShopDrop | null>(null)
   const selectedProducts = products.filter((product) => dropForm.productIds.includes(product.id))
-  const selectableProducts = products.filter((product) => !dropForm.productIds.includes(product.id))
+  const selectableProducts = products.filter((product) => {
+    if (dropForm.productIds.includes(product.id)) return false
+    if (product.status !== "draft") return false
+    if (product.dropId && product.dropId !== editingDropId) return false
+    return true
+  })
   const coverImage = coverPreviewUrl || dropForm.coverImageUrl
 
   function toggleProduct(productId: number, checked: boolean) {
@@ -183,7 +194,7 @@ export function AdminDropsSection({
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-white">Prodotti assegnati</p>
-              <p className="mt-1 text-xs text-white/55">{selectedProducts.length} poster nel drop.</p>
+              <p className="mt-1 text-xs text-white/55">{selectedProducts.length} poster nel drop. Solo prodotti in bozza possono essere aggiunti; al live vengono pubblicati insieme.</p>
             </div>
             <Button type="button" variant="profile" size="sm" onClick={() => setPickerOpen(true)}>
               Aggiungi prodotto al drop
@@ -196,6 +207,16 @@ export function AdminDropsSection({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-white">{product.title}</p>
                   <p className="text-xs text-white/45">Posizione {index + 1}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="rounded-lg border border-white/10 px-2 py-1 text-[11px] text-white/55">
+                      {getDropProductBadge(product, dropForm.status)}
+                    </span>
+                    {product.status === "draft" ? (
+                      <span className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[11px] text-emerald-100">
+                        Pubblicazione al lancio
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -308,7 +329,7 @@ export function AdminDropsSection({
                   </button>
                 ))}
               </div>
-              {!selectableProducts.length ? <p className="rounded-lg border border-dashed border-white/10 px-4 py-8 text-center text-sm text-white/50">Tutti i prodotti sono gia selezionati.</p> : null}
+              {!selectableProducts.length ? <p className="rounded-lg border border-dashed border-white/10 px-4 py-8 text-center text-sm text-white/50">Nessuna bozza assegnabile disponibile.</p> : null}
             </div>
           </div>
         </div>

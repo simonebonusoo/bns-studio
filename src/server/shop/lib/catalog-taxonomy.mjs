@@ -157,6 +157,46 @@ export function isDropPublic(drop, now = new Date()) {
   return false
 }
 
+export async function resolveDueDropLaunches(client = prisma, now = new Date()) {
+  const dueDrops = await client.drop.findMany({
+    where: {
+      visible: true,
+      status: "scheduled",
+      launchAt: { lte: now },
+    },
+    select: { id: true },
+  })
+  const dueDropIds = dueDrops.map((drop) => drop.id)
+
+  if (dueDropIds.length) {
+    await client.drop.updateMany({
+      where: { id: { in: dueDropIds } },
+      data: { status: "live" },
+    })
+  }
+
+  const liveDrops = await client.drop.findMany({
+    where: { status: "live" },
+    select: { id: true },
+  })
+  const liveDropIds = liveDrops.map((drop) => drop.id)
+
+  if (liveDropIds.length) {
+    await client.product.updateMany({
+      where: {
+        dropId: { in: liveDropIds },
+        status: "draft",
+      },
+      data: { status: "active" },
+    })
+  }
+
+  return {
+    launchedDropIds: dueDropIds,
+    liveDropIds,
+  }
+}
+
 export function isProductVisibleWithDrop(product, now = new Date()) {
   if (!product?.dropId) return true
   return isDropPublic(product.drop, now)
