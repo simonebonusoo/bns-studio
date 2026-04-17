@@ -10,7 +10,7 @@ import { getProductPrimaryImage } from "../shop/lib/product";
 import { apiFetch } from "../shop/lib/api";
 import { buildHomeReturnState, persistHomeReturnState } from "../shop/lib/home-return.mjs";
 import { orderTrendingProducts, resolveTrendingProductIds } from "../shop/lib/trending-products.mjs";
-import type { AdminCollection, ShopProduct, ShopProductListResponse } from "../shop/types";
+import type { AdminCollection, ShopDrop, ShopProduct, ShopProductListResponse } from "../shop/types";
 
 type DiscoveryCard = {
   title: string;
@@ -35,6 +35,7 @@ type HomeShopCache = {
   productTotal: number;
   settings: Record<string, string>;
   collections: AdminCollection[];
+  drops: ShopDrop[];
 };
 
 const HOME_SHOP_CACHE_KEY = "bns-shop-home-cache-v1";
@@ -428,11 +429,42 @@ function withCatalogContext(href: string, title: string, subtitle?: string) {
   return query ? `${pathname}?${query}` : pathname
 }
 
+function getDropSortTime(drop: ShopDrop) {
+  const launchTime = drop.launchAt ? new Date(drop.launchAt).getTime() : 0
+  if (Number.isFinite(launchTime) && launchTime > 0) return launchTime
+  const createdTime = drop.createdAt ? new Date(drop.createdAt).getTime() : 0
+  return Number.isFinite(createdTime) ? createdTime : 0
+}
+
+function getLatestPublicDrop(drops: ShopDrop[]) {
+  return [...drops]
+    .filter((drop) => drop.visible && drop.status === "live")
+    .sort((left, right) => getDropSortTime(right) - getDropSortTime(left))[0] || null
+}
+
+function getDropVisuals(drop: ShopDrop | null) {
+  if (!drop) return []
+  const productImages = (drop.products || [])
+    .flatMap((product) => [product.coverImageUrl, ...(product.imageUrls || [])])
+    .filter((image): image is string => Boolean(image))
+  return Array.from(new Set([drop.coverImageUrl, ...productImages].filter((image): image is string => Boolean(image)))).slice(0, 2)
+}
+
+function formatDropLaunch(value?: string | null) {
+  if (!value) return ""
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value))
+}
+
 export function HomeShop() {
   const navigate = useNavigate();
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [collections, setCollections] = useState<AdminCollection[]>([]);
+  const [drops, setDrops] = useState<ShopDrop[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading">("idle");
@@ -460,6 +492,7 @@ export function HomeShop() {
         productTotal: Number(parsed.productTotal || 0),
         settings: parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {},
         collections: Array.isArray(parsed.collections) ? parsed.collections : [],
+        drops: Array.isArray(parsed.drops) ? parsed.drops : [],
       };
     } catch {
       return null;
@@ -522,25 +555,29 @@ export function HomeShop() {
         setProductTotal(cachedContent.productTotal);
         setShopSettings(cachedContent.settings);
         setCollections(cachedContent.collections);
+        setDrops(cachedContent.drops);
       }
 
       try {
         setStatus("loading");
-        const [productData, settingsData, collectionsData] = await Promise.all([
+        const [productData, settingsData, collectionsData, dropsData] = await Promise.all([
           apiFetch<ShopProductListResponse>("/store/products?page=1&pageSize=100&sort=manual"),
           apiFetch<Record<string, string>>("/store/settings"),
           apiFetch<AdminCollection[]>("/store/collections"),
+          apiFetch<ShopDrop[]>("/store/drops"),
         ]);
         if (!cancelled) {
           setProducts(Array.isArray(productData?.items) ? productData.items : []);
           setProductTotal(productData.pagination.total);
           setShopSettings(settingsData);
           setCollections(Array.isArray(collectionsData) ? collectionsData : []);
+          setDrops(Array.isArray(dropsData) ? dropsData : []);
           writeHomeShopCache({
             products: Array.isArray(productData?.items) ? productData.items : [],
             productTotal: productData.pagination.total,
             settings: settingsData,
             collections: Array.isArray(collectionsData) ? collectionsData : [],
+            drops: Array.isArray(dropsData) ? dropsData : [],
           });
           setStatus("idle");
         }
@@ -551,6 +588,7 @@ export function HomeShop() {
             setProductTotal(0);
             setShopSettings({});
             setCollections([]);
+            setDrops([]);
           }
           setStatus("idle");
         }
@@ -613,6 +651,9 @@ export function HomeShop() {
     return orderTrendingProducts(products, resolveTrendingProductIds(shopSettings.homepageTrendingProductIds, products))
   }, [products, shopSettings.homepageTrendingProductIds])
 
+  const latestDrop = useMemo(() => getLatestPublicDrop(drops), [drops])
+  const latestDropVisuals = useMemo(() => getDropVisuals(latestDrop), [latestDrop])
+
   const catalogPreviewProducts = useMemo(() => {
     const featuredProducts = (products ?? []).filter((product) => Boolean(product?.featured))
     if (!featuredProducts.length) {
@@ -642,6 +683,7 @@ export function HomeShop() {
         productTotal,
         settings: nextSettings,
         collections,
+        drops,
       })
       setTrustDraft(nextTrustSection)
       setEditingTrust(false)
@@ -665,6 +707,74 @@ export function HomeShop() {
   return (
     <section id="shop" className="py-24 text-white sm:py-28">
       <Container className="space-y-20">
+        {latestDrop ? (
+          <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035]">
+            <div className="grid gap-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+              <div className="flex min-h-[28rem] flex-col justify-between gap-8 p-6 sm:p-8 lg:p-10">
+                <div className="space-y-5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="shop-pill">Nuovo drop uscito</span>
+                    {latestDrop.launchAt ? (
+                      <span className="text-xs uppercase tracking-[0.22em] text-white/45">
+                        Online dal {formatDropLaunch(latestDrop.launchAt)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="space-y-4">
+                    <h2 className="max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                      {latestDrop.title}
+                    </h2>
+                    {latestDrop.shortDescription || latestDrop.description ? (
+                      <p className="max-w-xl text-base leading-7 text-white/68">
+                        {latestDrop.shortDescription || latestDrop.description}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="cart"
+                    size="sm"
+                    text="Visualizza drop completo"
+                    onClick={() => {
+                      rememberHomePosition()
+                      navigate(`/drop/${latestDrop.slug}`)
+                    }}
+                  >
+                    Visualizza drop completo
+                  </Button>
+                  {latestDrop.products?.length ? (
+                    <span className="text-sm text-white/50">
+                      {latestDrop.products.length} {latestDrop.products.length === 1 ? "poster" : "poster"} nel drop
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="relative min-h-[24rem] border-t border-white/10 lg:min-h-[32rem] lg:border-l lg:border-t-0">
+                {latestDropVisuals[0] ? (
+                  <img
+                    src={latestDropVisuals[0]}
+                    alt={latestDrop.title}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-white/[0.04]" />
+                )}
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.58),rgba(0,0,0,0.08)_48%,rgba(0,0,0,0.42))]" />
+                {latestDropVisuals[1] ? (
+                  <img
+                    src={latestDropVisuals[1]}
+                    alt=""
+                    className="absolute bottom-5 right-5 hidden h-40 w-32 rounded-[1.25rem] border border-white/18 object-cover shadow-2xl sm:block lg:h-52 lg:w-40"
+                  />
+                ) : null}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <div className="space-y-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
