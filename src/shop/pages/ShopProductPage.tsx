@@ -130,6 +130,7 @@ export function ShopProductPage() {
   const heroBadge = badges[0] || null
   const stockStatus = product ? getProductStockStatus(product, selectedVariant?.id) : "out_of_stock"
   const stockLabel = product ? getProductStockLabel(product, selectedVariant?.id) : "Esaurito"
+  const activeProductTitle = selectedVariant?.variantProductTitle || product?.title || ""
   const maxQuantity = Math.max(selectedVariant?.stock ?? product?.stock ?? 1, 1)
   const subtotal = selectedPrice * quantity
   const shippingCostValue = Number(settings.shippingCost || 0)
@@ -422,7 +423,7 @@ export function ShopProductPage() {
           </span>
         ) : undefined
       }
-      title={product.title}
+      title={activeProductTitle}
       intro=""
       actions={
         <Button
@@ -443,7 +444,7 @@ export function ShopProductPage() {
       <div className="mx-auto w-full max-w-[1380px] space-y-8">
         <div className="grid w-full items-stretch gap-7 lg:grid-cols-[minmax(0,0.98fr)_minmax(0,0.94fr)] xl:gap-8">
           <ProductGallery
-            title={product.title}
+            title={activeProductTitle}
             images={galleryImages}
             selectedImage={selectedImage}
             lockedHeight={galleryLockedHeight}
@@ -584,7 +585,7 @@ export function ShopProductPage() {
         </div>
       ) : null}
 
-      <ProductLightbox open={isLightboxOpen && Boolean(selectedImage)} image={selectedImage || getProductPrimaryImage(product)} title={product.title} onClose={() => setIsLightboxOpen(false)} />
+      <ProductLightbox open={isLightboxOpen && Boolean(selectedImage)} image={selectedImage || galleryImages[0] || getProductPrimaryImage(product)} title={activeProductTitle} onClose={() => setIsLightboxOpen(false)} />
     </ShopLayout>
   )
 }

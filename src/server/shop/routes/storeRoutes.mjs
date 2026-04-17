@@ -21,7 +21,38 @@ import { sanitizeMultilineText, sanitizePlainText } from "../lib/sanitize-text.m
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
 
-async function serializePublicProduct(product) {
+function parseJsonArray(value) {
+  try {
+    const parsed = JSON.parse(value || "[]")
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function findVariantProductIdInOptions(optionsJson) {
+  const entry = parseJsonArray(optionsJson).find((option) => option?.name === "_variantProductId")
+  const id = Number(entry?.value || 0)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
+async function findVariantGroupParentForProduct(product) {
+  const candidateVariants = await prisma.productVariant.findMany({
+    where: {
+      optionsJson: { contains: "_variantProductId" },
+    },
+    include: {
+      product: {
+        include: productRelationInclude(),
+      },
+    },
+  })
+
+  return candidateVariants.find((variant) => findVariantProductIdInOptions(variant.optionsJson) === product.id)?.product || product
+}
+
+async function serializePublicProduct(product, options = {}) {
+  const activeProduct = options.activeProduct || product
   const { imageUrls, costPrice: _costPrice, ...rest } = product
   const parsedImages = JSON.parse(imageUrls)
   const variants = serializeProductVariants(product)
@@ -31,7 +62,7 @@ async function serializePublicProduct(product) {
   const linkedProducts = linkedVariantProductIds.length
     ? await prisma.product.findMany({
         where: { id: { in: linkedVariantProductIds } },
-        select: { id: true, imageUrls: true },
+        select: { id: true, title: true, slug: true, imageUrls: true },
       })
     : []
   const linkedImagesByProductId = new Map(
@@ -45,12 +76,29 @@ async function serializePublicProduct(product) {
       return [linkedProduct.id, Array.isArray(linkedImages) ? linkedImages.filter((image) => typeof image === "string" && image.trim()) : []]
     }),
   )
+  const linkedProductById = new Map(linkedProducts.map((linkedProduct) => [linkedProduct.id, linkedProduct]))
+  const activeVariantProductId = activeProduct?.id || product.id
+  let activeDefaultAssigned = false
   const enrichedVariants = variants.map((variant) => {
+    const isMainProductVariant = !variant.variantProductId
+    const variantProductId = isMainProductVariant ? product.id : Number(variant.variantProductId || 0)
+    const linkedProduct = linkedProductById.get(variantProductId)
+    const variantImages = isMainProductVariant
+      ? parsedImages
+      : (linkedImagesByProductId.get(variantProductId) || variant.variantProductImageUrls || [])
     const linkedImages = linkedImagesByProductId.get(Number(variant.variantProductId || 0)) || variant.variantProductImageUrls || []
+    const isActiveProductVariant = variantProductId === activeVariantProductId
+    const isDefault = isActiveProductVariant && !activeDefaultAssigned
+    if (isDefault) activeDefaultAssigned = true
     return {
       ...variant,
-      variantProductImageUrls: linkedImages,
-      variantProductImageUrl: linkedImages[0] || variant.variantProductImageUrl || null,
+      editionName: isMainProductVariant ? product.title : variant.editionName,
+      variantProductId,
+      variantProductTitle: isMainProductVariant ? product.title : (linkedProduct?.title || variant.variantProductTitle || variant.editionName || null),
+      variantProductSlug: isMainProductVariant ? product.slug : (linkedProduct?.slug || variant.variantProductSlug || null),
+      variantProductImageUrls: variantImages,
+      variantProductImageUrl: variantImages[0] || linkedImages[0] || variant.variantProductImageUrl || null,
+      isDefault,
     }
   })
   const defaultVariant = enrichedVariants.find((variant) => variant.isDefault) || enrichedVariants[0] || null
@@ -71,6 +119,8 @@ async function serializePublicProduct(product) {
     coverImageUrl: parsedImages[0] || "",
     variants: enrichedVariants,
     defaultVariantId: defaultVariant?.id ?? null,
+    activeVariantProductId,
+    activeVariantEditionName: defaultVariant?.editionName || null,
     manualBadges: parseManualBadges(product.manualBadges),
     hiddenAsStandalone: Boolean(product.hiddenAsStandalone),
     isPurchasable: isProductPurchasable(product),
@@ -338,16 +388,25 @@ router.get(
 router.get(
   "/products/:slug",
   asyncHandler(async (req, res) => {
-    const product = await prisma.product.findUnique({
+    const requestedProduct = await prisma.product.findUnique({
       where: { slug: req.params.slug },
       include: productRelationInclude(),
     })
 
-    if (!product || product.hiddenAsStandalone || !isPublicProductStatus(product.status)) {
+    if (!requestedProduct || !isPublicProductStatus(requestedProduct.status)) {
       return res.status(404).json({ message: "Prodotto non trovato" })
     }
 
-    res.json(await serializePublicProduct(product))
+    const groupProduct = await findVariantGroupParentForProduct(requestedProduct)
+    if (!groupProduct || !isPublicProductStatus(groupProduct.status)) {
+      return res.status(404).json({ message: "Prodotto non trovato" })
+    }
+
+    if (requestedProduct.hiddenAsStandalone && groupProduct.id === requestedProduct.id) {
+      return res.status(404).json({ message: "Prodotto non trovato" })
+    }
+
+    res.json(await serializePublicProduct(groupProduct, { activeProduct: requestedProduct }))
   })
 )
 

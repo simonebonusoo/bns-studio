@@ -99,6 +99,8 @@ export type ShopProduct = {
   stockLabel?: string
   variants?: ShopProductVariant[]
   defaultVariantId?: number | null
+  activeVariantProductId?: number | null
+  activeVariantEditionName?: string | null
   manualBadges?: ProductManualBadge[]
   isCustomizable?: boolean
   badges?: ProductVisibleBadge[]
