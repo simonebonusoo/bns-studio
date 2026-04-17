@@ -89,12 +89,15 @@ async function serializePublicProduct(product, options = {}) {
     const linkedImages = linkedImagesByProductId.get(Number(variant.variantProductId || 0)) || variant.variantProductImageUrls || []
     const isActiveProductVariant = variantProductId === activeVariantProductId
     const isDefault = isActiveProductVariant && !activeDefaultAssigned
+    const variantProductTitle = isMainProductVariant
+      ? product.title
+      : (linkedProduct?.title || variant.variantProductTitle || (variant.editionName && variant.editionName !== "Standard" ? variant.editionName : variant.title) || null)
     if (isDefault) activeDefaultAssigned = true
     return {
       ...variant,
-      editionName: isMainProductVariant ? product.title : variant.editionName,
+      editionName: variantProductTitle || product.title,
       variantProductId,
-      variantProductTitle: isMainProductVariant ? product.title : (linkedProduct?.title || variant.variantProductTitle || variant.editionName || null),
+      variantProductTitle,
       variantProductSlug: isMainProductVariant ? product.slug : (linkedProduct?.slug || variant.variantProductSlug || null),
       variantProductImageUrls: variantImages,
       variantProductImageUrl: variantImages[0] || linkedImages[0] || variant.variantProductImageUrl || null,

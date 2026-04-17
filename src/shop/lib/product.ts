@@ -185,13 +185,13 @@ export function getProductEditionOptions(product: ShopProduct) {
   const variants = getProductVariants(product)
   const byName = new Map<string, ShopProductVariant>()
   variants.forEach((variant) => {
-    const name = variant.editionName || "Standard"
+    const name = variant.variantProductTitle || (variant.editionName && variant.editionName !== "Standard" ? variant.editionName : "") || product.title
     if (!byName.has(name)) byName.set(name, variant)
   })
   return Array.from(byName.entries()).map(([name, previewVariant]) => ({
     name,
     previewVariant,
-    previewImage: previewVariant.variantProductImageUrl || undefined,
+    previewImage: previewVariant.variantProductImageUrl || previewVariant.variantProductImageUrls?.[0] || undefined,
   }))
 }
 

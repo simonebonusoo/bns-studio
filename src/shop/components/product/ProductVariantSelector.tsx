@@ -24,6 +24,7 @@ type DropdownOption = {
   label: string
   meta?: string
   image?: string
+  selected?: boolean
   disabled?: boolean
   tone?: "price"
   onSelect: () => void
@@ -40,11 +41,13 @@ function ChevronIcon({ open }: { open: boolean }) {
 function CompactDropdown({
   label,
   value,
+  selectedImage,
   options,
   emptyLabel,
 }: {
   label: string
   value: string
+  selectedImage?: string
   options: DropdownOption[]
   emptyLabel: string
 }) {
@@ -81,7 +84,10 @@ function CompactDropdown({
         className="mt-2 flex min-h-[46px] w-full items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.025] px-4 py-2 text-left text-white transition hover:border-white/24 hover:bg-white/[0.045]"
         aria-expanded={open}
       >
-        <span className="min-w-0 truncate text-sm font-medium">{value || emptyLabel}</span>
+        <span className="flex min-w-0 items-center gap-3">
+          {selectedImage ? <img src={selectedImage} alt="" className="h-8 w-8 rounded-md object-cover" /> : null}
+          <span className="min-w-0 truncate text-sm font-medium">{value || emptyLabel}</span>
+        </span>
         <span className="shrink-0 text-white/55">
           <ChevronIcon open={open} />
         </span>
@@ -99,10 +105,18 @@ function CompactDropdown({
                   option.onSelect()
                   setOpen(false)
                 }}
-                className="flex min-h-[46px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-white/78 transition hover:bg-white/[0.055] hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+                className={`flex min-h-[50px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                  option.selected
+                    ? "bg-[#e3f503]/10 text-white"
+                    : "text-white/78 hover:bg-white/[0.055] hover:text-white"
+                }`}
               >
                 <span className="flex min-w-0 items-center gap-3">
-                  {option.image ? <img src={option.image} alt="" className="h-9 w-9 rounded-md object-cover" /> : null}
+                  {option.image ? (
+                    <img src={option.image} alt="" className="h-9 w-9 rounded-md object-cover" />
+                  ) : (
+                    <span className="h-9 w-9 rounded-md border border-white/10 bg-white/[0.04]" />
+                  )}
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">{option.label}</span>
                     {option.meta ? <span className="mt-0.5 block truncate text-xs text-white/45">{option.meta}</span> : null}
@@ -126,13 +140,14 @@ export function ProductEditionSelector({ editions, selectedEditionName, onSelect
   return (
     <CompactDropdown
       label="Variante"
-      value={selectedEdition?.name || selectedEditionName || "Standard"}
+      value={selectedEdition?.name || selectedEditionName || "Variante"}
+      selectedImage={selectedEdition?.previewImage}
       emptyLabel="Nessuna variante disponibile"
       options={editions.map((edition) => ({
         key: edition.name,
         label: edition.name,
         image: edition.previewImage,
-        meta: "Edizione prodotto",
+        selected: edition.name === selectedEdition?.name,
         onSelect: () => onSelect(edition.name),
       }))}
     />
