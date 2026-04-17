@@ -118,14 +118,14 @@ export function ProductFormCard({
   const safeVariants = Array.isArray(productForm.variants) ? productForm.variants : []
   const safeManualBadges = Array.isArray(productForm.manualBadges) ? productForm.manualBadges : []
   const safeCollectionIds = Array.isArray(productForm.collectionIds) ? productForm.collectionIds : []
-  const activeVariants = safeVariants.filter((variant) => variant.isActive)
-  const totalVariantStock = activeVariants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
-  const lowStockVariantCount = activeVariants.filter((variant) => variant.stock > 0 && variant.stock <= variant.lowStockThreshold).length
   const [variantPickerOpen, setVariantPickerOpen] = useState(false)
-  const mainSizeRows = safeVariants.filter((variant) => !variant.variantProductId)
+  const mainSizeRows = safeVariants.filter((variant) => !variant.variantProductId || variant.variantProductId === editingProductId)
+  const linkedRows = safeVariants.filter((variant) => variant.variantProductId && variant.variantProductId !== editingProductId)
+  const activeMainSizes = mainSizeRows.filter((variant) => variant.isActive)
+  const totalMainStock = activeMainSizes.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
+  const lowStockMainCount = activeMainSizes.filter((variant) => variant.stock > 0 && variant.stock <= variant.lowStockThreshold).length
   const linkedVariantGroups = Array.from(
-    safeVariants
-      .filter((variant) => variant.variantProductId)
+    linkedRows
       .reduce((groups, variant) => {
         const key = String(variant.variantProductId)
         const current = groups.get(key) || []
@@ -134,8 +134,7 @@ export function ProductFormCard({
         return groups
       }, new Map<string, ProductVariantFormState[]>())
   )
-  const variantGroups: Array<[string, string[]]> = []
-  const selectedVariantProductIds = new Set(safeVariants.map((variant) => variant.variantProductId).filter(Boolean))
+  const selectedVariantProductIds = new Set(linkedRows.map((variant) => variant.variantProductId).filter(Boolean))
   const selectableVariantProducts = useMemo(
     () =>
       products.filter(
@@ -147,9 +146,9 @@ export function ProductFormCard({
     [editingProductId, products, selectedVariantProductIds],
   )
   const inventoryTone =
-    productForm.status === "out_of_stock" || totalVariantStock <= 0
+    productForm.status === "out_of_stock" || totalMainStock <= 0
       ? "border-red-400/20 bg-red-400/10 text-red-100"
-      : lowStockVariantCount > 0
+      : lowStockMainCount > 0
         ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
         : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
 
@@ -185,7 +184,8 @@ export function ProductFormCard({
   }
 
   function addMainSize() {
-    const size = mainSizeRows.length ? "A3" : "A4"
+    const existingSizes = new Set(mainSizeRows.map((variant) => variant.size.trim().toUpperCase()).filter(Boolean))
+    const size = !existingSizes.has("A4") ? "A4" : !existingSizes.has("A3") ? "A3" : `Misura ${mainSizeRows.length + 1}`
     onChange({
       ...productForm,
       variants: [
@@ -216,7 +216,7 @@ export function ProductFormCard({
 
   function addLinkedVariant(product: ShopProduct) {
     const sourceVariants = Array.isArray(product.variants) && product.variants.length
-      ? product.variants.filter((variant) => variant.isActive !== false)
+      ? product.variants.filter((variant) => variant.isActive !== false && (!variant.variantProductId || variant.variantProductId === product.id))
       : []
     const rows = (sourceVariants.length ? sourceVariants : [{
       title: "A4",
@@ -257,84 +257,118 @@ export function ProductFormCard({
     setVariantPickerOpen(false)
   }
 
-  function renderMeasureRow(variant: ProductVariantFormState, index: number, compact = false) {
+  function addLinkedVariantSize(sourceRow: ProductVariantFormState) {
+    const siblingRows = linkedRows.filter((variant) => variant.variantProductId === sourceRow.variantProductId)
+    const existingSizes = new Set(siblingRows.map((variant) => variant.size.trim().toUpperCase()).filter(Boolean))
+    const size = !existingSizes.has("A4") ? "A4" : !existingSizes.has("A3") ? "A3" : `Misura ${siblingRows.length + 1}`
+
+    onChange({
+      ...productForm,
+      variants: [
+        ...safeVariants,
+        {
+          id: null,
+          title: `${sourceRow.variantProductTitle || sourceRow.editionName} / ${size}`,
+          key: slugifyVariantKey(`${sourceRow.variantProductSlug || sourceRow.variantProductId}-${size}`),
+          editionName: sourceRow.editionName || sourceRow.variantProductTitle,
+          size,
+          variantProductId: sourceRow.variantProductId,
+          variantProductTitle: sourceRow.variantProductTitle,
+          variantProductSlug: sourceRow.variantProductSlug,
+          variantProductImageUrl: sourceRow.variantProductImageUrl,
+          variantProductImageUrls: sourceRow.variantProductImageUrls,
+          sku: "",
+          price: "",
+          discountPrice: "",
+          costPrice: "",
+          stock: 0,
+          lowStockThreshold: sourceRow.lowStockThreshold || 5,
+          isDefault: false,
+          isActive: true,
+        },
+      ],
+    })
+  }
+
+  function renderSizeCard(variant: ProductVariantFormState, index: number, ownerLabel: string, compact = false) {
+    const updateSize = (size: string) => {
+      updateVariant(index, {
+        size,
+        title: variant.variantProductId && variant.variantProductId !== editingProductId ? `${ownerLabel} / ${size}` : size,
+        key: slugifyVariantKey(`${variant.variantProductSlug || ownerLabel}-${size}`),
+      })
+    }
+
     return (
-      <div key={`${variant.id ?? "new"}-${index}`} className="grid gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3 lg:grid-cols-[minmax(110px,0.8fr)_minmax(100px,0.7fr)_minmax(110px,0.7fr)_minmax(110px,0.7fr)_auto]">
-        <input
-          className="shop-input"
-          placeholder="Misura"
-          value={variant.size}
-          onChange={(event) => {
-            const size = event.target.value
-            updateVariant(index, {
-              size,
-              title: variant.variantProductId ? `${variant.variantProductTitle || variant.editionName} / ${size}` : size,
-              key: slugifyVariantKey(`${variant.variantProductSlug || variant.editionName}-${size}`),
-            })
-          }}
-        />
-        <input
-          className="shop-input"
-          type="number"
-          min="0"
-          placeholder="Quantita"
-          value={variant.stock}
-          onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })}
-        />
-        <input
-          className="shop-input"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="Prezzo"
-          value={variant.price}
-          onChange={(event) => updateVariant(index, { price: event.target.value })}
-        />
-        <input
-          className="shop-input"
-          type="number"
-          min="0"
-          placeholder="Soglia"
-          value={variant.lowStockThreshold}
-          onChange={(event) => updateVariant(index, { lowStockThreshold: Number(event.target.value) })}
-        />
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65">
-            <input
-              type="checkbox"
-              checked={variant.isDefault}
-              onChange={() =>
-                onChange({
-                  ...productForm,
-                  variants: productForm.variants.map((entry, entryIndex) => ({
-                    ...entry,
-                    isDefault: entryIndex === index,
-                  })),
-                })
-              }
-            />
-            Default
+      <article key={`${variant.id ?? "new"}-${index}`} className="rounded-xl border border-white/10 bg-black/15 p-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(112px,0.75fr)_minmax(96px,0.55fr)_minmax(104px,0.58fr)_minmax(104px,0.58fr)]">
+          <label className="space-y-1.5">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Misura</span>
+            <input className="shop-input" placeholder="A4" value={variant.size} onChange={(event) => updateSize(event.target.value)} />
           </label>
-          <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65">
-            <input
-              type="checkbox"
-              checked={variant.isActive}
-              onChange={(event) => updateVariant(index, { isActive: event.target.checked })}
-            />
-            Attiva
+          <label className="space-y-1.5">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Quantita</span>
+            <input className="shop-input" type="number" min="0" value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })} />
           </label>
+          <label className="space-y-1.5">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Prezzo</span>
+            <input className="shop-input" type="number" min="0" step="0.01" value={variant.price} onChange={(event) => updateVariant(index, { price: event.target.value })} />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Soglia</span>
+            <input className="shop-input" type="number" min="0" value={variant.lowStockThreshold} onChange={(event) => updateVariant(index, { lowStockThreshold: Number(event.target.value) })} />
+          </label>
+        </div>
+
+        <div className={`mt-3 grid gap-3 ${compact ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+          <label className="space-y-1.5">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">SKU misura</span>
+            <input className="shop-input" placeholder="SKU" value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Prezzo scontato</span>
+            <input className="shop-input" type="number" min="0" step="0.01" placeholder="Opzionale" value={variant.discountPrice} onChange={(event) => updateVariant(index, { discountPrice: event.target.value })} />
+          </label>
+          {!compact ? (
+            <label className="space-y-1.5">
+              <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Costo produzione</span>
+              <input className="shop-input" type="number" min="0" step="0.01" placeholder="Opzionale" value={variant.costPrice} onChange={(event) => updateVariant(index, { costPrice: event.target.value })} />
+            </label>
+          ) : null}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3">
+          <div className="flex flex-wrap gap-2">
+            <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65">
+              <input
+                type="checkbox"
+                checked={variant.isDefault}
+                onChange={() =>
+                  onChange({
+                    ...productForm,
+                    variants: productForm.variants.map((entry, entryIndex) => ({
+                      ...entry,
+                      isDefault: entryIndex === index,
+                    })),
+                  })
+                }
+              />
+              Default
+            </label>
+            <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65">
+              <input
+                type="checkbox"
+                checked={variant.isActive}
+                onChange={(event) => updateVariant(index, { isActive: event.target.checked })}
+              />
+              Attiva
+            </label>
+          </div>
           <button type="button" onClick={() => removeVariantRow(index)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 transition hover:border-red-300/30 hover:text-red-100">
-            Rimuovi
+            Rimuovi misura
           </button>
         </div>
-        {!compact ? (
-          <div className="lg:col-span-5 grid gap-3 md:grid-cols-3">
-            <input className="shop-input" placeholder="SKU misura" value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} />
-            <input className="shop-input" type="number" min="0" step="0.01" placeholder="Prezzo scontato" value={variant.discountPrice} onChange={(event) => updateVariant(index, { discountPrice: event.target.value })} />
-            <input className="shop-input" type="number" min="0" step="0.01" placeholder="Costo produzione" value={variant.costPrice} onChange={(event) => updateVariant(index, { costPrice: event.target.value })} />
-          </div>
-        ) : null}
-      </div>
+      </article>
     )
   }
 
@@ -505,23 +539,16 @@ export function ProductFormCard({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className={`rounded-lg border px-4 py-3 text-sm ${inventoryTone}`}>
                 <p className="font-medium">{mainSizeRows.filter((variant) => variant.isActive).length} misure attive</p>
-                <p className="mt-1 opacity-80">Stock totale {totalVariantStock} · low stock {lowStockVariantCount}</p>
+                <p className="mt-1 opacity-80">Stock totale {totalMainStock} · low stock {lowStockMainCount}</p>
               </div>
               <Button type="button" variant="profile" size="sm" onClick={addMainSize}>
                 Aggiungi misura
               </Button>
             </div>
 
-            <div className="grid gap-2 text-[11px] uppercase tracking-[0.16em] text-white/45 lg:grid-cols-[minmax(110px,0.8fr)_minmax(100px,0.7fr)_minmax(110px,0.7fr)_minmax(110px,0.7fr)_auto]">
-              <span>Nome misura</span>
-              <span>Quantita</span>
-              <span>Prezzo</span>
-              <span>Soglia</span>
-              <span>Stato</span>
-            </div>
             <div className="space-y-3">
               {mainSizeRows.length ? (
-                mainSizeRows.map((variant) => renderMeasureRow(variant, safeVariants.indexOf(variant)))
+                mainSizeRows.map((variant) => renderSizeCard(variant, safeVariants.indexOf(variant), productForm.title || "Prodotto principale"))
               ) : (
                 <p className="rounded-lg border border-dashed border-white/10 px-4 py-6 text-sm text-white/50">Nessuna misura configurata per il prodotto principale.</p>
               )}
@@ -543,6 +570,8 @@ export function ProductFormCard({
               {linkedVariantGroups.length ? (
                 linkedVariantGroups.map(([groupId, rows]) => {
                   const first = rows[0]
+                  const activeRows = rows.filter((variant) => variant.isActive)
+                  const totalStock = activeRows.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
                   return (
                     <article key={groupId} className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -554,20 +583,32 @@ export function ProductFormCard({
                           )}
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-white">{first.variantProductTitle || first.editionName}</p>
-                            <p className="mt-1 text-xs text-white/45">{rows.length} misure disponibili</p>
+                            <p className="mt-1 text-xs text-white/45">{rows.length} misure · stock {totalStock}</p>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => onChange({ ...productForm, variants: safeVariants.filter((variant) => variant.variantProductId !== first.variantProductId) })}
-                          className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 transition hover:border-red-300/30 hover:text-red-100"
-                        >
-                          Rimuovi variante
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs text-emerald-100">
+                            Collegata
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => addLinkedVariantSize(first)}
+                            className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65 transition hover:border-white/25 hover:text-white"
+                          >
+                            Aggiungi misura
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onChange({ ...productForm, variants: safeVariants.filter((variant) => variant.variantProductId !== first.variantProductId) })}
+                            className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 transition hover:border-red-300/30 hover:text-red-100"
+                          >
+                            Rimuovi variante
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mt-4 space-y-3">
-                        {rows.map((variant) => renderMeasureRow(variant, safeVariants.indexOf(variant), true))}
+                        {rows.map((variant) => renderSizeCard(variant, safeVariants.indexOf(variant), first.variantProductTitle || first.editionName || "Variante", true))}
                       </div>
                     </article>
                   )
@@ -617,358 +658,6 @@ export function ProductFormCard({
           <p className="text-sm text-white/50">Per modificare misure e varianti apri il singolo prodotto.</p>
         </Section>
       )}
-
-      {false ? (
-        <Section
-          title="Varianti e misure"
-          description="Ogni riga è una misura acquistabile dentro una variante estetica. Esempio: Variante Black edition, Misura A4."
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className={`rounded-2xl border px-4 py-3 text-sm ${inventoryTone}`}>
-              <p className="font-medium">{activeVariants.length} varianti attive</p>
-              <p className="mt-1 opacity-80">
-                Stock totale {totalVariantStock} · varianti low stock {lowStockVariantCount}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="profile"
-              size="sm"
-              text="Aggiungi variante"
-              onClick={() =>
-                onChange({
-                    ...productForm,
-                    variants: [
-                    ...safeVariants,
-                    {
-                      id: null,
-                      title: `Standard / A4`,
-                      key: `standard-a4-${safeVariants.length + 1}`,
-                      editionName: "Standard",
-                      size: "A4",
-                      variantProductId: null,
-                      variantProductTitle: "",
-                      variantProductSlug: "",
-                      variantProductImageUrl: "",
-                      variantProductImageUrls: [],
-                      sku: "",
-                      price: "",
-                      discountPrice: "",
-                      costPrice: "",
-                      stock: 0,
-                      lowStockThreshold: 5,
-                      isDefault: safeVariants.length === 0,
-                      isActive: true,
-                    },
-                  ],
-                })
-              }
-            >
-              Aggiungi variante
-            </Button>
-          </div>
-
-          {variantGroups.length ? (
-            <div className="grid gap-3 md:grid-cols-2">
-              {variantGroups.map(([editionName, sizes]) => (
-                <div key={editionName} className="rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3">
-                  <p className="text-sm font-medium text-white">{editionName}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {Array.from(new Set(sizes)).map((size) => (
-                      <span key={size} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/62">
-                        {size}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="space-y-3">
-            {safeVariants.map((variant, index) => (
-              <div key={`${variant.id ?? "new"}-${index}`} className="rounded-[24px] border border-white/10 bg-white/[0.02] p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium text-white">{variant.editionName || "Standard"} / {variant.size || variant.title || `Misura ${index + 1}`}</p>
-                    {variant.isDefault ? (
-                      <span className="rounded-full bg-[#e3f503] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-black">
-                        Default
-                      </span>
-                    ) : null}
-                    {!variant.isActive ? (
-                      <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/55">
-                        Inattiva
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="profile"
-                      size="sm"
-                      disabled={index === 0}
-                      onClick={() => {
-                        const next = [...productForm.variants]
-                        ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
-                        onChange({ ...productForm, variants: next })
-                      }}
-                    >
-                      Su
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="profile"
-                      size="sm"
-                      disabled={index === safeVariants.length - 1}
-                      onClick={() => {
-                        const next = [...productForm.variants]
-                        ;[next[index + 1], next[index]] = [next[index], next[index + 1]]
-                        onChange({ ...productForm, variants: next })
-                      }}
-                    >
-                      Giu
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      text="Rimuovi"
-                      onClick={() =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.filter((_, variantIndex) => variantIndex !== index),
-                        })
-                      }
-                    >
-                      Rimuovi
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Nome variante estetica</span>
-                    <input
-                      className="shop-input"
-                      placeholder="Black edition"
-                      value={variant.editionName}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, editionName: event.target.value } : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Misura</span>
-                    <input
-                      className="shop-input"
-                      placeholder="A4"
-                      value={variant.size}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, size: event.target.value } : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Titolo tecnico riga</span>
-                    <input
-                      className="shop-input"
-                      placeholder="Black edition / A4"
-                      value={variant.title}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, title: event.target.value } : entry,
-                          ),
-                        })
-                      }
-                    />
-                    <p className="text-xs leading-5 text-white/45">Può restare vuoto: verrà generato da variante e misura.</p>
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Key tecnica</span>
-                    <input
-                      className="shop-input"
-                      placeholder="black-edition-a4"
-                      value={variant.key}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, key: event.target.value } : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">SKU variante</span>
-                    <input
-                      className="shop-input"
-                      placeholder="PRINT-A4"
-                      value={variant.sku}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, sku: event.target.value } : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Prezzo di vendita (€)</span>
-                    <input
-                      className="shop-input"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="20"
-                      value={variant.price}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, price: event.target.value } : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Prezzo scontato (€)</span>
-                    <input
-                      className="shop-input"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="15"
-                      value={variant.discountPrice}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, discountPrice: event.target.value } : entry,
-                          ),
-                        })
-                      }
-                    />
-                    <p className="text-xs leading-5 text-white/45">Lascialo vuoto se il prodotto non e in offerta.</p>
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Costo produzione (€)</span>
-                    <input
-                      className="shop-input"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="10"
-                      value={variant.costPrice}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, costPrice: event.target.value } : entry,
-                          ),
-                        })
-                      }
-                    />
-                    <p className="text-xs leading-5 text-white/45">Usato per calcolare il guadagno netto su questa variante.</p>
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Stock disponibile</span>
-                    <input
-                      className="shop-input"
-                      type="number"
-                      min="0"
-                      placeholder="50"
-                      value={variant.stock}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, stock: Number(event.target.value) } : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/55">Soglia scorte basse</span>
-                    <input
-                      className="shop-input"
-                      type="number"
-                      min="0"
-                      placeholder="5"
-                      value={variant.lowStockThreshold}
-                      onChange={(event) =>
-                        onChange({
-                          ...productForm,
-                          variants: productForm.variants.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, lowStockThreshold: Number(event.target.value) } : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    <label className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70">
-                      <input
-                        type="checkbox"
-                        checked={variant.isDefault}
-                        onChange={() =>
-                          onChange({
-                            ...productForm,
-                            variants: productForm.variants.map((entry, entryIndex) => ({
-                              ...entry,
-                              isDefault: entryIndex === index,
-                            })),
-                          })
-                        }
-                      />
-                      Variante default
-                    </label>
-                    <label className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70">
-                      <input
-                        type="checkbox"
-                        checked={variant.isActive}
-                        onChange={(event) =>
-                          onChange({
-                            ...productForm,
-                            variants: productForm.variants.map((entry, entryIndex) =>
-                              entryIndex === index ? { ...entry, isActive: event.target.checked } : entry,
-                            ),
-                          })
-                        }
-                      />
-                      Variante attiva
-                    </label>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      ) : null}
-      {false ? (
-        <Section
-          title="Varianti"
-          description="La modifica multipla non tocca la matrice varianti per evitare di sovrascrivere prezzi, stock o SKU specifici di prodotto."
-        >
-          <p className="text-sm text-white/50">Per modificare varianti, prezzi o inventory specifica apri il singolo prodotto.</p>
-        </Section>
-      ) : null}
 
       <Section title="Badge prodotto">
         <div className="flex items-center justify-between gap-4">
