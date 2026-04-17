@@ -918,6 +918,26 @@ router.get(
   })
 )
 
+router.get(
+  "/drops/assignable-products",
+  asyncHandler(async (req, res) => {
+    await resolveDueDropLaunches(prisma)
+    const dropId = Number(req.query.dropId || 0) || null
+    const products = await prisma.product.findMany({
+      where: {
+        status: "draft",
+        OR: [
+          { dropId: null },
+          dropId ? { dropId } : undefined,
+        ].filter(Boolean),
+      },
+      orderBy: [{ createdAt: "desc" }, { title: "asc" }],
+      include: productRelationInclude(),
+    })
+    res.json(products.map(serializeAdminProduct))
+  })
+)
+
 router.post(
   "/drops",
   asyncHandler(async (req, res) => {

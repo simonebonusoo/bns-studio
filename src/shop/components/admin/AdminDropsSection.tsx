@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent, type SyntheticEvent } from "react"
 import { Link } from "react-router-dom"
 
 import { Button, getDangerButtonClassName } from "../../../components/Button"
+import { apiFetch } from "../../lib/api"
 import { ShopDrop, ShopProduct } from "../../types"
 import { ConfirmActionModal } from "./ConfirmActionModal"
 
@@ -68,14 +69,58 @@ export function AdminDropsSection({
 }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<ShopDrop | null>(null)
+  const [assignableProducts, setAssignableProducts] = useState<ShopProduct[]>([])
+  const [assignableLoading, setAssignableLoading] = useState(false)
+  const [assignableError, setAssignableError] = useState("")
   const selectedProducts = products.filter((product) => dropForm.productIds.includes(product.id))
-  const selectableProducts = products.filter((product) => {
+  const selectableProducts = assignableProducts.filter((product) => {
     if (dropForm.productIds.includes(product.id)) return false
     if (product.status !== "draft") return false
     if (product.dropId && product.dropId !== editingDropId) return false
     return true
   })
   const coverImage = coverPreviewUrl || dropForm.coverImageUrl
+
+  useEffect(() => {
+    if (!pickerOpen) return
+    const previousOverflow = document.body.style.overflow
+    const previousOverscroll = document.body.style.overscrollBehavior
+    document.body.style.overflow = "hidden"
+    document.body.style.overscrollBehavior = "contain"
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.overscrollBehavior = previousOverscroll
+    }
+  }, [pickerOpen])
+
+  useEffect(() => {
+    if (!pickerOpen) return
+    let cancelled = false
+    const params = new URLSearchParams()
+    if (editingDropId) params.set("dropId", String(editingDropId))
+    setAssignableLoading(true)
+    setAssignableError("")
+    apiFetch<ShopProduct[]>(`/admin/drops/assignable-products?${params.toString()}`)
+      .then((data) => {
+        if (cancelled) return
+        setAssignableProducts(Array.isArray(data) ? data.filter((product) => product.status === "draft") : [])
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setAssignableProducts([])
+        setAssignableError(err instanceof Error ? err.message : "Impossibile caricare le bozze assegnabili.")
+      })
+      .finally(() => {
+        if (!cancelled) setAssignableLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [editingDropId, pickerOpen])
+
+  function containModalScroll(event: SyntheticEvent<HTMLElement>) {
+    event.stopPropagation()
+  }
 
   function toggleProduct(productId: number, checked: boolean) {
     onDropFormChange({
@@ -307,15 +352,25 @@ export function AdminDropsSection({
       </div>
 
       {pickerOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
-          <div className="max-h-[86vh] w-full max-w-4xl overflow-hidden rounded-lg border border-white/10 bg-[#0b0b0c] shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/70 px-4 py-8 backdrop-blur-sm"
+          onWheel={(event) => event.preventDefault()}
+          onTouchMove={(event) => event.preventDefault()}
+        >
+          <div className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0b0b0c] shadow-2xl">
             <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
               <h3 className="text-base font-semibold text-white">Aggiungi prodotto al drop</h3>
               <button type="button" onClick={() => setPickerOpen(false)} className="text-sm text-white/55 transition hover:text-white">
                 Chiudi
               </button>
             </div>
-            <div className="max-h-[70vh] overflow-y-auto p-5">
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5"
+              onWheel={containModalScroll}
+              onTouchMove={containModalScroll}
+            >
+              {assignableLoading ? <p className="rounded-lg border border-white/10 px-4 py-8 text-center text-sm text-white/50">Caricamento bozze...</p> : null}
+              {assignableError ? <p className="mb-3 rounded-lg border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{assignableError}</p> : null}
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                 {selectableProducts.map((product) => (
                   <button
@@ -325,11 +380,12 @@ export function AdminDropsSection({
                     className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.025] text-left transition hover:border-white/25 hover:bg-white/[0.05]"
                   >
                     <img src={product.coverImageUrl || product.imageUrls?.[0] || ""} alt="" className="aspect-[4/3] w-full object-cover" />
-                    <span className="block truncate px-3 py-3 text-sm font-medium text-white">{product.title}</span>
+                    <span className="block truncate px-3 pt-3 text-sm font-medium text-white">{product.title}</span>
+                    <span className="block px-3 pb-3 pt-1 text-xs text-white/45">Bozza</span>
                   </button>
                 ))}
               </div>
-              {!selectableProducts.length ? <p className="rounded-lg border border-dashed border-white/10 px-4 py-8 text-center text-sm text-white/50">Nessuna bozza assegnabile disponibile.</p> : null}
+              {!assignableLoading && !selectableProducts.length ? <p className="rounded-lg border border-dashed border-white/10 px-4 py-8 text-center text-sm text-white/50">Nessuna bozza assegnabile disponibile.</p> : null}
             </div>
           </div>
         </div>
