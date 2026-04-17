@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
+import { PrismaClient } from "@prisma/client"
 import { resolveDatabaseUrl } from "../prisma/resolve-database-url.mjs"
 import { getPersistenceStatus } from "../src/server/shop/lib/persistence-status.mjs"
 import { resolveUploadsRootDir } from "../src/server/shop/lib/uploads-storage.mjs"
@@ -77,11 +78,33 @@ async function main() {
 
   logConfiguration()
   console.log("[bootstrap] Seed mode=if-empty")
-  await run("npx", ["prisma", "db", "push", "--skip-generate"], { env: runtimeEnv })
+  await cleanupLegacyDropTable(resolvedDatabaseUrl)
+  await run("npx", ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"], { env: runtimeEnv })
   await run("node", ["prisma/sync-product-variants.mjs"], { env: runtimeEnv })
   await run("node", ["prisma/backfill-usernames.mjs"], { env: runtimeEnv })
   await run("node", ["prisma/seed.mjs"], { env: runtimeEnv })
   await run("node", ["src/server/shop/server.mjs"], { env: runtimeEnv })
+}
+
+async function cleanupLegacyDropTable(databaseUrl) {
+  if (!String(databaseUrl || "").startsWith("file:")) return
+
+  const databasePath = databaseUrl.slice("file:".length)
+  if (!fs.existsSync(databasePath)) return
+
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: databaseUrl,
+      },
+    },
+  })
+
+  try {
+    await prisma.$executeRawUnsafe('DROP TABLE IF EXISTS "Drop"')
+  } finally {
+    await prisma.$disconnect()
+  }
 }
 
 main().catch((error) => {
