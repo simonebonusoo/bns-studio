@@ -84,9 +84,9 @@ export const defaultAboutContent: AboutPageContent = {
         "Sviluppo tool interni, automazioni AI e software creativi per brand. Quando serve, il progetto non si limita al visual: diventa uno strumento concreto per produrre, organizzare e far crescere il sistema.",
     },
   ],
-  staffTitle: "Il nostro staff",
+  staffTitle: "Dietro BNS Studio c'e una persona sola",
   staffIntro:
-    "Una struttura compatta, con ruoli chiari e responsabilita diretta sul risultato creativo, tecnico e operativo.",
+    "Simone Bonuse guida direttamente creativita, direzione, visione e costruzione operativa del progetto. BNS Studio non nasce come contenitore anonimo, ma come realta costruita con cura, responsabilita e lavoro reale sul risultato finale.",
   staff: [
     {
       id: "simone-bonuse",

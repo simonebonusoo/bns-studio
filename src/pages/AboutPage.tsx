@@ -141,30 +141,8 @@ export function AboutPage() {
       const imageUrl = await uploadImage(file)
       if (imageUrl) updateStaff(index, "imageUrl", imageUrl)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore durante il caricamento della foto staff.")
+      setError(err instanceof Error ? err.message : "Errore durante il caricamento della foto founder.")
     }
-  }
-
-  function addStaffMember() {
-    setDraft((current) => ({
-      ...current,
-      staff: [
-        ...current.staff,
-        {
-          id: `staff-${Date.now()}`,
-          name: "Nuovo membro",
-          role: "Ruolo",
-          imageUrl: "",
-        },
-      ],
-    }))
-  }
-
-  function removeStaffMember(index: number) {
-    setDraft((current) => ({
-      ...current,
-      staff: current.staff.filter((_, itemIndex) => itemIndex !== index),
-    }))
   }
 
   async function saveContent() {
@@ -200,6 +178,13 @@ export function AboutPage() {
   const aboutDetailSections = displayContent.sections.slice(0, 2)
   const serviceSectionOffset = 3
   const serviceSections = displayContent.sections.slice(serviceSectionOffset)
+  const founderMember = displayContent.staff[0] || fallbackContent.staff[0]
+  const staffTitle =
+    displayContent.staffTitle === "Il nostro staff" ? "Dietro BNS Studio c'e una persona sola" : displayContent.staffTitle
+  const staffIntro =
+    displayContent.staffIntro === "Una struttura compatta, con ruoli chiari e responsabilita diretta sul risultato creativo, tecnico e operativo."
+      ? "Simone Bonuse guida direttamente creativita, direzione, visione e costruzione operativa del progetto. BNS Studio non nasce come contenitore anonimo, ma come realta costruita con cura, responsabilita e lavoro reale sul risultato finale."
+      : displayContent.staffIntro
 
   return (
     <main className="pb-24 pt-14 md:pt-18">
@@ -376,93 +361,111 @@ export function AboutPage() {
               <div className="max-w-3xl space-y-3">
                 {editing ? (
                   <>
-                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">03 / Persone</p>
+                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">03 / Founder</p>
                     <input
                       className="shop-input text-3xl font-semibold"
                       value={draft.staffTitle}
                       onChange={(event) => updateDraft("staffTitle", event.target.value)}
-                      aria-label="Titolo staff"
+                      aria-label="Titolo founder section"
                     />
                     <textarea
                       className="shop-input min-h-24 text-sm leading-7"
                       value={draft.staffIntro}
                       onChange={(event) => updateDraft("staffIntro", event.target.value)}
-                      aria-label="Introduzione staff"
+                      aria-label="Introduzione founder section"
                     />
                   </>
                 ) : (
                   <>
-                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">03 / Persone</p>
-                    <h2 className="text-3xl font-semibold text-white md:text-5xl">{displayContent.staffTitle}</h2>
-                    <p className="text-base leading-8 text-white/65">{displayContent.staffIntro}</p>
+                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">03 / Founder</p>
+                    <h2 className="max-w-4xl text-3xl font-semibold leading-tight text-white md:text-5xl">{staffTitle}</h2>
+                    <p className="max-w-3xl text-base leading-8 text-white/65">{staffIntro}</p>
                   </>
                 )}
               </div>
-
-              {editing ? (
-                <button type="button" onClick={addStaffMember} className={getButtonClassName({ variant: "profile", size: "sm" })}>
-                  Aggiungi
-                </button>
-              ) : null}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {displayContent.staff.map((member, index) => (
-                <article key={member.id} className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03]">
-                  <div className="aspect-square bg-white/[0.04]">
-                    {member.imageUrl ? (
-                      <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-white/45">Foto staff</div>
-                    )}
+            <article className="overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03]">
+              <div className="grid gap-0 lg:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.05fr)]">
+                <div className="relative min-h-[420px] border-b border-white/10 bg-white/[0.04] lg:min-h-[620px] lg:border-b-0 lg:border-r">
+                  {founderMember?.imageUrl ? (
+                    <>
+                      <img src={founderMember.imageUrl} alt={founderMember.name} className="h-full w-full object-cover object-center" />
+                      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,8,0.02)_0%,rgba(7,7,8,0.12)_48%,rgba(7,7,8,0.38)_100%)]" />
+                    </>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-white/45">Foto founder</div>
+                  )}
+                </div>
+
+                <div className="flex flex-col justify-between gap-8 p-6 md:p-8 lg:p-10">
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      {editing ? (
+                        <>
+                          <input
+                            className="shop-input max-w-md text-2xl font-semibold"
+                            value={draft.staff[0]?.name || ""}
+                            onChange={(event) => updateStaff(0, "name", event.target.value)}
+                            aria-label="Nome founder"
+                          />
+                          <input
+                            className="shop-input max-w-sm"
+                            value={draft.staff[0]?.role || ""}
+                            onChange={(event) => updateStaff(0, "role", event.target.value)}
+                            aria-label="Ruolo founder"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs uppercase tracking-[0.18em] text-white/45">Founder profile</p>
+                          <h3 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">{founderMember.name}</h3>
+                          <p className="text-sm uppercase tracking-[0.22em] text-white/52">{founderMember.role}</p>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="space-y-5 text-base leading-8 text-white/68">
+                      <p>
+                        BNS Studio e seguito ogni giorno da una sola persona: Simone Bonuse. Direzione creativa, costruzione visiva, scelte operative e sviluppo del sistema lavorano insieme, senza separare troppo l'idea dalla sua esecuzione.
+                      </p>
+                      <p>
+                        Il progetto cresce in modo diretto, con responsabilita reale sul risultato finale: non come semplice vetrina, ma come struttura coerente fatta di immagini, linguaggio, pagine, prodotti e decisioni concrete.
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-3 p-4">
-                    {editing ? (
-                      <>
+
+                  {editing ? (
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex cursor-pointer rounded-full border border-white/10 px-3 py-2 text-xs text-white/72 transition hover:border-white/20 hover:text-white">
+                        Carica foto
                         <input
-                          className="shop-input"
-                          value={draft.staff[index]?.name || ""}
-                          onChange={(event) => updateStaff(index, "name", event.target.value)}
-                          aria-label={`Nome staff ${index + 1}`}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => {
+                            void uploadStaffImage(0, event.target.files)
+                            event.currentTarget.value = ""
+                          }}
                         />
-                        <input
-                          className="shop-input"
-                          value={draft.staff[index]?.role || ""}
-                          onChange={(event) => updateStaff(index, "role", event.target.value)}
-                          aria-label={`Ruolo staff ${index + 1}`}
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          <label className="inline-flex cursor-pointer rounded-full border border-white/10 px-3 py-2 text-xs text-white/72 transition hover:border-white/20 hover:text-white">
-                            Carica foto
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(event) => {
-                                void uploadStaffImage(index, event.target.files)
-                                event.currentTarget.value = ""
-                              }}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => removeStaffMember(index)}
-                            className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/55 transition hover:border-white/20 hover:text-white"
-                          >
-                            Rimuovi
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="text-base font-semibold text-white">{member.name}</h3>
-                        <p className="text-xs uppercase tracking-[0.18em] text-white/50">{member.role}</p>
-                      </>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-3 border-t border-white/10 pt-6">
+                      <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
+                        Creativita
+                      </div>
+                      <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
+                        Direzione
+                      </div>
+                      <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
+                        Operativita
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </article>
           </section>
 
           <ProjectContactForm className="border-t border-white/10 pt-14" />
