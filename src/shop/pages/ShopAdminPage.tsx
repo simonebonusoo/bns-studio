@@ -1449,26 +1449,22 @@ export function ShopAdminPage() {
     }
   }
 
-  async function moveCollection(collectionId: number, direction: "up" | "down") {
+  async function reorderCollections(collectionIds: number[]) {
     clearFeedback()
     const orderedCollections = [...collections].sort(
       (left, right) =>
         (left.position ?? Number.MAX_SAFE_INTEGER) - (right.position ?? Number.MAX_SAFE_INTEGER) ||
         left.title.localeCompare(right.title, "it"),
     )
-    const currentIndex = orderedCollections.findIndex((collection) => collection.id === collectionId)
-    if (currentIndex === -1) return
-
-    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
-    if (targetIndex < 0 || targetIndex >= orderedCollections.length) return
-
     const previousCollections = [...orderedCollections]
-    const nextCollections = [...orderedCollections]
-    const [movedCollection] = nextCollections.splice(currentIndex, 1)
-    nextCollections.splice(targetIndex, 0, movedCollection)
+    const nextCollections = collectionIds
+      .map((id) => orderedCollections.find((collection) => collection.id === id))
+      .filter((collection): collection is AdminCollection => Boolean(collection))
+
+    if (nextCollections.length !== orderedCollections.length) return
 
     try {
-      setMovingCollectionId(collectionId)
+      setMovingCollectionId(nextCollections[0]?.id ?? null)
       setCollections(nextCollections.map((collection, index) => ({ ...collection, position: index })))
       await apiFetch<AdminCollection[]>("/admin/collections/order", {
         method: "PATCH",
@@ -1917,7 +1913,7 @@ export function ShopAdminPage() {
           onResetCollectionForm={resetCollectionForm}
           onStartEditCollection={startEditCollection}
           onDeleteCollection={deleteCollection}
-          onMoveCollection={moveCollection}
+          onReorderCollections={reorderCollections}
           movingCollectionId={movingCollectionId}
         />
       ) : null}

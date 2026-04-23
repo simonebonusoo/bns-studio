@@ -28,7 +28,7 @@ type AdminCollectionsSectionProps = {
   onResetCollectionForm: () => void
   onStartEditCollection: (collection: AdminCollection) => void
   onDeleteCollection: (collectionId: number) => void
-  onMoveCollection: (collectionId: number, direction: "up" | "down") => void
+  onReorderCollections: (collectionIds: number[]) => void
   movingCollectionId?: number | null
 }
 
@@ -74,11 +74,12 @@ export function AdminCollectionsSection({
   onResetCollectionForm,
   onStartEditCollection,
   onDeleteCollection,
-  onMoveCollection,
+  onReorderCollections,
   movingCollectionId = null,
 }: AdminCollectionsSectionProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<AdminCollection | null>(null)
+  const [draggedCollectionId, setDraggedCollectionId] = useState<number | null>(null)
   const selectedProductIds = useMemo(
     () =>
       Array.from(
@@ -215,14 +216,39 @@ export function AdminCollectionsSection({
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Collezioni esistenti</h2>
-            <p className="mt-1 text-sm text-white/55">Stato, uscita e prodotti collegati.</p>
+            <p className="mt-1 text-sm text-white/55">Stato, uscita e prodotti collegati. Trascina le card per cambiare l’ordine.</p>
           </div>
           <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{collections.length} collezioni</span>
         </div>
 
         <div className="space-y-3">
           {orderedCollections.map((collection, index) => (
-            <article key={collection.id} className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
+            <article
+              key={collection.id}
+              draggable={movingCollectionId !== collection.id}
+              onDragStart={() => setDraggedCollectionId(collection.id)}
+              onDragEnd={() => setDraggedCollectionId(null)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault()
+                if (!draggedCollectionId || draggedCollectionId === collection.id) return
+
+                const nextCollections = [...orderedCollections]
+                const draggedIndex = nextCollections.findIndex((entry) => entry.id === draggedCollectionId)
+                const targetIndex = nextCollections.findIndex((entry) => entry.id === collection.id)
+                if (draggedIndex === -1 || targetIndex === -1) return
+
+                const [draggedCollection] = nextCollections.splice(draggedIndex, 1)
+                nextCollections.splice(targetIndex, 0, draggedCollection)
+                setDraggedCollectionId(null)
+                onReorderCollections(nextCollections.map((entry) => entry.id))
+              }}
+              className={`rounded-lg border bg-white/[0.025] p-4 transition ${
+                draggedCollectionId === collection.id
+                  ? "border-[#e3f503]/45 bg-[#e3f503]/10"
+                  : "border-white/10"
+              }`}
+            >
               <div className="flex gap-4">
                 {collection.coverImageUrl ? <img src={collection.coverImageUrl} alt="" className="h-20 w-20 rounded-lg object-cover" /> : <div className="h-20 w-20 rounded-lg bg-white/8" />}
                 <div className="min-w-0 flex-1">
@@ -233,26 +259,11 @@ export function AdminCollectionsSection({
                   <p className="mt-1 text-xs text-white/45">/{collection.slug} · {formatLaunchDate(collection.launchAt)}</p>
                   <p className="mt-1 text-sm text-white/55">{collection._count?.products || collection.products?.length || 0} prodotti · {collection.active ? "attiva" : "non attiva"}</p>
                 </div>
+                <div className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/60">
+                  {movingCollectionId === collection.id ? "Salvataggio..." : `Trascina · ${index + 1}`}
+                </div>
               </div>
               <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="profile"
-                  size="sm"
-                  disabled={index === 0 || movingCollectionId === collection.id}
-                  onClick={() => onMoveCollection(collection.id, "up")}
-                >
-                  Su
-                </Button>
-                <Button
-                  type="button"
-                  variant="profile"
-                  size="sm"
-                  disabled={index === orderedCollections.length - 1 || movingCollectionId === collection.id}
-                  onClick={() => onMoveCollection(collection.id, "down")}
-                >
-                  Giù
-                </Button>
                 <Button type="button" variant="profile" size="sm" onClick={() => onStartEditCollection(collection)}>
                   Modifica
                 </Button>
