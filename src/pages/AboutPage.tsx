@@ -33,6 +33,22 @@ function cloneContent(content: AboutPageContent): AboutPageContent {
   }
 }
 
+function ensureFounderMember(content: AboutPageContent): AboutPageContent {
+  if (content.staff.length > 0) return content
+
+  return {
+    ...content,
+    staff: [
+      {
+        id: "simone-bonuse",
+        name: "Simone Bonuse",
+        role: "CEO & Founder",
+        imageUrl: founderImageUrl,
+      },
+    ],
+  }
+}
+
 export function AboutPage() {
   const { user } = useShopAuth()
   const isAdmin = user?.role === "admin"
@@ -51,14 +67,15 @@ export function AboutPage() {
     apiFetch<Record<string, string>>("/store/settings")
       .then((settings) => {
         if (cancelled) return
-        const nextContent = withDefaultImages(parseAboutPageContent(settings?.[ABOUT_PAGE_SETTINGS_KEY], fallbackContent))
+        const nextContent = ensureFounderMember(withDefaultImages(parseAboutPageContent(settings?.[ABOUT_PAGE_SETTINGS_KEY], fallbackContent)))
         setContent(nextContent)
         setDraft(cloneContent(nextContent))
       })
       .catch(() => {
         if (cancelled) return
-        setContent(fallbackContent)
-        setDraft(cloneContent(fallbackContent))
+        const nextContent = ensureFounderMember(fallbackContent)
+        setContent(nextContent)
+        setDraft(cloneContent(nextContent))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -148,7 +165,7 @@ export function AboutPage() {
   async function saveContent() {
     setError("")
     setMessage("")
-    const nextContent = withDefaultImages(parseAboutPageContent(JSON.stringify({ ...draft, closing: "" }), fallbackContent))
+    const nextContent = ensureFounderMember(withDefaultImages(parseAboutPageContent(JSON.stringify({ ...draft, closing: "" }), fallbackContent)))
 
     try {
       setSaving(true)
@@ -174,17 +191,11 @@ export function AboutPage() {
     setMessage("")
   }
 
-  const displayContent = editing ? draft : content
+  const displayContent = ensureFounderMember(editing ? draft : content)
   const aboutDetailSections = displayContent.sections.slice(0, 2)
   const serviceSectionOffset = 3
   const serviceSections = displayContent.sections.slice(serviceSectionOffset)
   const founderMember = displayContent.staff[0] || fallbackContent.staff[0]
-  const staffTitle =
-    displayContent.staffTitle === "Il nostro staff" ? "Dietro BNS Studio c'e una persona sola" : displayContent.staffTitle
-  const staffIntro =
-    displayContent.staffIntro === "Una struttura compatta, con ruoli chiari e responsabilita diretta sul risultato creativo, tecnico e operativo."
-      ? "Simone Bonuse guida direttamente creativita, direzione, visione e costruzione operativa del progetto. BNS Studio non nasce come contenitore anonimo, ma come realta costruita con cura, responsabilita e lavoro reale sul risultato finale."
-      : displayContent.staffIntro
 
   return (
     <main className="pb-24 pt-14 md:pt-18">
@@ -361,25 +372,30 @@ export function AboutPage() {
               <div className="max-w-3xl space-y-3">
                 {editing ? (
                   <>
-                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">03 / Founder</p>
+                    <input
+                      className="shop-input max-w-xs text-xs uppercase tracking-[0.28em]"
+                      value={draft.founderSectionLabel}
+                      onChange={(event) => updateDraft("founderSectionLabel", event.target.value)}
+                      aria-label="Label sezione founder"
+                    />
                     <input
                       className="shop-input text-3xl font-semibold"
-                      value={draft.staffTitle}
-                      onChange={(event) => updateDraft("staffTitle", event.target.value)}
+                      value={draft.founderTitle}
+                      onChange={(event) => updateDraft("founderTitle", event.target.value)}
                       aria-label="Titolo founder section"
                     />
                     <textarea
                       className="shop-input min-h-24 text-sm leading-7"
-                      value={draft.staffIntro}
-                      onChange={(event) => updateDraft("staffIntro", event.target.value)}
+                      value={draft.founderIntro}
+                      onChange={(event) => updateDraft("founderIntro", event.target.value)}
                       aria-label="Introduzione founder section"
                     />
                   </>
                 ) : (
                   <>
-                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">03 / Founder</p>
-                    <h2 className="max-w-4xl text-3xl font-semibold leading-tight text-white md:text-5xl">{staffTitle}</h2>
-                    <p className="max-w-3xl text-base leading-8 text-white/65">{staffIntro}</p>
+                    <p className="text-xs uppercase tracking-[0.32em] text-white/40">{displayContent.founderSectionLabel}</p>
+                    <h2 className="max-w-4xl text-3xl font-semibold leading-tight text-white md:text-5xl">{displayContent.founderTitle}</h2>
+                    <p className="max-w-3xl text-base leading-8 text-white/65">{displayContent.founderIntro}</p>
                   </>
                 )}
               </div>
@@ -407,7 +423,7 @@ export function AboutPage() {
                         </>
                       ) : (
                         <>
-                          <p className="text-xs uppercase tracking-[0.18em] text-white/45">Founder profile</p>
+                          <p className="text-xs uppercase tracking-[0.18em] text-white/45">{displayContent.founderProfileLabel}</p>
                           <h3 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">{founderMember.name}</h3>
                           <p className="text-sm uppercase tracking-[0.22em] text-white/52">{founderMember.role}</p>
                         </>
@@ -415,12 +431,33 @@ export function AboutPage() {
                     </div>
 
                     <div className="space-y-5 text-base leading-8 text-white/68">
-                      <p>
-                        BNS Studio e seguito ogni giorno da una sola persona: Simone Bonuse. Direzione creativa, costruzione visiva, scelte operative e sviluppo del sistema lavorano insieme, senza separare troppo l'idea dalla sua esecuzione.
-                      </p>
-                      <p>
-                        Il progetto cresce in modo diretto, con responsabilita reale sul risultato finale: non come semplice vetrina, ma come struttura coerente fatta di immagini, linguaggio, pagine, prodotti e decisioni concrete.
-                      </p>
+                      {editing ? (
+                        <>
+                          <input
+                            className="shop-input max-w-sm text-xs uppercase tracking-[0.28em]"
+                            value={draft.founderProfileLabel}
+                            onChange={(event) => updateDraft("founderProfileLabel", event.target.value)}
+                            aria-label="Label profilo founder"
+                          />
+                          <textarea
+                            className="shop-input min-h-32 text-base leading-8"
+                            value={draft.founderDescriptionPrimary}
+                            onChange={(event) => updateDraft("founderDescriptionPrimary", event.target.value)}
+                            aria-label="Testo founder principale"
+                          />
+                          <textarea
+                            className="shop-input min-h-28 text-base leading-8"
+                            value={draft.founderDescriptionSecondary}
+                            onChange={(event) => updateDraft("founderDescriptionSecondary", event.target.value)}
+                            aria-label="Testo founder secondario"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <p>{displayContent.founderDescriptionPrimary}</p>
+                          <p>{displayContent.founderDescriptionSecondary}</p>
+                        </>
+                      )}
                     </div>
                   </div>
 

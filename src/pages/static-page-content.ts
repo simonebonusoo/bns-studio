@@ -21,14 +21,18 @@ export type AboutStaffMember = {
 
 export type AboutPageContent = StaticPageContent & {
   introImageUrl: string
-  staffTitle: string
-  staffIntro: string
+  founderSectionLabel: string
+  founderTitle: string
+  founderIntro: string
+  founderProfileLabel: string
+  founderDescriptionPrimary: string
+  founderDescriptionSecondary: string
   staff: AboutStaffMember[]
 }
 
 export const ABOUT_PAGE_SETTINGS_KEY = "staticPage.about"
 export const PRIVACY_PAGE_SETTINGS_KEY = "staticPage.privacy"
-export const ABOUT_PAGE_CONTENT_VERSION = "2026-04-11-about-editorial-subsections"
+export const ABOUT_PAGE_CONTENT_VERSION = "2026-04-23-about-founder-datadriven"
 
 export const defaultAboutContent: AboutPageContent = {
   version: ABOUT_PAGE_CONTENT_VERSION,
@@ -84,9 +88,15 @@ export const defaultAboutContent: AboutPageContent = {
         "Sviluppo tool interni, automazioni AI e software creativi per brand. Quando serve, il progetto non si limita al visual: diventa uno strumento concreto per produrre, organizzare e far crescere il sistema.",
     },
   ],
-  staffTitle: "Dietro BNS Studio c'e una persona sola",
-  staffIntro:
+  founderSectionLabel: "03 / Founder",
+  founderTitle: "Dietro BNS Studio c'e una persona sola",
+  founderIntro:
     "Simone Bonuse guida direttamente creativita, direzione, visione e costruzione operativa del progetto. BNS Studio non nasce come contenitore anonimo, ma come realta costruita con cura, responsabilita e lavoro reale sul risultato finale.",
+  founderProfileLabel: "Founder profile",
+  founderDescriptionPrimary:
+    "BNS Studio e seguito ogni giorno da una sola persona: Simone Bonuse. Direzione creativa, costruzione visiva, scelte operative e sviluppo del sistema lavorano insieme, senza separare troppo l'idea dalla sua esecuzione.",
+  founderDescriptionSecondary:
+    "Il progetto cresce in modo diretto, con responsabilita reale sul risultato finale: non come semplice vetrina, ma come struttura coerente fatta di immagini, linguaggio, pagine, prodotti e decisioni concrete.",
   staff: [
     {
       id: "simone-bonuse",
@@ -203,10 +213,6 @@ export function parseAboutPageContent(rawValue: string | undefined, fallback: Ab
       return fallback
     }
 
-    if (parsed.version !== ABOUT_PAGE_CONTENT_VERSION) {
-      return fallback
-    }
-
     const staff = Array.isArray(parsed.staff)
       ? parsed.staff
           .map((member: Partial<AboutStaffMember>, index: number) => ({
@@ -222,8 +228,12 @@ export function parseAboutPageContent(rawValue: string | undefined, fallback: Ab
       ...base,
       version: ABOUT_PAGE_CONTENT_VERSION,
       introImageUrl: String(parsed.introImageUrl || fallback.introImageUrl || "").trim(),
-      staffTitle: String(parsed.staffTitle || fallback.staffTitle).trim(),
-      staffIntro: String(parsed.staffIntro || fallback.staffIntro).trim(),
+      founderSectionLabel: String(parsed.founderSectionLabel || fallback.founderSectionLabel).trim(),
+      founderTitle: String(parsed.founderTitle || parsed.staffTitle || fallback.founderTitle).trim(),
+      founderIntro: String(parsed.founderIntro || parsed.staffIntro || fallback.founderIntro).trim(),
+      founderProfileLabel: String(parsed.founderProfileLabel || fallback.founderProfileLabel).trim(),
+      founderDescriptionPrimary: String(parsed.founderDescriptionPrimary || fallback.founderDescriptionPrimary).trim(),
+      founderDescriptionSecondary: String(parsed.founderDescriptionSecondary || fallback.founderDescriptionSecondary).trim(),
       staff: staff.length ? staff : fallback.staff,
       closing: "",
     }
