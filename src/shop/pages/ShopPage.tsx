@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Button, getButtonClassName } from "../../components/Button"
 import { useIsMobileViewport } from "../../hooks/useIsMobileViewport"
@@ -155,26 +155,11 @@ export function ShopPage() {
       .replace(/\b\w/g, (char) => char.toUpperCase())
   }
 
-  const selectedCollection = useMemo(() => {
-    const normalizedSlug = filters.collectionSlug.trim().toLowerCase()
-    if (!normalizedSlug) return null
-
-    return (
-      collections.find((collection) => collection.slug.trim().toLowerCase() === normalizedSlug) ||
-      collections.find((collection) => collection.title.trim().toLowerCase() === normalizedSlug) ||
-      null
-    )
-  }, [collections, filters.collectionSlug])
-
-  const collectionTitle = selectedCollection?.title || ""
-  const collectionDescription = selectedCollection?.description?.trim() || ""
-  const collectionSecondaryText = selectedCollection?.promoText?.trim() || ""
-  const collectionCoverImageUrl = selectedCollection?.coverImageUrl?.trim() || ""
-  const hasCollectionContext = Boolean(filters.collectionSlug)
+  const collectionTitle = collections.find((collection) => collection.slug === filters.collectionSlug)?.title || ""
   const pageContextLabel =
-    collectionTitle ||
     filters.title.trim() ||
     filters.category.trim() ||
+    collectionTitle ||
     (filters.search ? formatContextLabel(filters.search) : "") ||
     (filters.tag ? formatContextLabel(filters.tag) : "") ||
     (filters.collection === "new"
@@ -185,7 +170,6 @@ export function ShopPage() {
           ? "Prezzo crescente"
           : "Catalogo")
   const editorialSubtitle =
-    collectionDescription ||
     filters.subtitle.trim() ||
     (pageContextLabel !== "Catalogo" ? `Esplora la selezione dedicata a ${pageContextLabel.toLowerCase()}.` : "")
 
@@ -340,37 +324,10 @@ export function ShopPage() {
     >
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
         <div className="border-b border-white/10 pb-4">
-          {hasCollectionContext ? (
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:items-center">
-              <div className="min-w-0">
-                <p className="text-xs uppercase tracking-[0.3em] text-white/45">Collezione</p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                  {collectionTitle || filters.title.trim() || formatContextLabel(filters.collectionSlug)}
-                </h2>
-                {editorialSubtitle ? <p className="mt-3 max-w-3xl text-sm leading-6 text-white/68 md:text-base">{editorialSubtitle}</p> : null}
-                {collectionSecondaryText && collectionSecondaryText !== editorialSubtitle ? (
-                  <p className="mt-3 text-xs uppercase tracking-[0.2em] text-white/48">{collectionSecondaryText}</p>
-                ) : null}
-              </div>
-
-              <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.04]">
-                {collectionCoverImageUrl ? (
-                  <img
-                    src={collectionCoverImageUrl}
-                    alt={collectionTitle || filters.title.trim() || "Cover collezione"}
-                    className="aspect-[16/10] w-full object-cover"
-                  />
-                ) : (
-                  <div className="aspect-[16/10] w-full bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_52%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
-                )}
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-white/45">{pageContextLabel}</p>
-              {editorialSubtitle ? <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">{editorialSubtitle}</p> : null}
-            </div>
-          )}
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/45">{pageContextLabel}</p>
+            {editorialSubtitle ? <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">{editorialSubtitle}</p> : null}
+          </div>
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
