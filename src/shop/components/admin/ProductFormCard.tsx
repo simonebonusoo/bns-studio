@@ -513,31 +513,42 @@ export function ProductFormCard({
           {productForm.isCustomizable ? (
             <div className="mt-5 space-y-4">
               <article className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5 md:p-6">
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(220px,240px)] lg:items-start">
-                  <div className="max-w-2xl min-w-0">
+                <div className="space-y-5">
+                  <div className="max-w-3xl min-w-0">
                     <p className="text-base font-semibold text-white">Personalizzazione testo</p>
                     <p className="mt-2 text-sm leading-6 text-white/55">
                       Definisci il campo testuale mostrato al cliente, con etichetta, obbligatorietà e limite caratteri leggibili.
                     </p>
                   </div>
-                  <div className="min-w-0 space-y-2 lg:min-w-[220px] lg:justify-self-end">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Attiva sezione</p>
-                    {renderBooleanPills({
-                      value: productForm.personalizationTextEnabled,
-                      onChange: (next) =>
-                        onChange({
-                          ...productForm,
-                          personalizationTextEnabled: next,
-                          personalizationTextRequired: next ? productForm.personalizationTextRequired : false,
-                        }),
-                      ariaLabel: "Attiva personalizzazione testo",
-                    })}
+
+                  <div className="grid gap-4 border-t border-white/8 pt-5 sm:max-w-[280px]">
+                    <div className="space-y-2">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Attiva sezione</p>
+                      {renderBooleanPills({
+                        value: productForm.personalizationTextEnabled,
+                        onChange: (next) =>
+                          onChange({
+                            ...productForm,
+                            personalizationTextEnabled: next,
+                            personalizationTextRequired: next ? productForm.personalizationTextRequired : false,
+                          }),
+                        ariaLabel: "Attiva personalizzazione testo",
+                      })}
+                    </div>
+                    <div className="space-y-2">
+                      <span className="block text-[11px] uppercase tracking-[0.18em] text-white/45">Obbligatoria</span>
+                      {renderBooleanPills({
+                        value: productForm.personalizationTextRequired,
+                        onChange: (next) => onChange({ ...productForm, personalizationTextRequired: next }),
+                        ariaLabel: "Testo obbligatorio",
+                      })}
+                    </div>
                   </div>
                 </div>
 
                 {productForm.personalizationTextEnabled ? (
-                  <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
-                    <label className="space-y-2">
+                  <div className="mt-5 grid gap-4 border-t border-white/8 pt-5 xl:grid-cols-[minmax(0,1fr)_minmax(220px,260px)]">
+                    <label className="space-y-2 xl:col-span-2">
                       <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Label</span>
                       <input
                         className="shop-input"
@@ -546,27 +557,17 @@ export function ProductFormCard({
                         onChange={(event) => onChange({ ...productForm, personalizationTextLabel: event.target.value })}
                       />
                     </label>
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                      <div className="space-y-2">
-                        <span className="block text-[10px] uppercase tracking-[0.16em] text-white/45">Obbligatoria</span>
-                        {renderBooleanPills({
-                          value: productForm.personalizationTextRequired,
-                          onChange: (next) => onChange({ ...productForm, personalizationTextRequired: next }),
-                          ariaLabel: "Testo obbligatorio",
-                        })}
-                      </div>
-                      <label className="space-y-2">
-                        <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Max caratteri</span>
-                        <input
-                          className="shop-input"
-                          type="number"
-                          min="1"
-                          max="200"
-                          value={productForm.personalizationTextMaxChars}
-                          onChange={(event) => onChange({ ...productForm, personalizationTextMaxChars: Number(event.target.value || 50) })}
-                        />
-                      </label>
-                    </div>
+                    <label className="space-y-2 xl:max-w-[260px]">
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Max caratteri</span>
+                      <input
+                        className="shop-input"
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={productForm.personalizationTextMaxChars}
+                        onChange={(event) => onChange({ ...productForm, personalizationTextMaxChars: Number(event.target.value || 50) })}
+                      />
+                    </label>
                   </div>
                 ) : (
                   <div className="mt-5 rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-3 text-sm text-white/50">
@@ -576,58 +577,59 @@ export function ProductFormCard({
               </article>
 
               <article className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5 md:p-6">
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(220px,240px)] lg:items-start">
-                  <div className="max-w-2xl min-w-0">
+                <div className="space-y-5">
+                  <div className="max-w-3xl min-w-0">
                     <p className="text-base font-semibold text-white">Personalizzazione immagine</p>
                     <p className="mt-2 text-sm leading-6 text-white/55">
                       Gestisci upload immagine e istruzioni per il cliente in un pannello ampio, ordinato e coerente con il resto del backoffice.
                     </p>
                   </div>
-                  <div className="min-w-0 space-y-2 lg:min-w-[220px] lg:justify-self-end">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Attiva sezione</p>
-                    {renderBooleanPills({
-                      value: productForm.personalizationImageEnabled,
-                      onChange: (next) =>
-                        onChange({
-                          ...productForm,
-                          personalizationImageEnabled: next,
-                          personalizationImageRequired: next ? productForm.personalizationImageRequired : false,
-                        }),
-                      ariaLabel: "Attiva personalizzazione immagine",
-                    })}
-                  </div>
-                </div>
 
-                {productForm.personalizationImageEnabled ? (
-                  <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-                    <div className="space-y-4">
-                      <label className="space-y-2">
-                        <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Label</span>
-                        <input
-                          className="shop-input"
-                          placeholder="Carica un’immagine da usare per adattare il poster"
-                          value={productForm.personalizationImageLabel}
-                          onChange={(event) => onChange({ ...productForm, personalizationImageLabel: event.target.value })}
-                        />
-                      </label>
-                      <label className="space-y-2">
-                        <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Istruzioni utente</span>
-                        <textarea
-                          className="shop-textarea min-h-28 resize-none"
-                          placeholder="Spiega come verrà usata l’immagine caricata."
-                          value={productForm.personalizationImageInstructions}
-                          onChange={(event) => onChange({ ...productForm, personalizationImageInstructions: event.target.value })}
-                        />
-                      </label>
+                  <div className="grid gap-4 border-t border-white/8 pt-5 sm:max-w-[280px]">
+                    <div className="space-y-2">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Attiva sezione</p>
+                      {renderBooleanPills({
+                        value: productForm.personalizationImageEnabled,
+                        onChange: (next) =>
+                          onChange({
+                            ...productForm,
+                            personalizationImageEnabled: next,
+                            personalizationImageRequired: next ? productForm.personalizationImageRequired : false,
+                          }),
+                        ariaLabel: "Attiva personalizzazione immagine",
+                      })}
                     </div>
                     <div className="space-y-2">
-                      <span className="block text-[10px] uppercase tracking-[0.16em] text-white/45">Obbligatoria</span>
+                      <span className="block text-[11px] uppercase tracking-[0.18em] text-white/45">Obbligatoria</span>
                       {renderBooleanPills({
                         value: productForm.personalizationImageRequired,
                         onChange: (next) => onChange({ ...productForm, personalizationImageRequired: next }),
                         ariaLabel: "Immagine obbligatoria",
                       })}
                     </div>
+                  </div>
+                </div>
+
+                {productForm.personalizationImageEnabled ? (
+                  <div className="mt-5 grid gap-4 border-t border-white/8 pt-5">
+                    <label className="space-y-2">
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Label</span>
+                      <input
+                        className="shop-input"
+                        placeholder="Carica un’immagine da usare per adattare il poster"
+                        value={productForm.personalizationImageLabel}
+                        onChange={(event) => onChange({ ...productForm, personalizationImageLabel: event.target.value })}
+                      />
+                    </label>
+                    <label className="space-y-2">
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Istruzioni utente</span>
+                      <textarea
+                        className="shop-textarea min-h-32 resize-none"
+                        placeholder="Spiega come verrà usata l’immagine caricata."
+                        value={productForm.personalizationImageInstructions}
+                        onChange={(event) => onChange({ ...productForm, personalizationImageInstructions: event.target.value })}
+                      />
+                    </label>
                   </div>
                 ) : (
                   <div className="mt-5 rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-3 text-sm text-white/50">
