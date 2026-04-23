@@ -133,6 +133,7 @@ model Collection {
   description String?
   coverImageUrl String?
   promoText   String?
+  position    Int                 @default(0)
   status      String              @default("live")
   launchAt    DateTime?
   active      Boolean             @default(true)

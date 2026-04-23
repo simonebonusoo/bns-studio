@@ -43,11 +43,12 @@ export type ProductCollection = {
   description?: string
   coverImageUrl?: string
   promoText?: string
+  position?: number
+  productPosition?: number
   status?: "draft" | "scheduled" | "live" | "archived"
   launchAt?: string | null
   active: boolean
   products?: ShopProduct[]
-  position?: number
   _count?: {
     products: number
   }

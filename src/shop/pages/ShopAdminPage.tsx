@@ -1448,6 +1448,32 @@ export function ShopAdminPage() {
     }
   }
 
+  async function moveCollection(collectionId: number, direction: "up" | "down") {
+    clearFeedback()
+    const currentIndex = collections.findIndex((collection) => collection.id === collectionId)
+    if (currentIndex === -1) return
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= collections.length) return
+
+    const nextCollections = [...collections]
+    const [movedCollection] = nextCollections.splice(currentIndex, 1)
+    nextCollections.splice(targetIndex, 0, movedCollection)
+
+    try {
+      const reordered = await apiFetch<AdminCollection[]>("/admin/collections/order", {
+        method: "PATCH",
+        body: JSON.stringify({
+          collectionIds: nextCollections.map((collection) => collection.id),
+        }),
+      })
+      setCollections(Array.isArray(reordered) ? reordered : nextCollections)
+      setMessage("Ordine collezioni aggiornato.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore durante il riordino delle collezioni.")
+    }
+  }
+
   async function duplicateProduct(product: ShopProduct) {
     clearFeedback()
     try {
@@ -1878,6 +1904,7 @@ export function ShopAdminPage() {
           onResetCollectionForm={resetCollectionForm}
           onStartEditCollection={startEditCollection}
           onDeleteCollection={deleteCollection}
+          onMoveCollection={moveCollection}
         />
       ) : null}
 

@@ -369,7 +369,18 @@ router.get(
       orderBy: { createdAt: "desc" },
       include: productRelationInclude(),
     })
-    const sortedProducts = sortPublicProducts(products, sort, search)
+    const collectionSlug = String(req.query.collectionSlug || req.query.collection || "").trim()
+    const sortedProducts =
+      sort === "manual" && collectionSlug
+        ? [...products].sort((left, right) => {
+            const leftPosition =
+              left.productCollections?.find((entry) => entry.collection?.slug === collectionSlug)?.position ?? Number.MAX_SAFE_INTEGER
+            const rightPosition =
+              right.productCollections?.find((entry) => entry.collection?.slug === collectionSlug)?.position ?? Number.MAX_SAFE_INTEGER
+            if (leftPosition !== rightPosition) return leftPosition - rightPosition
+            return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+          })
+        : sortPublicProducts(products, sort, search)
     const total = sortedProducts.length
     const totalPages = Math.max(1, Math.ceil(total / pageSize))
     const safePage = Math.min(page, totalPages)
@@ -486,7 +497,7 @@ router.get(
           { status: "scheduled", launchAt: { lte: new Date() } },
         ],
       },
-      orderBy: [{ launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
+      orderBy: [{ position: "asc" }, { launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
       include: {
         products: {
           orderBy: [{ position: "asc" }],
@@ -510,6 +521,7 @@ router.get(
           description: collection.description || "",
           coverImageUrl: collection.coverImageUrl || "",
           promoText: collection.promoText || "",
+          position: collection.position ?? 0,
           status: collection.status,
           launchAt: collection.launchAt,
           active: collection.active,

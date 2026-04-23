@@ -176,6 +176,7 @@ function serializeAdminCollection(collection) {
     description: collection.description || "",
     coverImageUrl: collection.coverImageUrl || "",
     promoText: collection.promoText || "",
+    position: collection.position ?? 0,
     status: collection.status || (collection.active ? "live" : "draft"),
     launchAt: collection.launchAt ? collection.launchAt.toISOString() : null,
     active: Boolean(collection.active),
@@ -870,7 +871,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     await resolveDueCollectionLaunches(prisma)
     const collections = await prisma.collection.findMany({
-      orderBy: [{ launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
+      orderBy: [{ position: "asc" }, { launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
       include: {
         products: {
           orderBy: [{ position: "asc" }],
@@ -898,11 +899,45 @@ function parseCollectionLaunchAt(value) {
   return date
 }
 
+async function saveCollectionOrder(collectionIds = []) {
+  const normalizedIds = Array.from(
+    new Set(
+      collectionIds
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value > 0),
+    ),
+  )
+
+  const existingCollections = await prisma.collection.findMany({
+    select: { id: true },
+    orderBy: [{ position: "asc" }, { launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
+  })
+
+  const existingIds = existingCollections.map((collection) => collection.id)
+  const finalIds = [
+    ...normalizedIds.filter((id) => existingIds.includes(id)),
+    ...existingIds.filter((id) => !normalizedIds.includes(id)),
+  ]
+
+  await prisma.$transaction(
+    finalIds.map((id, position) =>
+      prisma.collection.update({
+        where: { id },
+        data: { position },
+      }),
+    ),
+  )
+}
+
 router.post(
   "/collections",
   asyncHandler(async (req, res) => {
     const body = collectionSchema.parse(req.body)
     const slug = await ensureUniqueCollectionSlug(body.slug || body.title)
+    const lastCollection = await prisma.collection.findFirst({
+      select: { position: true },
+      orderBy: [{ position: "desc" }, { createdAt: "desc" }],
+    })
     const collection = await prisma.collection.create({
       data: {
         title: body.title.trim(),
@@ -910,6 +945,7 @@ router.post(
         description: body.description?.trim() || null,
         coverImageUrl: body.coverImageUrl || null,
         promoText: body.promoText || null,
+        position: (lastCollection?.position ?? -1) + 1,
         status: body.status,
         launchAt: parseCollectionLaunchAt(body.launchAt),
         active: body.active,
@@ -977,7 +1013,92 @@ router.delete(
   asyncHandler(async (req, res) => {
     const collectionId = Number(req.params.id)
     await prisma.collection.delete({ where: { id: collectionId } })
+    const remainingCollections = await prisma.collection.findMany({
+      select: { id: true },
+      orderBy: [{ position: "asc" }, { launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
+    })
+    await saveCollectionOrder(remainingCollections.map((collection) => collection.id))
     res.status(204).send()
+  })
+)
+
+router.patch(
+  "/collections/order",
+  asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        collectionIds: z.array(z.number().int().positive()).default([]),
+      })
+      .parse(req.body)
+
+    await saveCollectionOrder(body.collectionIds)
+
+    const collections = await prisma.collection.findMany({
+      orderBy: [{ position: "asc" }, { launchAt: "desc" }, { createdAt: "desc" }, { title: "asc" }],
+      include: {
+        products: {
+          orderBy: [{ position: "asc" }],
+          include: {
+            product: {
+              include: productRelationInclude(),
+            },
+          },
+        },
+        _count: {
+          select: { products: true },
+        },
+      },
+    })
+
+    res.json(collections.map(serializeAdminCollection))
+  })
+)
+
+router.patch(
+  "/collections/:id/products/order",
+  asyncHandler(async (req, res) => {
+    const collectionId = Number(req.params.id)
+    if (!Number.isInteger(collectionId) || collectionId <= 0) {
+      throw new HttpError(400, "Collezione non valida")
+    }
+
+    const body = z
+      .object({
+        productIds: z.array(z.number().int().positive()).default([]),
+      })
+      .parse(req.body)
+
+    const existingCollection = await prisma.collection.findUnique({
+      where: { id: collectionId },
+      include: {
+        products: {
+          orderBy: [{ position: "asc" }],
+          select: { productId: true },
+        },
+      },
+    })
+
+    if (!existingCollection) {
+      throw new HttpError(404, "Collezione non trovata")
+    }
+
+    const existingProductIds = existingCollection.products.map((entry) => entry.productId)
+    const nextProductIds = [
+      ...body.productIds.filter((id) => existingProductIds.includes(id)),
+      ...existingProductIds.filter((id) => !body.productIds.includes(id)),
+    ]
+
+    await syncCollectionProducts(collectionId, nextProductIds)
+
+    const hydrated = await prisma.collection.findUnique({
+      where: { id: collectionId },
+      include: {
+        products: { orderBy: [{ position: "asc" }], include: { product: { include: productRelationInclude() } } },
+        _count: { select: { products: true } },
+      },
+    })
+
+    res.json(serializeAdminCollection(hydrated))
   })
 )
 

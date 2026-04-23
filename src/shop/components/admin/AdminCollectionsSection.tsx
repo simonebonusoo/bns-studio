@@ -28,6 +28,7 @@ type AdminCollectionsSectionProps = {
   onResetCollectionForm: () => void
   onStartEditCollection: (collection: AdminCollection) => void
   onDeleteCollection: (collectionId: number) => void
+  onMoveCollection: (collectionId: number, direction: "up" | "down") => void
 }
 
 function statusLabel(status?: AdminCollection["status"]) {
@@ -72,6 +73,7 @@ export function AdminCollectionsSection({
   onResetCollectionForm,
   onStartEditCollection,
   onDeleteCollection,
+  onMoveCollection,
 }: AdminCollectionsSectionProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<AdminCollection | null>(null)
@@ -222,6 +224,12 @@ export function AdminCollectionsSection({
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="profile" size="sm" onClick={() => onMoveCollection(collection.id, "up")}>
+                  Su
+                </Button>
+                <Button type="button" variant="profile" size="sm" onClick={() => onMoveCollection(collection.id, "down")}>
+                  Giù
+                </Button>
                 <Button type="button" variant="profile" size="sm" onClick={() => onStartEditCollection(collection)}>
                   Modifica
                 </Button>

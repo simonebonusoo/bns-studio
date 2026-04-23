@@ -448,7 +448,7 @@ export function HomeShop() {
   const { effectiveRole } = useShopAuth();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [collections, setCollections] = useState<AdminCollection[]>([]);
-  const [visibleCollectionCount, setVisibleCollectionCount] = useState(4);
+  const [visibleCollectionCount, setVisibleCollectionCount] = useState(3);
   const [productTotal, setProductTotal] = useState(0);
   const [shopSettings, setShopSettings] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "loading">("idle");
@@ -629,7 +629,7 @@ export function HomeShop() {
     () =>
       [...collections]
         .filter((collection) => collection.active && (!collection.status || collection.status === "live"))
-        .sort((left, right) => getCollectionSortTime(right) - getCollectionSortTime(left) || left.title.localeCompare(right.title, "it"))
+        .sort((left, right) => (left.position ?? Number.MAX_SAFE_INTEGER) - (right.position ?? Number.MAX_SAFE_INTEGER) || getCollectionSortTime(right) - getCollectionSortTime(left) || left.title.localeCompare(right.title, "it"))
         .map((collection, index) => ({
           ...collection,
           imageUrl: getCollectionImage(collection, products, index + 3),

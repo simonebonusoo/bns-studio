@@ -173,10 +173,11 @@ export function serializeTaxonomyRelations(product) {
     description: entry.collection.description || "",
     coverImageUrl: entry.collection.coverImageUrl || "",
     promoText: entry.collection.promoText || "",
+    position: entry.collection.position ?? 0,
     status: entry.collection.status || (entry.collection.active ? "live" : "draft"),
     launchAt: entry.collection.launchAt ? entry.collection.launchAt.toISOString() : null,
     active: entry.collection.active,
-    position: entry.position || 0,
+    productPosition: entry.position || 0,
   }))
 
   return { tags, collections }

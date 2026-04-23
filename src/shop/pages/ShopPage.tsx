@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Button, getButtonClassName } from "../../components/Button"
 import { useIsMobileViewport } from "../../hooks/useIsMobileViewport"
 import { ProductCard } from "../components/ProductCard"
 import { ShopLayout } from "../components/ShopLayout"
+import { useShopAuth } from "../context/ShopAuthProvider"
 import { apiFetch } from "../lib/api"
 import { scrollCatalogSectionToTop } from "../lib/catalog-navigation.mjs"
 import { buildCatalogReturnState, clearCatalogReturnState, readCatalogReturnState, persistCatalogReturnState } from "../lib/catalog-return.mjs"
@@ -29,6 +30,7 @@ export function ShopPage() {
   const cartFeedbackTimeoutsRef = useRef<Record<number, number>>({})
   const location = useLocation()
   const navigate = useNavigate()
+  const { user } = useShopAuth()
   const { addItem, items } = useShopCart()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [collections, setCollections] = useState<AdminCollection[]>([])
@@ -40,6 +42,11 @@ export function ShopPage() {
   const isMobileViewport = useIsMobileViewport()
   const [mobileCatalogView, setMobileCatalogView] = useState<"full" | "compact">("full")
   const [mobileQuickAddFeedback, setMobileQuickAddFeedback] = useState<Record<number, number>>({})
+  const [collectionReorderMode, setCollectionReorderMode] = useState(false)
+  const [collectionReorderProducts, setCollectionReorderProducts] = useState<ShopProduct[]>([])
+  const [draggedCollectionProductId, setDraggedCollectionProductId] = useState<number | null>(null)
+  const [collectionReorderSaving, setCollectionReorderSaving] = useState(false)
+  const [collectionReorderError, setCollectionReorderError] = useState("")
 
   const filters = useMemo(
     () => {
@@ -155,7 +162,14 @@ export function ShopPage() {
       .replace(/\b\w/g, (char) => char.toUpperCase())
   }
 
+  const selectedCollection = useMemo(() => {
+    const normalizedSlug = filters.collectionSlug.trim().toLowerCase()
+    if (!normalizedSlug) return null
+    return collections.find((collection) => collection.slug.trim().toLowerCase() === normalizedSlug) || null
+  }, [collections, filters.collectionSlug])
+
   const collectionTitle = collections.find((collection) => collection.slug === filters.collectionSlug)?.title || ""
+  const canReorderCollection = user?.role === "admin" && Boolean(selectedCollection?.id)
   const pageContextLabel =
     filters.title.trim() ||
     filters.category.trim() ||
@@ -189,6 +203,11 @@ export function ShopPage() {
     previousEditorialContext.current = editorialContextKey
     setSearchInput(filters.search)
   }, [editorialContextKey, filters.search, lockedEditorialContext])
+
+  useEffect(() => {
+    if (!collectionReorderMode) return
+    setCollectionReorderProducts(selectedCollection?.products || [])
+  }, [collectionReorderMode, selectedCollection])
 
   const resetFiltersHref = useMemo(() => {
     const next = new URLSearchParams()
@@ -258,6 +277,77 @@ export function ShopPage() {
     )
   }
 
+  function moveCollectionProduct(draggedId: number, targetId: number) {
+    if (draggedId === targetId) return
+
+    setCollectionReorderProducts((current) => {
+      const currentIndex = current.findIndex((product) => product.id === draggedId)
+      const targetIndex = current.findIndex((product) => product.id === targetId)
+      if (currentIndex === -1 || targetIndex === -1) return current
+
+      const next = [...current]
+      const [movedProduct] = next.splice(currentIndex, 1)
+      next.splice(targetIndex, 0, movedProduct)
+      return next
+    })
+  }
+
+  function startCollectionReorder() {
+    if (!selectedCollection) return
+    setCollectionReorderError("")
+    setCollectionReorderProducts(selectedCollection.products || [])
+    setCollectionReorderMode(true)
+  }
+
+  function cancelCollectionReorder() {
+    setCollectionReorderProducts(selectedCollection?.products || [])
+    setDraggedCollectionProductId(null)
+    setCollectionReorderSaving(false)
+    setCollectionReorderError("")
+    setCollectionReorderMode(false)
+  }
+
+  async function confirmCollectionReorder() {
+    if (!selectedCollection) return
+
+    try {
+      setCollectionReorderSaving(true)
+      setCollectionReorderError("")
+      await apiFetch(`/admin/collections/${selectedCollection.id}/products/order`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          productIds: collectionReorderProducts.map((product) => product.id),
+        }),
+      })
+      const updatedCollections = await apiFetch<AdminCollection[]>("/store/collections")
+      setCollections(Array.isArray(updatedCollections) ? updatedCollections : [])
+      const params = new URLSearchParams()
+      if (filters.search) params.set("search", filters.search)
+      if (filters.category) params.set("category", filters.category)
+      if (filters.format === "A3" || filters.format === "A4") params.set("format", filters.format)
+      if (filters.tag) params.set("tag", filters.tag)
+      if (filters.collectionSlug) params.set("collectionSlug", filters.collectionSlug)
+      if (filters.availability) params.set("availability", filters.availability)
+      if (filters.maxPrice) params.set("maxPrice", filters.maxPrice)
+      params.set("sort", effectiveSort)
+      params.set("page", String(filters.page))
+      params.set("pageSize", String(PAGE_SIZE))
+      const productData = await apiFetch<ShopProductListResponse>(`/store/products?${params.toString()}`)
+      setProducts(Array.isArray(productData?.items) ? productData.items : [])
+      setPagination({
+        page: Number.isFinite(productData?.pagination?.page) ? productData.pagination.page : 1,
+        pageSize: Number.isFinite(productData?.pagination?.pageSize) ? productData.pagination.pageSize : PAGE_SIZE,
+        total: Number.isFinite(productData?.pagination?.total) ? productData.pagination.total : 0,
+        totalPages: Number.isFinite(productData?.pagination?.totalPages) ? Math.max(1, productData.pagination.totalPages) : 1,
+      })
+      setCollectionReorderMode(false)
+    } catch (err) {
+      setCollectionReorderError(err instanceof Error ? err.message : "Errore durante il salvataggio del nuovo ordine.")
+    } finally {
+      setCollectionReorderSaving(false)
+    }
+  }
+
   function handleBackNavigation() {
     const storedHomeReturn = readHomeReturnState()
     if (storedHomeReturn) {
@@ -307,19 +397,36 @@ export function ShopPage() {
       title={pageContextLabel}
       intro=""
       actions={
-        <Button
-          variant="profile"
-          size="sm"
-          onClick={handleBackNavigation}
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
-              <path d="M18 12H6" />
-              <path d="m11 17-5-5 5-5" />
-            </svg>
-          }
-        >
-          Torna indietro
-        </Button>
+        <>
+          <Button
+            variant="profile"
+            size="sm"
+            onClick={handleBackNavigation}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+                <path d="M18 12H6" />
+                <path d="m11 17-5-5 5-5" />
+              </svg>
+            }
+          >
+            Torna indietro
+          </Button>
+          {canReorderCollection && !collectionReorderMode ? (
+            <Button type="button" variant="cart" size="sm" onClick={startCollectionReorder}>
+              Riordina
+            </Button>
+          ) : null}
+          {canReorderCollection && collectionReorderMode ? (
+            <>
+              <Button type="button" variant="cart" size="sm" onClick={confirmCollectionReorder} disabled={collectionReorderSaving}>
+                {collectionReorderSaving ? "Salvataggio..." : "Conferma"}
+              </Button>
+              <Button type="button" variant="profile" size="sm" onClick={cancelCollectionReorder} disabled={collectionReorderSaving}>
+                Annulla
+              </Button>
+            </>
+          ) : null}
+        </>
       }
     >
       <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
@@ -418,13 +525,54 @@ export function ShopPage() {
         </div>
       ) : null}
 
-      {!catalogError && !products.length ? (
+      {collectionReorderMode && collectionReorderError ? (
+        <div className="rounded-[24px] border border-amber-500/25 bg-amber-500/10 px-6 py-4 text-sm text-amber-100">
+          {collectionReorderError}
+        </div>
+      ) : null}
+
+      {collectionReorderMode ? (
+        <div className="space-y-5">
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm leading-6 text-white/68">
+            Trascina i prodotti per definire l’ordine manuale della collezione. Conferma per salvarlo oppure annulla per ripristinare l’ordine precedente.
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
+            {collectionReorderProducts.map((product, index) => (
+              <div
+                key={product.id}
+                draggable
+                onDragStart={() => setDraggedCollectionProductId(product.id)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => {
+                  if (!draggedCollectionProductId) return
+                  moveCollectionProduct(draggedCollectionProductId, product.id)
+                  setDraggedCollectionProductId(null)
+                }}
+                onDragEnd={() => setDraggedCollectionProductId(null)}
+                className={`relative overflow-hidden rounded-[28px] border bg-white/[0.03] p-2 transition ${
+                  draggedCollectionProductId === product.id ? "border-white/30 opacity-60" : "border-white/10 hover:border-white/18"
+                }`}
+              >
+                <div className="mb-3 flex items-center justify-between gap-3 px-2 pt-1 text-xs uppercase tracking-[0.2em] text-white/48">
+                  <span>Posizione {index + 1}</span>
+                  <span>Trascina</span>
+                </div>
+                <div className="pointer-events-none">
+                  <ProductCard product={product} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {!collectionReorderMode && !catalogError && !products.length ? (
         <div className="rounded-[24px] border border-dashed border-white/10 px-6 py-14 text-center text-white/60">
           Nessun prodotto trovato con i criteri attuali.
         </div>
       ) : null}
 
-      {isMobileViewport && mobileCatalogView === "compact" ? (
+      {!collectionReorderMode && isMobileViewport && mobileCatalogView === "compact" ? (
         <div className="grid grid-cols-2 gap-3">
           {(products ?? []).map((product) => (
             <Link
@@ -455,7 +603,7 @@ export function ShopPage() {
             </Link>
           ))}
         </div>
-      ) : (
+      ) : !collectionReorderMode ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-stretch gap-6 xl:gap-7">
           {(products ?? []).map((product) => (
             <div key={product.id} onClickCapture={rememberCatalogPosition}>
@@ -463,9 +611,9 @@ export function ShopPage() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
-      {pagination.totalPages > 1 ? (
+      {!collectionReorderMode && pagination.totalPages > 1 ? (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4">
           <p className="text-sm text-white/65">
             Pagina {pagination.page} di {pagination.totalPages} · {pagination.total} prodotti totali
