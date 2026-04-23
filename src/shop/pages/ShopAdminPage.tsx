@@ -707,6 +707,7 @@ export function ShopAdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [usersTotal, setUsersTotal] = useState(0)
   const [roleUpdateLoadingId, setRoleUpdateLoadingId] = useState<number | null>(null)
+  const [movingCollectionId, setMovingCollectionId] = useState<number | null>(null)
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
   const [showOrderProfitBreakdown, setShowOrderProfitBreakdown] = useState(false)
   const [runtimeStatus, setRuntimeStatus] = useState<AdminRuntimeStatus | null>(null)
@@ -1450,27 +1451,39 @@ export function ShopAdminPage() {
 
   async function moveCollection(collectionId: number, direction: "up" | "down") {
     clearFeedback()
-    const currentIndex = collections.findIndex((collection) => collection.id === collectionId)
+    const orderedCollections = [...collections].sort(
+      (left, right) =>
+        (left.position ?? Number.MAX_SAFE_INTEGER) - (right.position ?? Number.MAX_SAFE_INTEGER) ||
+        left.title.localeCompare(right.title, "it"),
+    )
+    const currentIndex = orderedCollections.findIndex((collection) => collection.id === collectionId)
     if (currentIndex === -1) return
 
     const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
-    if (targetIndex < 0 || targetIndex >= collections.length) return
+    if (targetIndex < 0 || targetIndex >= orderedCollections.length) return
 
-    const nextCollections = [...collections]
+    const previousCollections = [...orderedCollections]
+    const nextCollections = [...orderedCollections]
     const [movedCollection] = nextCollections.splice(currentIndex, 1)
     nextCollections.splice(targetIndex, 0, movedCollection)
 
     try {
-      const reordered = await apiFetch<AdminCollection[]>("/admin/collections/order", {
+      setMovingCollectionId(collectionId)
+      setCollections(nextCollections.map((collection, index) => ({ ...collection, position: index })))
+      await apiFetch<AdminCollection[]>("/admin/collections/order", {
         method: "PATCH",
         body: JSON.stringify({
           collectionIds: nextCollections.map((collection) => collection.id),
         }),
       })
-      setCollections(Array.isArray(reordered) ? reordered : nextCollections)
+      const refreshedCollections = await apiFetch<AdminCollection[]>("/admin/collections")
+      setCollections(Array.isArray(refreshedCollections) ? refreshedCollections : nextCollections)
       setMessage("Ordine collezioni aggiornato.")
     } catch (err) {
+      setCollections(previousCollections)
       setError(err instanceof Error ? err.message : "Errore durante il riordino delle collezioni.")
+    } finally {
+      setMovingCollectionId(null)
     }
   }
 
@@ -1905,6 +1918,7 @@ export function ShopAdminPage() {
           onStartEditCollection={startEditCollection}
           onDeleteCollection={deleteCollection}
           onMoveCollection={moveCollection}
+          movingCollectionId={movingCollectionId}
         />
       ) : null}
 

@@ -29,6 +29,7 @@ type AdminCollectionsSectionProps = {
   onStartEditCollection: (collection: AdminCollection) => void
   onDeleteCollection: (collectionId: number) => void
   onMoveCollection: (collectionId: number, direction: "up" | "down") => void
+  movingCollectionId?: number | null
 }
 
 function statusLabel(status?: AdminCollection["status"]) {
@@ -74,6 +75,7 @@ export function AdminCollectionsSection({
   onStartEditCollection,
   onDeleteCollection,
   onMoveCollection,
+  movingCollectionId = null,
 }: AdminCollectionsSectionProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<AdminCollection | null>(null)
@@ -102,6 +104,15 @@ export function AdminCollectionsSection({
     [products, selectedProductIds],
   )
   const coverImage = coverPreviewUrl || collectionForm.coverImageUrl
+  const orderedCollections = useMemo(
+    () =>
+      [...collections].sort(
+        (left, right) =>
+          (left.position ?? Number.MAX_SAFE_INTEGER) - (right.position ?? Number.MAX_SAFE_INTEGER) ||
+          left.title.localeCompare(right.title, "it"),
+      ),
+    [collections],
+  )
 
   return (
     <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -210,7 +221,7 @@ export function AdminCollectionsSection({
         </div>
 
         <div className="space-y-3">
-          {collections.map((collection) => (
+          {orderedCollections.map((collection, index) => (
             <article key={collection.id} className="rounded-lg border border-white/10 bg-white/[0.025] p-4">
               <div className="flex gap-4">
                 {collection.coverImageUrl ? <img src={collection.coverImageUrl} alt="" className="h-20 w-20 rounded-lg object-cover" /> : <div className="h-20 w-20 rounded-lg bg-white/8" />}
@@ -224,10 +235,22 @@ export function AdminCollectionsSection({
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="profile" size="sm" onClick={() => onMoveCollection(collection.id, "up")}>
+                <Button
+                  type="button"
+                  variant="profile"
+                  size="sm"
+                  disabled={index === 0 || movingCollectionId === collection.id}
+                  onClick={() => onMoveCollection(collection.id, "up")}
+                >
                   Su
                 </Button>
-                <Button type="button" variant="profile" size="sm" onClick={() => onMoveCollection(collection.id, "down")}>
+                <Button
+                  type="button"
+                  variant="profile"
+                  size="sm"
+                  disabled={index === orderedCollections.length - 1 || movingCollectionId === collection.id}
+                  onClick={() => onMoveCollection(collection.id, "down")}
+                >
                   Giù
                 </Button>
                 <Button type="button" variant="profile" size="sm" onClick={() => onStartEditCollection(collection)}>
