@@ -385,21 +385,10 @@ export function AboutPage() {
               </div>
             </div>
 
-            <article className="overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03]">
-              <div className="grid gap-0 lg:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.05fr)]">
-                <div className="relative min-h-[420px] border-b border-white/10 bg-white/[0.04] lg:min-h-[620px] lg:border-b-0 lg:border-r">
-                  {founderMember?.imageUrl ? (
-                    <>
-                      <img src={founderMember.imageUrl} alt={founderMember.name} className="h-full w-full object-cover object-center" />
-                      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,8,0.02)_0%,rgba(7,7,8,0.12)_48%,rgba(7,7,8,0.38)_100%)]" />
-                    </>
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-white/45">Foto founder</div>
-                  )}
-                </div>
-
-                <div className="flex flex-col justify-between gap-8 p-6 md:p-8 lg:p-10">
-                  <div className="space-y-6">
+            <article className="rounded-[34px] border border-white/10 bg-white/[0.03] p-6 md:p-8 lg:p-10">
+              <div className="space-y-8">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="max-w-3xl space-y-5">
                     <div className="space-y-3">
                       {editing ? (
                         <>
@@ -435,35 +424,50 @@ export function AboutPage() {
                     </div>
                   </div>
 
-                  {editing ? (
-                    <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex cursor-pointer rounded-full border border-white/10 px-3 py-2 text-xs text-white/72 transition hover:border-white/20 hover:text-white">
-                        Carica foto
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(event) => {
-                            void uploadStaffImage(0, event.target.files)
-                            event.currentTarget.value = ""
-                          }}
-                        />
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-3 border-t border-white/10 pt-6">
-                      <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
-                        Creativita
-                      </div>
-                      <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
-                        Direzione
-                      </div>
-                      <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
-                        Operativita
+                  <div className="shrink-0">
+                    <div className="w-[128px] overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.04] sm:w-[148px]">
+                      <div className="relative aspect-[4/5]">
+                        {founderMember?.imageUrl ? (
+                          <>
+                            <img src={founderMember.imageUrl} alt={founderMember.name} className="h-full w-full object-cover object-[center_18%]" />
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,8,0.04)_0%,rgba(7,7,8,0.18)_100%)]" />
+                          </>
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-sm text-white/45">Foto founder</div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
+
+                {editing ? (
+                  <div className="flex flex-wrap gap-2 border-t border-white/10 pt-6">
+                    <label className="inline-flex cursor-pointer rounded-full border border-white/10 px-3 py-2 text-xs text-white/72 transition hover:border-white/20 hover:text-white">
+                      Carica foto
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          void uploadStaffImage(0, event.target.files)
+                          event.currentTarget.value = ""
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3 border-t border-white/10 pt-6">
+                    <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
+                      Creativita
+                    </div>
+                    <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
+                      Direzione
+                    </div>
+                    <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/55">
+                      Operativita
+                    </div>
+                  </div>
+                )}
               </div>
             </article>
           </section>
