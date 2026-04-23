@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 
 import { Button, getDangerButtonClassName } from "../../../components/Button"
 import { AdminCollection, ShopProduct } from "../../types"
@@ -118,6 +118,7 @@ export function AdminCollectionsSection({
       ),
     [collections],
   )
+  const orderedCollectionIds = useMemo(() => orderedCollections.map((collection) => collection.id), [orderedCollections])
   const visibleCollections = useMemo(() => {
     if (!dragPreviewIds.length) return orderedCollections
     const collectionMap = new Map(orderedCollections.map((collection) => [collection.id, collection]))
@@ -127,6 +128,12 @@ export function AdminCollectionsSection({
 
     return previewCollections.length === orderedCollections.length ? previewCollections : orderedCollections
   }, [dragPreviewIds, orderedCollections])
+
+  useEffect(() => {
+    if (draggedCollectionIdRef.current || movingCollectionId) return
+    dragPreviewIdsRef.current = orderedCollectionIds
+    setDragPreviewIds(orderedCollectionIds)
+  }, [movingCollectionId, orderedCollectionIds])
 
   function moveCollectionPreview(fromId: number, toId: number) {
     const currentIds = (dragPreviewIdsRef.current.length ? dragPreviewIdsRef.current : orderedCollections.map((collection) => collection.id)).slice()
@@ -264,9 +271,7 @@ export function AdminCollectionsSection({
                 const nextIds = dragPreviewIdsRef.current.length ? dragPreviewIdsRef.current : visibleCollections.map((entry) => entry.id)
                 dropCommittedRef.current = true
                 draggedCollectionIdRef.current = null
-                dragPreviewIdsRef.current = []
                 setDraggedCollectionId(null)
-                setDragPreviewIds([])
                 onReorderCollections(nextIds, activeDraggedId)
               }}
               className={`rounded-lg border bg-white/[0.025] p-4 transition ${
@@ -303,10 +308,12 @@ export function AdminCollectionsSection({
                     const shouldReset = !dropCommittedRef.current
                     dropCommittedRef.current = false
                     draggedCollectionIdRef.current = null
-                    dragPreviewIdsRef.current = []
                     setDraggedCollectionId(null)
                     if (shouldReset) {
-                      setDragPreviewIds([])
+                      dragPreviewIdsRef.current = orderedCollectionIds
+                      setDragPreviewIds(orderedCollectionIds)
+                    } else {
+                      setDragPreviewIds(dragPreviewIdsRef.current.length ? dragPreviewIdsRef.current : orderedCollectionIds)
                     }
                   }}
                   className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/60 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
