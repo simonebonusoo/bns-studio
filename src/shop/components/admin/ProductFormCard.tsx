@@ -175,7 +175,7 @@ export function ProductFormCard({
   }) {
     return (
       <div
-        className="inline-grid grid-cols-2 gap-2 rounded-[18px] border border-white/10 bg-black/20 p-1"
+        className="grid w-full min-w-[164px] grid-cols-2 gap-2 rounded-[18px] border border-white/10 bg-black/20 p-1 sm:min-w-[176px]"
         role="group"
         aria-label={ariaLabel}
       >
@@ -187,7 +187,7 @@ export function ProductFormCard({
             key={label}
             type="button"
             onClick={() => onChange(option)}
-            className={`rounded-[14px] px-4 py-2 text-sm transition ${
+            className={`min-w-0 whitespace-nowrap rounded-[14px] px-4 py-2 text-center text-sm transition ${
               value === option
                 ? "bg-[#e3f503]/12 text-[#eef879] shadow-[inset_0_0_0_1px_rgba(227,245,3,0.28)]"
                 : "text-white/62 hover:bg-white/[0.04] hover:text-white"
@@ -513,14 +513,14 @@ export function ProductFormCard({
           {productForm.isCustomizable ? (
             <div className="mt-5 space-y-4">
               <article className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5 md:p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="max-w-2xl">
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(220px,240px)] lg:items-start">
+                  <div className="max-w-2xl min-w-0">
                     <p className="text-base font-semibold text-white">Personalizzazione testo</p>
                     <p className="mt-2 text-sm leading-6 text-white/55">
                       Definisci il campo testuale mostrato al cliente, con etichetta, obbligatorietà e limite caratteri leggibili.
                     </p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="min-w-0 space-y-2 lg:min-w-[220px] lg:justify-self-end">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Attiva sezione</p>
                     {renderBooleanPills({
                       value: productForm.personalizationTextEnabled,
@@ -576,14 +576,14 @@ export function ProductFormCard({
               </article>
 
               <article className="rounded-[22px] border border-white/10 bg-white/[0.03] p-5 md:p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="max-w-2xl">
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(220px,240px)] lg:items-start">
+                  <div className="max-w-2xl min-w-0">
                     <p className="text-base font-semibold text-white">Personalizzazione immagine</p>
                     <p className="mt-2 text-sm leading-6 text-white/55">
                       Gestisci upload immagine e istruzioni per il cliente in un pannello ampio, ordinato e coerente con il resto del backoffice.
                     </p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="min-w-0 space-y-2 lg:min-w-[220px] lg:justify-self-end">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Attiva sezione</p>
                     {renderBooleanPills({
                       value: productForm.personalizationImageEnabled,
