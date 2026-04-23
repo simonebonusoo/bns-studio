@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react"
+import { useMemo, useRef, useState, type FormEvent } from "react"
 
 import { Button, getDangerButtonClassName } from "../../../components/Button"
 import { AdminCollection, ShopProduct } from "../../types"
@@ -81,6 +81,9 @@ export function AdminCollectionsSection({
   const [pendingDelete, setPendingDelete] = useState<AdminCollection | null>(null)
   const [draggedCollectionId, setDraggedCollectionId] = useState<number | null>(null)
   const [dragPreviewIds, setDragPreviewIds] = useState<number[]>([])
+  const draggedCollectionIdRef = useRef<number | null>(null)
+  const dragPreviewIdsRef = useRef<number[]>([])
+  const dropCommittedRef = useRef(false)
   const selectedProductIds = useMemo(
     () =>
       Array.from(
@@ -126,7 +129,7 @@ export function AdminCollectionsSection({
   }, [dragPreviewIds, orderedCollections])
 
   function moveCollectionPreview(fromId: number, toId: number) {
-    const currentIds = (dragPreviewIds.length ? dragPreviewIds : orderedCollections.map((collection) => collection.id)).slice()
+    const currentIds = (dragPreviewIdsRef.current.length ? dragPreviewIdsRef.current : orderedCollections.map((collection) => collection.id)).slice()
     const fromIndex = currentIds.indexOf(fromId)
     const toIndex = currentIds.indexOf(toId)
     if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
@@ -134,6 +137,7 @@ export function AdminCollectionsSection({
     const nextIds = [...currentIds]
     const [movedId] = nextIds.splice(fromIndex, 1)
     nextIds.splice(toIndex, 0, movedId)
+    dragPreviewIdsRef.current = nextIds
     setDragPreviewIds(nextIds)
   }
 
@@ -249,16 +253,21 @@ export function AdminCollectionsSection({
               key={collection.id}
               onDragOver={(event) => event.preventDefault()}
               onDragEnter={() => {
-                if (!draggedCollectionId || draggedCollectionId === collection.id) return
-                moveCollectionPreview(draggedCollectionId, collection.id)
+                const activeDraggedId = draggedCollectionIdRef.current
+                if (!activeDraggedId || activeDraggedId === collection.id) return
+                moveCollectionPreview(activeDraggedId, collection.id)
               }}
               onDrop={(event) => {
                 event.preventDefault()
-                if (!draggedCollectionId || draggedCollectionId === collection.id) return
-                const nextIds = dragPreviewIds.length ? dragPreviewIds : visibleCollections.map((entry) => entry.id)
+                const activeDraggedId = draggedCollectionIdRef.current
+                if (!activeDraggedId || activeDraggedId === collection.id) return
+                const nextIds = dragPreviewIdsRef.current.length ? dragPreviewIdsRef.current : visibleCollections.map((entry) => entry.id)
+                dropCommittedRef.current = true
+                draggedCollectionIdRef.current = null
+                dragPreviewIdsRef.current = []
                 setDraggedCollectionId(null)
                 setDragPreviewIds([])
-                onReorderCollections(nextIds, draggedCollectionId)
+                onReorderCollections(nextIds, activeDraggedId)
               }}
               className={`rounded-lg border bg-white/[0.025] p-4 transition ${
                 draggedCollectionId === collection.id
@@ -282,14 +291,23 @@ export function AdminCollectionsSection({
                   type="button"
                   draggable={movingCollectionId !== collection.id}
                   onDragStart={(event) => {
+                    dropCommittedRef.current = false
+                    draggedCollectionIdRef.current = collection.id
                     setDraggedCollectionId(collection.id)
+                    dragPreviewIdsRef.current = visibleCollections.map((entry) => entry.id)
                     setDragPreviewIds(visibleCollections.map((entry) => entry.id))
                     event.dataTransfer.effectAllowed = "move"
                     event.dataTransfer.setData("text/plain", String(collection.id))
                   }}
                   onDragEnd={() => {
+                    const shouldReset = !dropCommittedRef.current
+                    dropCommittedRef.current = false
+                    draggedCollectionIdRef.current = null
+                    dragPreviewIdsRef.current = []
                     setDraggedCollectionId(null)
-                    setDragPreviewIds([])
+                    if (shouldReset) {
+                      setDragPreviewIds([])
+                    }
                   }}
                   className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/60 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={movingCollectionId === collection.id}
