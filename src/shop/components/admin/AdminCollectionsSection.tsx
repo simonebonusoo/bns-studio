@@ -28,7 +28,7 @@ type AdminCollectionsSectionProps = {
   onResetCollectionForm: () => void
   onStartEditCollection: (collection: AdminCollection) => void
   onDeleteCollection: (collectionId: number) => void
-  onReorderCollections: (collectionIds: number[]) => void
+  onReorderCollections: (collectionIds: number[], movedCollectionId: number) => void
   movingCollectionId?: number | null
 }
 
@@ -80,6 +80,7 @@ export function AdminCollectionsSection({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<AdminCollection | null>(null)
   const [draggedCollectionId, setDraggedCollectionId] = useState<number | null>(null)
+  const [dragPreviewIds, setDragPreviewIds] = useState<number[]>([])
   const selectedProductIds = useMemo(
     () =>
       Array.from(
@@ -114,6 +115,27 @@ export function AdminCollectionsSection({
       ),
     [collections],
   )
+  const visibleCollections = useMemo(() => {
+    if (!dragPreviewIds.length) return orderedCollections
+    const collectionMap = new Map(orderedCollections.map((collection) => [collection.id, collection]))
+    const previewCollections = dragPreviewIds
+      .map((id) => collectionMap.get(id))
+      .filter((collection): collection is AdminCollection => Boolean(collection))
+
+    return previewCollections.length === orderedCollections.length ? previewCollections : orderedCollections
+  }, [dragPreviewIds, orderedCollections])
+
+  function moveCollectionPreview(fromId: number, toId: number) {
+    const currentIds = (dragPreviewIds.length ? dragPreviewIds : orderedCollections.map((collection) => collection.id)).slice()
+    const fromIndex = currentIds.indexOf(fromId)
+    const toIndex = currentIds.indexOf(toId)
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
+
+    const nextIds = [...currentIds]
+    const [movedId] = nextIds.splice(fromIndex, 1)
+    nextIds.splice(toIndex, 0, movedId)
+    setDragPreviewIds(nextIds)
+  }
 
   return (
     <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -222,35 +244,32 @@ export function AdminCollectionsSection({
         </div>
 
         <div className="space-y-3">
-          {orderedCollections.map((collection, index) => (
+          {visibleCollections.map((collection, index) => (
             <article
               key={collection.id}
-              draggable={movingCollectionId !== collection.id}
-              onDragStart={() => setDraggedCollectionId(collection.id)}
-              onDragEnd={() => setDraggedCollectionId(null)}
               onDragOver={(event) => event.preventDefault()}
+              onDragEnter={() => {
+                if (!draggedCollectionId || draggedCollectionId === collection.id) return
+                moveCollectionPreview(draggedCollectionId, collection.id)
+              }}
               onDrop={(event) => {
                 event.preventDefault()
                 if (!draggedCollectionId || draggedCollectionId === collection.id) return
-
-                const nextCollections = [...orderedCollections]
-                const draggedIndex = nextCollections.findIndex((entry) => entry.id === draggedCollectionId)
-                const targetIndex = nextCollections.findIndex((entry) => entry.id === collection.id)
-                if (draggedIndex === -1 || targetIndex === -1) return
-
-                const [draggedCollection] = nextCollections.splice(draggedIndex, 1)
-                nextCollections.splice(targetIndex, 0, draggedCollection)
+                const nextIds = dragPreviewIds.length ? dragPreviewIds : visibleCollections.map((entry) => entry.id)
                 setDraggedCollectionId(null)
-                onReorderCollections(nextCollections.map((entry) => entry.id))
+                setDragPreviewIds([])
+                onReorderCollections(nextIds, draggedCollectionId)
               }}
               className={`rounded-lg border bg-white/[0.025] p-4 transition ${
                 draggedCollectionId === collection.id
                   ? "border-[#e3f503]/45 bg-[#e3f503]/10"
-                  : "border-white/10"
+                  : dragPreviewIds.includes(collection.id) && draggedCollectionId
+                    ? "border-white/18 bg-white/[0.04]"
+                    : "border-white/10"
               }`}
             >
               <div className="flex gap-4">
-                {collection.coverImageUrl ? <img src={collection.coverImageUrl} alt="" className="h-20 w-20 rounded-lg object-cover" /> : <div className="h-20 w-20 rounded-lg bg-white/8" />}
+                {collection.coverImageUrl ? <img src={collection.coverImageUrl} alt="" draggable={false} className="h-20 w-20 rounded-lg object-cover" /> : <div className="h-20 w-20 rounded-lg bg-white/8" />}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="truncate font-semibold text-white">{collection.title}</h3>
@@ -259,9 +278,25 @@ export function AdminCollectionsSection({
                   <p className="mt-1 text-xs text-white/45">/{collection.slug} · {formatLaunchDate(collection.launchAt)}</p>
                   <p className="mt-1 text-sm text-white/55">{collection._count?.products || collection.products?.length || 0} prodotti · {collection.active ? "attiva" : "non attiva"}</p>
                 </div>
-                <div className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/60">
+                <button
+                  type="button"
+                  draggable={movingCollectionId !== collection.id}
+                  onDragStart={(event) => {
+                    setDraggedCollectionId(collection.id)
+                    setDragPreviewIds(visibleCollections.map((entry) => entry.id))
+                    event.dataTransfer.effectAllowed = "move"
+                    event.dataTransfer.setData("text/plain", String(collection.id))
+                  }}
+                  onDragEnd={() => {
+                    setDraggedCollectionId(null)
+                    setDragPreviewIds([])
+                  }}
+                  className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/60 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={movingCollectionId === collection.id}
+                  aria-label={`Trascina ${collection.title}`}
+                >
                   {movingCollectionId === collection.id ? "Salvataggio..." : `Trascina · ${index + 1}`}
-                </div>
+                </button>
               </div>
               <div className="mt-4 flex flex-wrap justify-end gap-2">
                 <Button type="button" variant="profile" size="sm" onClick={() => onStartEditCollection(collection)}>

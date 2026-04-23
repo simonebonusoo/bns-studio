@@ -1449,7 +1449,7 @@ export function ShopAdminPage() {
     }
   }
 
-  async function reorderCollections(collectionIds: number[]) {
+  async function reorderCollections(collectionIds: number[], movedCollectionId: number) {
     clearFeedback()
     const orderedCollections = [...collections].sort(
       (left, right) =>
@@ -1464,7 +1464,7 @@ export function ShopAdminPage() {
     if (nextCollections.length !== orderedCollections.length) return
 
     try {
-      setMovingCollectionId(nextCollections[0]?.id ?? null)
+      setMovingCollectionId(movedCollectionId)
       setCollections(nextCollections.map((collection, index) => ({ ...collection, position: index })))
       await apiFetch<AdminCollection[]>("/admin/collections/order", {
         method: "PATCH",
