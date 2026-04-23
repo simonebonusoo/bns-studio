@@ -403,66 +403,64 @@ export function AboutPage() {
 
             <article className="rounded-[34px] border border-white/10 bg-white/[0.03] p-6 md:p-8 lg:p-10">
               <div className="space-y-8">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="max-w-3xl space-y-5">
-                    <div className="space-y-3">
-                      {editing ? (
-                        <>
-                          <input
-                            className="shop-input max-w-md text-2xl font-semibold"
-                            value={draft.staff[0]?.name || ""}
-                            onChange={(event) => updateStaff(0, "name", event.target.value)}
-                            aria-label="Nome founder"
-                          />
-                          <input
-                            className="shop-input max-w-sm"
-                            value={draft.staff[0]?.role || ""}
-                            onChange={(event) => updateStaff(0, "role", event.target.value)}
-                            aria-label="Ruolo founder"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-xs uppercase tracking-[0.18em] text-white/45">{displayContent.founderProfileLabel}</p>
-                          <h3 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">{founderMember.name}</h3>
-                          <p className="text-sm uppercase tracking-[0.22em] text-white/52">{founderMember.role}</p>
-                        </>
-                      )}
+                {editing ? (
+                  <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_148px] lg:items-start">
+                    <div className="space-y-5">
+                      <div className="space-y-3">
+                        <input
+                          className="shop-input max-w-md text-2xl font-semibold"
+                          value={draft.staff[0]?.name || ""}
+                          onChange={(event) => updateStaff(0, "name", event.target.value)}
+                          aria-label="Nome founder"
+                        />
+                        <input
+                          className="shop-input max-w-sm"
+                          value={draft.staff[0]?.role || ""}
+                          onChange={(event) => updateStaff(0, "role", event.target.value)}
+                          aria-label="Ruolo founder"
+                        />
+                      </div>
+
+                      <div className="space-y-5 text-base leading-8 text-white/68">
+                        <input
+                          className="shop-input max-w-sm text-xs uppercase tracking-[0.28em]"
+                          value={draft.founderProfileLabel}
+                          onChange={(event) => updateDraft("founderProfileLabel", event.target.value)}
+                          aria-label="Label profilo founder"
+                        />
+                        <textarea
+                          className="shop-input min-h-32 text-base leading-8"
+                          value={draft.founderDescriptionPrimary}
+                          onChange={(event) => updateDraft("founderDescriptionPrimary", event.target.value)}
+                          aria-label="Testo founder principale"
+                        />
+                        <textarea
+                          className="shop-input min-h-28 text-base leading-8"
+                          value={draft.founderDescriptionSecondary}
+                          onChange={(event) => updateDraft("founderDescriptionSecondary", event.target.value)}
+                          aria-label="Testo founder secondario"
+                        />
+                      </div>
                     </div>
 
-                    <div className="space-y-5 text-base leading-8 text-white/68">
-                      {editing ? (
-                        <>
-                          <input
-                            className="shop-input max-w-sm text-xs uppercase tracking-[0.28em]"
-                            value={draft.founderProfileLabel}
-                            onChange={(event) => updateDraft("founderProfileLabel", event.target.value)}
-                            aria-label="Label profilo founder"
-                          />
-                          <textarea
-                            className="shop-input min-h-32 text-base leading-8"
-                            value={draft.founderDescriptionPrimary}
-                            onChange={(event) => updateDraft("founderDescriptionPrimary", event.target.value)}
-                            aria-label="Testo founder principale"
-                          />
-                          <textarea
-                            className="shop-input min-h-28 text-base leading-8"
-                            value={draft.founderDescriptionSecondary}
-                            onChange={(event) => updateDraft("founderDescriptionSecondary", event.target.value)}
-                            aria-label="Testo founder secondario"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <p>{displayContent.founderDescriptionPrimary}</p>
-                          <p>{displayContent.founderDescriptionSecondary}</p>
-                        </>
-                      )}
+                    <div className="shrink-0">
+                      <div className="w-[128px] overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.04] sm:w-[148px]">
+                        <div className="relative aspect-[4/5]">
+                          {founderMember?.imageUrl ? (
+                            <>
+                              <img src={founderMember.imageUrl} alt={founderMember.name} className="h-full w-full object-cover object-[center_18%]" />
+                              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,8,0.04)_0%,rgba(7,7,8,0.18)_100%)]" />
+                            </>
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-sm text-white/45">Foto founder</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="shrink-0">
-                    <div className="w-[128px] overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.04] sm:w-[148px]">
+                ) : (
+                  <div className="text-base leading-8 text-white/68">
+                    <div className="float-right mb-4 ml-6 w-[128px] overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.04] sm:ml-8 sm:mb-5 sm:w-[148px]">
                       <div className="relative aspect-[4/5]">
                         {founderMember?.imageUrl ? (
                           <>
@@ -474,8 +472,21 @@ export function AboutPage() {
                         )}
                       </div>
                     </div>
+
+                    <div className="space-y-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/45">{displayContent.founderProfileLabel}</p>
+                      <h3 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">{founderMember.name}</h3>
+                      <p className="text-sm uppercase tracking-[0.22em] text-white/52">{founderMember.role}</p>
+                    </div>
+
+                    <div className="mt-5 space-y-5">
+                      <p>{displayContent.founderDescriptionPrimary}</p>
+                      <p>{displayContent.founderDescriptionSecondary}</p>
+                    </div>
+
+                    <div className="clear-both" />
                   </div>
-                </div>
+                )}
 
                 {editing ? (
                   <div className="flex flex-wrap gap-2 border-t border-white/10 pt-6">
