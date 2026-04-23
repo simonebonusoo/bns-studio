@@ -39,6 +39,14 @@ type ProductFormState = {
   collectionIds: number[]
   manualBadges: ProductManualBadge[]
   isCustomizable: boolean
+  personalizationTextEnabled: boolean
+  personalizationTextRequired: boolean
+  personalizationTextLabel: string
+  personalizationTextMaxChars: number
+  personalizationImageEnabled: boolean
+  personalizationImageRequired: boolean
+  personalizationImageLabel: string
+  personalizationImageInstructions: string
   featured: boolean
   stock: number
   lowStockThreshold: number
@@ -462,6 +470,117 @@ export function ProductFormCard({
                   </button>
                 ))}
               </div>
+              {productForm.isCustomizable ? (
+                <div className="mt-4 space-y-4 border-t border-white/10 pt-4">
+                  <div className="rounded-2xl border border-white/10 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-white">Personalizzazione testo</p>
+                        <p className="mt-1 text-xs text-white/55">Configura copy, obbligatorietà e limite caratteri.</p>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-white/65">
+                        <input
+                          type="checkbox"
+                          checked={productForm.personalizationTextEnabled}
+                          onChange={(event) =>
+                            onChange({
+                              ...productForm,
+                              personalizationTextEnabled: event.target.checked,
+                              personalizationTextRequired: event.target.checked ? productForm.personalizationTextRequired : false,
+                            })
+                          }
+                        />
+                        Attiva
+                      </label>
+                    </div>
+                    {productForm.personalizationTextEnabled ? (
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <label className="space-y-1.5 md:col-span-2">
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Label utente</span>
+                          <input
+                            className="shop-input"
+                            placeholder="Inserisci il nome o il testo breve da usare per la personalizzazione"
+                            value={productForm.personalizationTextLabel}
+                            onChange={(event) => onChange({ ...productForm, personalizationTextLabel: event.target.value })}
+                          />
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Max caratteri</span>
+                          <input
+                            className="shop-input"
+                            type="number"
+                            min="1"
+                            max="200"
+                            value={productForm.personalizationTextMaxChars}
+                            onChange={(event) => onChange({ ...productForm, personalizationTextMaxChars: Number(event.target.value || 50) })}
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65">
+                          <input
+                            type="checkbox"
+                            checked={productForm.personalizationTextRequired}
+                            onChange={(event) => onChange({ ...productForm, personalizationTextRequired: event.target.checked })}
+                          />
+                          Testo obbligatorio
+                        </label>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-white">Personalizzazione immagine</p>
+                        <p className="mt-1 text-xs text-white/55">Consente il caricamento di un’immagine da parte del cliente.</p>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-white/65">
+                        <input
+                          type="checkbox"
+                          checked={productForm.personalizationImageEnabled}
+                          onChange={(event) =>
+                            onChange({
+                              ...productForm,
+                              personalizationImageEnabled: event.target.checked,
+                              personalizationImageRequired: event.target.checked ? productForm.personalizationImageRequired : false,
+                            })
+                          }
+                        />
+                        Attiva
+                      </label>
+                    </div>
+                    {productForm.personalizationImageEnabled ? (
+                      <div className="mt-4 grid gap-3">
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Label upload</span>
+                          <input
+                            className="shop-input"
+                            placeholder="Carica un’immagine da usare per adattare il poster"
+                            value={productForm.personalizationImageLabel}
+                            onChange={(event) => onChange({ ...productForm, personalizationImageLabel: event.target.value })}
+                          />
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Istruzioni utente</span>
+                          <textarea
+                            className="shop-textarea min-h-24 resize-none"
+                            placeholder="Spiega come verrà usata l’immagine caricata."
+                            value={productForm.personalizationImageInstructions}
+                            onChange={(event) => onChange({ ...productForm, personalizationImageInstructions: event.target.value })}
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/65">
+                          <input
+                            type="checkbox"
+                            checked={productForm.personalizationImageRequired}
+                            onChange={(event) => onChange({ ...productForm, personalizationImageRequired: event.target.checked })}
+                          />
+                          Immagine obbligatoria
+                        </label>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
           </div>

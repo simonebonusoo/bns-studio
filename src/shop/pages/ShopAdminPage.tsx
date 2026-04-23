@@ -88,6 +88,14 @@ type ProductFormState = {
   collectionIds: number[]
   manualBadges: ProductManualBadge[]
   isCustomizable: boolean
+  personalizationTextEnabled: boolean
+  personalizationTextRequired: boolean
+  personalizationTextLabel: string
+  personalizationTextMaxChars: number
+  personalizationImageEnabled: boolean
+  personalizationImageRequired: boolean
+  personalizationImageLabel: string
+  personalizationImageInstructions: string
   featured: boolean
   stock: number
   lowStockThreshold: number
@@ -296,6 +304,14 @@ const emptyProductForm = (): ProductFormState => ({
   collectionIds: [],
   manualBadges: [],
   isCustomizable: false,
+  personalizationTextEnabled: false,
+  personalizationTextRequired: false,
+  personalizationTextLabel: "",
+  personalizationTextMaxChars: 50,
+  personalizationImageEnabled: false,
+  personalizationImageRequired: false,
+  personalizationImageLabel: "",
+  personalizationImageInstructions: "",
   featured: false,
   stock: 0,
   lowStockThreshold: 5,
@@ -613,6 +629,14 @@ function buildProductPayloadFromFormState(productForm: ProductFormState) {
     collectionIds: productForm.collectionIds,
     manualBadges: productForm.manualBadges,
     isCustomizable: productForm.isCustomizable,
+    personalizationTextEnabled: productForm.isCustomizable && productForm.personalizationTextEnabled,
+    personalizationTextRequired: productForm.isCustomizable && productForm.personalizationTextEnabled && productForm.personalizationTextRequired,
+    personalizationTextLabel: productForm.personalizationTextLabel.trim() || null,
+    personalizationTextMaxChars: Math.max(1, Math.min(200, Number(productForm.personalizationTextMaxChars || 50))),
+    personalizationImageEnabled: productForm.isCustomizable && productForm.personalizationImageEnabled,
+    personalizationImageRequired: productForm.isCustomizable && productForm.personalizationImageEnabled && productForm.personalizationImageRequired,
+    personalizationImageLabel: productForm.personalizationImageLabel.trim() || null,
+    personalizationImageInstructions: productForm.personalizationImageInstructions.trim() || null,
     featured: productForm.featured,
     stock: variantSummary.summary.stock,
     lowStockThreshold: variantSummary.summary.lowStockThreshold,
@@ -707,7 +731,7 @@ export function ShopAdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [usersTotal, setUsersTotal] = useState(0)
   const [roleUpdateLoadingId, setRoleUpdateLoadingId] = useState<number | null>(null)
-  const [movingCollectionId, setMovingCollectionId] = useState<number | null>(null)
+  const [isSavingCollectionOrder, setIsSavingCollectionOrder] = useState(false)
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
   const [showOrderProfitBreakdown, setShowOrderProfitBreakdown] = useState(false)
   const [runtimeStatus, setRuntimeStatus] = useState<AdminRuntimeStatus | null>(null)
@@ -1137,6 +1161,14 @@ export function ShopAdminPage() {
             collectionIds: productTouchedFields.collectionIds ? productForm.collectionIds : (product.collections?.map((collection) => collection.id) || []),
             manualBadges: productTouchedFields.manualBadges ? productForm.manualBadges : (product.manualBadges || []),
             isCustomizable: productTouchedFields.isCustomizable ? productForm.isCustomizable : Boolean(product.isCustomizable),
+            personalizationTextEnabled: productTouchedFields.personalizationTextEnabled ? productForm.personalizationTextEnabled : Boolean(product.personalizationTextEnabled),
+            personalizationTextRequired: productTouchedFields.personalizationTextRequired ? productForm.personalizationTextRequired : Boolean(product.personalizationTextRequired),
+            personalizationTextLabel: productTouchedFields.personalizationTextLabel ? productForm.personalizationTextLabel : (product.personalizationTextLabel || null),
+            personalizationTextMaxChars: productTouchedFields.personalizationTextMaxChars ? Number(productForm.personalizationTextMaxChars || 50) : Number(product.personalizationTextMaxChars || 50),
+            personalizationImageEnabled: productTouchedFields.personalizationImageEnabled ? productForm.personalizationImageEnabled : Boolean(product.personalizationImageEnabled),
+            personalizationImageRequired: productTouchedFields.personalizationImageRequired ? productForm.personalizationImageRequired : Boolean(product.personalizationImageRequired),
+            personalizationImageLabel: productTouchedFields.personalizationImageLabel ? productForm.personalizationImageLabel : (product.personalizationImageLabel || null),
+            personalizationImageInstructions: productTouchedFields.personalizationImageInstructions ? productForm.personalizationImageInstructions : (product.personalizationImageInstructions || null),
             featured: productTouchedFields.featured ? productForm.featured : product.featured,
             stock: productTouchedFields.stock ? Number(productForm.stock) : Number(product.stock),
             lowStockThreshold: productTouchedFields.lowStockThreshold ? Number(productForm.lowStockThreshold) : Number(product.lowStockThreshold || 5),
@@ -1449,7 +1481,7 @@ export function ShopAdminPage() {
     }
   }
 
-  async function reorderCollections(collectionIds: number[], movedCollectionId: number) {
+  async function reorderCollections(collectionIds: number[]) {
     clearFeedback()
     const orderedCollections = [...collections].sort(
       (left, right) =>
@@ -1464,7 +1496,7 @@ export function ShopAdminPage() {
     if (nextCollections.length !== orderedCollections.length) return
 
     try {
-      setMovingCollectionId(movedCollectionId)
+      setIsSavingCollectionOrder(true)
       setCollections(nextCollections.map((collection, index) => ({ ...collection, position: index })))
       await apiFetch<AdminCollection[]>("/admin/collections/order", {
         method: "PATCH",
@@ -1479,7 +1511,7 @@ export function ShopAdminPage() {
       setCollections(previousCollections)
       setError(err instanceof Error ? err.message : "Errore durante il riordino delle collezioni.")
     } finally {
-      setMovingCollectionId(null)
+      setIsSavingCollectionOrder(false)
     }
   }
 
@@ -1914,7 +1946,7 @@ export function ShopAdminPage() {
           onStartEditCollection={startEditCollection}
           onDeleteCollection={deleteCollection}
           onReorderCollections={reorderCollections}
-          movingCollectionId={movingCollectionId}
+          isSavingOrder={isSavingCollectionOrder}
         />
       ) : null}
 
@@ -1931,6 +1963,8 @@ export function ShopAdminPage() {
           onResetCollectionForm={resetCollectionForm}
           onStartEditCollection={startEditCollection}
           onDeleteCollection={deleteCollection}
+          onReorderCollections={reorderCollections}
+          isSavingOrder={isSavingCollectionOrder}
         />
       ) : null}
 

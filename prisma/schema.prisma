@@ -51,6 +51,14 @@ model Product {
   imageUrls   String
   manualBadges String    @default("[]")
   isCustomizable Boolean  @default(false)
+  personalizationTextEnabled Boolean @default(false)
+  personalizationTextRequired Boolean @default(false)
+  personalizationTextLabel String?
+  personalizationTextMaxChars Int @default(50)
+  personalizationImageEnabled Boolean @default(false)
+  personalizationImageRequired Boolean @default(false)
+  personalizationImageLabel String?
+  personalizationImageInstructions String?
   hiddenAsStandalone Boolean @default(false)
   featured    Boolean     @default(false)
   stock       Int         @default(100)
@@ -257,6 +265,7 @@ model OrderItem {
   variantLabel String?
   variantSku String?
   personalizationText String?
+  personalizationImageUrl String?
   unitPrice Int
   unitCost  Int     @default(0)
   quantity  Int

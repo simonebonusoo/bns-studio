@@ -25,6 +25,14 @@ type ProductFormState = {
   collectionIds: number[]
   manualBadges: ProductManualBadge[]
   isCustomizable: boolean
+  personalizationTextEnabled: boolean
+  personalizationTextRequired: boolean
+  personalizationTextLabel: string
+  personalizationTextMaxChars: number
+  personalizationImageEnabled: boolean
+  personalizationImageRequired: boolean
+  personalizationImageLabel: string
+  personalizationImageInstructions: string
   featured: boolean
   stock: number
   lowStockThreshold: number

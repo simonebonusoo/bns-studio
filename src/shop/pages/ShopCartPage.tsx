@@ -101,13 +101,14 @@ export function ShopCartPage() {
       <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-4">
           {items.map((item) => (
-            <article key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}`} className="shop-card flex flex-col gap-4 p-4 md:flex-row md:items-center">
+            <article key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}-${item.personalizationImageUrl || "no-image"}`} className="shop-card flex flex-col gap-4 p-4 md:flex-row md:items-center">
               <img src={getProductPrimaryImage(item.product)} alt={item.product.title} className="h-28 w-full rounded-[20px] object-cover md:w-40" />
               <div className="min-w-0 flex-1">
                 <span className="shop-pill">{item.product.category}</span>
                 <h2 className="mt-3 text-xl font-semibold text-white">{item.product.title}</h2>
                 <p className="mt-2 text-sm text-white/65">{formatVariantSelectionLabel(item)} · {formatPrice(getPriceForVariant(item.product, item.variantId))}</p>
                 {item.personalizationText ? <p className="mt-2 text-sm text-white/55">Personalizzazione: {item.personalizationText}</p> : null}
+                {item.personalizationImageUrl ? <img src={item.personalizationImageUrl} alt="" className="mt-3 h-16 w-16 rounded-xl object-cover" /> : null}
               </div>
               {isMobileViewport ? (
                 <div className="space-y-3">
@@ -124,6 +125,7 @@ export function ShopCartPage() {
                           variantLabel: item.variantLabel,
                           variantSku: item.variantSku,
                           personalizationText: item.personalizationText,
+                          personalizationImageUrl: item.personalizationImageUrl,
                         })
                       }
                       className={`${getButtonClassName({ variant: "profile", size: "sm" })} min-w-11`}
@@ -145,6 +147,7 @@ export function ShopCartPage() {
                           variantLabel: item.variantLabel,
                           variantSku: item.variantSku,
                           personalizationText: item.personalizationText,
+                          personalizationImageUrl: item.personalizationImageUrl,
                         })
                       }
                       className={`${getButtonClassName({ variant: "cart", size: "sm" })} min-w-11`}
@@ -155,7 +158,7 @@ export function ShopCartPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
+                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText, personalizationImageUrl: item.personalizationImageUrl })}
                     className={getButtonClassName({ variant: "cart", size: "sm" })}
                   >
                     Rimuovi
@@ -168,11 +171,11 @@ export function ShopCartPage() {
                     type="number"
                     min="1"
                     value={item.quantity}
-                    onChange={(event) => updateItem(item.productId, Number(event.target.value), { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
+                    onChange={(event) => updateItem(item.productId, Number(event.target.value), { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText, personalizationImageUrl: item.personalizationImageUrl })}
                   />
                   <button
                     type="button"
-                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
+                    onClick={() => decrementItem(item.productId, { variantId: item.variantId, editionName: item.editionName, size: item.size, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText, personalizationImageUrl: item.personalizationImageUrl })}
                     className={getButtonClassName({ variant: "cart", size: "sm" })}
                   >
                     Rimuovi

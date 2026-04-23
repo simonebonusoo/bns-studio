@@ -73,6 +73,12 @@ export async function downloadInvoicePdf(order: ShopOrder, settings: ShopSetting
       doc.setTextColor(255, 255, 255)
       y += 18
     }
+    if (item.personalizationImageUrl) {
+      doc.setTextColor(190, 190, 190)
+      doc.text("Immagine personalizzata allegata all'ordine", margin, y)
+      doc.setTextColor(255, 255, 255)
+      y += 18
+    }
   })
 
   y += 12

@@ -499,7 +499,7 @@ export function Navbar() {
       {
         method: "POST",
         body: JSON.stringify({
-          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null, personalizationText: item.personalizationText || null })),
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, format: item.format, variantId: item.variantId || null, personalizationText: item.personalizationText || null, personalizationImageUrl: item.personalizationImageUrl || null })),
           couponCode: couponCode || null,
         }),
       }
@@ -1472,7 +1472,7 @@ export function Navbar() {
                   <div className={`${mobileScrollablePanelClass} h-full space-y-4 pr-1`}>
                     {items.map((item) => (
                       <article
-                        key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}`}
+                        key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}-${item.personalizationImageUrl || "no-image"}`}
                         className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
                       >
                         <img
@@ -1488,10 +1488,11 @@ export function Navbar() {
                             <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
                           </div>
                           {item.personalizationText ? <p className="mt-2 text-sm text-white/55">Personalizzazione: {item.personalizationText}</p> : null}
+                          {item.personalizationImageUrl ? <img src={item.personalizationImageUrl} alt="" className="mt-3 h-14 w-14 rounded-xl object-cover" /> : null}
                           <div className="mt-3">
                             <button
                               type="button"
-                              onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
+                              onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText, personalizationImageUrl: item.personalizationImageUrl })}
                               className={getButtonClassName({ variant: "cart", size: "sm" })}
                             >
                               Rimuovi
@@ -1598,7 +1599,7 @@ export function Navbar() {
                         ) : (
                           items.map((item) => (
                             <article
-                              key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}`}
+                              key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}-${item.personalizationImageUrl || "no-image"}`}
                               className="flex gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
                             >
                               <img
@@ -1614,10 +1615,11 @@ export function Navbar() {
                                   <span className="font-medium text-[#e3f503]">{formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}</span>
                                 </div>
                                 {item.personalizationText ? <p className="mt-2 text-sm text-white/55">Personalizzazione: {item.personalizationText}</p> : null}
+                                {item.personalizationImageUrl ? <img src={item.personalizationImageUrl} alt="" className="mt-3 h-14 w-14 rounded-xl object-cover" /> : null}
                                 <div className="mt-3">
                                   <button
                                     type="button"
-                                    onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText })}
+                                    onClick={() => removeItem(item.productId, { variantId: item.variantId, format: item.format, variantLabel: item.variantLabel, variantSku: item.variantSku, personalizationText: item.personalizationText, personalizationImageUrl: item.personalizationImageUrl })}
                                     className={getButtonClassName({ variant: "cart", size: "sm" })}
                                   >
                                     Rimuovi

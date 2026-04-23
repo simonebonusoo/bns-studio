@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 
 import { Button, getDangerButtonClassName } from "../../../components/Button"
 import { AdminCollection, ShopProduct } from "../../types"
@@ -28,8 +28,8 @@ type AdminCollectionsSectionProps = {
   onResetCollectionForm: () => void
   onStartEditCollection: (collection: AdminCollection) => void
   onDeleteCollection: (collectionId: number) => void
-  onReorderCollections: (collectionIds: number[], movedCollectionId: number) => void
-  movingCollectionId?: number | null
+  onReorderCollections: (collectionIds: number[]) => void
+  isSavingOrder?: boolean
 }
 
 function statusLabel(status?: AdminCollection["status"]) {
@@ -75,15 +75,11 @@ export function AdminCollectionsSection({
   onStartEditCollection,
   onDeleteCollection,
   onReorderCollections,
-  movingCollectionId = null,
+  isSavingOrder = false,
 }: AdminCollectionsSectionProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<AdminCollection | null>(null)
-  const [draggedCollectionId, setDraggedCollectionId] = useState<number | null>(null)
-  const [dragPreviewIds, setDragPreviewIds] = useState<number[]>([])
-  const draggedCollectionIdRef = useRef<number | null>(null)
-  const dragPreviewIdsRef = useRef<number[]>([])
-  const dropCommittedRef = useRef(false)
+  const [positionDrafts, setPositionDrafts] = useState<Record<number, string>>({})
   const selectedProductIds = useMemo(
     () =>
       Array.from(
@@ -118,34 +114,46 @@ export function AdminCollectionsSection({
       ),
     [collections],
   )
-  const orderedCollectionIds = useMemo(() => orderedCollections.map((collection) => collection.id), [orderedCollections])
-  const visibleCollections = useMemo(() => {
-    if (!dragPreviewIds.length) return orderedCollections
-    const collectionMap = new Map(orderedCollections.map((collection) => [collection.id, collection]))
-    const previewCollections = dragPreviewIds
-      .map((id) => collectionMap.get(id))
-      .filter((collection): collection is AdminCollection => Boolean(collection))
-
-    return previewCollections.length === orderedCollections.length ? previewCollections : orderedCollections
-  }, [dragPreviewIds, orderedCollections])
 
   useEffect(() => {
-    if (draggedCollectionIdRef.current || movingCollectionId) return
-    dragPreviewIdsRef.current = orderedCollectionIds
-    setDragPreviewIds(orderedCollectionIds)
-  }, [movingCollectionId, orderedCollectionIds])
+    setPositionDrafts(
+      Object.fromEntries(orderedCollections.map((collection, index) => [collection.id, String(index + 1)])),
+    )
+  }, [orderedCollections])
 
-  function moveCollectionPreview(fromId: number, toId: number) {
-    const currentIds = (dragPreviewIdsRef.current.length ? dragPreviewIdsRef.current : orderedCollections.map((collection) => collection.id)).slice()
-    const fromIndex = currentIds.indexOf(fromId)
-    const toIndex = currentIds.indexOf(toId)
-    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
+  const normalizedCollectionIds = useMemo(() => {
+    return orderedCollections
+      .map((collection, index) => {
+        const rawValue = positionDrafts[collection.id]
+        const parsed = Number.parseInt(String(rawValue || ""), 10)
+        return {
+          collection,
+          desiredPosition: Number.isInteger(parsed) && parsed > 0 ? parsed : index + 1,
+          currentIndex: index,
+        }
+      })
+      .sort((left, right) => left.desiredPosition - right.desiredPosition || left.currentIndex - right.currentIndex)
+      .map((entry) => entry.collection.id)
+  }, [orderedCollections, positionDrafts])
 
-    const nextIds = [...currentIds]
-    const [movedId] = nextIds.splice(fromIndex, 1)
-    nextIds.splice(toIndex, 0, movedId)
-    dragPreviewIdsRef.current = nextIds
-    setDragPreviewIds(nextIds)
+  const hasPendingOrderChanges = useMemo(
+    () => normalizedCollectionIds.some((id, index) => id !== orderedCollections[index]?.id),
+    [normalizedCollectionIds, orderedCollections],
+  )
+
+  function updateCollectionPosition(collectionId: number, value: string) {
+    setPositionDrafts((current) => ({
+      ...current,
+      [collectionId]: value,
+    }))
+  }
+
+  function applyCollectionOrder() {
+    if (!normalizedCollectionIds.length || isSavingOrder) return
+    setPositionDrafts(
+      Object.fromEntries(normalizedCollectionIds.map((collectionId, index) => [collectionId, String(index + 1)])),
+    )
+    onReorderCollections(normalizedCollectionIds)
   }
 
   return (
@@ -249,38 +257,21 @@ export function AdminCollectionsSection({
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Collezioni esistenti</h2>
-            <p className="mt-1 text-sm text-white/55">Stato, uscita e prodotti collegati. Trascina le card per cambiare l’ordine.</p>
+            <p className="mt-1 text-sm text-white/55">Stato, uscita e prodotti collegati. Imposta una posizione numerica e applica il riordino.</p>
           </div>
-          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{collections.length} collezioni</span>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">{collections.length} collezioni</span>
+            <Button type="button" variant="cart" size="sm" onClick={applyCollectionOrder} disabled={!hasPendingOrderChanges || isSavingOrder}>
+              {isSavingOrder ? "Salvataggio..." : "Applica riordino"}
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3">
-          {visibleCollections.map((collection, index) => (
+          {orderedCollections.map((collection) => (
             <article
               key={collection.id}
-              onDragOver={(event) => event.preventDefault()}
-              onDragEnter={() => {
-                const activeDraggedId = draggedCollectionIdRef.current
-                if (!activeDraggedId || activeDraggedId === collection.id) return
-                moveCollectionPreview(activeDraggedId, collection.id)
-              }}
-              onDrop={(event) => {
-                event.preventDefault()
-                const activeDraggedId = draggedCollectionIdRef.current
-                if (!activeDraggedId || activeDraggedId === collection.id) return
-                const nextIds = dragPreviewIdsRef.current.length ? dragPreviewIdsRef.current : visibleCollections.map((entry) => entry.id)
-                dropCommittedRef.current = true
-                draggedCollectionIdRef.current = null
-                setDraggedCollectionId(null)
-                onReorderCollections(nextIds, activeDraggedId)
-              }}
-              className={`rounded-lg border bg-white/[0.025] p-4 transition ${
-                draggedCollectionId === collection.id
-                  ? "border-[#e3f503]/45 bg-[#e3f503]/10"
-                  : dragPreviewIds.includes(collection.id) && draggedCollectionId
-                    ? "border-white/18 bg-white/[0.04]"
-                    : "border-white/10"
-              }`}
+              className="rounded-lg border border-white/10 bg-white/[0.025] p-4 transition"
             >
               <div className="flex gap-4">
                 {collection.coverImageUrl ? <img src={collection.coverImageUrl} alt="" draggable={false} className="h-20 w-20 rounded-lg object-cover" /> : <div className="h-20 w-20 rounded-lg bg-white/8" />}
@@ -292,36 +283,18 @@ export function AdminCollectionsSection({
                   <p className="mt-1 text-xs text-white/45">/{collection.slug} · {formatLaunchDate(collection.launchAt)}</p>
                   <p className="mt-1 text-sm text-white/55">{collection._count?.products || collection.products?.length || 0} prodotti · {collection.active ? "attiva" : "non attiva"}</p>
                 </div>
-                <button
-                  type="button"
-                  draggable={movingCollectionId !== collection.id}
-                  onDragStart={(event) => {
-                    dropCommittedRef.current = false
-                    draggedCollectionIdRef.current = collection.id
-                    setDraggedCollectionId(collection.id)
-                    dragPreviewIdsRef.current = visibleCollections.map((entry) => entry.id)
-                    setDragPreviewIds(visibleCollections.map((entry) => entry.id))
-                    event.dataTransfer.effectAllowed = "move"
-                    event.dataTransfer.setData("text/plain", String(collection.id))
-                  }}
-                  onDragEnd={() => {
-                    const shouldReset = !dropCommittedRef.current
-                    dropCommittedRef.current = false
-                    draggedCollectionIdRef.current = null
-                    setDraggedCollectionId(null)
-                    if (shouldReset) {
-                      dragPreviewIdsRef.current = orderedCollectionIds
-                      setDragPreviewIds(orderedCollectionIds)
-                    } else {
-                      setDragPreviewIds(dragPreviewIdsRef.current.length ? dragPreviewIdsRef.current : orderedCollectionIds)
-                    }
-                  }}
-                  className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/60 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={movingCollectionId === collection.id}
-                  aria-label={`Trascina ${collection.title}`}
-                >
-                  {movingCollectionId === collection.id ? "Salvataggio..." : `Trascina · ${index + 1}`}
-                </button>
+                <label className="shrink-0 self-start rounded-2xl border border-white/10 bg-black/10 px-3 py-3 text-xs text-white/55">
+                  <span className="block uppercase tracking-[0.18em] text-white/40">Posizione</span>
+                  <input
+                    type="number"
+                    min="1"
+                    inputMode="numeric"
+                    value={positionDrafts[collection.id] || ""}
+                    onChange={(event) => updateCollectionPosition(collection.id, event.target.value)}
+                    className="shop-input mt-2 w-24"
+                    disabled={isSavingOrder}
+                  />
+                </label>
               </div>
               <div className="mt-4 flex flex-wrap justify-end gap-2">
                 <Button type="button" variant="profile" size="sm" onClick={() => onStartEditCollection(collection)}>

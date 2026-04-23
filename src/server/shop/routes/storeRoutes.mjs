@@ -1,7 +1,10 @@
 import { Router } from "express"
+import fs from "node:fs"
+import path from "node:path"
+import multer from "multer"
 import { z } from "zod"
 
-import { asyncHandler } from "../lib/http.mjs"
+import { asyncHandler, HttpError } from "../lib/http.mjs"
 import { isCollectionPublic, productRelationInclude, resolveDueCollectionLaunches, serializeTaxonomyRelations, slugifyCatalogText } from "../lib/catalog-taxonomy.mjs"
 import { buildVisibleProductBadges, parseManualBadges } from "../lib/product-badges.mjs"
 import { prisma } from "../lib/prisma.mjs"
@@ -16,10 +19,36 @@ import { resolveSelectedVariant, serializeProductVariants } from "../lib/product
 import { rankRelatedProducts, sortCatalogSearchProducts } from "../lib/product-discovery.mjs"
 import { optionalAuth, requireAuth } from "../middleware/auth.mjs"
 import { createMockLabelResponse, createMockTrackingResponse } from "../shipping/mocks/mock-tracking-route.mjs"
+import { getAssetStorageMode, storeUploadedProductImages } from "../lib/asset-storage.mjs"
 import { sanitizeMultilineText, sanitizePlainText } from "../lib/sanitize-text.mjs"
+import { resolveProductUploadsDir } from "../lib/uploads-storage.mjs"
 
 const router = Router()
 const FALLBACK_CONTACT_EMAIL = "bnsstudio@gmail.com"
+const uploadsDir = resolveProductUploadsDir()
+
+fs.mkdirSync(uploadsDir, { recursive: true })
+
+const localDiskStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase()
+    const safeBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, "-").toLowerCase()
+    cb(null, `${Date.now()}-${safeBase}${ext}`)
+  },
+})
+
+const personalizationUpload = multer({
+  storage: getAssetStorageMode() === "cloudinary" ? multer.memoryStorage() : localDiskStorage,
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      cb(new HttpError(400, "Sono consentite solo immagini"))
+      return
+    }
+    cb(null, true)
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
+})
 
 function parseJsonArray(value) {
   try {
@@ -587,6 +616,21 @@ router.post(
 )
 
 router.post(
+  "/personalization/uploads",
+  optionalAuth,
+  personalizationUpload.array("images", 1),
+  asyncHandler(async (req, res) => {
+    const files = Array.isArray(req.files) ? req.files : []
+    if (!files.length) {
+      throw new HttpError(400, "Carica un'immagine valida")
+    }
+
+    const storedFiles = await storeUploadedProductImages(files)
+    res.status(201).json({ files: storedFiles })
+  })
+)
+
+router.post(
   "/pricing/preview",
   optionalAuth,
   asyncHandler(async (req, res) => {
@@ -598,7 +642,8 @@ router.post(
             quantity: z.number().int().min(1),
             format: z.string().optional(),
             variantId: z.number().int().positive().optional().nullable(),
-            personalizationText: z.string().trim().max(50).optional().nullable(),
+            personalizationText: z.string().trim().max(200).optional().nullable(),
+            personalizationImageUrl: z.string().trim().optional().nullable(),
           })
         ),
         couponCode: z.string().optional().nullable(),

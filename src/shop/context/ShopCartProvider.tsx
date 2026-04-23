@@ -8,6 +8,7 @@ type VariantSelection = {
   variantLabel?: string | null
   variantSku?: string | null
   personalizationText?: string | null
+  personalizationImageUrl?: string | null
 }
 
 type CartContextValue = {

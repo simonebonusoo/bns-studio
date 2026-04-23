@@ -35,7 +35,7 @@ export function buildAdminOrderCompletedEmail({ order, user }) {
   const itemsText = order.items
     .map(
       (item) =>
-        `- ${item.title}${formatItemSelection(item)}${item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""} · qty ${item.quantity} · ${formatCurrency(item.lineTotal)}`
+        `- ${item.title}${formatItemSelection(item)}${item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""}${item.personalizationImageUrl ? ` · Immagine: ${item.personalizationImageUrl}` : ""} · qty ${item.quantity} · ${formatCurrency(item.lineTotal)}`
     )
     .join("\n")
 
@@ -78,7 +78,7 @@ export function buildAdminOrderCompletedEmail({ order, user }) {
         ${order.items
           .map(
             (item) =>
-              `<li>${item.title}${formatItemSelection(item)}${item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""} · qty ${item.quantity} · ${formatCurrency(item.lineTotal)}</li>`
+              `<li>${item.title}${formatItemSelection(item)}${item.personalizationText ? ` · Personalizzazione: ${item.personalizationText}` : ""}${item.personalizationImageUrl ? ` · Immagine: ${item.personalizationImageUrl}` : ""} · qty ${item.quantity} · ${formatCurrency(item.lineTotal)}</li>`
           )
           .join("")}
       </ul>

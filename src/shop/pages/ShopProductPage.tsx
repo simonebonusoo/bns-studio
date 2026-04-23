@@ -62,6 +62,8 @@ export function ShopProductPage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [personalizationText, setPersonalizationText] = useState("")
+  const [personalizationImageUrl, setPersonalizationImageUrl] = useState("")
+  const [personalizationImageUploading, setPersonalizationImageUploading] = useState(false)
   const [personalizationError, setPersonalizationError] = useState("")
   const [settings, setSettings] = useState<ShopSettings>({})
   const [notifyInterest, setNotifyInterest] = useState(false)
@@ -84,6 +86,8 @@ export function ShopProductPage() {
         setIsLightboxOpen(false)
         setQuantity(1)
         setPersonalizationText("")
+        setPersonalizationImageUrl("")
+        setPersonalizationImageUploading(false)
         setPersonalizationError("")
         setNotifyInterest(false)
         setNotifyMessage("")
@@ -197,6 +201,29 @@ export function ShopProductPage() {
       ].filter((section) => section.visible),
     [availableFormats, product?.description, product?.tags, shippingCostLabel, shippingCostValue]
   )
+  const personalizationConfig = useMemo(
+    () => ({
+      textEnabled: Boolean(product?.isCustomizable && product?.personalizationTextEnabled),
+      textRequired: Boolean(product?.isCustomizable && product?.personalizationTextEnabled && product?.personalizationTextRequired),
+      textLabel: product?.personalizationTextLabel?.trim() || "Inserisci il nome o il testo breve da usare per la personalizzazione",
+      textMaxChars: Math.max(1, Math.min(200, Number(product?.personalizationTextMaxChars || 50))),
+      imageEnabled: Boolean(product?.isCustomizable && product?.personalizationImageEnabled),
+      imageRequired: Boolean(product?.isCustomizable && product?.personalizationImageEnabled && product?.personalizationImageRequired),
+      imageLabel: product?.personalizationImageLabel?.trim() || "Carica un’immagine da usare per adattare il poster",
+      imageInstructions: product?.personalizationImageInstructions?.trim() || "Il prodotto verrà personalizzato in base ai dati caricati o inseriti prima dell’ordine.",
+    }),
+    [
+      product?.isCustomizable,
+      product?.personalizationImageEnabled,
+      product?.personalizationImageInstructions,
+      product?.personalizationImageLabel,
+      product?.personalizationImageRequired,
+      product?.personalizationTextEnabled,
+      product?.personalizationTextLabel,
+      product?.personalizationTextMaxChars,
+      product?.personalizationTextRequired,
+    ],
+  )
   const relatedPageState = useMemo(
     () => getRelatedProductsPageState(relatedProducts, visibleRelatedCount, RELATED_PAGE_SIZE),
     [relatedProducts, visibleRelatedCount],
@@ -224,22 +251,45 @@ export function ShopProductPage() {
     setQuantity(Math.min(Math.max(nextValue, 1), maxQuantity))
   }
 
-  function resolvePersonalizationText() {
-    if (!product?.isCustomizable) return null
+  function resolvePersonalizationSelection() {
+    if (!product?.isCustomizable) {
+      setPersonalizationError("")
+      return { personalizationText: null, personalizationImageUrl: null }
+    }
 
-    const normalized = personalizationText.trim()
-    if (!normalized) {
-      setPersonalizationError("Inserisci il nome da usare per la personalizzazione.")
+    const normalizedText = personalizationText.trim()
+    const normalizedImageUrl = personalizationImageUrl.trim()
+
+    if (personalizationConfig.textEnabled && personalizationConfig.textRequired && !normalizedText) {
+      setPersonalizationError("Inserisci il testo richiesto per la personalizzazione.")
       return undefined
     }
 
-    if (normalized.length > 50) {
-      setPersonalizationError("Il testo personalizzato può contenere al massimo 50 caratteri.")
+    if (normalizedText && normalizedText.length > personalizationConfig.textMaxChars) {
+      setPersonalizationError(`Il testo personalizzato può contenere al massimo ${personalizationConfig.textMaxChars} caratteri.`)
+      return undefined
+    }
+
+    if (personalizationConfig.imageEnabled && personalizationConfig.imageRequired && !normalizedImageUrl) {
+      setPersonalizationError("Carica l’immagine richiesta per completare la personalizzazione.")
       return undefined
     }
 
     setPersonalizationError("")
-    return normalized
+    return {
+      personalizationText: personalizationConfig.textEnabled ? (normalizedText || null) : null,
+      personalizationImageUrl: personalizationConfig.imageEnabled ? (normalizedImageUrl || null) : null,
+    }
+  }
+
+  async function uploadPersonalizationImage(file: File) {
+    const formData = new FormData()
+    formData.append("images", file)
+    const data = await apiFetch<{ files: { url: string }[] }>("/store/personalization/uploads", {
+      method: "POST",
+      body: formData,
+    })
+    return data.files[0]?.url || ""
   }
 
   function openLoginFlow() {
@@ -268,8 +318,8 @@ export function ShopProductPage() {
     }
     if (!product) return
     if (!purchasable) return
-    const resolvedPersonalizationText = resolvePersonalizationText()
-    if (resolvedPersonalizationText === undefined) return
+    const resolvedPersonalization = resolvePersonalizationSelection()
+    if (!resolvedPersonalization) return
     beginCheckout(product, quantity, {
       variantId: selectedVariant?.id ?? null,
       editionName: selectedVariant?.editionName || selectedEditionName || null,
@@ -277,7 +327,8 @@ export function ShopProductPage() {
       format: selectedVariant?.size || selectedVariant?.title || null,
       variantLabel: selectedVariant?.title || null,
       variantSku: selectedVariant?.sku || null,
-      personalizationText: resolvedPersonalizationText,
+      personalizationText: resolvedPersonalization.personalizationText,
+      personalizationImageUrl: resolvedPersonalization.personalizationImageUrl,
     })
     if (!user) {
       window.dispatchEvent(new CustomEvent("bns:open-profile"))
@@ -364,8 +415,8 @@ export function ShopProductPage() {
       openLoginFlow()
       return
     }
-    const resolvedPersonalizationText = resolvePersonalizationText()
-    if (resolvedPersonalizationText === undefined) return
+    const resolvedPersonalization = resolvePersonalizationSelection()
+    if (!resolvedPersonalization) return
 
     addItem(product, quantity, {
       variantId: selectedVariant?.id ?? null,
@@ -374,7 +425,8 @@ export function ShopProductPage() {
       format: selectedVariant?.size || selectedVariant?.title || null,
       variantLabel: selectedVariant?.title || null,
       variantSku: selectedVariant?.sku || null,
-      personalizationText: resolvedPersonalizationText,
+      personalizationText: resolvedPersonalization.personalizationText,
+      personalizationImageUrl: resolvedPersonalization.personalizationImageUrl,
     })
   }
 
@@ -420,7 +472,7 @@ export function ShopProductPage() {
 
     observer.observe(panel)
     return () => observer.disconnect()
-  }, [personalizationError, personalizationText, product?.id, quantity, selectedEditionName, selectedVariantKey, stockStatus, subtotal])
+  }, [personalizationError, personalizationImageUrl, personalizationText, product?.id, quantity, selectedEditionName, selectedVariantKey, stockStatus, subtotal])
 
   if (productError) {
     return (
@@ -492,7 +544,15 @@ export function ShopProductPage() {
             quantity={quantity}
             maxQuantity={maxQuantity}
             isCustomizable={Boolean(product.isCustomizable)}
+            personalizationTextEnabled={personalizationConfig.textEnabled}
+            personalizationTextLabel={personalizationConfig.textLabel}
+            personalizationTextMaxChars={personalizationConfig.textMaxChars}
             personalizationText={personalizationText}
+            personalizationImageEnabled={personalizationConfig.imageEnabled}
+            personalizationImageLabel={personalizationConfig.imageLabel}
+            personalizationImageInstructions={personalizationConfig.imageInstructions}
+            personalizationImageUrl={personalizationImageUrl}
+            personalizationImageUploading={personalizationImageUploading}
             personalizationError={personalizationError}
             purchasable={purchasable}
             purchaseState={purchaseState}
@@ -533,6 +593,27 @@ export function ShopProductPage() {
             onPersonalizationTextChange={(value) => {
               setPersonalizationText(value)
               if (personalizationError) setPersonalizationError("")
+            }}
+            onPersonalizationImageChange={async (file) => {
+              if (!file) {
+                setPersonalizationImageUrl("")
+                if (personalizationError) setPersonalizationError("")
+                return
+              }
+
+              try {
+                setPersonalizationImageUploading(true)
+                const uploadedUrl = await uploadPersonalizationImage(file)
+                if (!uploadedUrl) {
+                  throw new Error("Upload immagine non riuscito.")
+                }
+                setPersonalizationImageUrl(uploadedUrl)
+                if (personalizationError) setPersonalizationError("")
+              } catch (error) {
+                setPersonalizationError(error instanceof Error ? error.message : "Errore durante il caricamento dell’immagine.")
+              } finally {
+                setPersonalizationImageUploading(false)
+              }
             }}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}

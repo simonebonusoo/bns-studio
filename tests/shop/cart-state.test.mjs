@@ -73,6 +73,16 @@ test("addCartItem keeps personalized rows separate by text", () => {
   assert.equal(third.find((item) => item.personalizationText === "Luca")?.quantity, 1)
 })
 
+test("addCartItem keeps personalized rows separate by uploaded image", () => {
+  const first = addCartItem([], product, 1, { variantId: 101, personalizationText: "Marco", personalizationImageUrl: "/uploads/products/a.png" })
+  const second = addCartItem(first, product, 1, { variantId: 101, personalizationText: "Marco", personalizationImageUrl: "/uploads/products/b.png" })
+  const third = addCartItem(second, product, 2, { variantId: 101, personalizationText: "Marco", personalizationImageUrl: "/uploads/products/a.png" })
+
+  assert.equal(third.length, 2)
+  assert.equal(third.find((item) => item.personalizationImageUrl === "/uploads/products/a.png")?.quantity, 3)
+  assert.equal(third.find((item) => item.personalizationImageUrl === "/uploads/products/b.png")?.quantity, 1)
+})
+
 test("updateCartItem removes the row when quantity reaches zero", () => {
   const items = addCartItem([], product, 2, { variantId: 101 })
   const updated = updateCartItem(items, product.id, 0, { variantId: 101 })

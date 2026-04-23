@@ -99,6 +99,7 @@ function buildOrderRecordFromCheckoutSession(session) {
         variantLabel: item.variantLabel || null,
         variantSku: item.variantSku || null,
         personalizationText: item.personalizationText || null,
+        personalizationImageUrl: item.personalizationImageUrl || null,
         unitPrice: item.unitPrice,
         unitCost: item.unitCost || 0,
         quantity: item.quantity,
@@ -134,7 +135,8 @@ const checkoutSchema = z.object({
       quantity: z.number().int().min(1),
       format: z.string().optional(),
       variantId: z.number().int().positive().optional().nullable(),
-      personalizationText: z.string().trim().max(50).optional().nullable(),
+      personalizationText: z.string().trim().max(200).optional().nullable(),
+      personalizationImageUrl: z.string().trim().optional().nullable(),
     })
   ),
 })

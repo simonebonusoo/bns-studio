@@ -76,6 +76,7 @@ function getVariantSize(variant) {
 
 export function normalizeCartSelection(product, selection = {}) {
   const personalizationText = String(selection?.personalizationText || "").trim()
+  const personalizationImageUrl = String(selection?.personalizationImageUrl || "").trim()
   const variant =
     resolveSelectedVariant(product, {
       variantId: selection?.variantId,
@@ -90,21 +91,24 @@ export function normalizeCartSelection(product, selection = {}) {
     variantLabel: selection?.variantLabel || variant?.title || null,
     variantSku: selection?.variantSku || variant?.sku || null,
     personalizationText: personalizationText || null,
+    personalizationImageUrl: personalizationImageUrl || null,
   }
 }
 
 export function selectionMatches(item, selection = {}) {
   const samePersonalization = String(item.personalizationText || "") === String(selection.personalizationText || "")
+  const samePersonalizationImage = String(item.personalizationImageUrl || "") === String(selection.personalizationImageUrl || "")
 
   if (selection.variantId && item.variantId) {
-    return Number(item.variantId) === Number(selection.variantId) && samePersonalization
+    return Number(item.variantId) === Number(selection.variantId) && samePersonalization && samePersonalizationImage
   }
 
   return (
     String(item.format || "") === String(selection.format || "") &&
     String(item.editionName || "") === String(selection.editionName || "") &&
     String(item.size || "") === String(selection.size || "") &&
-    samePersonalization
+    samePersonalization &&
+    samePersonalizationImage
   )
 }
 
@@ -117,6 +121,8 @@ export function normalizeStoredCartItems(items = []) {
       size: item.size,
       variantLabel: item.variantLabel,
       variantSku: item.variantSku,
+      personalizationText: item.personalizationText,
+      personalizationImageUrl: item.personalizationImageUrl,
     })
 
     return {

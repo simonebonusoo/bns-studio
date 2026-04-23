@@ -125,6 +125,14 @@ export type ShopProduct = {
   activeVariantEditionName?: string | null
   manualBadges?: ProductManualBadge[]
   isCustomizable?: boolean
+  personalizationTextEnabled?: boolean
+  personalizationTextRequired?: boolean
+  personalizationTextLabel?: string | null
+  personalizationTextMaxChars?: number
+  personalizationImageEnabled?: boolean
+  personalizationImageRequired?: boolean
+  personalizationImageLabel?: string | null
+  personalizationImageInstructions?: string | null
   badges?: ProductVisibleBadge[]
   tags?: ProductTag[]
   collections?: ProductCollection[]
@@ -160,6 +168,7 @@ export type ShopCartItem = {
   variantLabel?: string | null
   variantSku?: string | null
   personalizationText?: string | null
+  personalizationImageUrl?: string | null
   product: ShopProduct
 }
 
@@ -175,6 +184,7 @@ export type PricingItem = {
   variantLabel?: string | null
   variantSku?: string | null
   personalizationText?: string | null
+  personalizationImageUrl?: string | null
   unitPrice: number
   unitCost?: number
   quantity: number
@@ -223,6 +233,7 @@ export type ShopOrderItem = {
   variantLabel?: string | null
   variantSku?: string | null
   personalizationText?: string | null
+  personalizationImageUrl?: string | null
   unitPrice: number
   unitCost?: number
   quantity: number

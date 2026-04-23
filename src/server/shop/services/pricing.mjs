@@ -69,15 +69,37 @@ async function validateFirstRegistrationCoupon(coupon, userId, now) {
 }
 
 function normalizePersonalizationText(product, item) {
-  if (!product?.isCustomizable) return null
+  if (!product?.isCustomizable || !product?.personalizationTextEnabled) return null
 
   const normalized = sanitizePlainText(item?.personalizationText || "").trim()
   if (!normalized) {
-    throw new HttpError(400, `${product.title} richiede un nome per la personalizzazione`)
+    if (product?.personalizationTextRequired) {
+      throw new HttpError(400, `${product.title} richiede un testo per la personalizzazione`)
+    }
+    return null
   }
 
-  if (normalized.length > 50) {
-    throw new HttpError(400, "Il testo personalizzato può contenere al massimo 50 caratteri")
+  const maxChars = Math.max(1, Math.min(200, Number(product?.personalizationTextMaxChars || 50)))
+  if (normalized.length > maxChars) {
+    throw new HttpError(400, `Il testo personalizzato può contenere al massimo ${maxChars} caratteri`)
+  }
+
+  return normalized
+}
+
+function normalizePersonalizationImageUrl(product, item) {
+  if (!product?.isCustomizable || !product?.personalizationImageEnabled) return null
+
+  const normalized = String(item?.personalizationImageUrl || "").trim()
+  if (!normalized) {
+    if (product?.personalizationImageRequired) {
+      throw new HttpError(400, `${product.title} richiede un'immagine per la personalizzazione`)
+    }
+    return null
+  }
+
+  if (!normalized.startsWith("/uploads/") && !/^https?:\/\//i.test(normalized)) {
+    throw new HttpError(400, "L'immagine di personalizzazione non è valida")
   }
 
   return normalized
@@ -159,6 +181,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     const size = selectedVariant.size || selectedVariant.options?.find((option) => option.name === "Misura")?.value || selectedVariant.title || normalizeProductFormat(product, item.format)
     const format = size
     const personalizationText = normalizePersonalizationText(product, item)
+    const personalizationImageUrl = normalizePersonalizationImageUrl(product, item)
     const originalUnitPrice = selectedVariant.price ?? getProductPriceForFormat(product, format)
     const discountedUnitPrice =
       getValidDiscountUnitPrice(originalUnitPrice, selectedVariant.discountPrice) ?? originalUnitPrice
@@ -172,6 +195,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
       variantLabel: editionName || selectedVariant.title,
       variantSku: selectedVariant.sku ?? null,
       personalizationText,
+      personalizationImageUrl,
       slug: product.slug,
       title: product.title,
       imageUrl: selectedVariant.variantProductImageUrl || imageUrls[0] || "",

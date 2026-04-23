@@ -134,6 +134,7 @@ export function ShopReceiptPage() {
                   <p className="font-medium text-white">{item.title}</p>
                   <p className="mt-1">{formatVariantSelectionLabel(item)} x {item.quantity}</p>
                   {item.personalizationText ? <p className="mt-2 text-[#eef879]">Personalizzazione: {item.personalizationText}</p> : null}
+                  {item.personalizationImageUrl ? <img src={item.personalizationImageUrl} alt="" className="mt-3 h-14 w-14 rounded-xl object-cover" /> : null}
                 </div>
                 <span className="shrink-0 font-medium text-white">{formatPrice(item.lineTotal)}</span>
               </div>

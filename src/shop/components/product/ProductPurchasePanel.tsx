@@ -22,7 +22,15 @@ type ProductPurchasePanelProps = {
   quantity: number
   maxQuantity: number
   isCustomizable?: boolean
+  personalizationTextEnabled?: boolean
+  personalizationTextLabel?: string
+  personalizationTextMaxChars?: number
   personalizationText: string
+  personalizationImageEnabled?: boolean
+  personalizationImageLabel?: string
+  personalizationImageInstructions?: string
+  personalizationImageUrl?: string
+  personalizationImageUploading?: boolean
   personalizationError: string
   purchasable: boolean
   purchaseState: ProductPurchaseState
@@ -34,6 +42,7 @@ type ProductPurchasePanelProps = {
   onDecreaseQuantity: () => void
   onIncreaseQuantity: () => void
   onPersonalizationTextChange: (value: string) => void
+  onPersonalizationImageChange: (file: File | null) => void | Promise<void>
   onAddToCart: () => void
   onBuyNow: () => void
   onEdit: () => void
@@ -59,7 +68,15 @@ export function ProductPurchasePanel({
   quantity,
   maxQuantity,
   isCustomizable = false,
+  personalizationTextEnabled = false,
+  personalizationTextLabel = "",
+  personalizationTextMaxChars = 50,
   personalizationText,
+  personalizationImageEnabled = false,
+  personalizationImageLabel = "",
+  personalizationImageInstructions = "",
+  personalizationImageUrl = "",
+  personalizationImageUploading = false,
   personalizationError,
   purchasable,
   purchaseState,
@@ -71,6 +88,7 @@ export function ProductPurchasePanel({
   onDecreaseQuantity,
   onIncreaseQuantity,
   onPersonalizationTextChange,
+  onPersonalizationImageChange,
   onAddToCart,
   onBuyNow,
   onEdit,
@@ -150,18 +168,54 @@ export function ProductPurchasePanel({
           />
           {isCustomizable ? (
             <div className="rounded-2xl border border-white/10 px-4 py-4">
-              <label htmlFor="product-personalization" className="text-[11px] uppercase tracking-[0.18em] text-white/45">
-                Nome da inserire
-              </label>
-              <input
-                id="product-personalization"
-                className="shop-input mt-3"
-                value={personalizationText}
-                maxLength={50}
-                onChange={(event) => onPersonalizationTextChange(event.target.value)}
-                placeholder="Inserisci il nome da stampare"
-              />
-              <p className="mt-2 text-xs leading-5 text-white/45">Massimo 50 caratteri. Il testo verrà associato a questa riga ordine.</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Personalizzazione</p>
+              {personalizationTextEnabled ? (
+                <>
+                  <label htmlFor="product-personalization" className="mt-3 block text-sm text-white/75">
+                    {personalizationTextLabel}
+                  </label>
+                  <textarea
+                    id="product-personalization"
+                    className="shop-textarea mt-3 min-h-24 resize-none"
+                    value={personalizationText}
+                    maxLength={personalizationTextMaxChars}
+                    onChange={(event) => onPersonalizationTextChange(event.target.value)}
+                    placeholder={personalizationTextLabel}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-white/45">Massimo {personalizationTextMaxChars} caratteri. Il testo resta associato a questa riga ordine.</p>
+                </>
+              ) : null}
+              {personalizationImageEnabled ? (
+                <div className={personalizationTextEnabled ? "mt-4 border-t border-white/10 pt-4" : "mt-3"}>
+                  <p className="text-sm text-white/75">{personalizationImageLabel}</p>
+                  <label className="mt-3 inline-flex cursor-pointer items-center rounded-full border border-white/12 px-4 py-2 text-sm text-white/75 transition hover:border-white/25 hover:text-white">
+                    {personalizationImageUploading ? "Caricamento..." : "Carica immagine"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      disabled={personalizationImageUploading}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] || null
+                        void onPersonalizationImageChange(file)
+                        event.currentTarget.value = ""
+                      }}
+                    />
+                  </label>
+                  {personalizationImageUrl ? (
+                    <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <img src={personalizationImageUrl} alt="" className="h-16 w-16 rounded-xl object-cover" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-white/72">Immagine caricata e pronta per l’ordine.</p>
+                        <button type="button" className="mt-2 text-xs text-white/55 transition hover:text-white" onClick={() => void onPersonalizationImageChange(null)}>
+                          Rimuovi immagine
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                  <p className="mt-2 text-xs leading-5 text-white/45">{personalizationImageInstructions}</p>
+                </div>
+              ) : null}
               {personalizationError ? <p className="mt-2 text-sm text-red-300">{personalizationError}</p> : null}
             </div>
           ) : null}
