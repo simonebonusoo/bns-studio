@@ -4,9 +4,11 @@ import { useLocation, useNavigate } from "react-router-dom"
 import {
   Bars3Icon,
   HomeIcon,
+  InformationCircleIcon,
   MagnifyingGlassIcon,
   ShoppingBagIcon,
   Squares2X2Icon,
+  TagIcon,
   UserCircleIcon,
   UserIcon,
   XMarkIcon,
@@ -1094,8 +1096,8 @@ export function Navbar() {
                 <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-white/45">Menu shop</p>
-                    <h2 className="mt-3 text-2xl font-semibold text-white">Naviga BNS Studio</h2>
-                    <p className="mt-2 text-sm text-white/60">Accesso rapido alle sezioni principali dello shop e ai tuoi ordini.</p>
+                    <h2 className="mt-3 text-2xl font-semibold text-white">BNS Studio</h2>
+                    <p className="mt-2 text-sm text-white/60">Accesso rapido alle sezioni principali.</p>
                   </div>
 
                   <button
@@ -1115,7 +1117,20 @@ export function Navbar() {
                       icon: <HomeIcon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
-                        navigate("/#top")
+                        if (location.pathname !== "/" || location.search || location.hash) {
+                          navigate("/", { state: { resetHomeTop: true } })
+                          requestAnimationFrame(scrollHomeToTop)
+                          return
+                        }
+                        scrollHomeToTop()
+                      },
+                    },
+                    {
+                      label: "Promo",
+                      icon: <TagIcon className="h-5 w-5" />,
+                      onClick: () => {
+                        setMenuOpen(false)
+                        navigate("/shop/offerte")
                       },
                     },
                     {
@@ -1139,27 +1154,15 @@ export function Navbar() {
                       icon: <ShoppingBagIcon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
-                        navigate("/#shop-catalog")
+                        navigate("/shop")
                       },
                     },
                     {
-                      label: "Recensioni",
-                      icon: <UserCircleIcon className="h-5 w-5" />,
+                      label: "Chi siamo",
+                      icon: <InformationCircleIcon className="h-5 w-5" />,
                       onClick: () => {
                         setMenuOpen(false)
-                        navigate("/#recensioni")
-                      },
-                    },
-                    {
-                      label: "Ordini",
-                      icon: <UserIcon className="h-5 w-5" />,
-                      onClick: () => {
-                        if (user) {
-                          setMenuOpen(false)
-                          navigate("/shop/profile")
-                          return
-                        }
-                        openProfilePanel("login")
+                        navigate("/chi-siamo")
                       },
                     },
                   ].map((item) => (
