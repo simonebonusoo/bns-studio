@@ -357,7 +357,7 @@ export function ShopCheckoutPage() {
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             {pricing ? (
               <div className="space-y-3 text-sm text-white/70">
-                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
+                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.discountedSubtotal)}</span></div>
                 {threeForTwoDiscountAmount > 0 ? (
                   <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(threeForTwoDiscountAmount)} con il 3x2</p>
                 ) : null}
@@ -543,7 +543,7 @@ export function ShopCheckoutPage() {
                     <p key={line}>{line}</p>
                   ))}
                 </div>
-                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
+                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.discountedSubtotal)}</span></div>
                 {threeForTwoDiscountAmount > 0 ? (
                   <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(threeForTwoDiscountAmount)} con il 3x2</p>
                 ) : null}
@@ -640,7 +640,7 @@ export function ShopCheckoutPage() {
             <span className="shop-pill">Step 3</span>
             <h2 className="text-2xl font-semibold text-white">Pagamento finale</h2>
             <div className="space-y-3 text-sm text-white/70">
-              <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.pricingBreakdown?.subtotal ?? order.subtotal)}</span></div>
+              <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.pricingBreakdown?.discountedSubtotal ?? order.pricingBreakdown?.subtotal ?? order.subtotal)}</span></div>
               {orderThreeForTwoDiscountAmount > 0 ? (
                 <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(orderThreeForTwoDiscountAmount)} con il 3x2</p>
               ) : null}

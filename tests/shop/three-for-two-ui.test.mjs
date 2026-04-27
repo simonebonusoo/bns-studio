@@ -33,6 +33,7 @@ test("checkout, cart and receipt consume the 3x2 breakdown detail", () => {
   assert.match(cartPage, /formatThreeForTwoLineMessage/)
   assert.match(checkoutPage, /getThreeForTwoDiscountForLine/)
   assert.match(checkoutPage, /<span>Subtotale<\/span>/)
+  assert.match(checkoutPage, /formatPrice\(pricing\.discountedSubtotal\)/)
   assert.match(checkoutPage, /Hai risparmiato .* con il 3x2/)
   assert.match(checkoutPage, /Subtotale scontato/)
   assert.match(checkoutPage, /Prodotto gratis/)
