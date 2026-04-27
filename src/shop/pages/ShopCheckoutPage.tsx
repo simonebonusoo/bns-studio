@@ -39,6 +39,17 @@ function mapPricingPreviewErrorMessage(message: string) {
   return message
 }
 
+function getSafeSubtotalBeforeThreeForTwo(pricing: ShopPricing | null) {
+  if (!pricing) return 0
+  if (typeof pricing.discountedSubtotal === "number" && Number.isFinite(pricing.discountedSubtotal)) {
+    return pricing.discountedSubtotal
+  }
+  return pricing.items.reduce((sum, item) => {
+    const lineTotal = Number(item.lineTotal)
+    return sum + (Number.isFinite(lineTotal) ? lineTotal : 0)
+  }, 0)
+}
+
 export function ShopCheckoutPage() {
   const { user, isGuestPreview } = useShopAuth()
   const { items, couponCode, setCouponCode, clearCart } = useShopCart()
@@ -259,6 +270,11 @@ export function ShopCheckoutPage() {
   const orderThreeForTwoItems = getThreeForTwoItems(order?.pricingBreakdown || null)
   const threeForTwoDiscountAmount = getThreeForTwoDiscountAmount(pricing)
   const orderThreeForTwoDiscountAmount = getThreeForTwoDiscountAmount(order?.pricingBreakdown || null)
+  const subtotalBeforeThreeForTwo = getSafeSubtotalBeforeThreeForTwo(pricing)
+  const orderSubtotalBeforeThreeForTwo =
+    typeof order?.pricingBreakdown?.discountedSubtotal === "number" && Number.isFinite(order.pricingBreakdown.discountedSubtotal)
+      ? order.pricingBreakdown.discountedSubtotal
+      : order?.pricingBreakdown?.items?.reduce((sum, item) => sum + (Number.isFinite(Number(item.lineTotal)) ? Number(item.lineTotal) : 0), 0) ?? order?.subtotal ?? 0
 
   return (
     <ShopLayout
@@ -357,7 +373,7 @@ export function ShopCheckoutPage() {
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             {pricing ? (
               <div className="space-y-3 text-sm text-white/70">
-                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.discountedSubtotal)}</span></div>
+                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(subtotalBeforeThreeForTwo)}</span></div>
                 {threeForTwoDiscountAmount > 0 ? (
                   <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(threeForTwoDiscountAmount)} con il 3x2</p>
                 ) : null}
@@ -543,7 +559,7 @@ export function ShopCheckoutPage() {
                     <p key={line}>{line}</p>
                   ))}
                 </div>
-                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.discountedSubtotal)}</span></div>
+                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(subtotalBeforeThreeForTwo)}</span></div>
                 {threeForTwoDiscountAmount > 0 ? (
                   <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(threeForTwoDiscountAmount)} con il 3x2</p>
                 ) : null}
@@ -640,7 +656,7 @@ export function ShopCheckoutPage() {
             <span className="shop-pill">Step 3</span>
             <h2 className="text-2xl font-semibold text-white">Pagamento finale</h2>
             <div className="space-y-3 text-sm text-white/70">
-              <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.pricingBreakdown?.discountedSubtotal ?? order.pricingBreakdown?.subtotal ?? order.subtotal)}</span></div>
+              <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(orderSubtotalBeforeThreeForTwo)}</span></div>
               {orderThreeForTwoDiscountAmount > 0 ? (
                 <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(orderThreeForTwoDiscountAmount)} con il 3x2</p>
               ) : null}

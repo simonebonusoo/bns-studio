@@ -18,6 +18,7 @@ test("checkout, cart and receipt consume the 3x2 breakdown detail", () => {
   const pricingService = read("src/server/shop/services/pricing.mjs")
 
   assert.match(pricingTypes, /threeForTwoDiscounts: ThreeForTwoDiscountDetail\[\]/)
+  assert.match(pricingTypes, /discountedSubtotal: number/)
   assert.match(pricingTypes, /savingsTotal: number/)
   assert.match(pricingTypes, /threeForTwoDiscount: number/)
   assert.match(pricingTypes, /threeForTwoItems: ThreeForTwoDiscountDetail\[\]/)
@@ -33,7 +34,8 @@ test("checkout, cart and receipt consume the 3x2 breakdown detail", () => {
   assert.match(cartPage, /formatThreeForTwoLineMessage/)
   assert.match(checkoutPage, /getThreeForTwoDiscountForLine/)
   assert.match(checkoutPage, /<span>Subtotale<\/span>/)
-  assert.match(checkoutPage, /formatPrice\(pricing\.discountedSubtotal\)/)
+  assert.match(checkoutPage, /getSafeSubtotalBeforeThreeForTwo/)
+  assert.match(checkoutPage, /pricing\.items\.reduce/)
   assert.match(checkoutPage, /Hai risparmiato .* con il 3x2/)
   assert.match(checkoutPage, /Subtotale scontato/)
   assert.match(checkoutPage, /Prodotto gratis/)

@@ -224,6 +224,7 @@ export type ShopPricing = {
     meta?: Record<string, unknown> | null
   }>
   originalSubtotal: number
+  discountedSubtotal: number
   subtotal: number
   shippingBase: number | null
   shippingTotal: number | null
