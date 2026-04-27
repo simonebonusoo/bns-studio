@@ -156,6 +156,24 @@ const seededReviews = [
   },
 ]
 
+async function ensureRequiredDiscountRules() {
+  await prisma.discountRule.upsert({
+    where: { id: 4 },
+    update: {},
+    create: {
+      id: 4,
+      name: "3x2",
+      description: "Ogni 3 articoli nel carrello, il meno costoso è gratuito.",
+      ruleType: "buy_3_pay_2",
+      threshold: 3,
+      discountType: "fixed",
+      amount: 0,
+      priority: 15,
+      active: true,
+    },
+  })
+}
+
 async function main() {
   console.log("[seed] Seeding shop data")
   const allowDemoSeed = String(process.env.ALLOW_DEMO_SEED || "").trim().toLowerCase() === "true"
@@ -193,6 +211,7 @@ async function main() {
   )
 
   if (!allowDemoSeed) {
+    await ensureRequiredDiscountRules()
     console.log(
       isProduction
         ? "[seed] Demo seed disabled in production. No demo users, products or public coupons will be created."
@@ -202,6 +221,7 @@ async function main() {
   }
 
   if (databaseAlreadyInitialized && !forceSeed) {
+    await ensureRequiredDiscountRules()
     console.log("[seed] Database gia inizializzato: seed non distruttivo saltato")
     return
   }
@@ -301,6 +321,8 @@ async function main() {
       active: true,
     },
   })
+
+  await ensureRequiredDiscountRules()
 
   const settings = [
     ["storeName", "BNS Studio Shop"],

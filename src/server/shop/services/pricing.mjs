@@ -195,6 +195,56 @@ export function calculateBuy3Pay2Discount(items, threshold = 3) {
   }
 }
 
+export function calculateAutomaticDiscountsFromRules(items, rules, now = new Date()) {
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
+  const discountedSubtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
+
+  let automaticDiscount = 0
+  let threeForTwoDiscounts = []
+  const appliedRules = []
+  let buy3Pay2Applied = false
+
+  for (const rule of rules) {
+    if (!rule?.active) continue
+    const withinStart = !rule.startsAt || rule.startsAt <= now
+    const withinEnd = !rule.endsAt || rule.endsAt >= now
+
+    if (!withinStart || !withinEnd) continue
+
+    if (rule.ruleType === "buy_3_pay_2") {
+      if (buy3Pay2Applied) continue
+      const { amount, discounts } = calculateBuy3Pay2Discount(items, rule.threshold)
+      if (!amount) continue
+      automaticDiscount += amount
+      appliedRules.push({ type: "automatic_3x2", label: rule.name, amount })
+      threeForTwoDiscounts = discounts
+      buy3Pay2Applied = true
+      continue
+    }
+
+    if (rule.ruleType === "quantity_percentage" && itemCount >= rule.threshold && rule.discountType === "percentage") {
+      const amount = Math.round(discountedSubtotal * (rule.amount / 100))
+      automaticDiscount += amount
+      appliedRules.push({ type: "automatic", label: rule.name, amount })
+      continue
+    }
+
+    if (rule.ruleType === "subtotal_fixed" && discountedSubtotal >= rule.threshold && rule.discountType === "fixed") {
+      const amount = Math.min(discountedSubtotal, rule.amount)
+      automaticDiscount += amount
+      appliedRules.push({ type: "automatic", label: rule.name, amount })
+    }
+  }
+
+  return {
+    automaticDiscount,
+    threeForTwoDiscounts,
+    appliedRules,
+    itemCount,
+    discountedSubtotal,
+  }
+}
+
 export async function calculatePricing(cartItems, couponCode, options = {}) {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
     throw new HttpError(400, "Il carrello è vuoto")
@@ -282,11 +332,13 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     }
   })
 
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
-  const discountedSubtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
-
-  let automaticDiscount = 0
-  let threeForTwoDiscounts = []
+  const {
+    automaticDiscount,
+    threeForTwoDiscounts,
+    appliedRules,
+    itemCount,
+    discountedSubtotal,
+  } = calculateAutomaticDiscountsFromRules(items, rules)
   let shippingPricing
   let shippingError = null
 
@@ -308,40 +360,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
   }
 
   let shippingTotal = shippingPricing.selectedRate ? shippingPricing.selectedRate.cost : null
-  const appliedRules = []
   const now = new Date()
-
-  let buy3Pay2Applied = false
-
-  for (const rule of rules) {
-    const withinStart = !rule.startsAt || rule.startsAt <= now
-    const withinEnd = !rule.endsAt || rule.endsAt >= now
-
-    if (!withinStart || !withinEnd) continue
-
-    if (rule.ruleType === "buy_3_pay_2") {
-      if (buy3Pay2Applied) continue
-      const { amount, discounts } = calculateBuy3Pay2Discount(items, rule.threshold)
-      if (!amount) continue
-      automaticDiscount += amount
-      appliedRules.push({ type: "automatic_3x2", label: rule.name, amount })
-      threeForTwoDiscounts = discounts
-      buy3Pay2Applied = true
-    }
-
-    if (rule.ruleType === "quantity_percentage" && itemCount >= rule.threshold && rule.discountType === "percentage") {
-      const amount = Math.round(discountedSubtotal * (rule.amount / 100))
-      automaticDiscount += amount
-      appliedRules.push({ type: "automatic", label: rule.name, amount })
-    }
-
-    if (rule.ruleType === "subtotal_fixed" && discountedSubtotal >= rule.threshold && rule.discountType === "fixed") {
-      const amount = Math.min(discountedSubtotal, rule.amount)
-      automaticDiscount += amount
-      appliedRules.push({ type: "automatic", label: rule.name, amount })
-    }
-
-  }
 
   const freeShippingRule = rules.find((rule) => {
     const withinStart = !rule.startsAt || rule.startsAt <= now

@@ -293,13 +293,26 @@ export function AdminDiscountsSection({
               <div key={rule.id} className="rounded-2xl border border-white/10 px-4 py-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-white">{rule.name}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="shop-pill">
+                        {rule.ruleType === "buy_3_pay_2"
+                          ? "3x2"
+                          : rule.ruleType === "first_registration"
+                            ? "Prima registrazione"
+                          : rule.ruleType === "subtotal_fixed"
+                            ? "Sconto fisso"
+                          : rule.ruleType === "free_shipping_quantity"
+                            ? "Spedizione gratuita"
+                            : "Sconto quantità"}
+                      </span>
+                      <p className="text-sm font-medium text-white">{rule.name}</p>
+                    </div>
                     <p className="mt-1 text-sm text-white/60">
                       {rule.active ? "Attiva" : "Disattivata"} ·{" "}
                       {rule.ruleType === "first_registration"
                         ? "prima registrazione"
                         : rule.ruleType === "buy_3_pay_2"
-                          ? "3x2 automatico"
+                          ? "ogni 3 articoli, il meno costoso gratis"
                         : rule.ruleType === "subtotal_fixed"
                           ? `soglia ${formatPrice(rule.threshold)}`
                           : `soglia ${rule.threshold}`} ·{" "}

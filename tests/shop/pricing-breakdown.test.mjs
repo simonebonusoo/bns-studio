@@ -1,7 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { buildPricingBreakdown, calculateBuy3Pay2Discount } from "../../src/server/shop/services/pricing.mjs"
+import { buildPricingBreakdown, calculateAutomaticDiscountsFromRules, calculateBuy3Pay2Discount } from "../../src/server/shop/services/pricing.mjs"
 
 test("pricing breakdown keeps non-discounted products unchanged", () => {
   const pricing = buildPricingBreakdown(
@@ -149,4 +149,56 @@ test("3x2 uses the effective final unit price for discounted variants and sizes"
 
   assert.equal(pricing.amount, 2898)
   assert.deepEqual(pricing.discounts.map((entry) => entry.originalPrice), [1399, 1499])
+})
+
+test("automatic pricing skips 3x2 when no active rule exists", () => {
+  const result = calculateAutomaticDiscountsFromRules(
+    [
+      { lineIndex: 0, productId: 1, title: "A", quantity: 1, unitPrice: 2000, lineTotal: 2000 },
+      { lineIndex: 1, productId: 2, title: "B", quantity: 1, unitPrice: 1500, lineTotal: 1500 },
+      { lineIndex: 2, productId: 3, title: "C", quantity: 1, unitPrice: 1200, lineTotal: 1200 },
+    ],
+    [
+      { name: "3x2", ruleType: "buy_3_pay_2", threshold: 3, active: false, startsAt: null, endsAt: null },
+    ],
+  )
+
+  assert.equal(result.automaticDiscount, 0)
+  assert.deepEqual(result.threeForTwoDiscounts, [])
+  assert.deepEqual(result.appliedRules, [])
+})
+
+test("automatic pricing applies 3x2 when an active rule exists", () => {
+  const result = calculateAutomaticDiscountsFromRules(
+    [
+      { lineIndex: 0, productId: 1, title: "A", quantity: 1, unitPrice: 2000, lineTotal: 2000 },
+      { lineIndex: 1, productId: 2, title: "B", quantity: 1, unitPrice: 1500, lineTotal: 1500 },
+      { lineIndex: 2, productId: 3, title: "C", quantity: 1, unitPrice: 1200, lineTotal: 1200 },
+    ],
+    [
+      { name: "3x2", ruleType: "buy_3_pay_2", threshold: 3, active: true, startsAt: null, endsAt: null },
+    ],
+  )
+
+  assert.equal(result.automaticDiscount, 1200)
+  assert.equal(result.threeForTwoDiscounts.length, 1)
+  assert.equal(result.threeForTwoDiscounts[0].title, "C")
+  assert.equal(result.appliedRules[0].type, "automatic_3x2")
+})
+
+test("automatic pricing removes 3x2 again when the rule is disabled", () => {
+  const activeRule = { name: "3x2", ruleType: "buy_3_pay_2", threshold: 3, active: true, startsAt: null, endsAt: null }
+  const disabledRule = { ...activeRule, active: false }
+  const items = [
+    { lineIndex: 0, productId: 1, title: "A", quantity: 1, unitPrice: 2000, lineTotal: 2000 },
+    { lineIndex: 1, productId: 2, title: "B", quantity: 1, unitPrice: 1500, lineTotal: 1500 },
+    { lineIndex: 2, productId: 3, title: "C", quantity: 1, unitPrice: 1200, lineTotal: 1200 },
+  ]
+
+  const activeResult = calculateAutomaticDiscountsFromRules(items, [activeRule])
+  const disabledResult = calculateAutomaticDiscountsFromRules(items, [disabledRule])
+
+  assert.equal(activeResult.automaticDiscount, 1200)
+  assert.equal(disabledResult.automaticDiscount, 0)
+  assert.deepEqual(disabledResult.threeForTwoDiscounts, [])
 })
