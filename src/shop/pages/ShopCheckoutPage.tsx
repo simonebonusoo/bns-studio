@@ -257,6 +257,8 @@ export function ShopCheckoutPage() {
   const shippingRates = pricing?.availableShippingRates || []
   const threeForTwoItems = getThreeForTwoItems(pricing)
   const orderThreeForTwoItems = getThreeForTwoItems(order?.pricingBreakdown || null)
+  const threeForTwoDiscountAmount = getThreeForTwoDiscountAmount(pricing)
+  const orderThreeForTwoDiscountAmount = getThreeForTwoDiscountAmount(order?.pricingBreakdown || null)
 
   return (
     <ShopLayout
@@ -355,28 +357,22 @@ export function ShopCheckoutPage() {
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             {pricing ? (
               <div className="space-y-3 text-sm text-white/70">
-                <div className="flex items-center justify-between"><span>Totale prodotti</span><span>{formatPrice(pricing.subtotal)}</span></div>
-                {pricing.savingsTotal > 0 ? (
-                  <p className="text-xs text-emerald-200">Hai già risparmiato {formatPrice(pricing.savingsTotal)} sui prodotti.</p>
+                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
+                {threeForTwoDiscountAmount > 0 ? (
+                  <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(threeForTwoDiscountAmount)} con il 3x2</p>
                 ) : null}
-                {getThreeForTwoDiscountAmount(pricing) > 0 ? (
-                  <div className="flex items-center justify-between">
-                    <span>Risparmiato con 3x2</span>
-                    <span>-{formatPrice(getThreeForTwoDiscountAmount(pricing))}</span>
-                  </div>
-                ) : null}
-                {threeForTwoItems.map((entry) => (
-                  <div key={`review-3x2-${entry.lineIndex}`} className="flex items-start justify-between gap-4">
-                    <div>
-                      <p>Prodotto gratis</p>
-                      <p className="text-xs text-white/45">
+                {threeForTwoItems.length ? (
+                  <div className="space-y-1">
+                    <p>{threeForTwoItems.length > 1 ? "Prodotti gratis:" : "Prodotto gratis:"}</p>
+                    {threeForTwoItems.map((entry) => (
+                      <p key={`review-3x2-${entry.lineIndex}`} className="text-xs text-white/45">
                         {entry.title}
                         {entry.quantityDiscounted > 1 ? ` · ${entry.quantityDiscounted} unità` : ""}
                       </p>
-                    </div>
-                    <span>-{formatPrice(entry.discountAmount)}</span>
+                    ))}
                   </div>
-                ))}
+                ) : null}
+                <div className="flex items-center justify-between"><span>Subtotale scontato</span><span>{formatPrice(pricing.subtotal)}</span></div>
                 {getAdditionalDiscountSummaryRows(pricing).map((row) => (
                   <div key={row.key} className="flex items-start justify-between gap-4">
                     <div>
@@ -547,28 +543,22 @@ export function ShopCheckoutPage() {
                     <p key={line}>{line}</p>
                   ))}
                 </div>
-                <div className="flex items-center justify-between"><span>Totale prodotti</span><span>{formatPrice(pricing.subtotal)}</span></div>
-                {pricing.savingsTotal > 0 ? (
-                  <p className="text-xs text-emerald-200">Hai già risparmiato {formatPrice(pricing.savingsTotal)} sui prodotti.</p>
+                <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
+                {threeForTwoDiscountAmount > 0 ? (
+                  <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(threeForTwoDiscountAmount)} con il 3x2</p>
                 ) : null}
-                {getThreeForTwoDiscountAmount(pricing) > 0 ? (
-                  <div className="flex items-center justify-between">
-                    <span>Risparmiato con 3x2</span>
-                    <span>-{formatPrice(getThreeForTwoDiscountAmount(pricing))}</span>
-                  </div>
-                ) : null}
-                {threeForTwoItems.map((entry) => (
-                  <div key={`details-3x2-${entry.lineIndex}`} className="flex items-start justify-between gap-4">
-                    <div>
-                      <p>Prodotto gratis</p>
-                      <p className="text-xs text-white/45">
+                {threeForTwoItems.length ? (
+                  <div className="space-y-1">
+                    <p>{threeForTwoItems.length > 1 ? "Prodotti gratis:" : "Prodotto gratis:"}</p>
+                    {threeForTwoItems.map((entry) => (
+                      <p key={`details-3x2-${entry.lineIndex}`} className="text-xs text-white/45">
                         {entry.title}
                         {entry.quantityDiscounted > 1 ? ` · ${entry.quantityDiscounted} unità` : ""}
                       </p>
-                    </div>
-                    <span>-{formatPrice(entry.discountAmount)}</span>
+                    ))}
                   </div>
-                ))}
+                ) : null}
+                <div className="flex items-center justify-between"><span>Subtotale scontato</span><span>{formatPrice(pricing.subtotal)}</span></div>
                 {getAdditionalDiscountSummaryRows(pricing).map((row) => (
                   <div key={row.key} className="flex items-start justify-between gap-4">
                     <div>
@@ -579,11 +569,11 @@ export function ShopCheckoutPage() {
                   </div>
                 ))}
                 <div className="flex items-center justify-between">
-                  <span>{pricing.shippingLabel || "Spedizione"}</span>
-                  <span>{typeof pricing.shippingTotal === "number" ? formatPrice(pricing.shippingTotal) : "Seleziona un metodo"}</span>
+                  <span>Spedizione</span>
+                  <span>{typeof pricing.shippingTotal === "number" ? formatPrice(pricing.shippingTotal) : "Calcolata al checkout"}</span>
                 </div>
                 {pricing.shippingMethod ? <div className="text-xs text-white/45">{formatShippingMethodSummary(pricing.shippingMethod)}</div> : null}
-                <div className="flex items-center justify-between text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
+                <div className="flex items-center justify-between text-base font-semibold text-white"><span>Totale provvisorio</span><span>{formatPrice(pricing.total)}</span></div>
               </div>
             ) : error ? (
               <p className="border-t border-white/10 pt-4 text-sm text-red-300">Impossibile aggiornare il riepilogo. {error}</p>
@@ -650,28 +640,22 @@ export function ShopCheckoutPage() {
             <span className="shop-pill">Step 3</span>
             <h2 className="text-2xl font-semibold text-white">Pagamento finale</h2>
             <div className="space-y-3 text-sm text-white/70">
-              <div className="flex items-center justify-between"><span>Totale prodotti</span><span>{formatPrice(order.pricingBreakdown?.subtotal ?? order.subtotal)}</span></div>
-              {(order.pricingBreakdown?.savingsTotal || 0) > 0 ? (
-                <p className="text-xs text-emerald-200">Hai già risparmiato {formatPrice(order.pricingBreakdown?.savingsTotal || 0)} sui prodotti.</p>
+              <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.pricingBreakdown?.subtotal ?? order.subtotal)}</span></div>
+              {orderThreeForTwoDiscountAmount > 0 ? (
+                <p className="text-sm text-emerald-200">Hai risparmiato {formatPrice(orderThreeForTwoDiscountAmount)} con il 3x2</p>
               ) : null}
-              {getThreeForTwoDiscountAmount(order.pricingBreakdown) > 0 ? (
-                <div className="flex items-center justify-between">
-                  <span>Risparmiato con 3x2</span>
-                  <span>-{formatPrice(getThreeForTwoDiscountAmount(order.pricingBreakdown))}</span>
-                </div>
-              ) : null}
-              {orderThreeForTwoItems.map((entry) => (
-                <div key={`payment-3x2-${entry.lineIndex}`} className="flex items-start justify-between gap-4">
-                  <div>
-                    <p>Prodotto gratis</p>
-                    <p className="text-xs text-white/45">
+              {orderThreeForTwoItems.length ? (
+                <div className="space-y-1">
+                  <p>{orderThreeForTwoItems.length > 1 ? "Prodotti gratis:" : "Prodotto gratis:"}</p>
+                  {orderThreeForTwoItems.map((entry) => (
+                    <p key={`payment-3x2-${entry.lineIndex}`} className="text-xs text-white/45">
                       {entry.title}
                       {entry.quantityDiscounted > 1 ? ` · ${entry.quantityDiscounted} unità` : ""}
                     </p>
-                  </div>
-                  <span>-{formatPrice(entry.discountAmount)}</span>
+                  ))}
                 </div>
-              ))}
+              ) : null}
+              <div className="flex items-center justify-between"><span>Subtotale scontato</span><span>{formatPrice(order.pricingBreakdown?.subtotal ?? order.subtotal)}</span></div>
               {getAdditionalDiscountSummaryRows(order.pricingBreakdown).map((row) => (
                 <div key={row.key} className="flex items-start justify-between gap-4">
                   <div>
@@ -681,9 +665,9 @@ export function ShopCheckoutPage() {
                   <span>-{formatPrice(row.amount)}</span>
                 </div>
               ))}
-              <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
+              <div className="flex items-center justify-between"><span>Spedizione</span><span>{formatPrice(order.shippingTotal)}</span></div>
               {order.shippingMethod ? <div className="text-xs text-white/45">{formatShippingMethodSummary(order.shippingMethod)}</div> : null}
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(order.total)}</span></div>
+              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale provvisorio</span><span>{formatPrice(order.total)}</span></div>
             </div>
             {user?.role === "admin" && isGuestPreview ? (
               <div className="rounded-2xl border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">
