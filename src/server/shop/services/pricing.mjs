@@ -124,6 +124,24 @@ export function buildPricingBreakdown(items, automaticDiscount = 0, couponDiscou
   }
 }
 
+export function calculateBuy3Pay2Discount(items, threshold = 3) {
+  const normalizedThreshold = Number.isInteger(threshold) && threshold >= 3 ? threshold : 3
+  const itemCount = items.reduce((sum, item) => sum + Math.max(0, Number(item.quantity) || 0), 0)
+  const freeItemCount = Math.floor(itemCount / normalizedThreshold)
+
+  if (!freeItemCount) return 0
+
+  const unitPrices = items
+    .flatMap((item) => {
+      const quantity = Math.max(0, Number(item.quantity) || 0)
+      const unitPrice = Math.max(0, Number(item.unitPrice) || 0)
+      return Array.from({ length: quantity }, () => unitPrice)
+    })
+    .sort((left, right) => left - right)
+
+  return unitPrices.slice(0, freeItemCount).reduce((sum, price) => sum + price, 0)
+}
+
 export async function calculatePricing(cartItems, couponCode, options = {}) {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
     throw new HttpError(400, "Il carrello è vuoto")
@@ -238,11 +256,22 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
   const appliedRules = []
   const now = new Date()
 
+  let buy3Pay2Applied = false
+
   for (const rule of rules) {
     const withinStart = !rule.startsAt || rule.startsAt <= now
     const withinEnd = !rule.endsAt || rule.endsAt >= now
 
     if (!withinStart || !withinEnd) continue
+
+    if (rule.ruleType === "buy_3_pay_2") {
+      if (buy3Pay2Applied) continue
+      const amount = calculateBuy3Pay2Discount(items, rule.threshold)
+      if (!amount) continue
+      automaticDiscount += amount
+      appliedRules.push({ type: "automatic", label: rule.name, amount })
+      buy3Pay2Applied = true
+    }
 
     if (rule.ruleType === "quantity_percentage" && itemCount >= rule.threshold && rule.discountType === "percentage") {
       const amount = Math.round(discountedSubtotal * (rule.amount / 100))

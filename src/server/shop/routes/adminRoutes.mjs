@@ -631,7 +631,7 @@ const couponSchema = z.object({
 const ruleSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional().nullable(),
-  ruleType: z.enum(["quantity_percentage", "free_shipping_quantity", "subtotal_fixed", "first_registration"]),
+  ruleType: z.enum(["quantity_percentage", "free_shipping_quantity", "subtotal_fixed", "first_registration", "buy_3_pay_2"]),
   threshold: z.number().int().min(1),
   discountType: z.enum(["percentage", "shipping", "fixed"]),
   amount: z.number().min(0),

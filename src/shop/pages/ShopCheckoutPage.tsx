@@ -30,6 +30,10 @@ function mapShippingPreviewErrorMessage(message: string) {
   return "La spedizione viene confermata nel passaggio successivo. Puoi scegliere tra Standard e Premium prima del pagamento."
 }
 
+function getVisibleAppliedDiscountRules(pricing: ShopPricing | null) {
+  return (pricing?.appliedRules || []).filter((rule) => rule.type === "automatic" && rule.amount > 0)
+}
+
 export function ShopCheckoutPage() {
   const { user, isGuestPreview } = useShopAuth()
   const { items, couponCode, setCouponCode, clearCart } = useShopCart()
@@ -319,6 +323,12 @@ export function ShopCheckoutPage() {
             {pricing ? (
               <div className="space-y-3 text-sm text-white/70">
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
+                {getVisibleAppliedDiscountRules(pricing).map((rule) => (
+                  <div key={`${rule.type}-${rule.label}`} className="flex items-center justify-between">
+                    <span>{rule.label}</span>
+                    <span>-{formatPrice(rule.amount)}</span>
+                  </div>
+                ))}
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
                 <div className="flex items-center justify-between"><span>Spedizione</span><span>Calcolata al checkout</span></div>
                 <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale provvisorio</span><span>{formatPrice(pricing.total)}</span></div>
@@ -455,6 +465,12 @@ export function ShopCheckoutPage() {
                   ))}
                 </div>
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
+                {getVisibleAppliedDiscountRules(pricing).map((rule) => (
+                  <div key={`${rule.type}-${rule.label}`} className="flex items-center justify-between">
+                    <span>{rule.label}</span>
+                    <span>-{formatPrice(rule.amount)}</span>
+                  </div>
+                ))}
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
                 <div className="flex items-center justify-between">
                   <span>{pricing.shippingLabel || "Spedizione"}</span>
@@ -502,6 +518,12 @@ export function ShopCheckoutPage() {
             <h2 className="text-2xl font-semibold text-white">Pagamento finale</h2>
             <div className="space-y-3 text-sm text-white/70">
               <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.subtotal)}</span></div>
+              {(order.pricingBreakdown?.appliedRules || []).filter((rule) => rule.type === "automatic" && rule.amount > 0).map((rule) => (
+                <div key={`${rule.type}-${rule.label}`} className="flex items-center justify-between">
+                  <span>{rule.label}</span>
+                  <span>-{formatPrice(rule.amount)}</span>
+                </div>
+              ))}
               <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(order.discountTotal)}</span></div>
               <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
               {order.shippingMethod ? <div className="text-xs text-white/45">{formatShippingMethodSummary(order.shippingMethod)}</div> : null}

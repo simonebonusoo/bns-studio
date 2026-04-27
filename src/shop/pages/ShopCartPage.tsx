@@ -19,6 +19,10 @@ function mapPricingPreviewErrorMessage(message: string) {
   return message
 }
 
+function getVisibleAppliedDiscountRules(pricing: ShopPricing | null) {
+  return (pricing?.appliedRules || []).filter((rule) => rule.type === "automatic" && rule.amount > 0)
+}
+
 export function ShopCartPage() {
   const isMobileViewport = useIsMobileViewport()
   const { user, loading, effectiveRole } = useShopAuth()
@@ -201,6 +205,12 @@ export function ShopCartPage() {
           {pricing ? (
             <div className="space-y-3 text-sm text-white/70">
               <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
+              {getVisibleAppliedDiscountRules(pricing).map((rule) => (
+                <div key={`${rule.type}-${rule.label}`} className="flex items-center justify-between">
+                  <span>{rule.label}</span>
+                  <span>-{formatPrice(rule.amount)}</span>
+                </div>
+              ))}
               <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
               <div className="flex items-center justify-between"><span>Spedizione</span><span>Calcolata al checkout</span></div>
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>

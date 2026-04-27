@@ -18,7 +18,7 @@ type DiscountRule = {
   id: number
   name: string
   description?: string | null
-  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration"
+  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration" | "buy_3_pay_2"
   threshold: number
   discountType: "percentage" | "shipping" | "fixed"
   amount: number
@@ -40,7 +40,7 @@ type CouponFormState = {
 type RuleFormState = {
   name: string
   description: string
-  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration"
+  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration" | "buy_3_pay_2"
   threshold: string
   discountType: "percentage" | "shipping" | "fixed"
   amount: string
@@ -218,10 +218,12 @@ export function AdminDiscountsSection({
                     ...ruleForm,
                     ruleType: nextRuleType,
                     ...(nextRuleType === "first_registration" ? { threshold: "1", discountType: "percentage" } : {}),
+                    ...(nextRuleType === "buy_3_pay_2" ? { threshold: "3", discountType: "fixed", amount: "0" } : {}),
                   })
                 }}
               >
                 <option value="quantity_percentage">Sconto percentuale per quantita minima</option>
+                <option value="buy_3_pay_2">3x2 / paghi 2 prendi 3</option>
                 <option value="free_shipping_quantity">Spedizione gratuita per quantita minima</option>
                 <option value="subtotal_fixed">Sconto fisso per subtotale minimo</option>
                 <option value="first_registration">Prima registrazione</option>
@@ -231,13 +233,18 @@ export function AdminDiscountsSection({
                   Genera un codice casuale, univoco e monouso quando un guest si registra dal popup.
                 </p>
               ) : null}
+              {ruleForm.ruleType === "buy_3_pay_2" ? (
+                <p className="text-xs leading-5 text-white/45">
+                  Ogni 3 articoli nel carrello, il meno costoso è gratuito.
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <label className="text-sm text-white/65">Modalità sconto</label>
               <select
                 className="shop-select"
                 value={ruleForm.discountType}
-                disabled={ruleForm.ruleType === "first_registration"}
+                disabled={ruleForm.ruleType === "first_registration" || ruleForm.ruleType === "buy_3_pay_2"}
                 onChange={(event) => onRuleFormChange({ ...ruleForm, discountType: event.target.value as RuleFormState["discountType"] })}
               >
                 <option value="percentage">Percentuale</option>
@@ -249,11 +256,11 @@ export function AdminDiscountsSection({
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm text-white/65">{getRuleThresholdLabel(ruleForm.ruleType)}</label>
-              <input className="shop-input" type="number" step={ruleForm.ruleType === "subtotal_fixed" ? "0.01" : "1"} placeholder={getRuleThresholdLabel(ruleForm.ruleType)} value={ruleForm.threshold} onChange={(event) => onRuleFormChange({ ...ruleForm, threshold: event.target.value })} />
+              <input className="shop-input" type="number" step={ruleForm.ruleType === "subtotal_fixed" ? "0.01" : "1"} placeholder={getRuleThresholdLabel(ruleForm.ruleType)} value={ruleForm.threshold} disabled={ruleForm.ruleType === "buy_3_pay_2" || ruleForm.ruleType === "first_registration"} onChange={(event) => onRuleFormChange({ ...ruleForm, threshold: event.target.value })} />
             </div>
             <div className="space-y-2">
               <label className="text-sm text-white/65">{getRuleAmountLabel(ruleForm.discountType)}</label>
-              <input className="shop-input" type="number" step={ruleForm.discountType === "fixed" ? "0.01" : "1"} placeholder={getRuleAmountLabel(ruleForm.discountType)} value={ruleForm.discountType === "shipping" ? "0" : ruleForm.amount} disabled={ruleForm.discountType === "shipping"} onChange={(event) => onRuleFormChange({ ...ruleForm, amount: event.target.value })} />
+              <input className="shop-input" type="number" step={ruleForm.discountType === "fixed" ? "0.01" : "1"} placeholder={getRuleAmountLabel(ruleForm.discountType)} value={ruleForm.discountType === "shipping" ? "0" : ruleForm.amount} disabled={ruleForm.discountType === "shipping" || ruleForm.ruleType === "buy_3_pay_2"} onChange={(event) => onRuleFormChange({ ...ruleForm, amount: event.target.value })} />
             </div>
             <div className="space-y-2">
               <label className="text-sm text-white/65">Priorità</label>
@@ -291,10 +298,18 @@ export function AdminDiscountsSection({
                       {rule.active ? "Attiva" : "Disattivata"} ·{" "}
                       {rule.ruleType === "first_registration"
                         ? "prima registrazione"
+                        : rule.ruleType === "buy_3_pay_2"
+                          ? "3x2 automatico"
                         : rule.ruleType === "subtotal_fixed"
                           ? `soglia ${formatPrice(rule.threshold)}`
                           : `soglia ${rule.threshold}`} ·{" "}
-                      {rule.discountType === "fixed" ? `valore ${formatPrice(rule.amount)}` : rule.discountType === "percentage" ? `valore ${rule.amount}%` : "spedizione gratuita"}
+                      {rule.ruleType === "buy_3_pay_2"
+                        ? "meno costoso gratuito ogni 3 articoli"
+                        : rule.discountType === "fixed"
+                          ? `valore ${formatPrice(rule.amount)}`
+                          : rule.discountType === "percentage"
+                            ? `valore ${rule.amount}%`
+                            : "spedizione gratuita"}
                     </p>
                   </div>
                   <div className="flex gap-2">

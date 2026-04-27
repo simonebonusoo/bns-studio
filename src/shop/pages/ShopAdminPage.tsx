@@ -38,7 +38,7 @@ type DiscountRule = {
   id: number
   name: string
   description?: string | null
-  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration"
+  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration" | "buy_3_pay_2"
   threshold: number
   discountType: "percentage" | "shipping" | "fixed"
   amount: number
@@ -164,7 +164,7 @@ type CouponFormState = {
 type RuleFormState = {
   name: string
   description: string
-  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration"
+  ruleType: "quantity_percentage" | "free_shipping_quantity" | "subtotal_fixed" | "first_registration" | "buy_3_pay_2"
   threshold: string
   discountType: "percentage" | "shipping" | "fixed"
   amount: string
@@ -710,6 +710,7 @@ function getCouponAmountLabel(type: CouponFormState["type"]) {
 
 function getRuleThresholdLabel(ruleType: RuleFormState["ruleType"]) {
   if (ruleType === "first_registration") return "Soglia interna (lascia 1)"
+  if (ruleType === "buy_3_pay_2") return "Soglia interna (3 articoli)"
   return ruleType === "subtotal_fixed" ? "Subtotale minimo ordine (€)" : "Quantità minima prodotti"
 }
 
@@ -1624,13 +1625,22 @@ export function ShopAdminPage() {
         threshold:
           ruleForm.ruleType === "first_registration"
             ? 1
+            : ruleForm.ruleType === "buy_3_pay_2"
+              ? 3
             : ruleForm.ruleType === "subtotal_fixed"
               ? parseEuroToCents(ruleForm.threshold)
               : Number(ruleForm.threshold),
-        discountType: ruleForm.ruleType === "first_registration" ? "percentage" : ruleForm.discountType,
+        discountType:
+          ruleForm.ruleType === "first_registration"
+            ? "percentage"
+            : ruleForm.ruleType === "buy_3_pay_2"
+              ? "fixed"
+              : ruleForm.discountType,
         amount:
           ruleForm.ruleType === "first_registration"
             ? Number(ruleForm.amount)
+            : ruleForm.ruleType === "buy_3_pay_2"
+              ? 0
             : ruleForm.discountType === "fixed"
               ? parseEuroToCents(ruleForm.amount)
               : ruleForm.discountType === "shipping"
