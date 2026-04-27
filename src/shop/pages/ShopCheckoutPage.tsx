@@ -368,7 +368,7 @@ export function ShopCheckoutPage() {
               value={couponCode}
               onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
             />
-            <p className="text-sm text-white/55">Potrai scegliere la spedizione nel prossimo step: Standard in 4 giorni lavorativi oppure Premium in 2 giorni lavorativi.</p>
+            <p className="text-sm text-white/55">Potrai scegliere la spedizione nel prossimo step: Standard in 5 giorni lavorativi oppure Premium in 3 giorni lavorativi.</p>
             {shippingNotice ? <p className="text-sm text-amber-200">{shippingNotice}</p> : null}
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             {pricing ? (

@@ -7,7 +7,7 @@ const SHIPPING_METHOD_MAP = {
     carrier: "inpost",
     carrierLabel: "Standard",
     label: "Standard",
-    description: "4 giorni lavorativi",
+    description: "5 giorni lavorativi",
     cost: 700,
   },
   premium: {
@@ -15,7 +15,7 @@ const SHIPPING_METHOD_MAP = {
     carrier: "dhl",
     carrierLabel: "Premium",
     label: "Premium",
-    description: "2 giorni lavorativi",
+    description: "3 giorni lavorativi",
     cost: 1000,
   },
 }

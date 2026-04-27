@@ -49,7 +49,7 @@ test("buildAdminOrderShippingSummary preserves tracking, label and handoff mode 
     shippingError: "temporaneo",
   })
 
-  assert.equal(summary.method, "Premium — 2 giorni lavorativi")
+  assert.equal(summary.method, "Premium — 3 giorni lavorativi")
   assert.equal(summary.status, "Spedizione spedita")
   assert.equal(summary.trackingNumber, "1234567890")
   assert.equal(summary.shipmentUrl, "https://pro.packlink.it/app/shipments/SHIP-REF-1")
@@ -103,4 +103,7 @@ test("admin and customer order UIs render shipping visibility hooks", () => {
   assert.doesNotMatch(timeline, /Step attuale/)
   assert.doesNotMatch(timeline, /Traccia spedizione/)
   assert.match(trackingPage, /Avanzamento spedizione/)
+  assert.match(read("src/shop/lib/shipping-methods.mjs"), /description: "5 giorni lavorativi"/)
+  assert.match(read("src/shop/lib/shipping-methods.mjs"), /description: "3 giorni lavorativi"/)
+  assert.match(read("src/shop/pages/ShopCheckoutPage.tsx"), /Standard in 5 giorni lavorativi oppure Premium in 3 giorni lavorativi/)
 })
