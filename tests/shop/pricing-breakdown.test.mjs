@@ -17,6 +17,7 @@ test("pricing breakdown keeps non-discounted products unchanged", () => {
   )
 
   assert.equal(pricing.subtotal, 2000)
+  assert.equal(pricing.savingsTotal, 0)
   assert.equal(pricing.productDiscountTotal, 0)
   assert.equal(pricing.discountTotal, 0)
   assert.equal(pricing.total, 2000)
@@ -35,7 +36,9 @@ test("pricing breakdown exposes direct product discounts in subtotal, discount t
     0,
   )
 
-  assert.equal(pricing.subtotal, 2000)
+  assert.equal(pricing.originalSubtotal, 2000)
+  assert.equal(pricing.subtotal, 1500)
+  assert.equal(pricing.savingsTotal, 500)
   assert.equal(pricing.productDiscountTotal, 500)
   assert.equal(pricing.discountTotal, 500)
   assert.equal(pricing.total, 1500)
@@ -54,11 +57,34 @@ test("pricing breakdown scales direct discounts with quantity and preserves coup
     0,
   )
 
-  assert.equal(pricing.subtotal, 4000)
+  assert.equal(pricing.originalSubtotal, 4000)
+  assert.equal(pricing.subtotal, 3000)
+  assert.equal(pricing.savingsTotal, 1000)
   assert.equal(pricing.productDiscountTotal, 1000)
   assert.equal(pricing.couponDiscount, 300)
   assert.equal(pricing.discountTotal, 1300)
   assert.equal(pricing.total, 2700)
+})
+
+test("pricing breakdown subtotal reflects automatic discounts before coupon rows", () => {
+  const pricing = buildPricingBreakdown(
+    [
+      {
+        lineSubtotal: 6000,
+        lineTotal: 6000,
+      },
+    ],
+    2000,
+    500,
+    0,
+  )
+
+  assert.equal(pricing.originalSubtotal, 6000)
+  assert.equal(pricing.subtotal, 4000)
+  assert.equal(pricing.savingsTotal, 2000)
+  assert.equal(pricing.couponDiscount, 500)
+  assert.equal(pricing.discountTotal, 2500)
+  assert.equal(pricing.total, 3500)
 })
 
 test("3x2 does not apply with fewer than 3 items", () => {

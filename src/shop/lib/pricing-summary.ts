@@ -2,11 +2,20 @@ import { formatPrice } from "./format"
 import { ShopPricing, ThreeForTwoDiscountDetail } from "../types"
 
 export function getThreeForTwoDiscountForLine(pricing: ShopPricing | null, lineIndex: number) {
-  return pricing?.threeForTwoDiscounts?.find((entry) => entry.lineIndex === lineIndex) || null
+  return getThreeForTwoItems(pricing).find((entry) => entry.lineIndex === lineIndex) || null
+}
+
+export function getThreeForTwoItems(pricing: ShopPricing | null) {
+  return pricing?.threeForTwoItems || pricing?.threeForTwoDiscounts || []
+}
+
+export function getThreeForTwoDiscountAmount(pricing: ShopPricing | null) {
+  if (typeof pricing?.threeForTwoDiscount === "number") return pricing.threeForTwoDiscount
+  return getThreeForTwoItems(pricing).reduce((sum, entry) => sum + entry.discountAmount, 0)
 }
 
 export function getThreeForTwoDiscountSummaryRows(pricing: ShopPricing | null) {
-  return (pricing?.threeForTwoDiscounts || []).map((entry) => ({
+  return getThreeForTwoItems(pricing).map((entry) => ({
     key: `3x2-${entry.lineIndex}`,
     label: `3x2: ${entry.title}`,
     description:

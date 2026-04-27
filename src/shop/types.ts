@@ -223,15 +223,19 @@ export type ShopPricing = {
     source?: string | null
     meta?: Record<string, unknown> | null
   }>
+  originalSubtotal: number
   subtotal: number
   shippingBase: number | null
   shippingTotal: number | null
   automaticDiscount: number
   couponDiscount: number
+  savingsTotal: number
   discountTotal: number
   total: number
   appliedCoupon: string | null
   appliedRules: { type: string; label: string; amount: number }[]
+  threeForTwoDiscount: number
+  threeForTwoItems: ThreeForTwoDiscountDetail[]
   threeForTwoDiscounts: ThreeForTwoDiscountDetail[]
   isShippingPending?: boolean
 }

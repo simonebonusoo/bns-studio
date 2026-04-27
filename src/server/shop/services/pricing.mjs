@@ -106,19 +106,24 @@ function normalizePersonalizationImageUrl(product, item) {
 }
 
 export function buildPricingBreakdown(items, automaticDiscount = 0, couponDiscount = 0, shippingTotal = 0) {
-  const subtotal = items.reduce((sum, item) => sum + item.lineSubtotal, 0)
+  const originalSubtotal = items.reduce((sum, item) => sum + item.lineSubtotal, 0)
   const discountedSubtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
-  const productDiscountTotal = Math.max(0, subtotal - discountedSubtotal)
-  const additionalDiscountTotal = Math.min(discountedSubtotal, Math.max(0, automaticDiscount) + Math.max(0, couponDiscount))
-  const discountTotal = Math.min(subtotal, productDiscountTotal + additionalDiscountTotal)
-  const total = Math.max(0, subtotal - discountTotal + (shippingTotal ?? 0))
+  const productDiscountTotal = Math.max(0, originalSubtotal - discountedSubtotal)
+  const automaticDiscountTotal = Math.min(discountedSubtotal, Math.max(0, automaticDiscount))
+  const subtotal = Math.max(0, discountedSubtotal - automaticDiscountTotal)
+  const appliedCouponDiscount = Math.min(subtotal, Math.max(0, couponDiscount))
+  const savingsTotal = Math.min(originalSubtotal, productDiscountTotal + automaticDiscountTotal)
+  const discountTotal = Math.min(originalSubtotal, savingsTotal + appliedCouponDiscount)
+  const total = Math.max(0, subtotal - appliedCouponDiscount + (shippingTotal ?? 0))
 
   return {
+    originalSubtotal,
     subtotal,
     discountedSubtotal,
     productDiscountTotal,
-    automaticDiscount: Math.max(0, automaticDiscount),
-    couponDiscount: Math.max(0, couponDiscount),
+    automaticDiscount: automaticDiscountTotal,
+    couponDiscount: appliedCouponDiscount,
+    savingsTotal,
     discountTotal,
     total,
   }
@@ -371,10 +376,12 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
 
     await validateFirstRegistrationCoupon(coupon, options.userId, now)
 
-    couponDiscount =
+    const automaticAdjustedSubtotal = Math.max(0, discountedSubtotal - Math.max(0, automaticDiscount))
+    const rawCouponDiscount =
       coupon.type === "percentage" || coupon.type === "first_registration"
         ? Math.round(discountedSubtotal * (coupon.amount / 100))
         : Math.min(discountedSubtotal, coupon.amount)
+    couponDiscount = Math.min(automaticAdjustedSubtotal, rawCouponDiscount)
 
     appliedCoupon = coupon.code
     appliedRules.push({ type: "coupon", label: coupon.code, amount: couponDiscount })
@@ -388,15 +395,19 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     shippingCarrier: shippingPricing.selectedRate?.carrier || null,
     shippingLabel: shippingPricing.selectedRate?.label || null,
     shippingCost: typeof shippingPricing.selectedRate?.cost === "number" ? shippingPricing.selectedRate.cost : null,
+    originalSubtotal: breakdown.originalSubtotal,
     subtotal: breakdown.subtotal,
     shippingBase: typeof shippingPricing.selectedRate?.cost === "number" ? shippingPricing.selectedRate.cost : null,
     shippingTotal,
     automaticDiscount: breakdown.automaticDiscount,
     couponDiscount: breakdown.couponDiscount,
+    savingsTotal: breakdown.savingsTotal,
     discountTotal: breakdown.discountTotal,
     total: breakdown.total,
     appliedCoupon,
     appliedRules: Array.isArray(appliedRules) ? appliedRules : [],
+    threeForTwoDiscount: threeForTwoDiscounts.reduce((sum, item) => sum + item.discountAmount, 0),
+    threeForTwoItems: Array.isArray(threeForTwoDiscounts) ? threeForTwoDiscounts : [],
     threeForTwoDiscounts: Array.isArray(threeForTwoDiscounts) ? threeForTwoDiscounts : [],
     isShippingPending: !shippingPricing.selectedRate,
     availableShippingRates: shippingPricing.rates,
