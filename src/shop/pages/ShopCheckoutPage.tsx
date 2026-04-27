@@ -9,6 +9,7 @@ import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { formatVariantSelectionLabel, getPriceForVariant, getProductPrimaryImage } from "../lib/product"
+import { formatThreeForTwoLineMessage, getAdditionalDiscountSummaryRows, getThreeForTwoDiscountForLine, getThreeForTwoDiscountSummaryRows } from "../lib/pricing-summary"
 import { DEFAULT_SHIPPING_METHOD, formatShippingMethodSummary } from "../lib/shipping-methods.mjs"
 import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
 import { ShopOrder, ShopPayment, ShopPricing, ShopSettings } from "../types"
@@ -28,10 +29,6 @@ function mapPaypalErrorMessage(message: string) {
 function mapShippingPreviewErrorMessage(message: string) {
   if (!message) return ""
   return "La spedizione viene confermata nel passaggio successivo. Puoi scegliere tra Standard e Premium prima del pagamento."
-}
-
-function getVisibleAppliedDiscountRules(pricing: ShopPricing | null) {
-  return (pricing?.appliedRules || []).filter((rule) => rule.type === "automatic" && rule.amount > 0)
 }
 
 export function ShopCheckoutPage() {
@@ -287,7 +284,12 @@ export function ShopCheckoutPage() {
       {step === "review" ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="space-y-4">
-            {items.map((item) => (
+            {items.map((item, index) => {
+              const threeForTwoDiscount = getThreeForTwoDiscountForLine(pricing, index)
+              const baseLineTotal = getPriceForVariant(item.product, item.variantId) * item.quantity
+              const paidLineTotal = Math.max(0, baseLineTotal - (threeForTwoDiscount?.discountAmount || 0))
+
+              return (
               <article key={`${item.productId}-${item.variantId || item.format || "default"}-${item.personalizationText || "standard"}-${item.personalizationImageUrl || "no-image"}`} className="shop-card flex flex-col gap-4 p-4 md:flex-row md:items-center">
                 <img src={getProductPrimaryImage(item.product)} alt={item.product.title} className="h-28 w-full rounded-[20px] object-cover md:w-40" />
                 <div className="min-w-0 flex-1">
@@ -298,12 +300,29 @@ export function ShopCheckoutPage() {
                   </p>
                   {item.personalizationText ? <p className="mt-2 text-sm text-white/55">Personalizzazione: {item.personalizationText}</p> : null}
                   {item.personalizationImageUrl ? <img src={item.personalizationImageUrl} alt="" className="mt-3 h-14 w-14 rounded-xl object-cover" /> : null}
+                  {threeForTwoDiscount ? (
+                    <div className="mt-3 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
+                      <p className="font-medium">{formatThreeForTwoLineMessage(threeForTwoDiscount)}</p>
+                      <p className="mt-1 text-emerald-50/80">
+                        <span className="line-through">{formatPrice(threeForTwoDiscount.originalPrice * threeForTwoDiscount.quantityDiscounted)}</span>{" "}
+                        <span className="mx-1">→</span>
+                        <span>{formatPrice(threeForTwoDiscount.discountedPrice)}</span>
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
-                <div className="text-sm font-medium text-[#e3f503]">
-                  {formatPrice(getPriceForVariant(item.product, item.variantId) * item.quantity)}
+                <div className="text-right text-sm font-medium text-[#e3f503]">
+                  {threeForTwoDiscount ? (
+                    <div className="space-y-1">
+                      {paidLineTotal < baseLineTotal ? <p>{formatPrice(paidLineTotal)}</p> : null}
+                      <p className="text-xs text-white/45 line-through">{formatPrice(baseLineTotal)}</p>
+                    </div>
+                  ) : (
+                    <p>{formatPrice(baseLineTotal)}</p>
+                  )}
                 </div>
               </article>
-            ))}
+            )})}
           </section>
 
           <aside className="shop-card space-y-5 p-6">
@@ -323,10 +342,22 @@ export function ShopCheckoutPage() {
             {pricing ? (
               <div className="space-y-3 text-sm text-white/70">
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
-                {getVisibleAppliedDiscountRules(pricing).map((rule) => (
-                  <div key={`${rule.type}-${rule.label}`} className="flex items-center justify-between">
-                    <span>{rule.label}</span>
-                    <span>-{formatPrice(rule.amount)}</span>
+                {getThreeForTwoDiscountSummaryRows(pricing).map((row) => (
+                  <div key={row.key} className="flex items-start justify-between gap-4">
+                    <div>
+                      <p>{row.label}</p>
+                      <p className="text-xs text-white/45">{row.description}</p>
+                    </div>
+                    <span>-{formatPrice(row.amount)}</span>
+                  </div>
+                ))}
+                {getAdditionalDiscountSummaryRows(pricing).map((row) => (
+                  <div key={row.key} className="flex items-start justify-between gap-4">
+                    <div>
+                      <p>{row.label}</p>
+                      <p className="text-xs text-white/45">{row.description}</p>
+                    </div>
+                    <span>-{formatPrice(row.amount)}</span>
                   </div>
                 ))}
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
@@ -465,10 +496,22 @@ export function ShopCheckoutPage() {
                   ))}
                 </div>
                 <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
-                {getVisibleAppliedDiscountRules(pricing).map((rule) => (
-                  <div key={`${rule.type}-${rule.label}`} className="flex items-center justify-between">
-                    <span>{rule.label}</span>
-                    <span>-{formatPrice(rule.amount)}</span>
+                {getThreeForTwoDiscountSummaryRows(pricing).map((row) => (
+                  <div key={row.key} className="flex items-start justify-between gap-4">
+                    <div>
+                      <p>{row.label}</p>
+                      <p className="text-xs text-white/45">{row.description}</p>
+                    </div>
+                    <span>-{formatPrice(row.amount)}</span>
+                  </div>
+                ))}
+                {getAdditionalDiscountSummaryRows(pricing).map((row) => (
+                  <div key={row.key} className="flex items-start justify-between gap-4">
+                    <div>
+                      <p>{row.label}</p>
+                      <p className="text-xs text-white/45">{row.description}</p>
+                    </div>
+                    <span>-{formatPrice(row.amount)}</span>
                   </div>
                 ))}
                 <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
@@ -518,10 +561,22 @@ export function ShopCheckoutPage() {
             <h2 className="text-2xl font-semibold text-white">Pagamento finale</h2>
             <div className="space-y-3 text-sm text-white/70">
               <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.subtotal)}</span></div>
-              {(order.pricingBreakdown?.appliedRules || []).filter((rule) => rule.type === "automatic" && rule.amount > 0).map((rule) => (
-                <div key={`${rule.type}-${rule.label}`} className="flex items-center justify-between">
-                  <span>{rule.label}</span>
-                  <span>-{formatPrice(rule.amount)}</span>
+              {getThreeForTwoDiscountSummaryRows(order.pricingBreakdown).map((row) => (
+                <div key={row.key} className="flex items-start justify-between gap-4">
+                  <div>
+                    <p>{row.label}</p>
+                    <p className="text-xs text-white/45">{row.description}</p>
+                  </div>
+                  <span>-{formatPrice(row.amount)}</span>
+                </div>
+              ))}
+              {getAdditionalDiscountSummaryRows(order.pricingBreakdown).map((row) => (
+                <div key={row.key} className="flex items-start justify-between gap-4">
+                  <div>
+                    <p>{row.label}</p>
+                    <p className="text-xs text-white/45">{row.description}</p>
+                  </div>
+                  <span>-{formatPrice(row.amount)}</span>
                 </div>
               ))}
               <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(order.discountTotal)}</span></div>

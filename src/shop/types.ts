@@ -173,6 +173,7 @@ export type ShopCartItem = {
 }
 
 export type PricingItem = {
+  lineIndex?: number
   productId: number
   slug: string
   title: string
@@ -190,6 +191,19 @@ export type PricingItem = {
   quantity: number
   lineTotal: number
   costTotal?: number
+}
+
+export type ThreeForTwoDiscountDetail = {
+  lineIndex: number
+  productId: number
+  variantId?: number | null
+  title: string
+  variantLabel?: string | null
+  size?: string | null
+  originalPrice: number
+  discountedPrice: number
+  discountAmount: number
+  quantityDiscounted: number
 }
 
 export type ShopPricing = {
@@ -218,6 +232,7 @@ export type ShopPricing = {
   total: number
   appliedCoupon: string | null
   appliedRules: { type: string; label: string; amount: number }[]
+  threeForTwoDiscounts: ThreeForTwoDiscountDetail[]
   isShippingPending?: boolean
 }
 

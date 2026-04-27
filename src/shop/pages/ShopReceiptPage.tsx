@@ -9,6 +9,7 @@ import { apiFetch } from "../lib/api"
 import { downloadInvoicePdf } from "../lib/invoice"
 import { formatPrice } from "../lib/format"
 import { formatVariantSelectionLabel } from "../lib/product"
+import { formatThreeForTwoLineMessage, getAdditionalDiscountSummaryRows, getThreeForTwoDiscountForLine, getThreeForTwoDiscountSummaryRows } from "../lib/pricing-summary"
 import { getOrderFulfillmentStatusLabel, getOrderStatusLabel } from "../lib/order"
 import { buildAdminOrderShippingSummary } from "../lib/order-shipping.mjs"
 import { formatShippingAddressLines } from "../lib/shipping-details.mjs"
@@ -128,17 +129,41 @@ export function ShopReceiptPage() {
 
           <div className="space-y-3 border-t border-white/10 pt-4">
             <p className="text-xs uppercase tracking-[0.18em] text-white/45">Articoli</p>
-            {order.items.map((item) => (
+            {order.items.map((item, index) => {
+              const threeForTwoDiscount = getThreeForTwoDiscountForLine(order.pricingBreakdown, index)
+              const baseLineTotal = (item.unitPrice || 0) * item.quantity
+              const paidLineTotal = Math.max(0, baseLineTotal - (threeForTwoDiscount?.discountAmount || 0))
+
+              return (
               <div key={item.id} className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
                 <div>
                   <p className="font-medium text-white">{item.title}</p>
                   <p className="mt-1">{formatVariantSelectionLabel(item)} x {item.quantity}</p>
                   {item.personalizationText ? <p className="mt-2 text-[#eef879]">Personalizzazione: {item.personalizationText}</p> : null}
                   {item.personalizationImageUrl ? <img src={item.personalizationImageUrl} alt="" className="mt-3 h-14 w-14 rounded-xl object-cover" /> : null}
+                  {threeForTwoDiscount ? (
+                    <div className="mt-3 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
+                      <p className="font-medium">{formatThreeForTwoLineMessage(threeForTwoDiscount)}</p>
+                      <p className="mt-1 text-emerald-50/80">
+                        <span className="line-through">{formatPrice(threeForTwoDiscount.originalPrice * threeForTwoDiscount.quantityDiscounted)}</span>{" "}
+                        <span className="mx-1">→</span>
+                        <span>{formatPrice(threeForTwoDiscount.discountedPrice)}</span>
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
-                <span className="shrink-0 font-medium text-white">{formatPrice(item.lineTotal)}</span>
+                <span className="shrink-0 font-medium text-white">
+                  {threeForTwoDiscount ? (
+                    <span className="flex flex-col items-end gap-1">
+                      {paidLineTotal < baseLineTotal ? <span>{formatPrice(paidLineTotal)}</span> : null}
+                      <span className="text-xs text-white/45 line-through">{formatPrice(baseLineTotal)}</span>
+                    </span>
+                  ) : (
+                    formatPrice(item.lineTotal)
+                  )}
+                </span>
               </div>
-            ))}
+            )})}
           </div>
         </section>
 
@@ -157,6 +182,24 @@ export function ShopReceiptPage() {
           {!isAdminView && paymentCancelled ? <p className="text-sm text-amber-200">Pagamento annullato. Puoi riprovare con PayPal quando vuoi.</p> : null}
           <div className="space-y-3 text-sm text-white/70">
             <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(order.subtotal)}</span></div>
+            {getThreeForTwoDiscountSummaryRows(order.pricingBreakdown).map((row) => (
+              <div key={row.key} className="flex items-start justify-between gap-4">
+                <div>
+                  <p>{row.label}</p>
+                  <p className="text-xs text-white/45">{row.description}</p>
+                </div>
+                <span>-{formatPrice(row.amount)}</span>
+              </div>
+            ))}
+            {getAdditionalDiscountSummaryRows(order.pricingBreakdown).map((row) => (
+              <div key={row.key} className="flex items-start justify-between gap-4">
+                <div>
+                  <p>{row.label}</p>
+                  <p className="text-xs text-white/45">{row.description}</p>
+                </div>
+                <span>-{formatPrice(row.amount)}</span>
+              </div>
+            ))}
             <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(order.discountTotal)}</span></div>
             <div className="flex items-center justify-between"><span>{order.shippingLabel || "Spedizione"}</span><span>{formatPrice(order.shippingTotal)}</span></div>
             <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(order.total)}</span></div>

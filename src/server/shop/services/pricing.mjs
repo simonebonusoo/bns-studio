@@ -129,17 +129,65 @@ export function calculateBuy3Pay2Discount(items, threshold = 3) {
   const itemCount = items.reduce((sum, item) => sum + Math.max(0, Number(item.quantity) || 0), 0)
   const freeItemCount = Math.floor(itemCount / normalizedThreshold)
 
-  if (!freeItemCount) return 0
+  if (!freeItemCount) {
+    return {
+      amount: 0,
+      discounts: [],
+    }
+  }
 
   const unitPrices = items
     .flatMap((item) => {
       const quantity = Math.max(0, Number(item.quantity) || 0)
       const unitPrice = Math.max(0, Number(item.unitPrice) || 0)
-      return Array.from({ length: quantity }, () => unitPrice)
+      return Array.from({ length: quantity }, (_, unitIndex) => ({
+        lineIndex: Number(item.lineIndex ?? 0),
+        unitIndex,
+        unitPrice,
+        productId: item.productId,
+        variantId: item.variantId ?? null,
+        title: item.title,
+        variantLabel: item.variantLabel ?? null,
+        size: item.size || item.format || null,
+      }))
     })
-    .sort((left, right) => left - right)
+    .sort((left, right) => {
+      if (left.unitPrice !== right.unitPrice) return left.unitPrice - right.unitPrice
+      if (left.lineIndex !== right.lineIndex) return left.lineIndex - right.lineIndex
+      return left.unitIndex - right.unitIndex
+    })
 
-  return unitPrices.slice(0, freeItemCount).reduce((sum, price) => sum + price, 0)
+  const groupedDiscounts = new Map()
+
+  for (const freeUnit of unitPrices.slice(0, freeItemCount)) {
+    const existing = groupedDiscounts.get(freeUnit.lineIndex)
+    if (existing) {
+      existing.quantityDiscounted += 1
+      existing.discountAmount += freeUnit.unitPrice
+      continue
+    }
+
+    groupedDiscounts.set(freeUnit.lineIndex, {
+      lineIndex: freeUnit.lineIndex,
+      productId: freeUnit.productId,
+      variantId: freeUnit.variantId,
+      title: freeUnit.title,
+      variantLabel: freeUnit.variantLabel,
+      size: freeUnit.size,
+      originalPrice: freeUnit.unitPrice,
+      discountedPrice: 0,
+      discountAmount: freeUnit.unitPrice,
+      quantityDiscounted: 1,
+    })
+  }
+
+  const discounts = Array.from(groupedDiscounts.values()).sort((left, right) => left.lineIndex - right.lineIndex)
+  const amount = discounts.reduce((sum, entry) => sum + entry.discountAmount, 0)
+
+  return {
+    amount,
+    discounts,
+  }
 }
 
 export async function calculatePricing(cartItems, couponCode, options = {}) {
@@ -206,6 +254,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     const unitCost = selectedVariant.costPrice ?? getProductCostForFormat(product, format)
 
     return {
+      lineIndex: index,
       productId: product.id,
       variantId: selectedVariant.id ?? null,
       editionName,
@@ -232,6 +281,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
   const discountedSubtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
 
   let automaticDiscount = 0
+  let threeForTwoDiscounts = []
   let shippingPricing
   let shippingError = null
 
@@ -266,10 +316,11 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
 
     if (rule.ruleType === "buy_3_pay_2") {
       if (buy3Pay2Applied) continue
-      const amount = calculateBuy3Pay2Discount(items, rule.threshold)
+      const { amount, discounts } = calculateBuy3Pay2Discount(items, rule.threshold)
       if (!amount) continue
       automaticDiscount += amount
-      appliedRules.push({ type: "automatic", label: rule.name, amount })
+      appliedRules.push({ type: "automatic_3x2", label: rule.name, amount })
+      threeForTwoDiscounts = discounts
       buy3Pay2Applied = true
     }
 
@@ -346,6 +397,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     total: breakdown.total,
     appliedCoupon,
     appliedRules,
+    threeForTwoDiscounts,
     isShippingPending: !shippingPricing.selectedRate,
     availableShippingRates: shippingPricing.rates,
     shippingError,
