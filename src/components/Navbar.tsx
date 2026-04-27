@@ -27,7 +27,8 @@ import { useShopCart } from "../shop/context/ShopCartProvider"
 import { apiFetch } from "../shop/lib/api"
 import { formatPrice } from "../shop/lib/format"
 import { getPriceForVariant, getProductPrimaryImage, getProductStockStatus } from "../shop/lib/product"
-import { ShopProduct, ShopProductListResponse } from "../shop/types"
+import { getThreeForTwoDiscountAmount, getThreeForTwoItems } from "../shop/lib/pricing-summary"
+import { ShopPricing, ShopProduct, ShopProductListResponse } from "../shop/types"
 
 function highlightMatch(text: string, query: string) {
   const normalized = query.trim()
@@ -85,6 +86,17 @@ const overlayTransition = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const }
 const drawerTransition = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }
 const desktopNavTransition = { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const }
 const mobileScrollablePanelClass = mobileSheetBodyClass
+
+function getSafeSubtotalBeforeThreeForTwo(pricing: ShopPricing | null) {
+  if (!pricing) return 0
+  if (typeof pricing.discountedSubtotal === "number" && Number.isFinite(pricing.discountedSubtotal)) {
+    return pricing.discountedSubtotal
+  }
+  return pricing.items.reduce((sum, item) => {
+    const lineTotal = Number(item.lineTotal)
+    return sum + (Number.isFinite(lineTotal) ? lineTotal : 0)
+  }, 0)
+}
 
 function shuffleProducts(products: ShopProduct[]) {
   const next = [...products]
@@ -193,12 +205,7 @@ export function Navbar() {
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [shuffledSuggestedProducts, setShuffledSuggestedProducts] = useState<ShopProduct[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
-  const [cartPricing, setCartPricing] = useState<{
-    subtotal: number
-    discountTotal: number
-    shippingTotal: number
-    total: number
-  } | null>(null)
+  const [cartPricing, setCartPricing] = useState<ShopPricing | null>(null)
   const [cartPricingError, setCartPricingError] = useState("")
   const [loadingCartPricing, setLoadingCartPricing] = useState(false)
   const [profileError, setProfileError] = useState("")
@@ -496,7 +503,7 @@ export function Navbar() {
     }
 
     setLoadingCartPricing(true)
-    apiFetch<{ subtotal: number; discountTotal: number; shippingTotal: number; total: number }>(
+    apiFetch<ShopPricing>(
       "/store/pricing/preview",
       {
         method: "POST",
@@ -1643,18 +1650,35 @@ export function Navbar() {
                           <div className="space-y-3 text-sm text-white/70">
                             <div className="flex items-center justify-between">
                               <span>Subtotale</span>
-                              <span>{formatPrice(cartPricing.subtotal)}</span>
+                              <span>{formatPrice(getSafeSubtotalBeforeThreeForTwo(cartPricing))}</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span>Sconti</span>
-                              <span>-{formatPrice(cartPricing.discountTotal)}</span>
-                            </div>
+                            {getThreeForTwoDiscountAmount(cartPricing) > 0 ? (
+                              <div className="flex items-center justify-between">
+                                <span>Risparmio 3x2</span>
+                                <span>-{formatPrice(getThreeForTwoDiscountAmount(cartPricing))}</span>
+                              </div>
+                            ) : null}
+                            {getThreeForTwoItems(cartPricing).length ? (
+                              <div className="space-y-1">
+                                <span className="block text-white/55">
+                                  {getThreeForTwoItems(cartPricing).length > 1 ? "Prodotti gratis" : "Prodotto gratis"}
+                                </span>
+                                <div className="space-y-1 text-white/80">
+                                  {getThreeForTwoItems(cartPricing).map((item) => (
+                                    <p key={`desktop-drawer-3x2-${item.lineIndex}`}>
+                                      {item.title}
+                                      {item.quantityDiscounted > 1 ? ` × ${item.quantityDiscounted}` : ""}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
                             <div className="flex items-center justify-between">
                               <span>Spedizione</span>
-                              <span>{formatPrice(cartPricing.shippingTotal)}</span>
+                              <span>Calcolata al checkout</span>
                             </div>
                             <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white">
-                              <span>Totale</span>
+                              <span>Totale provvisorio</span>
                               <span>{formatPrice(cartPricing.total)}</span>
                             </div>
                           </div>
