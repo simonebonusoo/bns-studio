@@ -9,7 +9,7 @@ import { useShopCart } from "../context/ShopCartProvider"
 import { apiFetch } from "../lib/api"
 import { formatPrice } from "../lib/format"
 import { formatVariantSelectionLabel, getPriceForVariant, getProductPrimaryImage } from "../lib/product"
-import { formatThreeForTwoLineMessage, getAdditionalDiscountSummaryRows, getThreeForTwoDiscountForLine, getThreeForTwoDiscountSummaryRows } from "../lib/pricing-summary"
+import { formatThreeForTwoLineMessage, getAdditionalDiscountSummaryRows, getThreeForTwoDiscountAmount, getThreeForTwoDiscountForLine, getThreeForTwoItems } from "../lib/pricing-summary"
 import { ShopPricing } from "../types"
 
 function mapPricingPreviewErrorMessage(message: string) {
@@ -20,12 +20,26 @@ function mapPricingPreviewErrorMessage(message: string) {
   return message
 }
 
+function getSafeSubtotalBeforeThreeForTwo(pricing: ShopPricing | null) {
+  if (!pricing) return 0
+  if (typeof pricing.discountedSubtotal === "number" && Number.isFinite(pricing.discountedSubtotal)) {
+    return pricing.discountedSubtotal
+  }
+  return pricing.items.reduce((sum, item) => {
+    const lineTotal = Number(item.lineTotal)
+    return sum + (Number.isFinite(lineTotal) ? lineTotal : 0)
+  }, 0)
+}
+
 export function ShopCartPage() {
   const isMobileViewport = useIsMobileViewport()
   const { user, loading, effectiveRole } = useShopAuth()
   const { items, updateItem, decrementItem, couponCode, setCouponCode } = useShopCart()
   const [pricing, setPricing] = useState<ShopPricing | null>(null)
   const [error, setError] = useState("")
+  const threeForTwoItems = getThreeForTwoItems(pricing)
+  const threeForTwoDiscountAmount = getThreeForTwoDiscountAmount(pricing)
+  const subtotalBeforeThreeForTwo = getSafeSubtotalBeforeThreeForTwo(pricing)
 
   function openProfilePanel() {
     window.dispatchEvent(new CustomEvent("bns:open-profile"))
@@ -226,16 +240,24 @@ export function ShopCartPage() {
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
           {pricing ? (
             <div className="space-y-3 text-sm text-white/70">
-              <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(pricing.subtotal)}</span></div>
-              {getThreeForTwoDiscountSummaryRows(pricing).map((row) => (
-                <div key={row.key} className="flex items-start justify-between gap-4">
-                  <div>
-                    <p>{row.label}</p>
-                    <p className="text-xs text-white/45">{row.description}</p>
-                  </div>
-                  <span>-{formatPrice(row.amount)}</span>
+              <div className="flex items-center justify-between"><span>Subtotale</span><span>{formatPrice(subtotalBeforeThreeForTwo)}</span></div>
+              {threeForTwoDiscountAmount > 0 ? (
+                <div className="flex items-center justify-between">
+                  <span>Risparmio 3x2</span>
+                  <span>-{formatPrice(threeForTwoDiscountAmount)}</span>
                 </div>
-              ))}
+              ) : null}
+              {threeForTwoItems.length ? (
+                <div className="space-y-1">
+                  <p>{threeForTwoItems.length > 1 ? "Prodotti gratis:" : "Prodotto gratis:"}</p>
+                  {threeForTwoItems.map((entry) => (
+                    <p key={`cart-3x2-${entry.lineIndex}`} className="text-xs text-white/45">
+                      {entry.title}
+                      {entry.quantityDiscounted > 1 ? ` · ${entry.quantityDiscounted} unità` : ""}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
               {getAdditionalDiscountSummaryRows(pricing).map((row) => (
                 <div key={row.key} className="flex items-start justify-between gap-4">
                   <div>
@@ -245,9 +267,8 @@ export function ShopCartPage() {
                   <span>-{formatPrice(row.amount)}</span>
                 </div>
               ))}
-              <div className="flex items-center justify-between"><span>Sconti</span><span>-{formatPrice(pricing.discountTotal)}</span></div>
               <div className="flex items-center justify-between"><span>Spedizione</span><span>Calcolata al checkout</span></div>
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
+              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale provvisorio</span><span>{formatPrice(pricing.total)}</span></div>
               {effectiveRole === "admin" ? (
                 <>
                   <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
