@@ -6,6 +6,10 @@ import { resolveDatabaseUrl } from "../prisma/resolve-database-url.mjs"
 import { getPersistenceStatus } from "../src/server/shop/lib/persistence-status.mjs"
 import { resolveUploadsRootDir } from "../src/server/shop/lib/uploads-storage.mjs"
 
+function isTruthy(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase())
+}
+
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -23,6 +27,19 @@ function run(command, args, options = {}) {
 
       reject(new Error(`${command} ${args.join(" ")} exited with code ${code}`))
     })
+  })
+}
+
+function runForExitCode(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: "inherit",
+      env: options.env || process.env,
+      ...options,
+    })
+
+    child.on("error", reject)
+    child.on("close", (code) => resolve(code ?? 1))
   })
 }
 
@@ -67,6 +84,36 @@ function logConfiguration() {
   console.log(`[bootstrap] LEGACY_STORAGE_MIGRATION=${process.env.SHOP_ALLOW_LEGACY_STORAGE_MIGRATION === "true" ? "enabled" : "disabled"}`)
 }
 
+function isProductionRuntime(env = process.env) {
+  return String(env.NODE_ENV || "development") === "production"
+}
+
+function allowSchemaPush(env = process.env) {
+  if (isProductionRuntime(env)) return false
+  return String(env.NODE_ENV || "development") === "development" || isTruthy(env.ALLOW_SCHEMA_PUSH)
+}
+
+async function assertProductionSchemaReady(runtimeEnv, databaseUrl) {
+  console.log("[bootstrap] Schema push disabled in production; checking schema compatibility")
+  const exitCode = await runForExitCode(
+    "npx",
+    ["prisma", "migrate", "diff", "--from-url", databaseUrl, "--to-schema-datamodel", "prisma/schema.prisma", "--exit-code"],
+    { env: runtimeEnv },
+  )
+
+  if (exitCode === 0) {
+    return
+  }
+
+  if (exitCode === 2) {
+    throw new Error(
+      "Production database schema is not aligned with prisma/schema.prisma. Apply migrations manually before starting the server.",
+    )
+  }
+
+  throw new Error(`Unable to verify production schema state (prisma migrate diff exit code ${exitCode}).`)
+}
+
 async function main() {
   const resolvedDatabaseUrl = resolveDatabaseUrl()
   const resolvedUploadsDir = process.env.UPLOADS_DIR || resolveUploadsRootDir()
@@ -79,7 +126,14 @@ async function main() {
   logConfiguration()
   console.log("[bootstrap] Seed mode=if-empty")
   await cleanupLegacyDropTable(resolvedDatabaseUrl)
-  await run("npx", ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"], { env: runtimeEnv })
+  if (isProductionRuntime(runtimeEnv)) {
+    await assertProductionSchemaReady(runtimeEnv, resolvedDatabaseUrl)
+  } else if (allowSchemaPush(runtimeEnv)) {
+    console.log("[bootstrap] Schema push enabled for non-production runtime")
+    await run("npx", ["prisma", "db", "push", "--skip-generate"], { env: runtimeEnv })
+  } else {
+    console.log("[bootstrap] Schema push skipped (set ALLOW_SCHEMA_PUSH=true outside development to enable it)")
+  }
   await run("node", ["prisma/sync-product-variants.mjs"], { env: runtimeEnv })
   await run("node", ["prisma/backfill-usernames.mjs"], { env: runtimeEnv })
   await run("node", ["prisma/seed.mjs"], { env: runtimeEnv })

@@ -31,3 +31,23 @@ test("seed and legacy docs do not print demo passwords in clear text", () => {
   assert.doesNotMatch(seedSource, /\[seed\] Admin ready: .*admin1234/)
   assert.doesNotMatch(legacyReadme, /admin1234/)
 })
+
+test("bootstrap blocks schema mutations in production and only allows schema push outside production", () => {
+  const bootstrapSource = read("scripts/bootstrap-shop-server.mjs")
+
+  assert.match(bootstrapSource, /function isProductionRuntime/)
+  assert.match(bootstrapSource, /function allowSchemaPush/)
+  assert.match(bootstrapSource, /ALLOW_SCHEMA_PUSH/)
+  assert.match(bootstrapSource, /Schema push disabled in production; checking schema compatibility/)
+  assert.match(bootstrapSource, /prisma", "migrate", "diff"/)
+  assert.doesNotMatch(bootstrapSource, /accept-data-loss/)
+})
+
+test("demo seed is opt-in and stays disabled unless ALLOW_DEMO_SEED is set", () => {
+  const seedSource = read("prisma/seed.mjs")
+
+  assert.match(seedSource, /ALLOW_DEMO_SEED/)
+  assert.match(seedSource, /Demo seed disabled in production/)
+  assert.match(seedSource, /Demo seed disabled\. Set ALLOW_DEMO_SEED=true to create demo data locally\./)
+  assert.match(seedSource, /if \(!allowDemoSeed\) \{/)
+})

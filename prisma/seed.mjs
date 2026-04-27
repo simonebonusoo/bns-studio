@@ -158,6 +158,9 @@ const seededReviews = [
 
 async function main() {
   console.log("[seed] Seeding shop data")
+  const allowDemoSeed = String(process.env.ALLOW_DEMO_SEED || "").trim().toLowerCase() === "true"
+  const forceSeed = String(process.env.FORCE_SHOP_SEED || "").trim().toLowerCase() === "true"
+  const isProduction = String(process.env.NODE_ENV || "development") === "production"
 
   const existingState = await prisma.$transaction([
     prisma.user.count(),
@@ -189,7 +192,16 @@ async function main() {
     `[seed] Existing counts users=${userCount} products=${productCount} tags=${tagCount} collections=${collectionCount} orders=${orderCount} pageViews=${pageViewCount} coupons=${couponCount} rules=${ruleCount} settings=${settingCount} reviews=${reviewCount}`
   )
 
-  if (databaseAlreadyInitialized && process.env.FORCE_SHOP_SEED !== "true") {
+  if (!allowDemoSeed) {
+    console.log(
+      isProduction
+        ? "[seed] Demo seed disabled in production. No demo users, products or public coupons will be created."
+        : "[seed] Demo seed disabled. Set ALLOW_DEMO_SEED=true to create demo data locally.",
+    )
+    return
+  }
+
+  if (databaseAlreadyInitialized && !forceSeed) {
     console.log("[seed] Database gia inizializzato: seed non distruttivo saltato")
     return
   }
