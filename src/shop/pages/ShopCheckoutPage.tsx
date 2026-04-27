@@ -31,6 +31,14 @@ function mapShippingPreviewErrorMessage(message: string) {
   return "La spedizione viene confermata nel passaggio successivo. Puoi scegliere tra Standard e Premium prima del pagamento."
 }
 
+function mapPricingPreviewErrorMessage(message: string) {
+  if (!message) return "Errore durante il calcolo del riepilogo."
+  if (/Packlink quotes/i.test(message) || /Packlink shipment/i.test(message)) {
+    return "Tariffe spedizione temporaneamente non disponibili. Riprova tra poco."
+  }
+  return message
+}
+
 export function ShopCheckoutPage() {
   const { user, isGuestPreview } = useShopAuth()
   const { items, couponCode, setCouponCode, clearCart } = useShopCart()
@@ -69,8 +77,12 @@ export function ShopCheckoutPage() {
   useEffect(() => {
     if (!items.length) {
       setPricing(null)
+      setError("")
+      setShippingNotice("")
       return
     }
+
+    setError("")
 
     apiFetch<ShopPricing>("/store/pricing/preview", {
       method: "POST",
@@ -88,7 +100,7 @@ export function ShopCheckoutPage() {
       .catch((err) => {
         setPricing(null)
         setShippingNotice("")
-        setError(mapShippingPreviewErrorMessage(err instanceof Error ? err.message : "Errore durante il calcolo del riepilogo."))
+        setError(mapPricingPreviewErrorMessage(err instanceof Error ? err.message : "Errore durante il calcolo del riepilogo."))
       })
   }, [couponCode, form.shippingMethod, items])
 
@@ -364,6 +376,8 @@ export function ShopCheckoutPage() {
                 <div className="flex items-center justify-between"><span>Spedizione</span><span>Calcolata al checkout</span></div>
                 <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold text-white"><span>Totale provvisorio</span><span>{formatPrice(pricing.total)}</span></div>
               </div>
+            ) : error ? (
+              <p className="text-sm text-red-300">Impossibile calcolare il riepilogo. {error}</p>
             ) : (
               <p className="text-sm text-white/55">Calcolo del riepilogo in corso...</p>
             )}
@@ -522,6 +536,8 @@ export function ShopCheckoutPage() {
                 {pricing.shippingMethod ? <div className="text-xs text-white/45">{formatShippingMethodSummary(pricing.shippingMethod)}</div> : null}
                 <div className="flex items-center justify-between text-base font-semibold text-white"><span>Totale</span><span>{formatPrice(pricing.total)}</span></div>
               </div>
+            ) : error ? (
+              <p className="border-t border-white/10 pt-4 text-sm text-red-300">Impossibile aggiornare il riepilogo. {error}</p>
             ) : null}
           </aside>
         </div>

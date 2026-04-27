@@ -73,13 +73,16 @@ test("3x2 does not apply with fewer than 3 items", () => {
 
 test("3x2 makes the cheapest item free with 3 items", () => {
   const pricing = calculateBuy3Pay2Discount([
-    { unitPrice: 2000, quantity: 1 },
-    { unitPrice: 1500, quantity: 1 },
-    { unitPrice: 1200, quantity: 1 },
+    { lineIndex: 0, productId: 1, title: "A", unitPrice: 2000, quantity: 1 },
+    { lineIndex: 1, productId: 2, title: "B", unitPrice: 1500, quantity: 1 },
+    { lineIndex: 2, productId: 3, title: "C", unitPrice: 1200, quantity: 1 },
   ])
 
   assert.equal(pricing.amount, 1200)
   assert.equal(pricing.discounts.length, 1)
+  assert.equal(pricing.discounts[0].lineIndex, 2)
+  assert.equal(pricing.discounts[0].title, "C")
+  assert.equal(pricing.discounts[0].discountedPrice, 0)
   assert.equal(pricing.discounts[0].discountAmount, 1200)
   assert.equal(pricing.discounts[0].quantityDiscounted, 1)
 })

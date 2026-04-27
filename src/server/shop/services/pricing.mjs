@@ -217,7 +217,7 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
   })
   const requestedShippingMethod = options.shippingMethod || null
 
-  const items = cartItems.map((item) => {
+  const items = cartItems.map((item, index) => {
     const product = products.find((entry) => entry.id === item.productId)
     const quantity = Number(item.quantity)
 
@@ -396,8 +396,8 @@ export async function calculatePricing(cartItems, couponCode, options = {}) {
     discountTotal: breakdown.discountTotal,
     total: breakdown.total,
     appliedCoupon,
-    appliedRules,
-    threeForTwoDiscounts,
+    appliedRules: Array.isArray(appliedRules) ? appliedRules : [],
+    threeForTwoDiscounts: Array.isArray(threeForTwoDiscounts) ? threeForTwoDiscounts : [],
     isShippingPending: !shippingPricing.selectedRate,
     availableShippingRates: shippingPricing.rates,
     shippingError,
