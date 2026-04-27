@@ -231,12 +231,12 @@ async function main() {
   }
 
   await prisma.coupon.upsert({
-    where: { code: "BNS10" },
+    where: { code: "BNS20" },
     update: {},
     create: {
-      code: "BNS10",
+      code: "BNS20",
       type: "percentage",
-      amount: 10,
+      amount: 20,
       usageLimit: 50,
       active: true,
     },
@@ -270,6 +270,22 @@ async function main() {
       discountType: "shipping",
       amount: 100,
       priority: 20,
+      active: true,
+    },
+  })
+
+  await prisma.discountRule.upsert({
+    where: { id: 3 },
+    update: {},
+    create: {
+      id: 3,
+      name: "Welcome offer prima registrazione",
+      description: "Genera un coupon monouso del 20% per il primo ordine dopo la registrazione dal popup.",
+      ruleType: "first_registration",
+      threshold: 1,
+      discountType: "percentage",
+      amount: 20,
+      priority: 30,
       active: true,
     },
   })

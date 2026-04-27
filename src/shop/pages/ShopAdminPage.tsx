@@ -366,7 +366,7 @@ const emptyCategoryForm = (): CategoryFormState => ({
 const emptyCouponForm = (): CouponFormState => ({
   code: "",
   type: "percentage",
-  amount: "10",
+  amount: "20",
   expiresAt: "",
   usageLimit: "",
   active: true,
@@ -378,7 +378,7 @@ const emptyRuleForm = (): RuleFormState => ({
   ruleType: "quantity_percentage",
   threshold: "2",
   discountType: "percentage",
-  amount: "10",
+  amount: "20",
   priority: 100,
   startsAt: "",
   endsAt: "",

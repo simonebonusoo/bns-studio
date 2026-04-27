@@ -144,9 +144,9 @@ export function RegisterPromoPopup() {
         <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0b0b0c] p-5 shadow-2xl md:p-6">
           <div className="text-center">
             <p className="text-[11px] uppercase tracking-[0.24em] text-lime-200/80">Welcome offer</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">Sblocca il 10% di sconto</h2>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">Sblocca il 20% di sconto</h2>
             <p className="mt-3 text-sm leading-6 text-white/60">
-              Crea il tuo account e ricevi il codice per il primo ordine
+              Crea il tuo account e ricevi il 20% di sconto sul primo ordine
             </p>
           </div>
 
@@ -203,7 +203,7 @@ export function RegisterPromoPopup() {
 
             <div className="space-y-3 pt-1">
               <Button type="submit" variant="cart" disabled={!canSubmit} className="w-full">
-                {submitting ? "Creazione account..." : "Ottieni codice"}
+                {submitting ? "Creazione account..." : "Ottieni il 20%"}
               </Button>
               <button type="button" onClick={closeRegisterPopup} className="mx-auto block text-sm text-white/50 transition hover:text-white">
                 Non ora
