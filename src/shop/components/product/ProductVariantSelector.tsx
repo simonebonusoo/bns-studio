@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { ReactNode, useEffect, useRef, useState } from "react"
 import { formatPrice } from "../../lib/format"
 import { ShopProductVariant } from "../../types"
 
@@ -22,12 +22,18 @@ type ProductVariantSelectorProps = {
 type DropdownOption = {
   key: string
   label: string
-  meta?: string
+  meta?: ReactNode
   image?: string
   selected?: boolean
   disabled?: boolean
   tone?: "price"
   onSelect: () => void
+}
+
+function getValidDiscountPrice(price?: number | null, discountPrice?: number | null) {
+  if (typeof price !== "number" || !Number.isFinite(price) || price < 0) return null
+  if (typeof discountPrice !== "number" || !Number.isFinite(discountPrice) || discountPrice < 0) return null
+  return discountPrice < price ? discountPrice : null
 }
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -119,7 +125,7 @@ function CompactDropdown({
                   )}
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">{option.label}</span>
-                    {option.meta ? <span className="mt-0.5 block truncate text-xs text-white/45">{option.meta}</span> : null}
+                    {option.meta ? <span className="mt-0.5 block text-xs text-white/45">{option.meta}</span> : null}
                   </span>
                 </span>
                 {option.tone === "price" ? <span className="shrink-0 text-sm font-medium text-[#e3f503]">{option.meta}</span> : null}
@@ -170,8 +176,24 @@ export function ProductVariantSelector({
       options={variants.map((variant) => ({
         key: `${variant.id ?? variant.key}-${variant.position}`,
         label: variant.size || variant.title,
-        meta: `${getVariantStockLabel(variant.id)} · ${formatPrice(variant.price)}`,
         disabled: variant.isActive === false,
+        meta: (() => {
+          const validDiscountPrice = getValidDiscountPrice(variant.price, variant.discountPrice)
+          return (
+            <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <span>{getVariantStockLabel(variant.id)}</span>
+              <span aria-hidden="true">·</span>
+              {validDiscountPrice ? (
+                <>
+                  <span className="line-through">{formatPrice(variant.price)}</span>
+                  <span className="font-medium text-[#e3f503]">{formatPrice(validDiscountPrice)}</span>
+                </>
+              ) : (
+                <span>{formatPrice(variant.price)}</span>
+              )}
+            </span>
+          )
+        })(),
         onSelect: () => onSelect(variant),
       }))}
     />
