@@ -89,7 +89,7 @@ export function Footer() {
         <div className="py-8 flex flex-col items-center text-center gap-6">
           {/* SOCIAL */}
           <div className="flex items-center gap-3">
-            <SocialButton href="https://www.instagram.com/cloudgrphc/?hl=it" label="Instagram">
+            <SocialButton href="https://www.instagram.com/bnsstudio.it/?hl=it" label="Instagram">
               <SiInstagram className="h-5 w-5" />
             </SocialButton>
 
@@ -97,7 +97,7 @@ export function Footer() {
               <SiWhatsapp className="h-5 w-5" />
             </SocialButton>
 
-            <SocialButton href="mailto:bnsstudio@gmail.com" label="Email">
+            <SocialButton href="mailto:bnsstudio26@gmail.com" label="Email">
               <FiMail className="h-5 w-5" />
             </SocialButton>
 

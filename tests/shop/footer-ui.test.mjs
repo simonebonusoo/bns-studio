@@ -27,4 +27,7 @@ test("footer keeps clean PayPal mark and removes LinkedIn social icon", () => {
   assert.doesNotMatch(footer, /LinkedIn/)
   assert.doesNotMatch(footer, /linkedin\.com/)
   assert.doesNotMatch(footer, /viewBox="0 0 48 32"/)
+  assert.match(footer, /href="https:\/\/www\.instagram\.com\/bnsstudio\.it\/\?hl=it"/)
+  assert.match(footer, /href="mailto:bnsstudio26@gmail\.com"/)
+  assert.match(footer, /target=\{href\.startsWith\("http"\) \? "_blank" : undefined\}/)
 })
