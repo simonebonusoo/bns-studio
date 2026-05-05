@@ -1,0 +1,52 @@
+<header class="site-header">
+  <div class="page-shell">
+    <div class="site-header__row">
+      <button class="site-header__icon site-header__icon--menu" type="button" data-mobile-nav-toggle aria-expanded="false" aria-controls="MobileNav">
+        <span></span>
+        <span></span>
+      </button>
+
+      <a class="site-logo" href="{{ routes.root_url }}">{{ shop.name }}</a>
+
+      <nav class="site-nav" aria-label="Primary">
+        {% for link in section.settings.menu.links %}
+          <a href="{{ link.url }}" class="site-nav__link">{{ link.title }}</a>
+        {% endfor %}
+      </nav>
+
+      <div class="site-header__actions">
+        <a class="site-header__icon" href="{{ routes.search_url }}" aria-label="Cerca">
+          {% render 'icon-search' %}
+        </a>
+        <button class="site-header__icon" type="button" data-cart-drawer-open aria-label="Apri carrello">
+          {% render 'icon-cart' %}
+          <span class="site-header__count" data-cart-count>{{ cart.item_count }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-nav" id="MobileNav" hidden>
+    <div class="page-shell">
+      <div class="mobile-nav__inner">
+        {% for link in section.settings.menu.links %}
+          <a href="{{ link.url }}" class="mobile-nav__link">{{ link.title }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</header>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Menu principale",
+      "default": "main-menu"
+    }
+  ]
+}
+{% endschema %}

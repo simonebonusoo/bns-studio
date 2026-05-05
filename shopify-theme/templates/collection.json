@@ -1,0 +1,16 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-collection",
+      "settings": {
+        "show_description": true,
+        "products_per_page": 12,
+        "columns_desktop": 4,
+        "columns_mobile": 2
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

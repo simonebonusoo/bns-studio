@@ -1,0 +1,53 @@
+<section class="main-cart">
+  <div class="page-shell">
+    <div class="section-heading section-heading--collection">
+      <h1>Il tuo carrello</h1>
+      <p>Gestisci quantità e prodotti prima del checkout Shopify.</p>
+    </div>
+
+    {% if cart.item_count > 0 %}
+      <form action="{{ routes.cart_url }}" method="post" novalidate class="cart-page">
+        <div class="cart-page__items">
+          {% for item in cart.items %}
+            <article class="cart-line">
+              <div class="cart-line__media">
+                {% if item.image %}
+                  <img src="{{ item.image | image_url: width: 360 }}" alt="{{ item.title | escape }}">
+                {% endif %}
+              </div>
+              <div class="cart-line__content">
+                <a href="{{ item.url }}" class="cart-line__title">{{ item.product.title }}</a>
+                <p class="cart-line__variant">{{ item.variant.title }}</p>
+                <div class="cart-line__meta">
+                  <span>{{ item.final_price | money }}</span>
+                  <input class="cart-line__qty" type="number" name="updates[]" value="{{ item.quantity }}" min="0">
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+
+        <aside class="cart-summary">
+          <div class="cart-summary__row"><span>Subtotale</span><span>{{ cart.total_price | money }}</span></div>
+          <div class="cart-summary__row"><span>Spedizione</span><span>Calcolata al checkout</span></div>
+          <button type="submit" class="button button--secondary">Aggiorna carrello</button>
+          <button type="submit" name="checkout" class="button button--primary">Checkout</button>
+        </aside>
+      </form>
+    {% else %}
+      <div class="empty-state">
+        <p>Il carrello è vuoto.</p>
+        <a href="{{ routes.all_products_collection_url }}" class="button button--primary">Vai al catalogo</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Main cart",
+  "settings": [
+    { "type": "checkbox", "id": "show_notes", "label": "Mostra note carrello", "default": true }
+  ]
+}
+{% endschema %}

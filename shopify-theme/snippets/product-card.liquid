@@ -1,0 +1,36 @@
+<article class="product-card">
+  <a href="{{ product.url }}" class="product-card__image-link">
+    <div class="product-card__image-wrap">
+      {% if product.featured_image %}
+        <img src="{{ product.featured_image | image_url: width: 720 }}" alt="{{ product.featured_image.alt | escape }}" class="product-card__image">
+      {% else %}
+        <div class="product-card__placeholder">Nessuna immagine disponibile</div>
+      {% endif %}
+    </div>
+  </a>
+
+  <div class="product-card__body">
+    <div class="product-card__meta">
+      {% if product.type != blank %}
+        <span class="shop-pill">{{ product.type }}</span>
+      {% endif %}
+      {% if product.collections.first %}
+        <span class="product-card__collection">{{ product.collections.first.title }}</span>
+      {% endif %}
+    </div>
+
+    <h3 class="product-card__title"><a href="{{ product.url }}">{{ product.title }}</a></h3>
+
+    <div class="product-card__footer">
+      <div class="product-card__stock">
+        {% if product.available %}Disponibile{% else %}Esaurito{% endif %}
+      </div>
+      <div class="product-card__price">
+        {% if product.compare_at_price_max > product.price %}
+          <span class="product-card__compare">{{ product.compare_at_price_max | money }}</span>
+        {% endif %}
+        <span class="product-card__current">{{ product.price | money }}</span>
+      </div>
+    </div>
+  </div>
+</article>

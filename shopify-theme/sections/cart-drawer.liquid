@@ -1,0 +1,45 @@
+<aside class="cart-drawer" data-cart-drawer hidden>
+  <div class="cart-drawer__overlay" data-cart-drawer-close></div>
+  <div class="cart-drawer__panel" role="dialog" aria-modal="true" aria-label="Carrello">
+    <div class="cart-drawer__header">
+      <div>
+        <p class="cart-drawer__eyebrow">Carrello shop</p>
+        <h2>Il tuo carrello</h2>
+      </div>
+      <button type="button" class="cart-drawer__close" data-cart-drawer-close aria-label="Chiudi carrello">&times;</button>
+    </div>
+
+    <div class="cart-drawer__body" data-cart-drawer-items>
+      {% if cart.item_count > 0 %}
+        {% for item in cart.items %}
+          <article class="drawer-line">
+            {% if item.image %}
+              <img src="{{ item.image | image_url: width: 240 }}" alt="{{ item.title | escape }}" class="drawer-line__image">
+            {% endif %}
+            <div class="drawer-line__content">
+              <a href="{{ item.url }}" class="drawer-line__title">{{ item.product.title }}</a>
+              <p class="drawer-line__variant">{{ item.variant.title }}</p>
+              <p class="drawer-line__price">{{ item.final_line_price | money }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <p class="empty-state">Il carrello è vuoto.</p>
+      {% endif %}
+    </div>
+
+    <div class="cart-drawer__footer">
+      <div class="cart-summary__row"><span>Subtotale</span><span data-cart-drawer-total>{{ cart.total_price | money }}</span></div>
+      <div class="cart-summary__row"><span>Spedizione</span><span>Calcolata al checkout</span></div>
+      <a href="{{ routes.cart_url }}" class="button button--secondary">Apri carrello</a>
+      <a href="{{ routes.cart_url }}" class="button button--primary">Vai al checkout</a>
+    </div>
+  </div>
+</aside>
+
+{% schema %}
+{
+  "name": "Cart drawer",
+  "settings": []
+}
+{% endschema %}

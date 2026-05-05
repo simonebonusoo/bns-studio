@@ -1,0 +1,87 @@
+<section class="main-product">
+  <div class="page-shell">
+    <div class="product-layout">
+      <div class="product-gallery-card">
+        {% if product.featured_image %}
+          <img src="{{ product.featured_image | image_url: width: 1200 }}" alt="{{ product.featured_image.alt | escape }}" class="product-gallery-card__image">
+        {% else %}
+          <div class="product-gallery-card__placeholder">Nessuna immagine disponibile</div>
+        {% endif %}
+      </div>
+
+      <div class="product-panel">
+        <p class="product-panel__eyebrow">{{ product.type | default: product.vendor }}</p>
+        <h1 class="product-panel__title">{{ product.title }}</h1>
+
+        {% if section.settings.show_collection_link and product.collections.first %}
+          <a href="{{ product.collections.first.url }}" class="product-panel__collection">{{ product.collections.first.title }}</a>
+        {% endif %}
+
+        <div class="product-price-box">
+          {% if product.compare_at_price_max > product.price %}
+            <span class="product-price-box__compare">{{ product.compare_at_price_max | money }}</span>
+          {% endif %}
+          <span class="product-price-box__price">{{ product.price | money }}</span>
+        </div>
+
+        {% form 'product', product, class: 'product-form' %}
+          {% if product.has_only_default_variant == false %}
+            <div class="product-form__field">
+              <label for="VariantSelect-{{ section.id }}">Variante</label>
+              <select id="VariantSelect-{{ section.id }}" name="id" class="product-form__select">
+                {% for variant in product.variants %}
+                  <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %} {% unless variant.available %}disabled{% endunless %}>
+                    {{ variant.title }} · {{ variant.price | money }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          {% else %}
+            <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+          {% endif %}
+
+          <div class="product-form__actions">
+            <button type="submit" class="button button--primary" {% unless product.available %}disabled{% endunless %}>
+              {% if product.available %}Aggiungi al carrello{% else %}Esaurito{% endif %}
+            </button>
+            <a href="{{ routes.cart_url }}" class="button button--secondary">Vai al carrello</a>
+          </div>
+        {% endform %}
+
+        {% if product.description != blank %}
+          <div class="product-panel__description rte">{{ product.description }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% assign related_collection = product.collections.first %}
+    {% if section.settings.show_related and related_collection != blank and related_collection.products_count > 1 %}
+      <div class="related-products">
+        <div class="section-heading">
+          <h2>Prodotti collegati</h2>
+        </div>
+        <div class="product-grid">
+          {% assign shown_related = 0 %}
+          {% for related_product in related_collection.products %}
+            {% if related_product.id != product.id and shown_related < section.settings.related_products_to_show %}
+              {% render 'product-card', product: related_product %}
+              {% assign shown_related = shown_related | plus: 1 %}
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Main product",
+  "settings": [
+    { "type": "checkbox", "id": "show_vendor", "label": "Mostra vendor", "default": false },
+    { "type": "checkbox", "id": "show_collection_link", "label": "Mostra collezione", "default": true },
+    { "type": "checkbox", "id": "show_related", "label": "Mostra correlati", "default": true },
+    { "type": "range", "id": "related_products_to_show", "min": 2, "max": 8, "step": 1, "label": "Prodotti correlati", "default": 4 }
+  ]
+}
+{% endschema %}

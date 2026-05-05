@@ -1,0 +1,40 @@
+{% assign featured_collection = collections[section.settings.collection] %}
+<section class="featured-collection">
+  <div class="page-shell">
+    <div class="section-heading">
+      {% if section.settings.title != blank %}
+        <h2>{{ section.settings.title }}</h2>
+      {% endif %}
+      {% if section.settings.description != blank %}
+        <p>{{ section.settings.description }}</p>
+      {% endif %}
+    </div>
+
+    <div class="product-grid">
+      {% if featured_collection != blank %}
+        {% for product in featured_collection.products limit: section.settings.products_to_show %}
+          {% render 'product-card', product: product %}
+        {% endfor %}
+      {% else %}
+        {% for product in collections.all.products limit: section.settings.products_to_show %}
+          {% render 'product-card', product: product %}
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Featured collection",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Titolo", "default": "In evidenza" },
+    { "type": "textarea", "id": "description", "label": "Descrizione", "default": "Una selezione di prodotti con la direzione visiva BNS Studio." },
+    { "type": "collection", "id": "collection", "label": "Collezione" },
+    { "type": "range", "id": "products_to_show", "min": 4, "max": 12, "step": 1, "label": "Prodotti", "default": 8 }
+  ],
+  "presets": [
+    { "name": "Featured collection" }
+  ]
+}
+{% endschema %}

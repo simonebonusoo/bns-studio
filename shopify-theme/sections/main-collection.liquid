@@ -1,0 +1,44 @@
+<section class="main-collection">
+  <div class="page-shell">
+    <div class="section-heading section-heading--collection">
+      <h1>{{ collection.title }}</h1>
+      {% if section.settings.show_description and collection.description != blank %}
+        <div class="rte">{{ collection.description }}</div>
+      {% endif %}
+    </div>
+
+    {% paginate collection.products by section.settings.products_per_page %}
+      <div class="product-grid product-grid--collection">
+        {% for product in collection.products %}
+          {% render 'product-card', product: product %}
+        {% else %}
+          <p class="empty-state">Nessun prodotto disponibile in questa collezione.</p>
+        {% endfor %}
+      </div>
+
+      {% if paginate.pages > 1 %}
+        <nav class="pagination" aria-label="Pagination">
+          {% if paginate.previous %}
+            <a href="{{ paginate.previous.url }}">Precedente</a>
+          {% endif %}
+          <span>Pagina {{ paginate.current_page }} di {{ paginate.pages }}</span>
+          {% if paginate.next %}
+            <a href="{{ paginate.next.url }}">Successiva</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% endpaginate %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Main collection",
+  "settings": [
+    { "type": "checkbox", "id": "show_description", "label": "Mostra descrizione", "default": true },
+    { "type": "range", "id": "products_per_page", "min": 8, "max": 24, "step": 4, "label": "Prodotti per pagina", "default": 12 },
+    { "type": "range", "id": "columns_desktop", "min": 2, "max": 4, "step": 1, "label": "Colonne desktop", "default": 4 },
+    { "type": "range", "id": "columns_mobile", "min": 1, "max": 2, "step": 1, "label": "Colonne mobile", "default": 2 }
+  ]
+}
+{% endschema %}

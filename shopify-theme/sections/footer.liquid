@@ -1,0 +1,30 @@
+<footer class="site-footer">
+  <div class="page-shell">
+    <div class="site-footer__inner">
+      <div class="site-footer__socials">
+        <a href="https://www.instagram.com/bnsstudio.it/?hl=it" target="_blank" rel="noreferrer" aria-label="Instagram" class="social-button">{% render 'icon-instagram' %}</a>
+        <a href="https://wa.me/3913170206" target="_blank" rel="noreferrer" aria-label="WhatsApp" class="social-button">{% render 'icon-whatsapp' %}</a>
+        <a href="mailto:bnsstudio26@gmail.com" aria-label="Email" class="social-button">{% render 'icon-email' %}</a>
+      </div>
+
+      <a class="site-footer__logo" href="{{ routes.root_url }}">{{ shop.name }}</a>
+
+      <div class="site-footer__payments">
+        <span class="site-footer__label">Pagamenti accettati</span>
+        <div class="paypal-mark">PayPal</div>
+      </div>
+
+      <div class="site-footer__meta">
+        <p>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. All rights reserved.</p>
+        <a href="/policies/privacy-policy">Privacy Policy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "settings": []
+}
+{% endschema %}

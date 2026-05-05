@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Theme settings",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Tema BNS Studio separato dal progetto React/Node live."
+      },
+      {
+        "type": "text",
+        "id": "brand_tagline",
+        "label": "Tagline brand",
+        "default": "Poster, stampe e oggetti con l'estetica BNS Studio."
+      },
+      {
+        "type": "color",
+        "id": "accent_color",
+        "label": "Colore accento",
+        "default": "#e3f503"
+      }
+    ]
+  }
+]
