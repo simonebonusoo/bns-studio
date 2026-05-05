@@ -82,17 +82,17 @@ function CompactDropdown({
   }, [open])
 
   return (
-    <div ref={ref} className="relative rounded-2xl border border-white/10 px-4 py-3">
+    <div ref={ref} className="relative min-w-0 w-full max-w-full rounded-2xl border border-white/10 px-4 py-3">
       <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{label}</p>
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="mt-2 flex min-h-[46px] w-full items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.025] px-4 py-2 text-left text-white transition hover:border-white/24 hover:bg-white/[0.045]"
+        className="mt-2 flex min-h-[46px] w-full max-w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-lg border border-white/10 bg-white/[0.025] px-4 py-2 text-left text-white transition hover:border-white/24 hover:bg-white/[0.045]"
         aria-expanded={open}
       >
-        <span className="flex min-w-0 items-center gap-3">
+        <span className="flex min-w-0 max-w-full flex-1 items-center gap-3 overflow-hidden">
           {selectedImage ? <img src={selectedImage} alt="" className="h-8 w-8 rounded-md object-cover" /> : null}
-          <span className="min-w-0 truncate text-sm font-medium">{value || emptyLabel}</span>
+          <span className="min-w-0 max-w-full truncate text-sm font-medium">{value || emptyLabel}</span>
         </span>
         <span className="shrink-0 text-white/55">
           <ChevronIcon open={open} />
@@ -111,21 +111,21 @@ function CompactDropdown({
                   option.onSelect()
                   setOpen(false)
                 }}
-                className={`flex min-h-[50px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                className={`flex min-h-[50px] w-full max-w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-lg px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${
                   option.selected
                     ? "bg-[#e3f503]/10 text-white"
                     : "text-white/78 hover:bg-white/[0.055] hover:text-white"
                 }`}
               >
-                <span className="flex min-w-0 items-center gap-3">
+                <span className="flex min-w-0 max-w-full flex-1 items-center gap-3 overflow-hidden">
                   {option.image ? (
                     <img src={option.image} alt="" className="h-9 w-9 rounded-md object-cover" />
                   ) : (
                     <span className="h-9 w-9 rounded-md border border-white/10 bg-white/[0.04]" />
                   )}
-                  <span className="min-w-0">
+                  <span className="min-w-0 max-w-full flex-1 overflow-hidden">
                     <span className="block truncate text-sm font-medium">{option.label}</span>
-                    {option.meta ? <span className="mt-0.5 block text-xs text-white/45">{option.meta}</span> : null}
+                    {option.meta ? <span className="mt-0.5 block max-w-full overflow-hidden text-xs text-white/45">{option.meta}</span> : null}
                   </span>
                 </span>
                 {option.tone === "price" ? <span className="shrink-0 text-sm font-medium text-[#e3f503]">{option.meta}</span> : null}
@@ -180,16 +180,16 @@ export function ProductVariantSelector({
         meta: (() => {
           const validDiscountPrice = getValidDiscountPrice(variant.price, variant.discountPrice)
           return (
-            <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <span>{getVariantStockLabel(variant.id)}</span>
-              <span aria-hidden="true">·</span>
+            <span className="flex min-w-0 max-w-full items-center gap-x-1.5 overflow-hidden whitespace-nowrap">
+              <span className="truncate">{getVariantStockLabel(variant.id)}</span>
+              <span aria-hidden="true" className="shrink-0">·</span>
               {validDiscountPrice ? (
                 <>
-                  <span className="line-through">{formatPrice(variant.price)}</span>
-                  <span className="font-medium text-[#e3f503]">{formatPrice(validDiscountPrice)}</span>
+                  <span className="shrink-0 line-through">{formatPrice(variant.price)}</span>
+                  <span className="shrink-0 font-medium text-[#e3f503]">{formatPrice(validDiscountPrice)}</span>
                 </>
               ) : (
-                <span>{formatPrice(variant.price)}</span>
+                <span className="shrink-0">{formatPrice(variant.price)}</span>
               )}
             </span>
           )

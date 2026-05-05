@@ -130,29 +130,37 @@ export function ProductPurchasePanel({
             </div>
           </div>
         </div>
-        <div className="grid gap-3 text-sm text-white/65">
-          <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
-            <span>Disponibilità</span>
-            <span>{stockLabel}</span>
+        <div className="grid min-w-0 gap-3 text-sm text-white/65">
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3">
+            <span className="shrink-0">Disponibilità</span>
+            <span className="min-w-0 max-w-full truncate text-right">{stockLabel}</span>
           </div>
-          <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
-            <span>Categoria</span>
-            <button type="button" onClick={onCategoryClick} className="text-sm text-white/80 transition hover:text-[#e3f503]">
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3">
+            <span className="shrink-0">Categoria</span>
+            <button
+              type="button"
+              onClick={onCategoryClick}
+              className="min-w-0 max-w-full truncate text-right text-sm text-white/80 transition hover:text-[#e3f503]"
+            >
               {productCategory}
             </button>
           </div>
           {productCollection ? (
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
-              <span>Collezione</span>
-              <button type="button" onClick={onCollectionClick} className="text-sm text-white/80 transition hover:text-[#e3f503]">
+            <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3">
+              <span className="shrink-0">Collezione</span>
+              <button
+                type="button"
+                onClick={onCollectionClick}
+                className="min-w-0 max-w-full truncate text-right text-sm text-white/80 transition hover:text-[#e3f503]"
+              >
                 {productCollection.title}
               </button>
             </div>
           ) : null}
           {sku ? (
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3">
-              <span>SKU</span>
-              <span>{sku}</span>
+            <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3">
+              <span className="shrink-0">SKU</span>
+              <span className="min-w-0 max-w-full truncate text-right">{sku}</span>
             </div>
           ) : null}
           <ProductEditionSelector
